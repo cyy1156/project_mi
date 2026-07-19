@@ -1,2 +1,31 @@
 # Microsoft Office temporary lock files
 ~$*
+
+# Datasets (large binary files)
+DATA/
+**/*.mat
+**/*.gdf
+**/*.bdf
+**/*.edf
+
+# Python
+**/__pycache__/
+**/*.py[cod]
+**/.venv/
+**/venv/
+*.egg-info/
+.pytest_cache/
+
+# IDE
+**/.idea/
+**/.vscode/
+*.swp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Local outputs / plots
+**/out/
+*.png
+*.npy
