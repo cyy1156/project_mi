@@ -38,7 +38,7 @@ preprocess_lab/
       filter_car.py          # Step4–5
       epoch_baseline.py      # Step6–8
       resample_zscore.py     # Step9–11
-      split_subjects.py      # Step12
+      split_subjects.py      # Step12（全体混合 8:2 + 跨被试）
     pipeline.py              # 串联
   scripts/
     run_one_subject.py
@@ -59,7 +59,7 @@ preprocess_lab/
 | 5 | `05_Step6_8_Epoch基线分类窗.md` | 切窗 / 基线 / 分类窗 |
 | 6 | `06_Step9_重采样.md` | → `(1000, 8)` @ 250 Hz |
 | 7 | `07_Step10_11_Zscore与张量.md` | trial-wise Z-score + `(N,1,8,1000)` |
-| 8 | `08_Step12_按被试划分.md` | 按被试 train/val/test |
+| 8 | `08_Step12_按被试划分.md` | 全体试次混合 8:2；后续再跨被试 |
 | 9 | `09_串流水线与验收.md` | 拼完整 `preprocess_run` |
 
 ---
@@ -87,4 +87,5 @@ numpy
 scipy
 mne
 pandas   # OpenBCI CSV 时需要
+scikit-learn  # Step12 全体试次划分
 ```
