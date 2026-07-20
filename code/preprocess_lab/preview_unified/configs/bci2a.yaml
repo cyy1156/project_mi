@@ -1,0 +1,41 @@
+# BCI Competition IV 2a —— 统一流水线配置示例
+dataset: bci2a
+loader: load_bci2a_mat
+
+# 原始数据（可按机器修改）
+data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A0*T.mat"
+# 先只跑单人时可写死：
+# data_files:
+#   - "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A01T.mat"
+
+# 原始事件码 → [label_task, label_three]
+# BCI 2a: 1=左, 2=右, 3=脚, 4=舌
+label_map:
+  1: [1, 1]   # 左手 → task=1, three=1
+  2: [1, 2]   # 右手 → task=1, three=2
+
+# 直接丢弃的原始码（不得标成静息）
+drop_codes: [3, 4]
+
+# 是否从 Cue 间隙构造静息；静息固定 (task=0, three=0)
+make_rest: true
+# 静息数量上限策略: min_left_right = min(n_left, n_right)
+rest_balance: min_left_right
+
+# 固定 8 通道（缺失则报错，不补零）
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+# 滤波 / 时间窗（与现流水线一致）
+fs_out: 250
+notch_hz: 50
+bandpass: [8.0, 30.0]
+epoch_tmin: -0.5
+epoch_tmax: 4.0
+class_window_sec: 4.0
+
+# 划分与输出
+val_ratio: 0.2
+seed: 42
+out_dir: "out/bci2a"
+save_full: true      # 是否额外保存未划分全量
+save_split: true     # 是否保存 train/val

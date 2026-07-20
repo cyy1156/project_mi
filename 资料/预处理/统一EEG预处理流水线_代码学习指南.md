@@ -53,7 +53,7 @@ Raw EEG
   → Step9 重采样到 250Hz / 1000 点
   → Step10 单试次 Z-score
   → Step11 张量规整 (N,1,8,1000)
-  → Step12 按被试划分 train/val/test
+  → Step12 数据划分（先全体试次混合 8:2；后跨被试）
 ```
 
 ---
@@ -470,27 +470,46 @@ np.save("A01_y_three.npy", y_three)  # (N,)  0=空闲, 1=左手, 2=右手
 
 ---
 
-## 10. Step 12：按被试划分（示意）
+## 10. Step 12：数据划分（先全体混合 8:2，后跨被试）
 
-文档强调：**按被试划分**，不要把同一人的试次打散到 train/test 后假装「跨被试」。
+推荐顺序：
+
+1. **全部被试试次合并**后按比例分 train/val（`stratify=y_three`）→ 训**一个**离线模型看准确率  
+2. 再做 **跨被试**整包划分 → 泛化 / 少样本实验  
+
+全体混合示意（当前优先）：
+
+```python
+from sklearn.model_selection import train_test_split
+
+def split_all_trials(X, y_task, y_three, val_ratio=0.2, seed=42):
+    idx = np.arange(len(X))
+    i_tr, i_va = train_test_split(
+        idx, test_size=val_ratio, random_state=seed, stratify=y_three
+    )
+    return {
+        "train": (X[i_tr], y_task[i_tr], y_three[i_tr]),
+        "val": (X[i_va], y_task[i_va], y_three[i_va]),
+    }
+```
+
+跨被试示意（后续）：
 
 ```python
 def split_by_subject(
-    X: np.ndarray,
-    y_task: np.ndarray,
-    y_three: np.ndarray,
-    subjects: list[str],
-    test_subjects: set[str],
-    val_subjects: set[str],
-) -> dict:
+    X, y_task, y_three, subjects, test_subjects, val_subjects
+):
     subj = np.asarray(subjects)
+    holdout = set(test_subjects) | set(val_subjects)
     masks = {
-        "train": ~np.isin(subj, list(test_subjects | val_subjects)),
+        "train": ~np.isin(subj, list(holdout)),
         "val": np.isin(subj, list(val_subjects)),
         "test": np.isin(subj, list(test_subjects)),
     }
     return {k: (X[m], y_task[m], y_three[m]) for k, m in masks.items()}
 ```
+
+详细说明见：`步骤示例/08_Step12_按被试划分.md`。
 
 ---
 
@@ -573,8 +592,9 @@ y_task ∈ {0,1}；y_three ∈ {0,1,2}
 2. 做通道筛选，确认输出永远是 `(T, 8)` 且顺序正确  
 3. 加 CAR + 滤波，画一条 C3 滤波前后波形  
 4. 只切左手/右手 epoch，检查每段长度  
-5. 基线 → 分类窗 → resample → z-score → 堆成 `(N,1,8,1000)`  
-6. 再实现静息窗与多数据格式 loader  
+5. 基线 → 分类窗 → resample → z-score → 堆成 `(N,1,8,1000)` + 双标签  
+6. 实现静息窗；**合并全部试次后 8:2 划分**，训一个离线模型看准确率  
+7. 再实现跨被试划分与多数据格式 loader  
 
 ---
 
@@ -586,6 +606,7 @@ scipy
 mne
 pandas          # CSV / 表格
 pyyaml          # 可选，存配置
+scikit-learn    # Step12 全体试次划分
 ```
 
 ---
