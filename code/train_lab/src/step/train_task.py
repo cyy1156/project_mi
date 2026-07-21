@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import sys
 from pathlib import Path
+
+
 
 import numpy as np
 import torch
@@ -8,13 +11,13 @@ import torch.nn as nn
 from braindecode.models import EEGNet
 from torch.utils.data import DataLoader
 
-from src.step.dataset import TaskHeadDataset
-from src.step.metrics import binary_task_metrics, format_task_metrics
+from dataset import TaskHeadDataset
+from metrics import binary_task_metrics, format_task_metrics
 
 # 本文件: MI/code/train_lab/src/step/train_task.py
 # parents[0]=step → [1]=src → [2]=train_lab → [3]=code
 ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = ROOT / "preprocess_lab" / "out"
+DATA_DIR = ROOT / "preprocess_lab" / "out"/"bci2a"
 OUT_DIR = ROOT / "train_lab" / "out"
 
 @torch.no_grad()
