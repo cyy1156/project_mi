@@ -1,6 +1,6 @@
 import mne
 from pathlib import Path
-from src.types import ContinuousEEG, sanity_check
+from src.eeg_types import ContinuousEEG, sanity_check
 
 def load_gdf(gdf_path: Path) -> ContinuousEEG:
     raw = mne.io.read_raw_gdf(gdf_path, preload=True, verbose=False)

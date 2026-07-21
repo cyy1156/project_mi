@@ -1,7 +1,7 @@
 import pandas as pd
 import numpy as np
 from pathlib import Path
-from src.types import ContinuousEEG, sanity_check
+from src.eeg_types import ContinuousEEG, sanity_check
 
 def load_openbci_csv(csv_path: Path, fs: float = 250.0) -> ContinuousEEG:
     df = pd.read_csv(csv_path)

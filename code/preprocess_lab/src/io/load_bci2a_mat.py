@@ -9,7 +9,7 @@ from pathlib import Path
 import numpy as np
 import scipy.io
 # from your types import ContinuousEEG
-from src.types import ContinuousEEG, sanity_check
+from src.eeg_types import ContinuousEEG, sanity_check
 
 def load_bci2a_mat(mat_path: Path) -> list[ContinuousEEG]:
     """读取 BCI IV 2a Training .mat，每个带标签 run → 一条 ContinuousEEG。"""

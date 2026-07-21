@@ -4,7 +4,7 @@ from pathlib import Path
 
 import numpy as np
 
-from src.types import ContinuousEEG
+from src.eeg_types import ContinuousEEG
 from src.io.load_bci2a_mat import load_bci2a_mat
 from src.steps.select_channels import select_channels
 from src.steps.filter_car import car_reference, notch_and_bandpass
