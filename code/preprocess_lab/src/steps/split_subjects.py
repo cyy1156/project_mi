@@ -118,6 +118,106 @@ def _test_split_all_trials() -> None:
     print("split_all_trials OK")
 
 
+def make_subject_groups(
+   unique_subjects: list[str],
+   n_folds: int =5,
+   seed: int = 42,
+) ->list[list[str]]:
+    """
+        作用：把全部被试打乱后，尽量均分成 n_folds 组。
+
+        例子（10 人, n_folds=5）→
+          [["A01","A02"], ["A03","A04"], ... 共 5 组]
+        之后：第 k 折用第 k 组当 test。
+
+        注意：seed 固定后，分组结果可复现；不要用 5 个 seed 冒充五折。
+    """
+    rng = np.random.default_rng(seed)
+    subs =np.array(sorted(unique_subjects))
+    rng.shuffle(subs)
+    groups = [list(g) for g in np.array_split(subs, n_folds)]
+    return groups
+def split_train_val_subjects(
+    remain_subjects: list[str],
+    val_ratio: float =0.2,
+    seed: int =42,
+    fold_id:int =0,
+)->tuple[list[str], list[str]]:
+    """
+        作用：从「本折非测试被试」里，按人抽出约 val_ratio 做验证集。
+
+        例子：remain=80 人, val_ratio=0.2 → val≈16 人, train≈64 人。
+
+        seed + fold_id：每折可复现，且折与折之间抽到的 val 人不完全相同。
+    """
+    rng = np.random.default_rng(seed+fold_id)
+    remain=np.array(sorted(remain_subjects))
+    rng.shuffle(remain)
+
+    n_val=0
+    if len(remain)>1:
+        n_val = max(1,int(round(len(remain)*val_ratio)))
+        n_val = min(n_val, len(remain) - 1)  # 至少留 1 人给 train
+
+    val_subjects =remain[:n_val].tolist()
+    train_subjects = remain[n_val:].tolist()
+    return train_subjects,val_subjects
+
+
+def iter_subject_kfold(
+    subjects_per_trial:np.ndarray,
+    n_folds: int =5,
+    val_ratio: float =0.2,
+    seed: int = 42,
+):
+    """
+       作用：生成每一折的划分结果（按人独立）。
+
+       参数 subjects_per_trial：
+         形状 (N,)，与 X 第 0 维等长。
+         例如第 i 条试次来自被试 "A03"，则 subjects_per_trial[i] == "A03"。
+         对应文件：preprocess_lab/out/bci2a/bci2a_subjects.npy
+
+       每一折 yield 一个 dict：
+         fold            : 0..4
+         train_subjects  : 本折训练用的人名列表
+         val_subjects    : 本折验证用的人名列表
+         test_subjects   : 本折测试用的人名列表
+         masks           : {"train"|"val"|"test" -> 长度为 N 的 bool 数组}
+                           True 表示该试次属于该集合
+
+       训练时用法：
+         X_tr = X[masks["train"]]
+         y_tr = y[masks["train"]]
+         ...
+    """
+    unique=sorted(set(subjects_per_trial.tolist()))
+    groups=make_subject_groups(unique, n_folds=n_folds, seed=seed)
+
+    for fold_id,test_subjects in enumerate(groups):
+        remain =[s for i,g in enumerate(groups) if i != fold_id for s in g]
+        train_subjects,val_subjects = split_train_val_subjects(
+            remain,val_ratio=val_ratio,seed=seed,fold_id=fold_id
+        )
+        subj = np.asarray(subjects_per_trial)
+        masks={
+            "train":np.isin(subj, train_subjects),
+            "val":np.isin(subj, val_subjects),
+            "test":np.isin(subj, test_subjects),
+        }
+
+        assert not set(train_subjects)&set(val_subjects)
+        assert not set(test_subjects)&set(val_subjects)
+        assert not set(test_subjects)&set(train_subjects)
+
+        yield {
+            "fold": fold_id,
+            "train_subjects": train_subjects,
+            "val_subjects": val_subjects,
+            "test_subjects": list(test_subjects),
+            "masks": masks,
+        }
+
 def _test_split_by_subject() -> None:
     X = np.zeros((10, 1, 8, 1000), np.float32)
     y_task = np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
@@ -138,9 +238,23 @@ def _test_split_by_subject() -> None:
     print("split_by_subject OK")
 
 
+def _test_iter_subject_kfold() -> None:
+    # 10 人各 5 试次 → 检查五折互斥与覆盖
+    subjects = np.array([f"S{i:02d}" for i in range(10) for _ in range(5)])
+    seen_test = []
+    for info in iter_subject_kfold(subjects, n_folds=5, val_ratio=0.2, seed=42):
+        tr, va, te = set(info["train_subjects"]), set(info["val_subjects"]), set(info["test_subjects"])
+        assert not (tr & va) and not (tr & te) and not (va & te)
+        assert info["masks"]["train"].sum() + info["masks"]["val"].sum() + info["masks"]["test"].sum() == len(subjects)
+        seen_test.extend(info["test_subjects"])
+    assert sorted(seen_test) == [f"S{i:02d}" for i in range(10)]
+    print("iter_subject_kfold OK")
+
+
 def main() -> None:
     _test_split_all_trials()
     _test_split_by_subject()
+    _test_iter_subject_kfold()
 
 
 if __name__ == "__main__":
