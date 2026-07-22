@@ -95,7 +95,7 @@ def main() ->None:
         F1=8,
         D=2,
         F2=16,
-        drop_prob=0.5 ,
+        drop_prob=0.60 ,
     ).to(device)
 
     criterion = nn.CrossEntropyLoss()
@@ -103,7 +103,7 @@ def main() ->None:
 
     best_score=-1.0
     best_state=None
-    epochs=50
+    epochs=100
     for ep in range(1, epochs+1):
         tr_loss=run_epoch(model,train_loader,criterion,optimizer,device,train=True)
         va_loss=run_epoch(model,val_loader,criterion,optimizer,device,train=False)
