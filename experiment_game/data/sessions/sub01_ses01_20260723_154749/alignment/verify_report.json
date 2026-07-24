@@ -1,0 +1,31 @@
+{
+  "passed": true,
+  "checks": [
+    {
+      "ok": true,
+      "name": "t_lsl_monotonic",
+      "detail": "regressions=0"
+    },
+    {
+      "ok": true,
+      "name": "acquire_mi_4s",
+      "detail": "bad=[] n_acquire=6"
+    },
+    {
+      "ok": true,
+      "name": "acquire_rest_4s",
+      "detail": "bad=[] n_acquire=6"
+    },
+    {
+      "ok": true,
+      "name": "eeg_present",
+      "detail": "samples=72436 span=289.79s"
+    },
+    {
+      "ok": true,
+      "name": "markers_within_eeg",
+      "detail": "outside=0"
+    }
+  ],
+  "errors": []
+}

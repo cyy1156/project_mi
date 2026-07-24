@@ -1,0 +1,60 @@
+{
+  "schema_version": 2,
+  "subject": {
+    "subject_id": "sub03",
+    "session_id": "ses01",
+    "notes": ""
+  },
+  "acquisition": {
+    "enabled": true,
+    "board_mode": "cyton",
+    "serial_port": "COM6",
+    "sample_rate_hz": 250,
+    "channel_labels": [
+      "C3",
+      "C4",
+      "CZ",
+      "CP3",
+      "CP4",
+      "CPZ",
+      "FC3",
+      "FC4"
+    ],
+    "filter": {
+      "enabled": false,
+      "bandpass_low_hz": 0.5,
+      "bandpass_high_hz": 45.0,
+      "notch_low_hz": 49.0,
+      "notch_high_hz": 51.0
+    },
+    "markers_lsl": true
+  },
+  "experiment": {
+    "acquire_trials": 64,
+    "learn_trials_per_step": 2,
+    "skip_adapt": false,
+    "skip_learn": false,
+    "skip_gate": false,
+    "seed": null,
+    "open_subject_page": true,
+    "ready_timeout_s": 90.0
+  },
+  "storage": {
+    "save_root": "D:\\cyy\\MI\\experiment_game\\data\\sessions",
+    "save_layout": "phase_folders",
+    "save_eeg": true,
+    "save_events": true,
+    "save_session_meta": true,
+    "save_continuous_master": true,
+    "save_phase_slices": true,
+    "save_trial_index": true,
+    "auto_phase4": true,
+    "extra_copy_dir": null
+  },
+  "ui": {
+    "remember_last_config": true,
+    "skip_setup_if_unchanged": true,
+    "operator_hotkeys": true
+  },
+  "extensions": {}
+}

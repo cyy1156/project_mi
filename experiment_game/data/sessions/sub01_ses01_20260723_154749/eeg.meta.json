@@ -1,0 +1,43 @@
+{
+  "sample_rate_hz": 250,
+  "channel_count": 8,
+  "filtered": true,
+  "use_synthetic": true,
+  "serial_port": "COM5",
+  "csv_file": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub01_ses01_20260723_154749\\eeg.csv",
+  "channel_labels": [
+    "CZ",
+    "C3",
+    "CPZ3",
+    "FC4",
+    "FC3",
+    "CPZ4",
+    "C4",
+    "CPZ"
+  ],
+  "unit": "uV",
+  "samples_written": 72436,
+  "estimated_gap_samples": 15,
+  "non_monotonic_fixes": 0,
+  "empty_pulls": 0,
+  "lsl_span_sec": 289.7889,
+  "lsl_buffer_sec": 300,
+  "stopped_at_local": "2026-07-23T15:52:39",
+  "started_at_local": "2026-07-23T15:47:50",
+  "quality": {
+    "samples_written": 72436,
+    "samples_pushed_during_recording": 72568,
+    "estimated_gap_samples": 15,
+    "non_monotonic_fixes": 0,
+    "missing_vs_lsl": 132,
+    "drop_rate_pct": 0.182,
+    "duration_sec": 290.4,
+    "expected_by_duration": 72599,
+    "lsl_span_sec": 289.789,
+    "expected_by_lsl_span": 72447,
+    "alignment_gap_samples": 152,
+    "lsl_timeline_ok": true,
+    "sample_rate_hz": 250,
+    "severity": "ok"
+  }
+}

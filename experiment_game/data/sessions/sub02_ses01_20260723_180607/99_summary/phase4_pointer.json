@@ -1,0 +1,45 @@
+{
+  "ok": true,
+  "message": "PHASE4_OK",
+  "epochs_dir": "D:\\cyy\\MI\\experiment_game\\data\\epochs\\sub02_ses01_20260723_180607",
+  "phases": [
+    "acquire"
+  ],
+  "exclude_rejected": true,
+  "train_eligible_node": "06_acquire",
+  "summary": {
+    "n": 127,
+    "X_shape": [
+      127,
+      1,
+      8,
+      1000
+    ],
+    "y_task_counts": {
+      "0": 63,
+      "1": 64
+    },
+    "y_three_counts": {
+      "0": 63,
+      "1": 32,
+      "2": 32
+    },
+    "skipped": [
+      {
+        "trial_id": 64,
+        "kind": "rest",
+        "reason": "window_oob",
+        "sample": 297814
+      }
+    ],
+    "epochs_dir": "D:\\cyy\\MI\\experiment_game\\data\\epochs\\sub02_ses01_20260723_180607",
+    "session_dir": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607",
+    "eeg_source": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\eeg.csv",
+    "events_source": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\events.jsonl",
+    "phases": [
+      "acquire"
+    ],
+    "exclude_rejected": true,
+    "train_eligible_node": "06_acquire"
+  }
+}

@@ -1,8 +1,9 @@
 # Microsoft Office temporary lock files
 ~$*
 
-# Datasets (large binary files)
-DATA/
+# Datasets (large public / local binary corpora)
+# Anchor to repo-root only — on Windows, bare "DATA/" also matches **/data/
+/DATA/
 **/*.mat
 **/*.gdf
 **/*.bdf
@@ -25,7 +26,45 @@ DATA/
 .DS_Store
 Thumbs.db
 
-# Local outputs / plots
+# Local outputs / plots (allow curated epoch .npy below)
 **/out/
 *.png
 *.npy
+!experiment_game/data/epochs/**/*.npy
+
+# Nested-repo backup (LSL_connect_model had its own .git)
+_git_backup_LSL_connect_model/
+project_mi/
+
+# ---- experiment_game: ignore dumps by default; keep 3 subjects ----
+experiment_game/data/_*/
+experiment_game/data/_*.txt
+experiment_game/data/*.txt
+
+experiment_game/data/sessions/*
+!experiment_game/data/sessions/sub01_ses01_20260723_154749/
+!experiment_game/data/sessions/sub01_ses01_20260723_154749/**
+!experiment_game/data/sessions/sub02_ses01_20260723_180607/
+!experiment_game/data/sessions/sub02_ses01_20260723_180607/**
+!experiment_game/data/sessions/sub03_ses01_20260723_185153/
+!experiment_game/data/sessions/sub03_ses01_20260723_185153/**
+
+experiment_game/data/epochs/*
+!experiment_game/data/epochs/sub01_ses01_20260723_154749/
+!experiment_game/data/epochs/sub01_ses01_20260723_154749/**
+!experiment_game/data/epochs/sub02_ses01_20260723_180607/
+!experiment_game/data/epochs/sub02_ses01_20260723_180607/**
+!experiment_game/data/epochs/sub03_ses01_20260723_185153/
+!experiment_game/data/epochs/sub03_ses01_20260723_185153/**
+
+# ---- collect_data: source + docs only; no local EEG dumps / weights ----
+collect_data/**/data/recordings/**
+!collect_data/**/data/recordings/.gitkeep
+collect_data/**/MI_model/data/
+collect_data/**/MI_model/dataset/
+collect_data/**/MI_model/reports/
+collect_data/**/models/**/*.pth
+collect_data/**/models/**/*.pt
+collect_data/**/models/**/*.onnx
+collect_data/**/models/**/*.pkl
+collect_data/**/models/**/*.joblib
