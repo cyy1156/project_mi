@@ -6,10 +6,10 @@ from pathlib import Path
 
 import numpy as np
 
-from src.config_load import load_config
-from src.io.registry import as_run_list, get_loader
-from src.pipeline import preprocess_run, sanity_check_outputs
-from src.steps.split_subjects import split_all_trials
+from src.common.config_load import load_config
+from src.datasets.registry import as_run_list, get_loader
+from src.datasets.bci2a.pipeline import preprocess_run, sanity_check_outputs
+from src.common.steps.split_subjects import split_all_trials
 
 def collect_files(cfg:dict) -> dict:
     """根据 yaml 收集本数据集全部输入文件。"""
@@ -59,7 +59,7 @@ def process_one_file(
         y3s.append(y3)
 
     if not xs:
-        empty =np.zeros((0,1,8,1000),np.float32)
+        empty =np.zeros((0,1,8,500),np.float32)
         z = np.zeros((0,),np.int64)
         return empty,z,z.copy(),np.array([],dtype=object)
 
@@ -117,6 +117,8 @@ def save_outputs(
     cfg: dict,
 ) -> Path:
     out_dir =Path(cfg["out_dir"])
+    if not out_dir.is_absolute():
+        out_dir = Path(__file__).resolve().parents[3] / out_dir
     out_dir.mkdir(parents=True, exist_ok=True)
     tag =cfg["dataset"]
 
@@ -162,7 +164,7 @@ def main() -> None:
     args =ap.parse_args()
     cfg_path=Path(args.cfg)
     if not cfg_path.is_absolute():
-        lab_root =Path(__file__).resolve().parents[1]
+        lab_root =Path(__file__).resolve().parents[3]
         cfg_path =lab_root / cfg_path
     cfg = load_config(cfg_path)
     X, y_task, y_three, subjects = process_whole_dataset(cfg)

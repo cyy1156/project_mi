@@ -28,12 +28,14 @@
 | 右手（BCI 2a 的 `y=2`） | 保留 → `(task=1, three=2)` |
 | 双脚 / 舌头（BCI 2a 的 3/4） | **丢弃**（不得标成静息） |
 | 伪迹 trial（`artifacts==1`） | **丢弃** |
-| 静息 | 从无 Cue、无 MI、无伪迹的休息段截 4 s → `(task=0, three=0)` |
+| 静息 | 从无 Cue、无 MI、无伪迹的休息段截 **2 s**（2a）→ `(task=0, three=0)` |
 
 BCI IV 2a 时间约定（后续切窗要用）：
 
 - Cue 在试次绝对时间 **t=2.0 s**
-- 分类窗：**t=2~6 s** ≡ **Cue 后 0~4 s**
+- 范式 MI 段：Cue 后 0~4 s（绝对 t=2~6 s）
+- **分类任务窗**：**Cue 后 2~4 s**（绝对 t=4~6 s）
+- **分类静息窗**：**下一 Cue 前 2 s**
 
 文件建议：`preprocess_lab/src/steps/harmonize_labels.py`
 
@@ -95,7 +97,7 @@ assert set(np.unique(kept[:, 2])).issubset({1, 2})
 
 ## 2.2 静息 Cue（起点）构造
 
-逻辑：优先取「下一次 Cue 前 4 s」作为静息起点；越界或与上一任务窗重叠则丢弃。  
+逻辑：优先取「下一次 Cue 前 **2 s**」作为静息起点；越界或与上一试次范式 MI 段（cue+4s）重叠则丢弃。  
 静息样本标签固定为：`label_task=0`，`label_three=0`。
 
 ```python
@@ -103,7 +105,7 @@ def extract_rest_cues(
     cue_samples: np.ndarray,
     fs: float,
     n_times: int,
-    rest_sec: float = 4.0,
+    rest_sec: float = 2.0,
     task_sec: float = 4.0,
 ) -> list[int]:
     """返回静息窗起点采样索引列表；标签在流水线里写成 (0, 0)。"""
@@ -119,7 +121,7 @@ def extract_rest_cues(
 
         if start < 0 or end > n_times:
             continue
-        if start < prev_task_end:  # 与上一任务窗重叠
+        if start < prev_task_end:  # 与上一任务范式段重叠
             continue
         starts.append(int(start))
     return starts

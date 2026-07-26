@@ -80,8 +80,8 @@ python -m src.step.train_task
 | B | 第二头三分类 | ❌ 以后 |
 
 ```text
-预处理 X: (N, 1, 8, 1000)
-模型输入: (B, 8, 1000)      ← dataset 里去掉中间的 1
+预处理 X: (N, 1, 8, T)     # BCI2a 现行 T=500（out/bci2a_2s）
+模型输入: (B, 8, T)         ← dataset 里去掉中间的 1
 标签:     只用 y_task
 损失:     CrossEntropy(logits, y_task)
 ```
@@ -122,7 +122,7 @@ for part in ("train", "val"):  # part = 哪一份：训练或验证
     X = np.load(out / f"{part}_X.npy")
     yt = np.load(out / f"{part}_y_task.npy")
     print(part, X.shape, np.bincount(yt, minlength=2))
-    assert X.shape[1:] == (1, 8, 1000)
+    assert X.ndim == 4 and X.shape[1] == 1 and X.shape[2] == 8  # T=X.shape[-1]
 print("data ok")
 ```
 
@@ -155,7 +155,7 @@ braindecode
 preprocess_lab/out/*.npy
         │
         ▼
-src/step/dataset.py     → (B, 8, 1000), y_task
+src/step/dataset.py     → (B, 8, T), y_task
         │
         ▼
 braindecode.EEGNet(n_outputs=2)
@@ -193,7 +193,7 @@ class TaskHeadDataset(Dataset):
     """
     阶段 A：静息(0) / 任务(1)。
     __getitem__ 返回:
-      x: (8, 1000) float32
+      x: (8, T) float32
       y: 标量 long，0 或 1
     """
 
@@ -204,10 +204,10 @@ class TaskHeadDataset(Dataset):
         """
         data_dir = Path(data_dir)
         X = np.load(data_dir / f"{split}_X.npy").astype(np.float32)
-        # (N, 1, 8, 1000) → (N, 8, 1000)
+        # (N, 1, 8, T) → (N, 8, T)
         if X.ndim == 4 and X.shape[1] == 1:
             X = X[:, 0, :, :]
-        assert X.ndim == 3 and X.shape[1:] == (8, 1000), X.shape
+        assert X.ndim == 3 and X.shape[1] == 8, X.shape  # T = X.shape[-1]
         self.X = X
         self.y_task = np.load(data_dir / f"{split}_y_task.npy").astype(np.int64)
         assert len(self.X) == len(self.y_task)
@@ -216,7 +216,7 @@ class TaskHeadDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx: int):
-        x = torch.from_numpy(self.X[idx])  # (8, 1000)
+        x = torch.from_numpy(self.X[idx])  # (8, T)
         y = torch.tensor(self.y_task[idx], dtype=torch.long)
         return x, y
 ```
@@ -224,7 +224,7 @@ class TaskHeadDataset(Dataset):
 **自检要点（已核对）：**
 
 - 文件名请用小写 `dataset.py`（不要用 `DataSet.py`，导入易乱）。  
-- `assert ... (8, 1000)`：确认已是 braindecode 输入形状。
+- 确认已是 `(8, T)` braindecode 输入形状；`T` 与预处理窗长一致。
 
 ---
 
@@ -236,13 +236,13 @@ from braindecode.models import EEGNet
 model = EEGNet(
     n_chans=8,
     n_outputs=2,
-    n_times=1000,
+    n_times=X.shape[-1],  # 2a 现行 500
     F1=8,
     D=2,
     F2=16,
     drop_prob=0.5,
 )
-# 输入必须是 (B, 8, 1000)，不是 (B, 1, 8, 1000)
+# 输入必须是 (B, 8, T)，不是 (B, 1, 8, T)
 ```
 
 冒烟：
@@ -251,8 +251,8 @@ model = EEGNet(
 import torch
 from braindecode.models import EEGNet
 
-m = EEGNet(n_chans=8, n_outputs=2, n_times=1000, F1=8, D=2, F2=16, drop_prob=0.5)
-y = m(torch.randn(4, 8, 1000))
+m = EEGNet(n_chans=8, n_outputs=2, n_times=500, F1=8, D=2, F2=16, drop_prob=0.5)
+y = m(torch.randn(4, 8, 500))
 assert y.shape == (4, 2)
 ```
 
@@ -420,7 +420,7 @@ def main() -> None:
     model = EEGNet(
         n_chans=8,
         n_outputs=2,
-        n_times=1000,
+        n_times=X.shape[-1],  # 2a 现行 500
         F1=8,
         D=2,
         F2=16,
@@ -502,7 +502,7 @@ D:\360MoveData\Users\ckgxnn\Desktop\MI\code\.venv\Scripts\python.exe -m src.step
 | ROOT 层数 | 在 `src/` 下用 `parents[2]` | 在 `src/step/` 下用 **`parents[3]`** → `code/` |
 | 运行模块名 | `python -m src.train_task` | `python -m src.step.train_task` |
 | 指标 | `np.argmax(y_true)`（会毁标签） | `np.asarray(y_true).astype(int)` |
-| 输入形状 | `(B,1,8,1000)` 直接进 EEGNet | Dataset 先变成 `(B,8,1000)` |
+| 输入形状 | `(B,1,8,T)` 直接进 EEGNet | Dataset 先变成 `(B,8,T)`（2a：T=500） |
 | 结束评估 | 用最后一轮权重 | 先 `load_state_dict(best_state)` |
 | 文件名 | `DataSet.py` | 推荐 `dataset.py` |
 
@@ -516,7 +516,7 @@ D:\360MoveData\Users\ckgxnn\Desktop\MI\code\.venv\Scripts\python.exe -m src.step
 |------|----------|
 | Accuracy 高、Specificity 低 | 几乎总猜任务 |
 | train ≫ val | 过拟合（单被试常见） |
-| 形状报错 | 未 squeeze 成 `(B,8,1000)` |
+| 形状报错 | 未 squeeze 成 `(B,8,T)` |
 | `ModuleNotFoundError: src` | 未在 `train_lab` 下设 `PYTHONPATH=.` |
 | `train_task` 为空/无入口 | 对照 §7 把示例粘进 `src/step/train_task.py` |
 
@@ -539,7 +539,7 @@ D:\360MoveData\Users\ckgxnn\Desktop\MI\code\.venv\Scripts\python.exe -m src.step
 
 - [ ] 代码在 `src/step/` 下，导入带 `src.step`  
 - [ ] `ROOT = parents[3]` 指向 `code/`  
-- [ ] `EEGNet(n_outputs=2)`，输入 `(B,8,1000)`  
+- [ ] `EEGNet(n_outputs=2)`，输入 `(B,8,T)`，`n_times=T`  
 - [ ] metrics **无** `argmax` 误用  
 - [ ] 日志有 Accuracy / Recall / Specificity  
 - [ ] 保存 `best_task.pt`，结束评估用的是 best 权重  

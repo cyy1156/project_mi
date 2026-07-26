@@ -12,16 +12,23 @@
 
 ## 0. 先记住最终输出长什么样
 
-所有数据集走完本流水线后，必须落到同一规格：
+跨数据集共享：**8 通道顺序、250 Hz、双标签、trial-wise Z-score**。  
+**窗长由各数据集约定**（不必强行一律 4 s）；训练侧用 `n_times = X.shape[-1]`。
 
-| 项目 | 统一标准 |
+### BCI IV 2a 当前正式设定（`out/bci2a_2s/`）
+
+| 项目 | 标准 |
 |------|----------|
 | 通道 | **8** 个，顺序固定（见下） |
 | 采样率 | **250 Hz** |
-| 时间长度 | **4 s → 1000 点** |
+| 任务窗 | **Cue 后 2~4 s**（2 s → **500** 点） |
+| 静息窗 | **下一 Cue 前 2 s**（= Cue 前 2 s → **500** 点） |
 | 标签 | **双标签**（同一样本两套）：见下表 |
-| 张量 | `(N, 1, 8, 1000)`（样本只存一份，不按分类头复制） |
+| 张量 | `(N, 1, 8, 500)`（样本只存一份，不按分类头复制） |
 | 幅值 | **单试次、单通道 Z-score** |
+
+> 说明：范式上 MI 段仍是 Cue 后 0~4 s；本项目分类**只用后半段 2~4 s**（想象更稳定）。  
+> 其它库（如 Stieger）可自定窗长（常见仍为 4 s → 1000 点），勿与 2a 混用同一 `n_times` 硬编码。
 
 双标签映射（项目计划 §3.1.2）：
 
@@ -47,12 +54,10 @@ Raw EEG
   → Step3 选 8 通道
   → Step4 CAR
   → Step5 Notch 50Hz + Bandpass 8–30Hz
-  → Step6 Epoch（Cue 前 -0.5s ~ Cue 后 4.0s）
-  → Step7 基线校正 [-0.5, 0]
-  → Step8 分类窗 Cue 后 0~4s（等价绝对时间 t=2~6s）
-  → Step9 重采样到 250Hz / 1000 点
+  → Step6–8 切窗 + 基线（2a：任务 Cue+2~4s；静息 Cue 前 2s；基线=窗起点前 0.5s）
+  → Step9 重采样到 250Hz / 窗长对应点数（2a：500）
   → Step10 单试次 Z-score
-  → Step11 张量规整 (N,1,8,1000)
+  → Step11 张量规整 (N,1,8,T)（2a：T=500）
   → Step12 数据划分（先全体试次混合 8:2；后跨被试）
 ```
 
@@ -232,10 +237,12 @@ def sanity_check(eeg: ContinuousEEG) -> None:
 | 双脚 / 舌头（BCI 2a） | **直接丢弃**，不得标成静息 | — |
 | 伪迹 trial | 丢弃 | — |
 
-BCI IV 2a 时间约定：
+BCI IV 2a 时间约定（现行）：
 
 - Cue 在试次绝对时间 **t=2.0 s** 出现  
-- 左/右分类窗：**t=2~6 s** ≡ **Cue 后 0~4 s**
+- 范式 MI 段仍为 Cue 后 0~4 s（绝对 t=2~6 s）  
+- **分类任务窗**：**Cue 后 2~4 s**（绝对 t=4~6 s）  
+- **分类静息窗**：**下一 Cue 前 2 s**
 
 学习示例：只保留左/右事件，并写成双标签。
 
@@ -265,18 +272,21 @@ def extract_rest_cues(
     cue_samples: np.ndarray,
     fs: float,
     n_times: int,
-    rest_sec: float = 4.0,
+    rest_sec: float = 2.0,
+    task_sec: float = 4.0,
 ) -> list[int]:
-    """优先取「下一次 Cue 前 4s」作为静息起点；不足/越界则丢弃。"""
+    """
+    优先取「下一次 Cue 前 rest_sec」作为静息起点（2a 默认 2s）。
+    task_sec：上一试次范式 MI 占用到 cue+task_sec（仍到 +4s），用于避重叠。
+    """
     rest_len = int(rest_sec * fs)
+    task_len = int(task_sec * fs)
     starts = []
     cues = np.sort(cue_samples.astype(int))
     for i in range(len(cues) - 1):
-        # 下一 Cue 前 rest_len 个点
         start = cues[i + 1] - rest_len
         end = cues[i + 1]
-        # 还要保证不与「上一任务窗 Cue~Cue+4s」重叠 —— 此处仅示意
-        prev_task_end = cues[i] + int(4.0 * fs)
+        prev_task_end = cues[i] + task_len
         if start < 0 or end > n_times:
             continue
         if start < prev_task_end:
@@ -338,51 +348,68 @@ def notch_and_bandpass(x: np.ndarray, fs: float) -> np.ndarray:
 
 ---
 
-## 6. Step 6–8：Epoch → 基线校正 → 分类窗
+## 6. Step 6–8：切窗 + 基线校正（BCI2a 现行）
 
-左/右手：
+左/右手（任务态）：
 
-- Epoch：Cue 前 **-0.5 s** ~ Cue 后 **4.0 s**  
-- 基线：`[-0.5, 0]`  
-- 分类输入：Cue 后 **0~4 s**
+- 分类窗：**Cue 后 2~4 s**（2 s）  
+- 基线：分类窗起点前 **0.5 s**（即 Cue+1.5~2.0 s）均值减全窗  
+
+静息：
+
+- 分类窗：**下一 Cue 前 2 s**  
+- 基线：窗内开头 0.5 s 均值减全窗（不缩短最终 2 s）
 
 ```python
-def slice_epoch(x: np.ndarray, cue: int, fs: float) -> np.ndarray | None:
-    """返回 (n_times_epoch, n_ch)，含基线段。"""
-    t0 = cue + int(-0.5 * fs)
-    t1 = cue + int(4.0 * fs)
-    if t0 < 0 or t1 > x.shape[0]:
+def task_window_cue_2_to_4(
+    x: np.ndarray, cue: int, fs: float, baseline_sec: float = 0.5
+) -> np.ndarray | None:
+    """任务：Cue+2~4s；基线=窗起点前 baseline_sec。返回 (2*fs, n_ch)。"""
+    n_win = int(round(2.0 * fs))
+    n_base = int(round(baseline_sec * fs))
+    t0 = cue + int(round(2.0 * fs))
+    t1 = t0 + n_win
+    base_start = t0 - n_base
+    if base_start < 0 or t1 > x.shape[0]:
         return None
-    return x[t0:t1, :]
+    base = x[base_start:t0].mean(axis=0, keepdims=True)
+    return (x[t0:t1] - base).astype(np.float64)
 
-def baseline_correct(epoch: np.ndarray, fs: float) -> np.ndarray:
-    """epoch 从 -0.5s 开始；用前 0.5s 均值归零。"""
-    b1 = int(0.5 * fs)
-    base = epoch[:b1, :].mean(axis=0, keepdims=True)
-    return epoch - base
 
-def classification_window(epoch: np.ndarray, fs: float) -> np.ndarray:
-    """去掉基线段，只留 Cue 后 0~4s。"""
-    c0 = int(0.5 * fs)
-    return epoch[c0:, :]
+def rest_window_with_baseline(
+    x: np.ndarray, start: int, fs: float,
+    win_sec: float = 2.0, baseline_sec: float = 0.5,
+) -> np.ndarray | None:
+    """截 [start, start+win_sec)，用开头 baseline_sec 均值减全窗。"""
+    n = int(round(win_sec * fs))
+    if start < 0 or start + n > x.shape[0]:
+        return None
+    win = x[start:start + n, :].copy()
+    b = int(round(baseline_sec * fs))
+    win = win - win[:b, :].mean(axis=0, keepdims=True)
+    return win
 ```
 
-静息：直接截 4 s；文档说可用自身前 0.5 s 做基线，但**不缩短**最终 4 s 输入——实现时常见做法是：在 4 s 窗内用开头 0.5 s 均值减全窗（学习时先按左/右同一套「先扩窗再截」也可，务必在实验记录里写清）。
+> 旧版「Cue 前 -0.5 ~ Cue 后 4.0 → 再截 0~4s」仍保留在代码里作兼容，**2a 正式流水线已改用上面函数**。
 
 ---
 
-## 7. Step 9：统一重采样到 250 Hz / 1000 点
+## 7. Step 9：统一重采样到 250 Hz / 窗长点数
 
 ```python
 from scipy.signal import resample
 
-def resample_to_1000(x_win: np.ndarray, fs_in: float, fs_out: float = 250.0) -> np.ndarray:
+def resample_to_1000(
+    x_win: np.ndarray,
+    fs_in: float,
+    fs_out: float = 250.0,
+    win_sec: float = 2.0,
+) -> np.ndarray:
     """
-    x_win: (n_times_in, 8)，应对应正好 4 秒。
-    输出: (1000, 8)
+    x_win: (n_times_in, 8)，应对应 win_sec 秒。
+    输出: (int(win_sec*fs_out), 8)；2a 默认 2s→500，其它库可传 4.0→1000。
     """
-    n_out = int(4.0 * fs_out)  # 1000
-    # 若输入已是 250Hz 且长度已是 1000，可直接返回
+    n_out = int(round(win_sec * fs_out))
     if abs(fs_in - fs_out) < 1e-6 and x_win.shape[0] == n_out:
         return x_win.astype(np.float32)
     y = resample(x_win, n_out, axis=0)
@@ -393,11 +420,11 @@ def resample_to_1000(x_win: np.ndarray, fs_in: float, fs_out: float = 250.0) -> 
 
 ## 8. Step 10–11：单试次 Z-score + 张量规整
 
-与「训练集通道 z-score」不同：本标准是 **trial-wise**（每个试次、每个通道，在 4 s 有效窗上算均值方差）。
+与「训练集通道 z-score」不同：本标准是 **trial-wise**（每个试次、每个通道，在分类窗上算均值方差）。
 
 ```python
 def trial_zscore(x: np.ndarray, eps: float = 1e-8) -> np.ndarray:
-    """x: (1000, 8) → 同形状，每通道独立标准化。"""
+    """x: (T, 8) → 同形状，每通道独立标准化（2a：T=500）。"""
     mean = x.mean(axis=0, keepdims=True)
     std = x.std(axis=0, keepdims=True)
     std = np.where(std < eps, 1.0, std)
@@ -405,11 +432,11 @@ def trial_zscore(x: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 
 def to_eegnet_tensor(trials: list[np.ndarray]) -> np.ndarray:
     """
-    trials: 每个元素 (1000, 8)
-    输出: (N, 1, 8, 1000)
+    trials: 每个元素 (T, 8)
+    输出: (N, 1, 8, T)（2a：T=500）
     """
-    arr = np.stack(trials, axis=0)          # (N, 1000, 8)
-    arr = np.transpose(arr, (0, 2, 1))      # (N, 8, 1000)
+    arr = np.stack(trials, axis=0)          # (N, T, 8)
+    arr = np.transpose(arr, (0, 2, 1))      # (N, 8, T)
     return arr[:, None, :, :].astype(np.float32)
 ```
 
@@ -432,23 +459,21 @@ def preprocess_run(
     xs, y_task, y_three = [], [], []
 
     for cue, lab_task, lab_three, _ in kept:
-        ep = slice_epoch(x, int(cue), eeg.fs)
-        if ep is None:
+        win = task_window_cue_2_to_4(x, int(cue), eeg.fs)
+        if win is None:
             continue
-        ep = baseline_correct(ep, eeg.fs)
-        win = classification_window(ep, eeg.fs)
-        win = resample_to_1000(win, fs_in=eeg.fs, fs_out=250.0)
-        if win.shape != (1000, 8):
+        win = resample_to_1000(win, fs_in=eeg.fs, fs_out=250.0, win_sec=2.0)
+        if win.shape != (500, 8):
             continue
         win = trial_zscore(win)
         xs.append(win)
         y_task.append(lab_task)
         y_three.append(lab_three)
 
-    # TODO: 追加静息 → y_task=0, y_three=0，并做数量平衡
+    # TODO: 追加静息（Cue 前 2s）→ y_task=0, y_three=0，并做数量平衡
 
     if not xs:
-        empty_x = np.zeros((0, 1, 8, 1000), np.float32)
+        empty_x = np.zeros((0, 1, 8, 500), np.float32)
         empty_y = np.zeros((0,), np.int64)
         return empty_x, empty_y, empty_y.copy()
 
@@ -463,7 +488,7 @@ def preprocess_run(
 保存示例：
 
 ```python
-np.save("A01_X.npy", X)              # (N,1,8,1000)
+np.save("A01_X.npy", X)              # (N,1,8,500)
 np.save("A01_y_task.npy", y_task)    # (N,)  0=静息, 1=任务
 np.save("A01_y_three.npy", y_three)  # (N,)  0=空闲, 1=左手, 2=右手
 ```
@@ -519,7 +544,7 @@ def split_by_subject(
 |------|--------|------------|----------|
 | CAR | 空间公共噪声 | 连续信号整段 | 滤波前 |
 | 基线校正 | 直流偏移 | Epoch 的 `[-0.5,0]` | 切 epoch 后 |
-| Trial Z-score | 幅值分布 | 分类窗 4 s | 重采样后、进模型前 |
+| Trial Z-score | 幅值分布 | 分类窗（2a：2 s） | 重采样后、进模型前 |
 
 三者都要做，顺序不能乱。
 
@@ -532,7 +557,7 @@ def split_by_subject(
 | 项目 | 现有 `MI_model` | 本文统一流水线 |
 |------|-----------------|----------------|
 | 通道 | 22 | **8** |
-| 采样率 / 点数 | 125 Hz / 500 | **250 Hz / 1000** |
+| 采样率 / 点数 | 125 Hz / 500 | **250 Hz / 500**（2a 现行；窗长可按库配置） |
 | 类别 | 4 类（含脚、舌） | **双标签**：task∈{0,1} + three∈{0,1,2}（静/左/右） |
 | 标准化 | 训练集通道 z-score | **单试次 z-score** |
 | 参考代码 | `src/data/preprocess.py` | 本文示例（需新建） |
@@ -577,7 +602,7 @@ preprocess_lab/
 验收一条（A01）：
 
 ```text
-X.shape == (n, 1, 8, 1000)
+X.shape == (n, 1, 8, 500)
 y_task ∈ {0,1}；y_three ∈ {0,1,2}
 映射一致：静息(0,0) / 左手(1,1) / 右手(1,2)
 无 NaN；每通道 std≈1（trial-wise 后）
@@ -592,7 +617,7 @@ y_task ∈ {0,1}；y_three ∈ {0,1,2}
 2. 做通道筛选，确认输出永远是 `(T, 8)` 且顺序正确  
 3. 加 CAR + 滤波，画一条 C3 滤波前后波形  
 4. 只切左手/右手 epoch，检查每段长度  
-5. 基线 → 分类窗 → resample → z-score → 堆成 `(N,1,8,1000)` + 双标签  
+5. 任务 Cue+2~4s / 静息 Cue 前 2s → resample → z-score → 堆成 `(N,1,8,500)` + 双标签  
 6. 实现静息窗；**合并全部试次后 8:2 划分**，训一个离线模型看准确率  
 7. 再实现跨被试划分与多数据格式 loader  
 

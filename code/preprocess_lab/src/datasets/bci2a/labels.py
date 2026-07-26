@@ -1,5 +1,5 @@
 import numpy as np
-from src.io.load_bci2a_mat import load_bci2a_mat
+from src.datasets.bci2a.load_mat import load_bci2a_mat
 from pathlib import Path
 # BCI IV 2a 原始 y: 1=左, 2=右, 3=脚, 4=舌
 # → label_three: 左=1, 右=2；任务样本的 label_task 恒为 1
@@ -36,12 +36,15 @@ def extract_rest_cues(
     cue_samples: np.ndarray,
     fs: float,
     n_times: int,
-    rest_sec: float = 4.0,
+    rest_sec: float = 2.0,
     task_sec: float = 4.0,
 ) -> list[int]:
-    """返回静息窗起点采样索引列表；标签在流水线里写成 (0, 0)。"""
-    rest_len = int(rest_sec * fs)
-    task_len = int(task_sec * fs)
+    """
+    返回静息窗起点：默认取「下一 Cue 前 rest_sec 秒」= Cue 前 rest_sec。
+    task_sec: 上一试次任务占用到 cue+task_sec（2a MI 段仍到 +4s），用于避免重叠。
+    """
+    rest_len = int(round(rest_sec * fs))
+    task_len = int(round(task_sec * fs))
     starts: list[int] = []
     cues = np.sort(cue_samples.astype(int))
 
@@ -92,7 +95,7 @@ def test_rest_cues() -> None:
 
    # 4) 边界与重叠抽查（核心）
    cues = np.sort(cue_samples.astype(int))
-   rest_len = int(4.0 * fs)
+   rest_len = int(2.0 * fs)
    task_len = int(4.0 * fs)
 
    for s in starts:

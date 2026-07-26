@@ -134,7 +134,7 @@ code/train_lab/out/
 数据仍读：
 
 ```text
-code/preprocess_lab/out/bci2a/
+code/preprocess_lab/out/bci2a_2s/
 ├── train_X.npy / train_y_three.npy
 └── val_X.npy   / val_y_three.npy
 ```
@@ -150,16 +150,16 @@ code/preprocess_lab/out/bci2a/
 class ThreeHeadDataset(Dataset):
     """
     阶段 B：空闲(0) / 左手(1) / 右手(2)。
-    输出 x 形状 (8, 1000)，供 braindecode.EEGNet 使用。
+    输出 x 形状 (8, T)，供 braindecode.EEGNet 使用（2a：T=500）。
     """
 
     def __init__(self, data_dir: str | Path, split: str = "train"):
         data_dir = Path(data_dir)
         X = np.load(data_dir / f"{split}_X.npy").astype(np.float32)
-        # (N, 1, 8, 1000) → (N, 8, 1000)
+        # (N, 1, 8, T) → (N, 8, T)
         if X.ndim == 4 and X.shape[1] == 1:
             X = X[:, 0, :, :]
-        assert X.ndim == 3 and X.shape[1:] == (8, 1000), X.shape
+        assert X.ndim == 3 and X.shape[1] == 8, X.shape  # T=X.shape[-1]
         self.X = X
         self.y_three = np.load(data_dir / f"{split}_y_three.npy").astype(np.int64)
         assert len(self.X) == len(self.y_three)
@@ -170,7 +170,7 @@ class ThreeHeadDataset(Dataset):
         return len(self.X)
 
     def __getitem__(self, idx: int):
-        x = torch.from_numpy(self.X[idx])  # (8, 1000)
+        x = torch.from_numpy(self.X[idx])  # (8, T)
         y = torch.tensor(self.y_three[idx], dtype=torch.long)
         return x, y
 ```
@@ -321,7 +321,7 @@ from metrics import format_three_metrics, three_class_metrics
 # 本文件: MI/code/train_lab/src/step/train_three.py
 # parents[0]=step → [1]=src → [2]=train_lab → [3]=code
 ROOT = Path(__file__).resolve().parents[3]
-DATA_DIR = ROOT / "preprocess_lab" / "out" / "bci2a"
+DATA_DIR = ROOT / "preprocess_lab" / "out" / "bci2a_2s"
 OUT_DIR = ROOT / "train_lab" / "out"
 TASK_CKPT = OUT_DIR / "best_task.pt"  # 阶段 A 权重（必须先存在）
 
@@ -423,7 +423,7 @@ def main() -> None:
     model = EEGNet(
         n_chans=8,
         n_outputs=3,
-        n_times=1000,
+        n_times=X.shape[-1],  # 2a: 500
         F1=8,
         D=2,
         F2=16,
@@ -544,7 +544,7 @@ ckpt_b = torch.load(Path("out/best_three.pt"), map_location="cpu")
 print("A n_outputs:", ckpt_a["n_outputs"], "keys:", len(ckpt_a["model"]))
 print("B n_outputs:", ckpt_b["n_outputs"], "init_from:", ckpt_b["init_from"])
 
-m = EEGNet(n_chans=8, n_outputs=3, n_times=1000, F1=8, D=2, F2=16, drop_prob=0.6)
+m = EEGNet(n_chans=8, n_outputs=3, n_times=500, F1=8, D=2, F2=16, drop_prob=0.6)
 m.load_state_dict(ckpt_b["model"])
 print("B load ok")
 ```

@@ -1,0 +1,29 @@
+# BCI Competition IV 2a —— Cue后2~4s 任务 / Cue前2s 静息 → 500点
+dataset: bci2a
+loader: load_bci2a_mat
+
+data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A0*T.mat"
+
+subject_from: stem3
+
+label_map:
+  1: [1, 1]
+  2: [1, 2]
+drop_codes: [3, 4]
+make_rest: true
+rest_balance: min_left_right
+
+# 切窗说明（实现于 pipeline.py，非本 yaml 驱动）:
+#   任务: cue+2s ~ cue+4s
+#   静息: 下一 cue 前 2s
+win_sec: 2.0
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/bci2a_2s"
+save_full: true
+save_split: true
