@@ -20,8 +20,10 @@ from metrics import binary_task_metrics, format_task_metrics
 # step → src → train_lab → code
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
-DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_2s"
+#DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
+DATA_DIR = PRE_ROOT / "out" / "stieger_2s"
+DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_stieger_2s"
+#DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_2s"
 
 sys.path.insert(0, str(PRE_ROOT))
 from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
@@ -204,7 +206,7 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
         f"被试独立 {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
         f"patience={cfg.patience} | lr={cfg.lr} | wd={cfg.weight_decay} | drop={cfg.drop_prob}"
     )
-
+    """
     for name in ("bci2a_X.npy", "bci2a_y_task.npy", "bci2a_subjects.npy"):
         if not (DATA_DIR / name).exists():
             raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
@@ -212,7 +214,15 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
     X = np.load(DATA_DIR / "bci2a_X.npy")
     y = np.load(DATA_DIR / "bci2a_y_task.npy")
     subjects = np.load(DATA_DIR / "bci2a_subjects.npy", allow_pickle=True)
+    """
 
+    for name in ("stieger_X.npy", "stieger_y_task.npy", "stieger_subjects.npy"):
+      if not (DATA_DIR / name).exists():
+         raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
+
+    X = np.load(DATA_DIR / "stieger_X.npy")
+    y = np.load(DATA_DIR / "stieger_y_task.npy")
+    subjects = np.load(DATA_DIR / "stieger_subjects.npy", allow_pickle=True)
     fold_results = []
     for fold_info in iter_subject_kfold(
         subjects, n_folds=cfg.n_folds, val_ratio=cfg.val_ratio, seed=cfg.seed

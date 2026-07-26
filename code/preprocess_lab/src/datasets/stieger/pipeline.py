@@ -17,6 +17,11 @@ from src.common.steps.resample_zscore import (
     to_model_tensor,
 )
 
+# 与 BCI2a 现行对齐：分类窗 2s → 500@250Hz（取反馈段最后 2s）
+WIN_SEC = 2.0
+FS_OUT = 250.0
+N_TIMES = int(WIN_SEC * FS_OUT)  # 500
+
 
 def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
     if not keep_trial(
@@ -25,7 +30,7 @@ def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
         tr.artifact,
         tr.triallength,
         use_tasks=(1, 2, 3),  # LR + UD + 2D
-        min_feedback_sec=4.0,
+        min_feedback_sec=WIN_SEC,
     ):
         return None
 
@@ -58,14 +63,14 @@ def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
         tr.fs,
         resultind=tr.resultind,
         feedback_t_ms=2000.0,
-        win_sec=4.0,
+        win_sec=WIN_SEC,
         baseline_sec=0.5,
     )
-    if win is None or win.shape[0] != int(4.0 * tr.fs):
+    if win is None or win.shape[0] != int(round(WIN_SEC * tr.fs)):
         return None
 
-    win = resample_to_1000(win, fs_in=tr.fs, fs_out=250.0)
-    if win.shape != (1000, 8):
+    win = resample_to_1000(win, fs_in=tr.fs, fs_out=FS_OUT, win_sec=WIN_SEC)
+    if win.shape != (N_TIMES, 8):
         return None
     win = trial_zscore(win)
     return win, int(y_task), int(y_three)
@@ -102,7 +107,7 @@ def preprocess_session(
         if int(tr.targetnumber) not in allowed or map_target(tr.targetnumber) is None:
             stats["n_drop_target"] += 1
             continue
-        if float(tr.triallength) < 4.0:
+        if float(tr.triallength) < WIN_SEC:
             stats["n_drop_short"] += 1
             continue
 
@@ -118,7 +123,7 @@ def preprocess_session(
 
     stats["n_keep"] = len(xs)
     if not xs:
-        empty = np.zeros((0, 1, 8, 1000), np.float32)
+        empty = np.zeros((0, 1, 8, N_TIMES), np.float32)
         z = np.zeros((0,), np.int64)
         return empty, z, z.copy(), np.array([], dtype=object), stats
 
@@ -134,7 +139,7 @@ def preprocess_session(
 
 def sanity_check_outputs(X, y_task, y_three) -> None:
     assert len(X) > 0, "没有有效试次"
-    assert X.ndim == 4 and X.shape[1:] == (1, 8, 1000)
+    assert X.ndim == 4 and X.shape[1:] == (1, 8, N_TIMES)
     assert len(X) == len(y_task) == len(y_three)
     assert set(np.unique(y_task)).issubset({0, 1})
     assert set(np.unique(y_three)).issubset({0, 1, 2})
@@ -154,7 +159,7 @@ def main() -> None:
     mat_path = Path(
         r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\stieger\S1_Session_10.mat"
     )
-    out_dir = Path(__file__).resolve().parents[1] / "out" / "stieger"
+    out_dir = Path(__file__).resolve().parents[3] / "out" / "stieger_2s"
     out_dir.mkdir(parents=True, exist_ok=True)
 
     X, y_task, y_three, subjects, stats = preprocess_session(mat_path)
@@ -165,7 +170,7 @@ def main() -> None:
     np.save(out_dir / "debug_S1S1_y_task.npy", y_task)
     np.save(out_dir / "debug_S1S1_y_three.npy", y_three)
     np.save(out_dir / "debug_S1S1_subjects.npy", subjects)
-    print("saved to", out_dir)
+    print("saved to", out_dir, "X.shape", X.shape)
 
 
 if __name__ == "__main__":

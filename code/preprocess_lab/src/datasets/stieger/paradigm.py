@@ -17,7 +17,7 @@ def keep_trial(
     triallength: float,
     *,
     use_tasks: tuple[int, ...] = DEFAULT_USE_TASKS,
-    min_feedback_sec: float = 4.0,
+    min_feedback_sec: float = 2.0,
     allowed_by_task:dict[int, set[int]] | None = None,
 ) -> bool:
     """

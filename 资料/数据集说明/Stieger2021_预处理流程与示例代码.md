@@ -17,7 +17,7 @@
 
 ```text
 code/preprocess_lab/out/stieger/
-├── stieger_X.npy            # (N, 1, 8, 1000) float32
+├── stieger_X.npy            # (N, 1, 8, 500) float32  # 现行：反馈段最后 2s
 ├── stieger_y_task.npy       # (N,)  0=静息, 1=任务
 ├── stieger_y_three.npy      # (N,)  0=空闲, 1=左, 2=右
 ├── stieger_subjects.npy     # (N,)  被试 ID，五折用
@@ -33,7 +33,7 @@ code/preprocess_lab/out/stieger/
 | 按数据集分目录 | 2a / Stieger 各自放在 `src/datasets/<name>/`，互不混写标签与切窗 |
 | 共用后处理 | 选 8 导、CAR、滤波、重采样、z-score、划分放在 `src/common/steps/` |
 | 样本子集 | **LR+UD+2D**：左/右 + 原生「下」静息；双手 up 仍丢弃 |
-| 变长试次 | 想象/反馈段最长约 **6 s**，分类窗取该段**最后 4 s**；不足 4 s **丢弃** |
+| 变长试次 | 想象/反馈段最长约 **6 s**，分类窗取该段**最后 2 s**；不足 2 s **丢弃** |
 
 ---
 
@@ -82,7 +82,7 @@ DATA/stieger/
 - 反馈起点：约 **index=4001**（t=2000 ms），官方整段反馈：  
   `trial_feedback = BCI.data{trial}(:, 4001:TrialData(trial).resultind)`
 - 反馈/想象长度变长：约 0.04–6.04 s；timeout 常顶满约 **6 s**
-- **本项目分类窗**：不取反馈开头，而取该反馈段的**最后 4 s**（满 6 s 时即第 2–6 s）
+- **本项目分类窗**：不取反馈开头，而取该反馈段的**最后 2 s**（满 6 s 时即第 4–6 s）
 
 ### 1.4 范式与标签（官方）
 
@@ -119,14 +119,14 @@ DATA/stieger/
 
 | # | 决策项 | 取值 |
 |---|--------|------|
-| 1 | 窗位置 | 想象/反馈段最长约 **6 s**，取该段**最后 4 s**（对齐反馈终点 `resultind` 往前切） |
+| 1 | 窗位置 | 想象/反馈段最长约 **6 s**，取该段**最后 2 s**（对齐反馈终点 `resultind` 往前切） |
 | 2 | 窗长 | 固定 **4.0 s** |
 | 3 | 短于 4 s | 反馈时长 `< 4 s` **丢弃**，并统计比例 |
 | 4 | 基线 | 分类窗起点前 **0.5 s** 均值校正（通常落在 6 s 想象段的前部） |
 | 5 | 静息来源 | **原生 `targetnumber==4`（down）**，来自 **UD + 2D**；不用 ITI 人造静息 |
 | 6 | 范式范围 | **`tasknumber∈{1,2,3}`**，按块保留左/右/静息（见下表）；**始终丢弃 up（双手）** |
 | 7 | 伪迹 | `artifact==1` 的 trial 丢弃 |
-| 8 | 降采样 | 1000 Hz → **250 Hz**（4 s → 1000 点） |
+| 8 | 降采样 | 1000 Hz → **250 Hz**（2 s → 500 点） |
 | 9 | 通道 | 固定序：`Cz, C3, C4, CP3, FC4, FC3, CP4, CPz` |
 | 10 | 滤波 | CAR → 50 Hz notch → 8–30 Hz bandpass（与 2a 相同） |
 
@@ -144,11 +144,11 @@ DATA/stieger/
 
 ```text
 反馈/想象 [0 ──────────────── 6]s
-分类窗              [2 ────── 6]s   ← 最后 4s
+分类窗              [4 ────── 6]s   ← 最后 2s
 基线             [1.5–2]s
 ```
 
-若试次提前命中/失败（反馈只有 4–6 s），仍取**实际反馈段的最后 4 s**。
+若试次提前命中/失败（反馈只有 4–6 s），仍取**实际反馈段的最后 2 s**。
 
 ### 2.1 与 BCI2a 流水线对照
 
@@ -171,7 +171,7 @@ Stieger:
 > **原则**：同一个大文件夹 `src/datasets/` 下，按数据集分子文件夹；共用逻辑进 `src/common/`。  
 > **本文以下所有示例路径 / import 均按此目标结构书写。**  
 > **仓库状态（已物理迁移）**：`common/`、`datasets/bci2a/`、`datasets/stieger/` 已按对照表搬迁并更新 import。  
-> **仍缺、需你自行补全**：`src/datasets/stieger/batch.py`（见同目录 `TODO_自行实现.md`，对应本文 §5.8）。
+> **仓库状态**：`src/datasets/stieger/batch.py` 已按 §5.8 落地；默认输出 `out/stieger_2s`（2s/500）。
 
 相对仓库根目录 `MI/`：
 
@@ -210,7 +210,7 @@ code/preprocess_lab/
 │           ├── load_mat.py              # 读 SX_Session_Y.mat
 │           ├── labels.py                # targetnumber → 双头标签
 │           ├── paradigm.py              # LR 过滤 / 伪迹 / 短窗
-│           ├── windows.py               # 反馈段最后 4s + 基线
+│           ├── windows.py               # 反馈段最后 2s + 基线
 │           ├── pipeline.py              # 单会话串联
 │           └── batch.py                 # 增量批处理（manifest 防重复）
 │
@@ -232,7 +232,7 @@ DATA/
 |------|--------|----------|
 | `src/common/steps/` | 与数据集无关的信号处理、张量、划分 | 2a/Stieger 的事件码、范式过滤 |
 | `src/datasets/bci2a/` | 2a 读入、标签、造静息（Cue前2s）、cue+2~4s 切窗、批处理 | Stieger 字段或切窗 |
-| `src/datasets/stieger/` | Stieger 读入、标签、范式、最后 4s 窗、增量 batch | 2a 的 `THREE_MAP` / cue 切窗 |
+| `src/datasets/stieger/` | Stieger 读入、标签、范式、最后 2s 窗、增量 batch | 2a 的 `THREE_MAP` / cue 切窗 |
 | `src/datasets/registry.py` | 按名字取 loader | 业务预处理逻辑 |
 | `config/*.yaml` | 路径、是否造静息、增量开关等 | 复杂 Python 逻辑 |
 | `out/<dataset>/` | 各库自己的 npy / 清单 | 混用对方权重或清单 |
@@ -251,7 +251,7 @@ DATA/
 | `src/pipline_batch.py` | `src/datasets/bci2a/batch.py` |
 | `src/io/stieger/*` | `src/datasets/stieger/*`（同名文件） |
 | `src/pipeline_stieger.py` | `src/datasets/stieger/pipeline.py` |
-| `src/pipeline_stieger_batch.py`（原先仓库中无此文件） | `src/datasets/stieger/batch.py`（**待你按 §5.8 自行实现**） |
+| `src/pipeline_stieger_batch.py`（原先仓库中无此文件） | `src/datasets/stieger/batch.py`（**已实现**，§5.8） |
 
 ### 3.3 import / 运行方式（目标）
 
@@ -305,18 +305,18 @@ SX_Session_Y.mat
     ▼  Step D  windows
        fb0 = 反馈起点（time 上 t>=2000 ms 的首点；约 index 4000）
        fb1 = 反馈终点（优先 TrialData.resultind，转为半开区间终点）
-       分类窗 = [fb1 - 4s, fb1)     # 想象段最后 4s（满 6s 时即 2–6s）
+       分类窗 = [fb1 - 2s, fb1)     # 想象段最后 2s（满 6s 时即 4–6s）
        基线   = [窗起点 - 0.5s, 窗起点)
-       若反馈不足 4s，或基线越界 → 丢弃
+       若反馈不足 2s，或基线越界 → 丢弃
     │
     ▼  Step E  labels
        2→(1,1) 左；1→(1,2) 右；4→(0,0) 静息
     │
     ▼  Step F  resample + zscore
-       (4000,8)@1000Hz → (1000,8)@250Hz → 每通道 z-score
+       (2000,8)@1000Hz → (500,8)@250Hz → 每通道 z-score
     │
     ▼  Step G  汇总
-       stack → (N,1,8,1000)；写 subjects；可选 8:2 split
+       stack → (N,1,8,500)；写 subjects；可选 8:2 split
 ```
 
 ---
@@ -350,11 +350,11 @@ drop_targets: [3]       # 双手 up 全局丢弃
 rest_targets: [4]       # down = 原生静息（主要来自 UD/2D）
 make_rest_from_iti: false
 
-# 切窗：想象/反馈最长约 6s，取最后 4s
+# 切窗：想象/反馈最长约 6s，取最后 2s
 feedback_t_ms: 2000     # 反馈起点（相对目标呈现，仅用于定位 fb0）
-win_sec: 4.0            # 从反馈终点往前取
+win_sec: 2.0            # 从反馈终点往前取
 baseline_sec: 0.5       # 紧贴分类窗前
-min_feedback_sec: 4.0   # 反馈不足 4s 则丢
+min_feedback_sec: 2.0   # 反馈不足 2s 则丢
 
 target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
 fs_out: 250
@@ -362,7 +362,7 @@ fs_out: 250
 val_ratio: 0.2
 seed: 42
 
-out_dir: "out/stieger"
+out_dir: "out/stieger_2s"
 save_full: true
 save_split: true
 
@@ -495,11 +495,11 @@ def keep_trial(
 
 > **切窗规则（已定稿，勿用旧版）**  
 > - ❌ 旧版：从反馈起点 `fb0` 往后取 4 s（`x[fb0:fb0+4s]`）  
-> - ✅ **现行**：想象/反馈最长约 6 s，取该段**最后 4 s**（`x[fb1-4s:fb1]`），基线为分类窗前 0.5 s  
+> - ✅ **现行**：想象/反馈最长约 6 s，取该段**最后 2 s**（`x[fb1-2s:fb1]`），基线为分类窗前 0.5 s  
 > - 调用时必须传入 `resultind=tr.resultind`（见 §5.7）
 
 ```python
-"""想象/反馈段取最后 4s + 基线校正（现行版；已替换「反馈起点起 4s」）。"""
+"""想象/反馈段取最后 win_sec 秒 + 基线校正（现行默认 2s）。"""
 from __future__ import annotations
 
 import numpy as np
@@ -542,7 +542,7 @@ def extract_mi_or_rest_window(
     *,
     resultind: int,
     feedback_t_ms: float = 2000.0,
-    win_sec: float = 4.0,
+    win_sec: float = 2.0,
     baseline_sec: float = 0.5,
 ) -> np.ndarray | None:
     """
@@ -556,7 +556,7 @@ def extract_mi_or_rest_window(
     满 6s 示意：
       反馈 [0 -------- 6]s
       基线          [1.5–2]
-      分类窗           [2 ------ 6]  ← 最后 4s
+      分类窗               [4 -- 6]  ← 最后 2s
     """
     fb0 = feedback_start_index(time_ms, feedback_t_ms)
     fb1 = feedback_end_index(x_tc.shape[0], resultind, fb0)
@@ -564,7 +564,7 @@ def extract_mi_or_rest_window(
     n_win = int(round(win_sec * fs))
 
     if fb1 - fb0 < n_win:
-        return None  # 反馈不足 4s
+        return None  # 反馈不足 win_sec
 
     win_start = fb1 - n_win
     base_start = win_start - n_base
@@ -790,8 +790,8 @@ def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
     if win is None or win.shape[0] != int(4.0 * tr.fs):
         return None
 
-    win = resample_to_1000(win, fs_in=tr.fs, fs_out=250.0)
-    if win.shape != (1000, 8):
+    win = resample_to_1000(win, fs_in=tr.fs, fs_out=250.0, win_sec=2.0)
+    if win.shape != (500, 8):
         return None
     win = trial_zscore(win)
     return win, int(y_task), int(y_three)
@@ -844,7 +844,7 @@ def preprocess_session(
 
     stats["n_keep"] = len(xs)
     if not xs:
-        empty = np.zeros((0, 1, 8, 1000), np.float32)
+        empty = np.zeros((0, 1, 8, 500), np.float32)
         z = np.zeros((0,), np.int64)
         return empty, z, z.copy(), np.array([], dtype=object), stats
 
@@ -860,7 +860,7 @@ def preprocess_session(
 
 def sanity_check_outputs(X, y_task, y_three) -> None:
     assert len(X) > 0, "没有有效试次"
-    assert X.ndim == 4 and X.shape[1:] == (1, 8, 1000)
+    assert X.ndim == 4 and X.shape[1:] == (1, 8, 500)
     assert len(X) == len(y_task) == len(y_three)
     assert set(np.unique(y_task)).issubset({0, 1})
     assert set(np.unique(y_three)).issubset({0, 1, 2})
@@ -922,7 +922,7 @@ Stieger 全库约 598 个会话、体量很大，典型操作是：
 #### 5.8.2 落盘文件约定
 
 ```text
-out/stieger/
+out/stieger_2s/                # 现行默认（2s → 500 点；旧文档曾写 out/stieger）
 ├── stieger_X.npy              # 全量特征（只追加）
 ├── stieger_y_task.npy
 ├── stieger_y_three.npy
@@ -1237,17 +1237,18 @@ def run_incremental_batch(
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Stieger 增量预处理批处理")
+    # 路径相对 batch.py 所在：.../src/datasets/stieger/batch.py
+    # parents[3]=preprocess_lab，parents[5]=仓库根 MI/
+    _PREPROCESS_ROOT = Path(__file__).resolve().parents[3]
+    _REPO_ROOT = Path(__file__).resolve().parents[5]
     parser.add_argument(
         "--glob",
-        default=str(
-            Path(__file__).resolve().parents[2]
-            / "DATA" / "stieger" / "S*_Session_*.mat"
-        ),
+        default=str(_REPO_ROOT / "DATA" / "stieger" / "S*_Session_*.mat"),
         help="本批原始 mat 通配符",
     )
     parser.add_argument(
         "--out",
-        default=str(Path(__file__).resolve().parents[1] / "out" / "stieger"),
+        default=str(_PREPROCESS_ROOT / "out" / "stieger_2s"),
     )
     parser.add_argument("--delete-raw", action="store_true", help="成功后删除原始 mat")
     parser.add_argument("--rebuild-split", action="store_true", help="用全量重划 train/val")
@@ -1339,7 +1340,7 @@ python -m src.datasets.stieger.batch --delete-raw
 分批推荐顺序：
 
 1. 下载一小批 `.mat` → `DATA/stieger/`  
-2. 跑增量批处理 → 追加 `out/stieger/stieger_*.npy`，更新 `processed_manifest.json`  
+2. 跑增量批处理 → 追加 `out/stieger_2s/stieger_*.npy`，更新 `processed_manifest.json`  
 3. 核对：新文件在清单中、`N` 增加、无 `fail`  
 4. 删除本批原始（或 `--delete-raw`）→ 下载下一批 → 回到步骤 2  
 5. 全部完成后，用全量 `stieger_*.npy` + `subjects` 做被试五折；权重目录与 BCI2a 分开、从零训练  
@@ -1348,7 +1349,7 @@ python -m src.datasets.stieger.batch --delete-raw
 
 ## 7. 验收清单
 
-- [ ] `X.shape[1:] == (1, 8, 1000)`，dtype float32  
+- [ ] `X.shape[1:] == (1, 8, 500)`，dtype float32  
 - [ ] `y_three==0` 当且仅当 `y_task==0`  
 - [ ] 任务样本只有左=1 / 右=2；无 3（双手）泄漏  
 - [ ] 通道序为 `Cz,C3,C4,CP3,FC4,FC3,CP4,CPz`  
@@ -1389,13 +1390,13 @@ python -m src.datasets.stieger.batch --delete-raw
 | `src/datasets/stieger/windows.py` | 新建 / 迁入 |
 | `src/datasets/stieger/load_mat.py` | 新建 / 迁入 |
 | `src/datasets/stieger/pipeline.py` | 由 `pipeline_stieger.py` **迁入并改名** |
-| `src/datasets/stieger/batch.py` | **待你自行实现**（见 `TODO_自行实现.md` / 文档 §5.8） |
+| `src/datasets/stieger/batch.py` | **已实现**（§5.8；默认 `out/stieger_2s`） |
 | `src/datasets/registry.py` | 由 `io/registry.py` **迁入** |
 | `config/bci2a.yaml` / `config/stieger.yaml` | 配置并列 |
 | `out/stieger/processed_manifest.json` | 运行时生成 |
 | `out/stieger/batch_log.jsonl` | 运行时生成 |
 
-> **本文阶段**：目录已按 §3 迁移；`stieger/batch.py` 仍请你按 §5.8 自行写入（仓库内有 `TODO_自行实现.md` 标记）。
+> **本文阶段**：目录已按 §3 迁移；`stieger/batch.py` 已按 §5.8 落地。
 
 ---
 

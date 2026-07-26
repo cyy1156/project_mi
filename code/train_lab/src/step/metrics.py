@@ -50,7 +50,7 @@ def format_task_metrics(part_name: str, m: dict[str, float]) -> str:
             f"  Precision     精确率       = {m['precision']:.4f}",
             f"  F1-score      F1          = {m['f1']:.4f}",
             f"  Balanced Acc  平衡准确率   = {m['balanced_accuracy']:.4f}",
-            f"  ※ 第二分类头请用 train_three.py / three_class_metrics",
+            f"  ※ 第二分类头请用 train_three_kfold.py / three_class_metrics",
         ]
     )
 

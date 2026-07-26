@@ -1,4 +1,4 @@
-"""想象/反馈段取最后 4s + 基线校正（现行版；已替换「反馈起点起 4s」）。"""
+"""想象/反馈段取最后 win_sec 秒 + 基线校正（现行默认 2s → 500@250Hz）。"""
 from __future__ import annotations
 
 import numpy as np
@@ -41,7 +41,7 @@ def extract_mi_or_rest_window(
     *,
     resultind: int,
     feedback_t_ms: float = 2000.0,
-    win_sec: float = 4.0,
+    win_sec: float = 2.0,
     baseline_sec: float = 0.5,
 ) -> np.ndarray | None:
     """
@@ -52,10 +52,10 @@ def extract_mi_or_rest_window(
     基线 = 分类窗起点前 baseline_sec。
     返回 (win_sec*fs, n_ch)；不够长则 None。
 
-    满 6s 示意：
+    满 6s、win_sec=2 示意：
       反馈 [0 -------- 6]s
-      基线          [1.5–2]
-      分类窗           [2 ------ 6]  ← 最后 4s
+      基线            [3.5–4]
+      分类窗               [4 -- 6]  ← 最后 2s
     """
     fb0 = feedback_start_index(time_ms, feedback_t_ms)
     fb1 = feedback_end_index(x_tc.shape[0], resultind, fb0)
@@ -63,7 +63,7 @@ def extract_mi_or_rest_window(
     n_win = int(round(win_sec * fs))
 
     if fb1 - fb0 < n_win:
-        return None  # 反馈不足 4s
+        return None  # 反馈不足 win_sec
 
     win_start = fb1 - n_win
     base_start = win_start - n_base
