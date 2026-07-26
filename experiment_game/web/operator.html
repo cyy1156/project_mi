@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>操作台 · 采集控制</title>
+    <link rel="stylesheet" href="css/operator.css" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <div class="brand">操作台</div>
+        <div id="ws-status" class="ws-status">未连接</div>
+      </header>
+
+      <!-- Setup -->
+      <section id="view-setup" class="view">
+        <h1>实验前设置</h1>
+        <p class="lead">确认后再点「开始实验」；将自动打开诱导页并开跑。</p>
+
+        <div id="reuse-bar" class="reuse-bar hidden">
+          <div>
+            <strong>沿用上次配置？</strong>
+            <span id="reuse-summary" class="muted"></span>
+          </div>
+          <div class="reuse-actions">
+            <button type="button" id="btn-reuse-start" class="primary">确认并开始</button>
+            <button type="button" id="btn-reuse-edit">修改设置</button>
+          </div>
+        </div>
+
+        <form id="setup-form">
+          <fieldset>
+            <legend>被试与会话</legend>
+            <label>被试编号 <input name="subject_id" value="sub01" required /></label>
+            <label>会话编号 <input name="session_id" value="ses01" required /></label>
+            <label class="full">备注 <textarea name="notes" rows="2" placeholder="写入 meta"></textarea></label>
+            <label class="check">
+              <input type="checkbox" name="open_subject_page" checked />
+              开始时自动打开诱导页
+            </label>
+          </fieldset>
+
+          <fieldset>
+            <legend>采集开关</legend>
+            <label class="check">
+              <input type="checkbox" name="acq_enabled" checked />
+              是否开启采集（关则无 eeg.csv，不能训练切窗）
+            </label>
+            <div id="acq-warning" class="warn hidden">本次不能训练切窗（未开启采集）</div>
+            <div class="row">
+              <label class="radio"><input type="radio" name="board_mode" value="synthetic" checked /> 合成板（调试）</label>
+              <label class="radio"><input type="radio" name="board_mode" value="cyton" /> Cyton 真机</label>
+            </div>
+            <div id="gui-hint" class="hint hidden">真机前请关闭 OpenBCI GUI 的串口直播，避免占用 COM。</div>
+          </fieldset>
+
+          <fieldset id="device-fieldset">
+            <legend>OpenBCI / 设备</legend>
+            <label class="full">串口
+              <div class="port-row">
+                <input name="serial_port" id="serial_port_input" list="serial-port-list" value="COM5" />
+                <datalist id="serial-port-list"></datalist>
+                <button type="button" id="btn-refresh-ports">刷新串口</button>
+              </div>
+            </label>
+            <p id="ports-hint" class="hint">点击「刷新串口」从本机枚举 COM；也可直接手填。</p>
+            <label>采样率 <input value="250 Hz" disabled /></label>
+            <label>通道数 <input value="8" disabled /></label>
+            <p class="hint">通道：C3, C4, CZ, CP3, CP4, CPZ, FC3, FC4</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>实验任务</legend>
+            <label>正式 trial 数 <input name="acquire_trials" type="number" min="1" value="8" /></label>
+            <label>学习每 Step 试次 <input name="learn_trials_per_step" type="number" min="1" value="2" /></label>
+            <label>随机种子（空=随机） <input name="seed" type="number" placeholder="空" /></label>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="skip_adapt" /> 跳过适应（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_learn" /> 跳过学习（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_gate" /> 跳过准入（调试）</label>
+            </div>
+            <p class="hint">真机首测建议：正式 trial=4～8，可勾选跳过适应/学习以缩短时间。</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>保存数据</legend>
+            <label class="full">会话根目录
+              <input name="save_root" value="experiment_game/data/sessions" />
+            </label>
+            <label>落盘布局
+              <select name="save_layout">
+                <option value="flat">flat（扁平，兼容旧）</option>
+                <option value="phase_folders" selected>phase_folders（连续总档 + 分阶段文件夹）</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" name="save_events" checked disabled /> 保存 events（必开）</label>
+            <label class="check"><input type="checkbox" name="save_session_meta" checked disabled /> 保存 session.meta（必开）</label>
+            <label class="check"><input type="checkbox" name="auto_phase4" /> 结束后自动 Phase4 切窗（仅 acquire + 未 reject）</label>
+            <p id="save-hint" class="hint">默认 phase_folders：continuous/ + by_phase/ + alignment/</p>
+          </fieldset>
+
+          <fieldset class="collapsible">
+            <legend>高级 · 设备滤波（UI-3）</legend>
+            <label class="check">
+              <input type="checkbox" name="filter_enabled" checked />
+              采集端滤波总开关
+            </label>
+            <div class="row">
+              <label>带通低 (Hz) <input name="bandpass_low_hz" type="number" step="0.1" value="0.5" /></label>
+              <label>带通高 (Hz) <input name="bandpass_high_hz" type="number" step="0.1" value="45" /></label>
+            </div>
+            <div class="row">
+              <label>陷波低 (Hz) <input name="notch_low_hz" type="number" step="0.1" value="49" /></label>
+              <label>陷波高 (Hz) <input name="notch_high_hz" type="number" step="0.1" value="51" /></label>
+            </div>
+            <p class="hint">默认跟随 lsl_connect：0.5–45 Hz 带通 + 49–51 Hz 陷波。</p>
+          </fieldset>
+
+          <fieldset class="collapsible">
+            <legend>操作台偏好</legend>
+            <label class="check">
+              <input type="checkbox" name="remember_last_config" checked />
+              记住上次设置（写入 config/operator_defaults.json）
+            </label>
+            <label class="check">
+              <input type="checkbox" name="skip_setup_if_unchanged" />
+              下次打开时显示「沿用配置」确认条（仍可改设置）
+            </label>
+            <label class="check">
+              <input type="checkbox" name="operator_hotkeys" checked />
+              启用快捷键 P/N/G/R/Esc
+            </label>
+          </fieldset>
+
+          <div id="form-errors" class="errors hidden"></div>
+
+          <div class="actions">
+            <button type="button" id="btn-reset">恢复推荐默认</button>
+            <button type="button" id="btn-save-local">保存为本地默认</button>
+            <button type="button" id="btn-export-cfg">导出配置 JSON</button>
+            <label class="file-btn">导入配置<input type="file" id="btn-import-cfg" accept="application/json,.json" hidden /></label>
+            <button type="submit" id="btn-start" class="primary">开始实验</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Run -->
+      <section id="view-run" class="view hidden">
+        <h1>运行监控</h1>
+        <div id="run-summary" class="summary-bar"></div>
+        <div id="run-lock" class="lock-bar">实验进行中：设备与保存路径已锁定；需改请先中止。</div>
+        <div id="popup-warn" class="warn hidden">若诱导页未出现：请允许弹窗，或点下方「重新打开诱导页」。</div>
+
+        <ol id="phase-steps" class="steps">
+          <li data-phase="adapt">adapt</li>
+          <li data-phase="learn">learn</li>
+          <li data-phase="gate">gate</li>
+          <li data-phase="acquire">acquire</li>
+          <li data-phase="end">end</li>
+        </ol>
+
+        <div class="status-grid">
+          <div><span class="k">阶段</span> <span id="st-phase">—</span></div>
+          <div><span class="k">子阶段</span> <span id="st-stage">—</span></div>
+          <div><span class="k">trial</span> <span id="st-trial">—</span></div>
+          <div><span class="k">label</span> <span id="st-label">—</span></div>
+          <div><span class="k">object</span> <span id="st-object">—</span></div>
+          <div><span class="k">scene</span> <span id="st-scene">—</span></div>
+          <div><span class="k">reject</span> <span id="st-reject">0</span></div>
+          <div><span class="k">采集</span> <span id="st-acq">—</span></div>
+        </div>
+
+        <div class="actions run-actions">
+          <button type="button" id="btn-pause">暂停</button>
+          <button type="button" id="btn-continue">代确认</button>
+          <button type="button" id="btn-gate">准入</button>
+          <button type="button" id="btn-reject">Reject</button>
+          <button type="button" id="btn-reopen" class="primary">重新打开诱导页</button>
+          <button type="button" id="btn-abort" class="danger">中止</button>
+        </div>
+        <p class="hint">快捷键：P 暂停 · N 代确认 · G 准入 · R Reject · Esc 中止</p>
+      </section>
+
+      <!-- Summary -->
+      <section id="view-summary" class="view hidden">
+        <h1>结束与保存 <span id="verify-badge" class="na">—</span></h1>
+        <p id="summary-msg" class="lead"></p>
+        <p id="phase4-msg" class="hint"></p>
+        <p><span class="k">会话目录</span> <code id="summary-root">—</code></p>
+        <ul id="summary-files" class="file-list"></ul>
+        <div class="actions">
+          <button type="button" id="btn-open-folder" class="primary">打开会话文件夹</button>
+          <button type="button" id="btn-phase4">一键 Phase4 切窗</button>
+          <button type="button" id="btn-copy-path">复制路径</button>
+          <button type="button" id="btn-again">再开一场</button>
+        </div>
+      </section>
+    </div>
+    <script type="module" src="js/operator.js"></script>
+  </body>
+</html>

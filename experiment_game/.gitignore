@@ -1,0 +1,8 @@
+# Temp / browser QA artifacts only.
+# Session & epoch keep/exclude policy lives in the repo-root .gitignore
+# (whitelists sub01/sub02/sub03 real collections).
+data/_*.txt
+data/_edge*
+__pycache__/
+*.pyc
+.pytest_cache/

@@ -1,0 +1,95 @@
+{
+  "session_root": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub03_ses01_20260723_185153",
+  "save_layout": "phase_folders",
+  "acq_enabled": true,
+  "files": {
+    "continuous": "continuous/",
+    "by_phase": "by_phase/"
+  },
+  "phase_nodes": [
+    {
+      "node": "01_adapt",
+      "phase": "adapt",
+      "learn_step": null,
+      "train_eligible": false,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 315887.4051874,
+      "t_end_lsl": 315931.942075,
+      "eeg_rows": 11134
+    },
+    {
+      "node": "02_learn_step1",
+      "phase": "learn",
+      "learn_step": 1,
+      "train_eligible": false,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 315937.0897021,
+      "t_end_lsl": 315969.1082622,
+      "eeg_rows": 8005
+    },
+    {
+      "node": "03_learn_step2",
+      "phase": "learn",
+      "learn_step": 2,
+      "train_eligible": false,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 315977.7090403,
+      "t_end_lsl": 316009.7474477,
+      "eeg_rows": 8010
+    },
+    {
+      "node": "04_learn_step3",
+      "phase": "learn",
+      "learn_step": 3,
+      "train_eligible": false,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 316013.7924321,
+      "t_end_lsl": 316045.8160852,
+      "eeg_rows": 8006
+    },
+    {
+      "node": "05_gate",
+      "phase": "gate",
+      "learn_step": null,
+      "train_eligible": false,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 316045.8163373,
+      "t_end_lsl": 316049.3851228,
+      "eeg_rows": 892
+    },
+    {
+      "node": "06_acquire",
+      "phase": "acquire",
+      "learn_step": null,
+      "train_eligible": true,
+      "acq_enabled": true,
+      "files": {
+        "events": "events.jsonl",
+        "eeg": "eeg.csv"
+      },
+      "t_start_lsl": 316049.3851228,
+      "t_end_lsl": 317074.0010201,
+      "eeg_rows": 256054
+    }
+  ]
+}

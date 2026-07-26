@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MI 诱导 · Phase 3</title>
+  <link rel="stylesheet" href="./css/style.css?v=20260723k" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="c"></canvas>
+    <div id="opbar" aria-label="操作者控制">
+      <div class="op-title">操作者</div>
+      <div id="op-state">phase=— · trial=—</div>
+      <div class="op-keys">
+        <span><kbd>P</kbd>暂停</span>
+        <span><kbd>N</kbd>代确认</span>
+        <span><kbd>G</kbd>准入</span>
+        <span><kbd>R</kbd>Reject</span>
+        <span><kbd>Esc</kbd>中止</span>
+      </div>
+      <div class="op-btns">
+        <button type="button" id="op-pause" title="P">暂停</button>
+        <button type="button" id="op-continue" title="N">代确认</button>
+        <button type="button" id="op-reject" title="R">Reject</button>
+        <button type="button" id="op-abort" title="Esc">中止</button>
+      </div>
+    </div>
+    <div id="hud">
+      <div id="cross" class="hidden">+</div>
+      <div id="hud-text"></div>
+      <div id="hud-sub"></div>
+      <div id="phase-tag"></div>
+    </div>
+    <div id="prompt" class="hidden">
+      <div class="prompt-card">
+        <h1 id="prompt-title"></h1>
+        <p id="prompt-body"></p>
+        <button id="prompt-btn" type="button">继续</button>
+        <p class="prompt-hint" id="prompt-hint">也可按 <kbd>空格</kbd> 或 <kbd>Enter</kbd></p>
+      </div>
+    </div>
+    <div id="offline" class="hidden" aria-hidden="true">
+      <div class="offline-card">
+        <h1>未连接到实验服务</h1>
+        <p>
+          请先双击运行 <code>experiment_game\open_induction.bat</code>，
+          保持黑色命令窗口不要关闭，再刷新本页。
+        </p>
+        <p class="offline-note">本页是「观看诱导」，不会用按键直接操控双手。</p>
+      </div>
+    </div>
+    <div id="helpbar">
+      <span id="status">连接中…</span>
+      <span id="help-tip">有弹窗时按空格继续 · 双手由程序演示，无需手动操作</span>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="./js/main.js?v=20260723k"></script>
+</body>
+</html>
