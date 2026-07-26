@@ -17,11 +17,11 @@ drop_targets: [3]       # 丢双手 up
 rest_targets: [4]       # down = 原生静息
 make_rest_from_iti: false
 
-# 切窗
+# 切窗（与 BCI2a 现行对齐：2s → 500@250Hz；取反馈段最后 2s）
 feedback_t_ms: 2000     # 相对目标呈现
-win_sec: 4.0
+win_sec: 2.0
 baseline_sec: 0.5
-min_feedback_sec: 4.0   # 不足则丢
+min_feedback_sec: 2.0   # 反馈不足则丢
 
 target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
 fs_out: 250
@@ -29,7 +29,7 @@ fs_out: 250
 val_ratio: 0.2
 seed: 42
 
-out_dir: "out/stieger"
+out_dir: "out/stieger_2s"
 save_full: true
 save_split: true
 

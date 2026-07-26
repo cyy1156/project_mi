@@ -1,17 +1,13 @@
-# Stieger 目录 — 需自行补全的文件
+# Stieger 目录 — 实现状态
 
-> 迁移时助手**未写入**下列实现，请按  
-> `资料/数据集说明/Stieger2021_预处理流程与示例代码.md` 对应章节自行粘贴落地。
+| 文件 | 状态 | 说明 |
+|------|------|------|
+| `batch.py` | **已实现** | 对照 `资料/数据集说明/Stieger2021_预处理流程与示例代码.md` §5.8；输出默认 `out/stieger_2s`（2s/500） |
 
-| 文件 | 文档位置 | 说明 |
-|------|----------|------|
-| `batch.py` | §5.8 | 增量批处理（manifest 防重复、追加 npy、可选删原数据） |
+运行（在 `code/preprocess_lab` 下）：
 
-已从旧路径迁入、可直接改 import 使用的文件：
-
-- `__init__.py`
-- `load_mat.py`
-- `labels.py`
-- `paradigm.py`
-- `windows.py`
-- `pipeline.py`
+```text
+python -m src.datasets.stieger.batch
+# 或指定
+python -m src.datasets.stieger.batch --glob "D:/.../DATA/stieger/S*_Session_*.mat" --out out/stieger_2s
+```
