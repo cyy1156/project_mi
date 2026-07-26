@@ -20,11 +20,11 @@ from metrics import binary_task_metrics, format_task_metrics
 # step → src → train_lab → code
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-DATA_DIR = PRE_ROOT / "out" / "bci2a"
-DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task"
+DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
+DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_2s"
 
 sys.path.insert(0, str(PRE_ROOT))
-from src.steps.split_subjects import iter_subject_kfold  # noqa: E402
+from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
 
 
 @dataclass
@@ -33,12 +33,12 @@ class TaskKFoldConfig:
     val_ratio: float = 0.2
     seed: int = 42
     max_epochs: int = 100
-    patience: int = 18
+    patience: int = 15
     batch_train: int = 32
     batch_eval: int = 64
-    lr: float = 0.0007
+    lr: float = 0.001
     weight_decay: float = 0.0001
-    drop_prob: float = 0.55
+    drop_prob: float = 0.5
     f1: int = 8
     d: int = 2
     f2: int = 16
@@ -111,7 +111,7 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
     model = EEGNet(
         n_chans=8,
         n_outputs=2,
-        n_times=1000,
+        n_times=int(X.shape[-1]),
         F1=cfg.f1,
         D=cfg.d,
         F2=cfg.f2,

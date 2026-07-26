@@ -1,10 +1,9 @@
 import numpy as np
 import mne #做脑电/脑磁等神经信号分析的 Python 库。
-from src.io.load_bci2a_mat import load_bci2a_mat
+from src.datasets.bci2a.load_mat import load_bci2a_mat
 from pathlib import Path
 import matplotlib.pyplot as plt
-from src.steps import select_channels
-from src.steps.select_channels import select_channels
+from src.common.steps.select_channels import select_channels
 
 
 def car_reference(x: np.ndarray) -> np.ndarray:

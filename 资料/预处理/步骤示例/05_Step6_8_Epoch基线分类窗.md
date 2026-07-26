@@ -1,18 +1,27 @@
-# Step 6–8：Epoch → 基线校正 → 分类窗
+# Step 6–8：切窗 + 基线校正（BCI2a 现行）
 
 ## 目标
 
-对**左/右手**试次：
+对**左/右手**试次（BCI IV 2a 正式设定）：
 
 | 步骤 | 时间定义 |
 |------|----------|
-| Epoch | Cue 前 **-0.5 s** ~ Cue 后 **4.0 s**（共 4.5 s） |
-| 基线 | Epoch 内相对时间 `[-0.5, 0]`（开头 0.5 s） |
-| 分类窗 | Cue 后 **0~4 s**（丢掉基线段） |
+| 分类窗 | **Cue 后 2~4 s**（共 2 s） |
+| 基线 | 分类窗起点前 **0.5 s**（Cue+1.5~2.0 s）均值减全窗 |
+
+对**静息**：
+
+| 步骤 | 时间定义 |
+|------|----------|
+| 分类窗 | **下一 Cue 前 2 s** |
+| 基线 | 窗内开头 0.5 s 均值减全窗（不缩短最终 2 s） |
 
 输入 `x` 应已是：选通道 → CAR → 滤波后的连续信号 `(T, 8)`。
 
-文件建议：`preprocess_lab/src/steps/epoch_baseline.py`
+文件：`preprocess_lab/src/common/steps/epoch_baseline.py`  
+（`task_window_cue_2_to_4` / `rest_window_with_baseline`）
+
+> 旧版「Cue 前 -0.5 ~ Cue 后 4.0 → 再截 0~4s」仍保留在同文件作兼容，**正式 2a 流水线已不用**。
 
 ## 参考示例
 
@@ -20,98 +29,84 @@
 import numpy as np
 
 
-def slice_epoch(x: np.ndarray, cue: int, fs: float) -> np.ndarray | None:
-    """返回 (n_times_epoch, n_ch)，含基线段；越界返回 None。"""
-    t0 = cue + int(-0.5 * fs)
-    t1 = cue + int(4.0 * fs)
-    if t0 < 0 or t1 > x.shape[0]:
+def task_window_cue_2_to_4(
+    x: np.ndarray,
+    cue: int,
+    fs: float,
+    baseline_sec: float = 0.5,
+) -> np.ndarray | None:
+    """任务：Cue+2~4s；基线=窗起点前 baseline_sec。返回 (2*fs, n_ch)。"""
+    n_win = int(round(2.0 * fs))
+    n_base = int(round(baseline_sec * fs))
+    t0 = cue + int(round(2.0 * fs))
+    t1 = t0 + n_win
+    base_start = t0 - n_base
+    if base_start < 0 or t1 > x.shape[0]:
         return None
-    return x[t0:t1, :]
-
-
-def baseline_correct(epoch: np.ndarray, fs: float) -> np.ndarray:
-    """epoch 从 -0.5s 开始；用前 0.5s 均值归零。"""
-    b1 = int(0.5 * fs)
-    base = epoch[:b1, :].mean(axis=0, keepdims=True)
-    return epoch - base
-
-
-def classification_window(epoch: np.ndarray, fs: float) -> np.ndarray:
-    """去掉基线段，只留 Cue 后 0~4s。"""
-    c0 = int(0.5 * fs)
-    return epoch[c0:, :]
-```
-
-串起来：
-
-```python
-def epoch_to_class_window(x: np.ndarray, cue: int, fs: float) -> np.ndarray | None:
-    ep = slice_epoch(x, cue, fs)
-    if ep is None:
+    base = x[base_start:t0].mean(axis=0, keepdims=True)
+    win = x[t0:t1] - base
+    if win.shape[0] != n_win:
         return None
-    ep = baseline_correct(ep, fs)
-    return classification_window(ep, fs)
-```
+    return win.astype(np.float64)
 
-### 长度检查（250 Hz 时）
 
-- Epoch：`0.5*250 + 4*250 = 1125` 点（注意：右端开区间写法时，`t1 - t0` 应等于 `int(4.5*fs)`）
-- 分类窗：`4*250 = 1000` 点
-
-请用你自己的切片约定验证：
-
-```python
-win = epoch_to_class_window(x, int(kept[0, 0]), eeg.fs)
-print(win.shape)  # 期望约 (1000, 8) @ 250Hz
-```
-
-若 `int` 截断导致差 1 个点，后面 Step9 仍会 resample 到 1000；但 250 Hz 源数据应尽量直接得到 1000。
-
----
-
-## 静息窗说明
-
-静息直接截 4 s；文档允许用自身前 0.5 s 做基线，但**不缩短**最终 4 s 输入。  
-切出的静息样本标签固定为：`label_task=0`，`label_three=0`（见 Step2 双标签规则）。
-
-两种常见实现（选一种并写进实验记录）：
-
-**A. 与左/右同一套「先扩窗再截」**（推荐学习时统一）
-
-- 静息起点 `s` 视为「假 Cue」
-- 仍用 `slice_epoch(x, s + int(0.5*fs), fs)` 等你需要自己推算对齐方式  
-  更直观的做法见 B。
-
-**B. 直接 4 s + 窗内基线**
-
-```python
-def rest_window_with_baseline(x: np.ndarray, start: int, fs: float) -> np.ndarray | None:
-    """截 [start, start+4s)，用开头 0.5s 均值减全窗，长度仍为 4s。"""
-    n = int(4.0 * fs)
+def rest_window_with_baseline(
+    x: np.ndarray,
+    start: int,
+    fs: float,
+    win_sec: float = 2.0,
+    baseline_sec: float = 0.5,
+) -> np.ndarray | None:
+    """截 [start, start+win_sec)，用开头 baseline_sec 均值减全窗。"""
+    n = int(round(win_sec * fs))
     if start < 0 or start + n > x.shape[0]:
         return None
     win = x[start:start + n, :].copy()
-    b = int(0.5 * fs)
+    b = int(round(baseline_sec * fs))
+    if b <= 0 or b >= n:
+        return None
     win = win - win[:b, :].mean(axis=0, keepdims=True)
     return win
 ```
 
-学习阶段：**左/右先跑通**，静息可先 TODO，但接口预留好。
+### 长度检查（250 Hz 时）
+
+- 任务 / 静息分类窗：`2*250 = 500` 点
+
+```python
+win = task_window_cue_2_to_4(x, int(kept[0, 0]), eeg.fs)
+print(win.shape)  # 期望 (500, 8) @ 250Hz
+```
+
+若 `int` 截断导致差 1 个点，后面 Step9 仍会按 `win_sec=2.0` resample 到 500；但 250 Hz 源数据应尽量直接得到 500。
+
+---
+
+## 时间轴示意（相对 Cue）
+
+```text
+Cue: 0s
+范式 MI:     |←—————— 0 ~ 4 s ——————→|
+本项目任务窗:              |← 2~4 s →|   ← 分类用
+基线:                 |←0.5s→|
+```
+
+---
 
 ## 常见坑
 
-- 基线算完后误把基线段留在最终输入里（多出 0.5 s）。
-- `t1` 用了闭区间导致长度 +1。
+- 仍按旧规则切「Cue 后 0~4s」却期望 500 点。
+- 基线误用 Cue 前 -0.5~0（旧 epoch 方案），与现行「窗起点前 0.5s」不一致。
 - 在**未滤波**的原始 `x` 上切窗。
 - Cue 索引用错成秒数。
 
 ## 验收清单
 
 - [ ] 越界 cue 返回 `None` 并被跳过
-- [ ] 基线后，基线段均值接近 0（每通道）
-- [ ] 分类窗长度在 250 Hz 下为 1000（或与 `int(4*fs)` 一致）
+- [ ] 任务窗长度在 250 Hz 下为 500（`int(2*fs)`）
 - [ ] 形状始终 `(n_times, 8)`
+- [ ] 静息窗同样 500 点，标签 `(task=0, three=0)`
 
 ## 提交检查时附上
 
-三个函数（或封装）+ 若干试次的 `ep.shape` / `win.shape` 打印。
+切窗函数 + 若干试次的 `win.shape` 打印。

@@ -1,5 +1,5 @@
 import numpy as np
-from src.io.load_bci2a_mat import load_bci2a_mat
+from src.datasets.bci2a.load_mat import load_bci2a_mat
 from pathlib import Path
 
 TARGET_CHANNELS = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]

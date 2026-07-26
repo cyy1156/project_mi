@@ -330,7 +330,8 @@ def main() -> None:
                 "",
                 f"- 开始时间：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-                f"- 数据：`code/preprocess_lab/out/bci2a/bci2a_*.npy`",
+                f"- 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`（Cue后2~4s任务 / Cue前2s静息）",
+                f"- 输入：`n_times=500` @ 250Hz",
                 f"- 权重根目录：`{OUT_ROOT}`",
                 f"- 运行日志：`{LOG_PATH}`",
                 "",
@@ -344,18 +345,65 @@ def main() -> None:
     log(f"device={device}")
 
     try:
-        # ----- 头1 第1轮 -----
-        cfg1 = TaskKFoldConfig(
-            out_dir=str(OUT_ROOT / "01_task_baseline"),
-            lr=1e-3,
-            weight_decay=1e-4,
-            drop_prob=0.50,
-            patience=15,
-            max_epochs=100,
+        # ----- 头1：小网格筛一轮（只看 Val F1）再进 overnight 微调 -----
+        grid_cfgs = [
+            TaskKFoldConfig(lr=1e-3, weight_decay=1e-4, drop_prob=0.50, patience=15, max_epochs=100),
+            TaskKFoldConfig(lr=7e-4, weight_decay=1e-4, drop_prob=0.55, patience=18, max_epochs=100),
+            TaskKFoldConfig(lr=5e-4, weight_decay=2e-4, drop_prob=0.60, patience=20, max_epochs=100),
+            TaskKFoldConfig(lr=1.5e-3, weight_decay=5e-5, drop_prob=0.40, patience=15, max_epochs=100),
+        ]
+        grid_sums = []
+        for gi, gcfg in enumerate(grid_cfgs, start=1):
+            gcfg.out_dir = str(OUT_ROOT / f"00_task_grid_{gi}")
+            log(f"开始：头1网格 {gi}/{len(grid_cfgs)} lr={gcfg.lr} drop={gcfg.drop_prob}")
+            gsum = run_task_kfold(gcfg, device=device)
+            grid_sums.append(gsum)
+            write_task_section(
+                f"Run00-G{gi} 头1网格",
+                gsum,
+                note=f"grid lr={gcfg.lr}, drop={gcfg.drop_prob}, wd={gcfg.weight_decay}",
+            )
+            log(
+                f"Grid{gi} 完成 val_F1={gsum['val_f1_mean']:.4f} "
+                f"test_F1={gsum['test_f1_mean']:.4f}"
+            )
+
+        best_grid = grid_sums[0]
+        for g in grid_sums[1:]:
+            best_grid = pick_best_task(best_grid, g)
+        cfg1 = TaskKFoldConfig(**{
+            k: best_grid["hparams"][k]
+            for k in (
+                "n_folds", "val_ratio", "seed", "max_epochs", "patience",
+                "batch_train", "batch_eval", "lr", "weight_decay", "drop_prob",
+                "f1", "d", "f2",
+            )
+        })
+        # 用网格最优超参再跑一轮正式基线目录（便于头2对齐）；若与最优网格同参可直接复用
+        cfg1.out_dir = str(OUT_ROOT / "01_task_baseline")
+        append_md(
+            "\n".join(
+                [
+                    "## 头1网格选优",
+                    "",
+                    f"- 选中 Val F1 = `{best_grid['val_f1_mean']:.4f} ± {best_grid['val_f1_std']:.4f}`",
+                    f"- 超参：lr=`{cfg1.lr}`, drop=`{cfg1.drop_prob}`, wd=`{cfg1.weight_decay}`, patience=`{cfg1.patience}`",
+                    f"- 网格最优目录：`{best_grid['out_dir']}`",
+                    "",
+                    "---",
+                    "",
+                ]
+            )
         )
-        log("开始：头1五折 基线")
-        sum1 = run_task_kfold(cfg1, device=device)
-        write_task_section("Run01 头1五折（基线）", sum1, note="默认超参首跑")
+        # 直接复用网格最优作为 Run01，避免重复五折
+        sum1 = best_grid
+        sum1 = dict(sum1)
+        # 复制一份路径标记
+        write_task_section(
+            "Run01 头1五折（基线=网格最优）",
+            sum1,
+            note="由网格选优直接作为基线，不再重复训练",
+        )
         log(
             f"Run01 完成 val_F1={sum1['val_f1_mean']:.4f} test_F1={sum1['test_f1_mean']:.4f}"
         )
