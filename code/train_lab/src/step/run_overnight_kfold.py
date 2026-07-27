@@ -33,7 +33,7 @@ STAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 MD_DIR = REPO_ROOT / "资料" / "模型训练"
 MD_PATH = MD_DIR / f"五折过夜实验记录_{STAMP}.md"
 MD_LATEST = MD_DIR / "五折过夜实验记录_最新.md"
-OUT_ROOT = TRAIN_LAB / "out" / f"overnight_{STAMP}"
+OUT_ROOT = TRAIN_LAB / "out" / f"overnight_stieger_{STAMP}"
 LOG_PATH = OUT_ROOT / "overnight.log"
 
 
@@ -330,7 +330,7 @@ def main() -> None:
                 "",
                 f"- 开始时间：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-                f"- 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`（Cue后2~4s任务 / Cue前2s静息）",
+                f"- 数据：`code/preprocess_lab/out/stieger_2s/stieger_*.npy`（反馈段末 2s；不含 S1）",
                 f"- 输入：`n_times=500` @ 250Hz",
                 f"- 权重根目录：`{OUT_ROOT}`",
                 f"- 运行日志：`{LOG_PATH}`",

@@ -1,4 +1,4 @@
-"""被试独立五折：分类头2（空闲/左/右）。读全库 bci2a_*.npy；每折加载同折头1主干。"""
+"""被试独立五折：分类头2（空闲/左/右）。读全库 stieger_*.npy；每折加载同折头1主干。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from braindecode.models import EEGNet
+try:
+    from braindecode.models import EEGNet
+except ImportError:  # braindecode>=0.8
+    from braindecode.models import EEGNetv4 as EEGNet
 from torch.utils.data import DataLoader
 
 from dataset import ArrayThreeDataset
@@ -19,9 +22,9 @@ from metrics import format_three_metrics, three_class_metrics
 
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
-DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_three_2s"
-DEFAULT_TASK_KFOLD_DIR = ROOT / "train_lab" / "out" / "kfold_task"
+DATA_DIR = PRE_ROOT / "out" / "stieger_2s"
+DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_three_stieger_2s"
+DEFAULT_TASK_KFOLD_DIR = ROOT / "train_lab" / "out" / "kfold_task_stieger_2s"
 FALLBACK_TASK_CKPT = ROOT / "train_lab" / "out" / "best_task.pt"
 
 sys.path.insert(0, str(PRE_ROOT))
@@ -34,12 +37,12 @@ class ThreeKFoldConfig:
     val_ratio: float = 0.2
     seed: int = 42
     max_epochs: int = 100
-    patience: int = 15
+    patience: int = 20
     batch_train: int = 32
     batch_eval: int = 64
-    lr: float = 0.001
+    lr: float = 0.0015
     weight_decay: float = 0.0001
-    drop_prob: float = 0.6
+    drop_prob: float = 0.5
     f1: int = 8
     d: int = 2
     f2: int = 16
@@ -272,13 +275,13 @@ def run_three_kfold(cfg: ThreeKFoldConfig | None = None, device: torch.device | 
         f"drop={cfg.drop_prob} | freeze={cfg.freeze_backbone}"
     )
 
-    for name in ("bci2a_X.npy", "bci2a_y_three.npy", "bci2a_subjects.npy"):
+    for name in ("stieger_X.npy", "stieger_y_three.npy", "stieger_subjects.npy"):
         if not (DATA_DIR / name).exists():
             raise FileNotFoundError(f"缺少 {DATA_DIR / name}")
 
-    X = np.load(DATA_DIR / "bci2a_X.npy")
-    y = np.load(DATA_DIR / "bci2a_y_three.npy")
-    subjects = np.load(DATA_DIR / "bci2a_subjects.npy", allow_pickle=True)
+    X = np.load(DATA_DIR / "stieger_X.npy")
+    y = np.load(DATA_DIR / "stieger_y_three.npy")
+    subjects = np.load(DATA_DIR / "stieger_subjects.npy", allow_pickle=True)
 
     fold_results = []
     for fold_info in iter_subject_kfold(
