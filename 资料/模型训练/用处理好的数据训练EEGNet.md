@@ -1,74 +1,58 @@
 # 用处理好的数据训练 EEGNet（入门步骤）
 
-> **性质**：示例文档。下面示例标明：**放哪个文件、完整内容、怎么运行**。  
-> **约定**：只更新本文档，便于你对照实现；**不代替**你在仓库里改代码。  
-> **阶段 A**：braindecode `EEGNet`，`n_outputs=2`（静息/任务）；不训第二头。
+> **【现行入口 · 2026-07 更新】**  
+> - 环境：仓库根 `D:\cyy\MI\.venv`  
+> - 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`，形状 `(N,1,8,500)`  
+> - 正式评估（被试独立五折）：  
+>   `cd code\train_lab\src\step` →  
+>   `python train_task_kfold.py` / `python train_three_kfold.py` / `python run_overnight_kfold.py`  
+> - 下文仍含早期 `train_task.py`（试次混合 8:2）教学示例，可作对照；**正式实验以 `*_kfold` 为准**。
+
+> **性质**：示例文档。  
+> **阶段 A**：braindecode `EEGNet`，`n_outputs=2`（静息/任务）。
 
 ---
 
-## 怎么读：路径一律相对仓库根 `MI/`
+## 怎么读：路径一律相对仓库根 `MI/`（本机 `D:/cyy/MI/`）
 
-你本机一般为：
-
-```text
-D:/360MoveData/Users/ckgxnn/Desktop/MI/
-```
-
-### 与当前工程一致的目录（请按此对照）
+### 与当前工程一致的目录
 
 ```text
-MI/
+MI/                                   # D:/cyy/MI
+├── .venv/                            ← 唯一虚拟环境
+├── DATA/bci2a/
 ├── code/
-│   ├── .venv/                            ← 虚拟环境（已有）
 │   ├── preprocess_lab/
-│   │   └── out/                          ← 预处理结果（训练只读）
-│   │       ├── train_X.npy
-│   │       ├── train_y_task.npy
-│   │       ├── train_y_three.npy         ← 阶段 A 训练不用
-│   │       ├── val_X.npy
-│   │       ├── val_y_task.npy
-│   │       └── val_y_three.npy
+│   │   ├── config/bci2a_2s.yaml
+│   │   ├── src/datasets/bci2a/batch.py
+│   │   └── out/bci2a_2s/             ← bci2a_X.npy 等（T=500）
 │   └── train_lab/
-│       ├── requirements_train.txt
-│       ├── out/                          ← best_task.pt
-│       └── src/
-│           ├── __init__.py
-│           └── step/                     ← 【注意】多了一层 step
-│               ├── __init__.py
-│               ├── dataset.py
-│               ├── metrics.py
-│               └── train_task.py         ← 训练入口
-└── 资料/
-    └── 模型训练/
-        └── 用处理好的数据训练EEGNet.md   ← 本文件
+│       ├── out/
+│       └── src/step/
+│           ├── dataset.py
+│           ├── metrics.py
+│           ├── train_task_kfold.py   ← 头1 五折（正式）
+│           ├── train_three_kfold.py  ← 头2 五折
+│           └── run_overnight_kfold.py
+└── 资料/模型训练/
 ```
 
 ### 文件对照表
 
 | 用途 | 路径（相对 `MI/`） |
 |------|-------------------|
-| 依赖列表 | `code/train_lab/requirements_train.txt` |
-| Dataset | `code/train_lab/src/step/dataset.py` |
-| 指标 | `code/train_lab/src/step/metrics.py` |
-| 训练主程序 | `code/train_lab/src/step/train_task.py` |
-| 包标识 | `code/train_lab/src/__init__.py`、`code/train_lab/src/step/__init__.py` |
-| 权重输出 | `code/train_lab/out/best_task.pt` |
-| 输入数据 | `code/preprocess_lab/out/*.npy` |
+| 预处理批处理 | `code/preprocess_lab` → `python -m src.datasets.bci2a.batch --cfg config/bci2a_2s.yaml` |
+| 五折头1 | `code/train_lab/src/step/train_task_kfold.py` |
+| 五折头2 | `code/train_lab/src/step/train_three_kfold.py` |
+| 过夜网格 | `code/train_lab/src/step/run_overnight_kfold.py` |
+| 输入数据 | `code/preprocess_lab/out/bci2a_2s/bci2a_*.npy` |
 
-### 导入怎么写（多了 `step` 一层）
-
-```python
-from src.step.dataset import TaskHeadDataset
-from src.step.metrics import binary_task_metrics, format_task_metrics
-```
-
-运行入口：
+运行（仓库根 `.venv`）：
 
 ```text
-python -m src.step.train_task
+cd D:\cyy\MI\code\train_lab\src\step
+D:\cyy\MI\.venv\Scripts\python.exe train_task_kfold.py
 ```
-
-（在 `code/train_lab` 下，且 `PYTHONPATH=.`）
 
 ---
 
@@ -76,53 +60,36 @@ python -m src.step.train_task
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
-| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | ✅ 本文 |
-| B | 第二头三分类 | ❌ 以后 |
+| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | ✅ 五折见 `train_task_kfold.py` |
+| B | 第二头三分类 | ✅ 五折见 `train_three_kfold.py` |
 
 ```text
-预处理 X: (N, 1, 8, T)     # BCI2a 现行 T=500（out/bci2a_2s）
-模型输入: (B, 8, T)         ← dataset 里去掉中间的 1
-标签:     只用 y_task
-损失:     CrossEntropy(logits, y_task)
-```
-
-### 空包文件示例
-
-**路径：** `code/train_lab/src/__init__.py`
-
-```python
-# train_lab 包标识
-```
-
-**路径：** `code/train_lab/src/step/__init__.py`
-
-```python
-# step 子包标识
+预处理 X: (N, 1, 8, 500)     # out/bci2a_2s
+模型输入: (B, 8, 500)         ← dataset 里去掉中间的 1
+标签:     头1 用 y_task；头2 用 y_three
 ```
 
 ---
 
 ## 1. 数据就绪
 
-数据目录：`code/preprocess_lab/out/`。没有则先：
-
 ```text
-cd D:/360MoveData/Users/ckgxnn/Desktop/MI/code/preprocess_lab
-python -m src.pipeline
+cd D:\cyy\MI\code\preprocess_lab
+$env:PYTHONPATH='.'
+D:\cyy\MI\.venv\Scripts\python.exe -m src.datasets.bci2a.batch --cfg config/bci2a_2s.yaml
 ```
 
-快速自检（可在任意位置的 Python 里临时跑，**不必**单独建文件）：
+快速自检：
 
 ```python
 from pathlib import Path
 import numpy as np
 
-out = Path(r"D:/360MoveData/Users/ckgxnn/Desktop/MI/code/preprocess_lab/out")
-for part in ("train", "val"):  # part = 哪一份：训练或验证
-    X = np.load(out / f"{part}_X.npy")
-    yt = np.load(out / f"{part}_y_task.npy")
-    print(part, X.shape, np.bincount(yt, minlength=2))
-    assert X.ndim == 4 and X.shape[1] == 1 and X.shape[2] == 8  # T=X.shape[-1]
+out = Path(r"D:/cyy/MI/code/preprocess_lab/out/bci2a_2s")
+X = np.load(out / "bci2a_X.npy")
+yt = np.load(out / "bci2a_y_task.npy")
+print(X.shape, np.bincount(yt, minlength=2))
+assert X.shape[1:] == (1, 8, 500)
 print("data ok")
 ```
 
@@ -131,23 +98,15 @@ print("data ok")
 ## 2. 环境
 
 ```text
-cd D:/360MoveData/Users/ckgxnn/Desktop/MI/code
+cd D:\cyy\MI
 .\.venv\Scripts\Activate.ps1
-pip install -r train_lab\requirements_train.txt -i https://pypi.tuna.tsinghua.edu.cn/simple --trusted-host pypi.tuna.tsinghua.edu.cn
+pip install -r requirements.txt
+# 或 train_lab\requirements_train.txt
 ```
-
-**路径：** `code/train_lab/requirements_train.txt`
-
-```text
-torch
-scikit-learn
-tqdm
-braindecode
-```
-
-若出现 `ProxyError`，用上面的清华镜像；不要只依赖默认 PyPI。
 
 ---
+
+> **以下为早期「试次混合 train/val + `train_task.py`」教学原文（可作对照，非正式入口）**
 
 ## 3. 流程
 

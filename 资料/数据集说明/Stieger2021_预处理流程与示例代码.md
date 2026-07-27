@@ -120,13 +120,13 @@ DATA/stieger/
 | # | 决策项 | 取值 |
 |---|--------|------|
 | 1 | 窗位置 | 想象/反馈段最长约 **6 s**，取该段**最后 2 s**（对齐反馈终点 `resultind` 往前切） |
-| 2 | 窗长 | 固定 **4.0 s** |
-| 3 | 短于 4 s | 反馈时长 `< 4 s` **丢弃**，并统计比例 |
+| 2 | 窗长 | 固定 **2.0 s**（→ 500@250Hz，与 BCI2a 统一） |
+| 3 | 短于 2 s | 反馈时长 `< 2 s` **丢弃**，并统计比例 |
 | 4 | 基线 | 分类窗起点前 **0.5 s** 均值校正（通常落在 6 s 想象段的前部） |
 | 5 | 静息来源 | **原生 `targetnumber==4`（down）**，来自 **UD + 2D**；不用 ITI 人造静息 |
 | 6 | 范式范围 | **`tasknumber∈{1,2,3}`**，按块保留左/右/静息（见下表）；**始终丢弃 up（双手）** |
 | 7 | 伪迹 | `artifact==1` 的 trial 丢弃 |
-| 8 | 降采样 | 1000 Hz → **250 Hz**（2 s → 500 点） |
+| 8 | 降采样 | 1000 Hz → **250 Hz**（2 s → **500** 点） |
 | 9 | 通道 | 固定序：`Cz, C3, C4, CP3, FC4, FC3, CP4, CPz` |
 | 10 | 滤波 | CAR → 50 Hz notch → 8–30 Hz bandpass（与 2a 相同） |
 
@@ -296,7 +296,7 @@ SX_Session_Y.mat
        task 1 (LR)：保留 target ∈ {1,2}（右/左）
        task 2 (UD)：保留 target == 4（下=静息）
        task 3 (2D)：保留 target ∈ {1,2,4}（右/左/静息）
-       一律丢弃 target==3（双手 up）、artifact==1、反馈 <4s
+       一律丢弃 target==3（双手 up）、artifact==1、反馈 <2s
     │
     ▼  Step C  通道 + 滤波（在 trial 矩阵上，转置为 (T,C)）
        选 8 导 → CAR → notch 50 → bandpass 8–30
@@ -450,7 +450,7 @@ def keep_trial(
     triallength: float,
     *,
     use_tasks: tuple[int, ...] = DEFAULT_USE_TASKS,
-    min_feedback_sec: float = 4.0,
+    min_feedback_sec: float = 2.0,
     allowed_by_task: dict[int, set[int]] | None = None,
 ) -> bool:
     """
@@ -751,7 +751,7 @@ def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
         tr.artifact,
         tr.triallength,
         use_tasks=(1, 2, 3),  # LR + UD + 2D
-        min_feedback_sec=4.0,
+        min_feedback_sec=2.0,
     ):
         return None
 
@@ -784,10 +784,10 @@ def _process_one_trial(tr: StiegerTrial) -> tuple[np.ndarray, int, int] | None:
         tr.fs,
         resultind=tr.resultind,
         feedback_t_ms=2000.0,
-        win_sec=4.0,
+        win_sec=2.0,
         baseline_sec=0.5,
     )
-    if win is None or win.shape[0] != int(4.0 * tr.fs):
+    if win is None or win.shape[0] != int(2.0 * tr.fs):
         return None
 
     win = resample_to_1000(win, fs_in=tr.fs, fs_out=250.0, win_sec=2.0)
@@ -828,7 +828,7 @@ def preprocess_session(
         if int(tr.targetnumber) not in allowed or map_target(tr.targetnumber) is None:
             stats["n_drop_target"] += 1
             continue
-        if float(tr.triallength) < 4.0:
+        if float(tr.triallength) < 2.0:
             stats["n_drop_short"] += 1
             continue
 

@@ -1,0 +1,24 @@
+# Unified MI project dependencies (install into repo-root .venv)
+#   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+
+# preprocess_lab / MI_model
+numpy>=1.24
+scipy>=1.10
+mne>=1.0
+pandas>=1.3
+pyyaml>=6.0
+scikit-learn>=1.0
+matplotlib>=3.5
+joblib>=1.1
+
+# train_lab
+torch
+tqdm
+braindecode
+
+# experiment_game
+websockets>=12.0
+
+# collect_data / LSL_connect_model
+brainflow>=5.0
+pylsl>1.16

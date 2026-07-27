@@ -14,7 +14,7 @@
 | [docs/Phase4_流水线检查清单.md](./docs/Phase4_流水线检查清单.md) | 切窗 → 训练检查清单 |
 | [docs/完整使用流程.md](./docs/完整使用流程.md) | **从安装到训练的逐步操作手册** |
 
-依赖：在 `lsl_connect` 的 venv 中安装本目录 `requirements.txt`（含 `websockets`、`scipy`）。
+依赖：仓库根 `.venv` 安装本目录 `requirements.txt`（含 `websockets`、`scipy`）。
 
 ## 操作台（推荐主路径 · 真机采数）
 
@@ -33,8 +33,7 @@
 
 ```powershell
 cd d:\cyy\MI
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
-  -m experiment_game.tools.open_operator
+.\.venv\Scripts\python.exe -m experiment_game.tools.open_operator
 ```
 
 会话输出示例：
@@ -56,10 +55,10 @@ Summary 页可点「一键 Phase4 切窗」（仅 `acquire` + 未 reject），�
 ```powershell
 cd d:\cyy\MI
 
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.run_phase1_block --trials 20 --yes
 
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.verify_phase1_alignment `
   --session experiment_game\data\sessions\<会话目录名>
 ```
@@ -71,7 +70,7 @@ cd d:\cyy\MI
 
 ```powershell
 cd d:\cyy\MI
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.open_induction
 ```
 
@@ -85,7 +84,7 @@ cd d:\cyy\MI
 完整参数也可直接调用：
 
 ```powershell
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.run_phase2_session --yes --acquire-trials 4
 ```
 
@@ -110,7 +109,7 @@ cd d:\cyy\MI
 
 ```powershell
 cd d:\cyy\MI
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.run_phase4_epochs `
   --session experiment_game\data\sessions\<会话目录名>
 ```

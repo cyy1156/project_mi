@@ -10,6 +10,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 
 from experiment_game.offline.epochs import (
+    N_TIMES,
     collect_window_specs,
     cut_window_with_baseline,
     labels_from_spec,
@@ -23,7 +24,7 @@ from experiment_game.offline.load_session import SessionEEG, load_session
 
 @dataclass
 class EpochBundle:
-    X: np.ndarray  # (N, 1, 8, 1000)
+    X: np.ndarray  # (N, 1, 8, 500)
     y_task: np.ndarray  # (N,)
     y_three: np.ndarray  # (N,)
     trial_ids: np.ndarray  # (N,)
@@ -51,8 +52,8 @@ class EpochBundle:
 
 def sanity_check(bundle: EpochBundle) -> None:
     X, yt, y3 = bundle.X, bundle.y_task, bundle.y_three
-    if X.ndim != 4 or X.shape[1:] != (1, 8, 1000):
-        raise AssertionError(f"X shape 期望 (N,1,8,1000)，得到 {X.shape}")
+    if X.ndim != 4 or X.shape[1:] != (1, 8, N_TIMES):
+        raise AssertionError(f"X shape 期望 (N,1,8,{N_TIMES})，得到 {X.shape}")
     if yt.shape != (X.shape[0],) or y3.shape != (X.shape[0],):
         raise AssertionError("标签长度与 N 不一致")
     if not np.isfinite(X).all():
@@ -74,8 +75,8 @@ def preprocess_session(
     apply_filter: bool = True,
 ) -> EpochBundle:
     """
-    默认：phase==acquire 的 mi_start/rest_start → 4s 窗。
-    输出与 preprocess_lab 一致：(N,1,8,1000) + y_task + y_three。
+    默认：phase==acquire 的 mi_start/rest_start → 取起点起 2s 窗。
+    输出与 preprocess_lab 一致：(N,1,8,500) + y_task + y_three。
     """
     if isinstance(session_dir, SessionEEG):
         session = session_dir
@@ -107,7 +108,7 @@ def preprocess_session(
             )
             continue
         win = resample_to_1000(win, session.fs)
-        if win.shape != (1000, 8):
+        if win.shape != (N_TIMES, 8):
             skipped.append(
                 {
                     "trial_id": spec.trial_id,
@@ -125,7 +126,7 @@ def preprocess_session(
         kinds.append(spec.kind)
 
     if not xs:
-        X = np.zeros((0, 1, 8, 1000), np.float32)
+        X = np.zeros((0, 1, 8, N_TIMES), np.float32)
         empty = np.zeros((0,), np.int64)
         bundle = EpochBundle(
             X=X,

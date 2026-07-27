@@ -61,10 +61,10 @@ def rest_window_with_baseline(
     x: np.ndarray,
     start: int,
     fs: float,
-    win_sec: float = 4.0,
+    win_sec: float = 2.0,
     baseline_sec: float = 0.5,
 ) -> np.ndarray | None:
-    """截 [start, start+win_sec)，用开头 baseline_sec 均值减全窗。"""
+    """截 [start, start+win_sec)，用开头 baseline_sec 均值减全窗。默认 2s→500@250Hz。"""
     n = int(round(win_sec * fs))
     if start < 0 or start + n > x.shape[0]:
         return None

@@ -147,7 +147,7 @@ def sanity_check_outputs(X, y_task, y_three) -> None:
 
 
 def main() -> None:
-    mat_path = Path(r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A01T.mat")
+    mat_path = Path(r"D:\cyy\MI\DATA\bci2a\A01T.mat")
     out_dir = Path(__file__).resolve().parents[3] / "out" / "bci2a_2s"
     out_dir.mkdir(parents=True, exist_ok=True)
 

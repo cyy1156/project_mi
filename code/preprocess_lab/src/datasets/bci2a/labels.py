@@ -68,7 +68,7 @@ def rest_starts_to_rows(starts: list[int]) -> np.ndarray:
     return np.asarray(rows, dtype=int)
 
 def test_rest_cues() -> None:
-   mat_path = Path(r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A01T.mat")
+   mat_path = Path(r"D:\cyy\MI\DATA\bci2a\A01T.mat")
    runs =load_bci2a_mat(mat_path)
 
    eeg = runs[0]
@@ -116,7 +116,7 @@ def test_rest_cues() -> None:
 
 
 def test_filter_on_a01() -> None:
-    mat_path = Path(r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A01T.mat")
+    mat_path = Path(r"D:\cyy\MI\DATA\bci2a\A01T.mat")
     runs = load_bci2a_mat(mat_path)
     for eeg in runs:
         kept = filter_left_right_events(eeg.events, eeg.artifacts)

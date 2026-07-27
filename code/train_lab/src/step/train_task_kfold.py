@@ -1,4 +1,4 @@
-"""被试独立五折：分类头1（静息/任务）。读全库 bci2a_*.npy。"""
+"""被试独立五折：分类头1（静息/任务）。读合并库 merged_*.npy（方案 A）。"""
 
 from __future__ import annotations
 
@@ -15,18 +15,24 @@ from braindecode.models import EEGNet
 from torch.utils.data import DataLoader
 
 from dataset import ArrayTaskDataset
-from metrics import binary_task_metrics, format_task_metrics
+from metrics import (
+    binary_task_metrics,
+    format_task_metrics,
+    jsonify_metrics,
+    metrics_by_dataset_prefix,
+)
 
 # step → src → train_lab → code
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-#DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
-DATA_DIR = PRE_ROOT / "out" / "stieger_2s"
-DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_stieger_2s"
-#DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_2s"
+DATA_DIR = PRE_ROOT / "out" / "merged_2s"
+DATA_PREFIX = "merged"
+DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_merged_2s"
 
 sys.path.insert(0, str(PRE_ROOT))
-from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
+from src.common.steps.split_subjects import (  # noqa: E402
+    iter_subject_kfold_stratified_by_dataset,
+)
 
 
 @dataclass
@@ -35,12 +41,12 @@ class TaskKFoldConfig:
     val_ratio: float = 0.2
     seed: int = 42
     max_epochs: int = 100
-    patience: int = 15
+    patience: int = 18
     batch_train: int = 32
     batch_eval: int = 64
-    lr: float = 0.001
+    lr: float = 0.0007
     weight_decay: float = 0.0001
-    drop_prob: float = 0.5
+    drop_prob: float = 0.55
     f1: int = 8
     d: int = 2
     f2: int = 16
@@ -90,7 +96,7 @@ def make_loader(X, y, cfg: TaskKFoldConfig, train: bool):
     )
 
 
-def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
+def train_one_fold(fold_info, X, y, subjects, device, cfg: TaskKFoldConfig) -> dict:
     fold = fold_info["fold"]
     masks = fold_info["masks"]
     out_dir = cfg.resolved_out_dir()
@@ -127,6 +133,7 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
     best_ep = 0
     bad_epochs = 0
     best_val_loss = float("inf")
+    ep = 0
 
     for ep in range(1, cfg.max_epochs + 1):
         tr_loss = run_epoch(model, train_loader, criterion, optimizer, device, train=True)
@@ -152,7 +159,7 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
                     "n_outputs": 2,
                     "model": best_state,
                     "epoch": ep,
-                    "val_metrics": {k: (v.tolist() if hasattr(v, "tolist") else v) for k, v in m.items()},
+                    "val_metrics": jsonify_metrics(m),
                     "train_subjects": fold_info["train_subjects"],
                     "val_subjects": fold_info["val_subjects"],
                     "test_subjects": fold_info["test_subjects"],
@@ -170,8 +177,19 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
     model.load_state_dict(best_state)
 
     y_te, p_te = collect_preds(model, test_loader, device)
-    m_te = binary_task_metrics(y_te, p_te)
+    subj_te = subjects[masks["test"]]
+    by_ds = metrics_by_dataset_prefix(y_te, p_te, subj_te, binary_task_metrics)
+    m_te = by_ds["overall"]
     print(format_task_metrics(f"fold{fold}/test", m_te))
+    for key in ("bci2a_only", "stieger_only"):
+        block = by_ds.get(key)
+        if block is None:
+            print(f"  [{key}] (no samples)")
+        else:
+            print(
+                f"  [{key}] n={block['n']} Acc={block['accuracy']:.4f} "
+                f"F1={block['f1']:.4f} Spe={block['specificity']:.4f}"
+            )
     print(f"fold{fold} best val F1={best_score:.4f} @ ep {best_ep}")
 
     return {
@@ -180,10 +198,8 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
         "best_val_loss": float(best_val_loss),
         "best_epoch": int(best_ep),
         "stopped_epoch": int(ep),
-        "test_metrics": {
-            k: (v.tolist() if hasattr(v, "tolist") else float(v) if isinstance(v, (float, np.floating)) else v)
-            for k, v in m_te.items()
-        },
+        "test_metrics": m_te,
+        "test_metrics_by_dataset": by_ds,
         "n_train": int(masks["train"].sum()),
         "n_val": int(masks["val"].sum()),
         "n_test": int(masks["test"].sum()),
@@ -191,6 +207,19 @@ def train_one_fold(fold_info, X, y, device, cfg: TaskKFoldConfig) -> dict:
         "val_subjects": fold_info["val_subjects"],
         "test_subjects": fold_info["test_subjects"],
     }
+
+
+def _mean_std_by_ds(
+    fold_results: list[dict], ds_key: str, metric: str
+) -> tuple[float | None, float | None]:
+    vals = []
+    for r in fold_results:
+        block = (r.get("test_metrics_by_dataset") or {}).get(ds_key)
+        if block is not None and metric in block:
+            vals.append(float(block[metric]))
+    if not vals:
+        return None, None
+    return float(np.mean(vals)), float(np.std(vals))
 
 
 def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | None = None) -> dict:
@@ -203,38 +232,37 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
     print("DATA_DIR:", DATA_DIR)
     print("OUT_DIR:", out_dir)
     print(
-        f"被试独立 {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
+        f"被试独立(按库分层) {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
         f"patience={cfg.patience} | lr={cfg.lr} | wd={cfg.weight_decay} | drop={cfg.drop_prob}"
     )
-    """
-    for name in ("bci2a_X.npy", "bci2a_y_task.npy", "bci2a_subjects.npy"):
-        if not (DATA_DIR / name).exists():
-            raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
+    for suffix in ("X", "y_task", "subjects"):
+        path = DATA_DIR / f"{DATA_PREFIX}_{suffix}.npy"
+        if not path.exists():
+            raise FileNotFoundError(
+                f"缺少 {path}（请先: python -m src.datasets.merge_bci2a_stieger）"
+            )
 
-    X = np.load(DATA_DIR / "bci2a_X.npy")
-    y = np.load(DATA_DIR / "bci2a_y_task.npy")
-    subjects = np.load(DATA_DIR / "bci2a_subjects.npy", allow_pickle=True)
-    """
+    X = np.load(DATA_DIR / f"{DATA_PREFIX}_X.npy")
+    y = np.load(DATA_DIR / f"{DATA_PREFIX}_y_task.npy")
+    subjects = np.load(DATA_DIR / f"{DATA_PREFIX}_subjects.npy", allow_pickle=True)
+    subjects = np.asarray([str(s) for s in subjects], dtype=object)
 
-    for name in ("stieger_X.npy", "stieger_y_task.npy", "stieger_subjects.npy"):
-      if not (DATA_DIR / name).exists():
-         raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
-
-    X = np.load(DATA_DIR / "stieger_X.npy")
-    y = np.load(DATA_DIR / "stieger_y_task.npy")
-    subjects = np.load(DATA_DIR / "stieger_subjects.npy", allow_pickle=True)
     fold_results = []
-    for fold_info in iter_subject_kfold(
+    for fold_info in iter_subject_kfold_stratified_by_dataset(
         subjects, n_folds=cfg.n_folds, val_ratio=cfg.val_ratio, seed=cfg.seed
     ):
-        fold_results.append(train_one_fold(fold_info, X, y, device, cfg))
+        fold_results.append(train_one_fold(fold_info, X, y, subjects, device, cfg))
 
     test_f1s = [r["test_metrics"]["f1"] for r in fold_results]
     test_accs = [r["test_metrics"]["accuracy"] for r in fold_results]
     val_f1s = [r["best_val_f1"] for r in fold_results]
 
+    bci_f1_m, bci_f1_s = _mean_std_by_ds(fold_results, "bci2a_only", "f1")
+    sti_f1_m, sti_f1_s = _mean_std_by_ds(fold_results, "stieger_only", "f1")
+
     summary = {
         "task": "task_kfold",
+        "data": {"dir": str(DATA_DIR), "prefix": DATA_PREFIX, "scheme": "A"},
         "hparams": asdict(cfg),
         "out_dir": str(out_dir),
         "folds": fold_results,
@@ -244,6 +272,10 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
         "test_acc_std": float(np.std(test_accs)),
         "test_f1_mean": float(np.mean(test_f1s)),
         "test_f1_std": float(np.std(test_f1s)),
+        "test_f1_bci2a_only_mean": bci_f1_m,
+        "test_f1_bci2a_only_std": bci_f1_s,
+        "test_f1_stieger_only_mean": sti_f1_m,
+        "test_f1_stieger_only_std": sti_f1_s,
         "mean_best_epoch": float(np.mean([r["best_epoch"] for r in fold_results])),
     }
 
@@ -257,6 +289,10 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
     print(f"  Acc mean±std = {summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f}")
     print(f"  F1  mean±std = {summary['test_f1_mean']:.4f} ± {summary['test_f1_std']:.4f}")
     print(f"  Val F1 mean±std = {summary['val_f1_mean']:.4f} ± {summary['val_f1_std']:.4f}")
+    if bci_f1_m is not None:
+        print(f"  F1 bci2a_only  mean±std = {bci_f1_m:.4f} ± {bci_f1_s:.4f}")
+    if sti_f1_m is not None:
+        print(f"  F1 stieger_only mean±std = {sti_f1_m:.4f} ± {sti_f1_s:.4f}")
     print("done. weights under", out_dir)
 
     with open(out_dir / "summary.json", "w", encoding="utf-8") as f:
@@ -266,8 +302,8 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
 
 def parse_args() -> TaskKFoldConfig:
     d = TaskKFoldConfig()
-    p = argparse.ArgumentParser(description="被试独立五折：头1 静息/任务")
-    p.add_argument("--out-dir", default="", help="输出目录，默认 out/kfold_task")
+    p = argparse.ArgumentParser(description="被试独立五折：头1 静息/任务（合并库）")
+    p.add_argument("--out-dir", default="", help="输出目录，默认 out/kfold_task_merged_2s")
     p.add_argument("--lr", type=float, default=d.lr)
     p.add_argument("--weight-decay", type=float, default=d.weight_decay)
     p.add_argument("--drop-prob", type=float, default=d.drop_prob)

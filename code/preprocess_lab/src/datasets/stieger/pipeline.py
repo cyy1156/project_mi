@@ -157,7 +157,7 @@ def sanity_check_outputs(X, y_task, y_three) -> None:
 def main() -> None:
     # 调试：先跑一个会话
     mat_path = Path(
-        r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\stieger\S1_Session_10.mat"
+        r"D:\cyy\MI\DATA\stieger\S1_Session_10.mat"
     )
     out_dir = Path(__file__).resolve().parents[3] / "out" / "stieger_2s"
     out_dir.mkdir(parents=True, exist_ok=True)
