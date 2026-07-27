@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """
-Phase 4：会话目录 → (N,1,8,1000) + y_task / y_three。
+Phase 4：会话目录 → (N,1,8,500) + y_task / y_three。
 
-用法（仓库根，lsl_connect venv）:
+用法（仓库根 .venv）:
 
-  .\\collect_data\\...\\.venv\\Scripts\\python.exe ^
+  .\\.venv\\Scripts\\python.exe ^
     -m experiment_game.tools.run_phase4_epochs ^
     --session experiment_game\\data\\sessions\\sub01_ses_p1_20260722_110447
 

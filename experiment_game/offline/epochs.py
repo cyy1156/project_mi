@@ -1,9 +1,13 @@
-"""按 mi_start / rest_start 切 4 s 窗，并做基线校正。"""
+"""按 mi_start / rest_start 切 2 s 窗，并做基线校正。
+
+在线范式仍可呈现 4 s MI/Rest；离线训练只取窗起点起连续 2 s
+（MI：等价 Cue+2~Cue+4，与 BCI2a 正式切窗对齐）→ 500@250Hz。
+"""
 
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Any, Dict, List, Optional, Sequence
+from typing import List, Optional, Sequence
 
 import numpy as np
 from scipy.signal import resample
@@ -13,6 +17,11 @@ from experiment_game.offline.load_session import (
     rejected_trial_ids,
     time_to_sample,
 )
+
+# 与 preprocess_lab / 训练统一
+WIN_SEC = 2.0
+FS_OUT = 250.0
+N_TIMES = int(WIN_SEC * FS_OUT)  # 500
 
 
 @dataclass
@@ -77,7 +86,7 @@ def cut_window_with_baseline(
     start: int,
     fs: float,
     *,
-    dur_s: float = 4.0,
+    dur_s: float = WIN_SEC,
     baseline_s: float = 0.5,
 ) -> Optional[np.ndarray]:
     """
@@ -93,8 +102,14 @@ def cut_window_with_baseline(
     return win
 
 
-def resample_to_1000(x_win: np.ndarray, fs_in: float, fs_out: float = 250.0) -> np.ndarray:
-    n_out = int(4.0 * fs_out)
+def resample_to_1000(
+    x_win: np.ndarray,
+    fs_in: float,
+    fs_out: float = FS_OUT,
+    win_sec: float = WIN_SEC,
+) -> np.ndarray:
+    """历史函数名；输出点数 = win_sec * fs_out（默认 2s→500）。"""
+    n_out = int(round(win_sec * fs_out))
     if abs(fs_in - fs_out) < 1e-6 and x_win.shape[0] == n_out:
         return x_win.astype(np.float32)
     y = resample(x_win, n_out, axis=0)
@@ -109,8 +124,8 @@ def trial_zscore(x: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 
 
 def to_model_tensor(trials: List[np.ndarray]) -> np.ndarray:
-    arr = np.stack(trials, axis=0)  # (N, 1000, 8)
-    arr = np.transpose(arr, (0, 2, 1))  # (N, 8, 1000)
+    arr = np.stack(trials, axis=0)  # (N, T, 8)
+    arr = np.transpose(arr, (0, 2, 1))  # (N, 8, T)
     return arr[:, None, :, :].astype(np.float32)
 
 

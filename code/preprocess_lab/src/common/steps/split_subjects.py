@@ -96,7 +96,7 @@ def split_by_subject(
 
 
 def _test_split_all_trials() -> None:
-    X = np.zeros((100, 1, 8, 1000), np.float32)
+    X = np.zeros((100, 1, 8, 500), np.float32)
     y_task = np.array([1] * 70 + [0] * 30)
     y_three = np.array([1] * 35 + [2] * 35 + [0] * 30)
     subjects = ["A01"] * 40 + ["A02"] * 30 + ["A03"] * 30
@@ -219,7 +219,7 @@ def iter_subject_kfold(
         }
 
 def _test_split_by_subject() -> None:
-    X = np.zeros((10, 1, 8, 1000), np.float32)
+    X = np.zeros((10, 1, 8, 500), np.float32)
     y_task = np.array([1, 1, 1, 1, 1, 1, 1, 0, 0, 0])
     y_three = np.array([1, 2, 1, 2, 1, 2, 1, 0, 0, 0])
     subjects = ["A01"] * 4 + ["A02"] * 3 + ["A03"] * 3
@@ -251,10 +251,107 @@ def _test_iter_subject_kfold() -> None:
     print("iter_subject_kfold OK")
 
 
+def dataset_prefix(subject_id: str) -> str:
+    """'bci2a:A01' → 'bci2a'；无冒号则 '_default'。"""
+    s = str(subject_id)
+    if ":" in s:
+        return s.split(":", 1)[0]
+    return "_default"
+
+
+def split_train_val_subjects_stratified(
+    remain_subjects: list[str],
+    val_ratio: float = 0.2,
+    seed: int = 42,
+    fold_id: int = 0,
+) -> tuple[list[str], list[str]]:
+    """剩余人按数据集前缀分层，再各自抽 val，最后合并。"""
+    by_ds: dict[str, list[str]] = {}
+    for s in remain_subjects:
+        by_ds.setdefault(dataset_prefix(s), []).append(s)
+
+    train_subjects: list[str] = []
+    val_subjects: list[str] = []
+    for ds in sorted(by_ds.keys()):
+        tr, va = split_train_val_subjects(
+            by_ds[ds], val_ratio=val_ratio, seed=seed, fold_id=fold_id
+        )
+        train_subjects.extend(tr)
+        val_subjects.extend(va)
+    return train_subjects, val_subjects
+
+
+def iter_subject_kfold_stratified_by_dataset(
+    subjects_per_trial: np.ndarray,
+    n_folds: int = 5,
+    val_ratio: float = 0.2,
+    seed: int = 42,
+):
+    """
+    方案 A：按数据集前缀分别做 n_folds 分组，第 k 折 test = 各库第 k 组并集；
+    剩余人再按库分层抽 val。
+    被试 ID 形如 'bci2a:A01' / 'stieger:S1'。
+    """
+    subjects_per_trial = np.asarray([str(s) for s in subjects_per_trial], dtype=object)
+    unique = sorted(set(subjects_per_trial.tolist()))
+    by_ds: dict[str, list[str]] = {}
+    for s in unique:
+        by_ds.setdefault(dataset_prefix(s), []).append(s)
+
+    groups_per_ds = {
+        ds: make_subject_groups(subs, n_folds=n_folds, seed=seed)
+        for ds, subs in by_ds.items()
+    }
+
+    for fold_id in range(n_folds):
+        test_subjects: list[str] = []
+        for ds in sorted(groups_per_ds.keys()):
+            test_subjects.extend(groups_per_ds[ds][fold_id])
+        remain = [s for s in unique if s not in set(test_subjects)]
+        train_subjects, val_subjects = split_train_val_subjects_stratified(
+            remain, val_ratio=val_ratio, seed=seed, fold_id=fold_id
+        )
+        masks = {
+            "train": np.isin(subjects_per_trial, train_subjects),
+            "val": np.isin(subjects_per_trial, val_subjects),
+            "test": np.isin(subjects_per_trial, test_subjects),
+        }
+        assert not set(train_subjects) & set(val_subjects)
+        assert not set(test_subjects) & set(val_subjects)
+        assert not set(test_subjects) & set(train_subjects)
+        yield {
+            "fold": fold_id,
+            "train_subjects": train_subjects,
+            "val_subjects": val_subjects,
+            "test_subjects": list(test_subjects),
+            "masks": masks,
+        }
+
+
+def _test_iter_subject_kfold_stratified() -> None:
+    # 贴近真实：2a 9 人 + stieger 10 人 → 五折每折 test 应同时含两库
+    subs = []
+    for a in [f"A{i:02d}" for i in range(1, 10)]:
+        subs.extend([f"bci2a:{a}"] * 2)
+    for s in [f"S{i}" for i in range(1, 11)]:
+        subs.extend([f"stieger:{s}"] * 2)
+    subjects = np.array(subs, dtype=object)
+    for info in iter_subject_kfold_stratified_by_dataset(
+        subjects, n_folds=5, val_ratio=0.2, seed=42
+    ):
+        te = [str(x) for x in info["test_subjects"]]
+        assert any(x.startswith("bci2a:") for x in te), te
+        assert any(x.startswith("stieger:") for x in te), te
+        tr, va, te_s = set(info["train_subjects"]), set(info["val_subjects"]), set(te)
+        assert not (tr & va) and not (tr & te_s) and not (va & te_s)
+    print("iter_subject_kfold_stratified_by_dataset OK")
+
+
 def main() -> None:
     _test_split_all_trials()
     _test_split_by_subject()
     _test_iter_subject_kfold()
+    _test_iter_subject_kfold_stratified()
 
 
 if __name__ == "__main__":

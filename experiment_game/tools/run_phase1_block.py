@@ -4,7 +4,7 @@ Phase 1：无画面正式 block —— synthetic/真机 + 试次状态机 + even
 
 用法（在仓库根 d:\\cyy\\MI，使用 lsl_connect 的 venv）:
 
-  .\\collect_data\\LSL_connect_model\\LSL_connect_model\\.venv\\Scripts\\python.exe ^
+  .\\.venv\\Scripts\\python.exe ^
     -m experiment_game.tools.run_phase1_block --trials 20 --synthetic
 
 按 Enter 开始；Ctrl+C 可中断（会尽量 stop 录制）。

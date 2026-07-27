@@ -99,3 +99,41 @@ def format_three_metrics(part_name: str, m: dict) -> str:
             f"{m['recall_idle']:.4f} / {m['recall_left']:.4f} / {m['recall_right']:.4f}",
         ]
     )
+
+
+def jsonify_metrics(m: dict) -> dict:
+    out = {}
+    for k, v in m.items():
+        if hasattr(v, "tolist"):
+            out[k] = v.tolist()
+        elif isinstance(v, (float, np.floating)):
+            out[k] = float(v)
+        elif isinstance(v, (int, np.integer)):
+            out[k] = int(v)
+        else:
+            out[k] = v
+    return out
+
+
+def metrics_by_dataset_prefix(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    subjects: np.ndarray,
+    metric_fn,
+    prefixes: tuple[str, ...] = ("bci2a", "stieger"),
+) -> dict:
+    """Overall + 按被试前缀拆分（方案 A 报数）。无样本的库记 null。"""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    subjects = np.asarray([str(s) for s in subjects])
+    out: dict = {"overall": jsonify_metrics(metric_fn(y_true, y_pred))}
+    for prefix in prefixes:
+        mask = np.array([s.startswith(prefix + ":") for s in subjects], dtype=bool)
+        key = f"{prefix}_only"
+        if int(mask.sum()) == 0:
+            out[key] = None
+        else:
+            out[key] = jsonify_metrics(metric_fn(y_true[mask], y_pred[mask]))
+            out[key]["n"] = int(mask.sum())
+    out["overall"]["n"] = int(len(y_true))
+    return out

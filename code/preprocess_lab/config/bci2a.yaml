@@ -1,18 +1,17 @@
-# BCI Competition IV 2a —— 整库批处理
+# BCI Competition IV 2a —— 整库批处理（2s → 500@250Hz）
+# 正式入口建议用 bci2a_2s.yaml；本文件路径已与本机对齐，输出同为 2s。
 dataset: bci2a
 loader: load_bci2a_mat
 
-# ★ 批处理关键：通配符扫全库（按你本机 DATA 路径改）
-data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A0*T.mat"
+data_glob: "D:/cyy/MI/DATA/bci2a/A0*T.mat"
 
 # 调试时先只跑 1～2 人（二选一，有 data_files 时优先用列表）
 # data_files:
-#   - "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A01T.mat"
-#   - "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A02T.mat"
+#   - "D:/cyy/MI/DATA/bci2a/A01T.mat"
+#   - "D:/cyy/MI/DATA/bci2a/A02T.mat"
 
 subject_from: stem3   # A01T.mat → "A01"
 
-# 标签（与现流水线一致）
 label_map:
   1: [1, 1]   # 左
   2: [1, 2]   # 右
@@ -20,13 +19,14 @@ drop_codes: [3, 4]
 make_rest: true
 rest_balance: min_left_right
 
+# 切窗在 pipeline.py：任务 Cue+2~4s / 静息 Cue前2s → 500 点
+win_sec: 2.0
 target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
 fs_out: 250
 
 val_ratio: 0.2
 seed: 42
 
-# 相对 preprocess_lab 目录；也可写绝对路径
-out_dir: "out/bci2a"
+out_dir: "out/bci2a_2s"
 save_full: true
 save_split: true

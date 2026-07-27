@@ -18,7 +18,7 @@ def select_channels(x:np.ndarray,ch_names: list[str]) -> np.ndarray:
 
 
 def test_select_channels() -> None:
-    mat_path=Path(r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A01T.mat")
+    mat_path=Path(r"D:\cyy\MI\DATA\bci2a\A01T.mat")
     runs=load_bci2a_mat(mat_path)
 
     eeg = runs[0]

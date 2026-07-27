@@ -45,7 +45,7 @@ def load_bci2a_mat(mat_path: Path) -> list[ContinuousEEG]:
 
 def main() -> None:
     # 改成你电脑上 A01T.mat 的真实路径
-    mat_path = Path(r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A06T.mat")
+    mat_path = Path(r"D:\cyy\MI\DATA\bci2a\A06T.mat")
 
     runs = load_bci2a_mat(mat_path)   # 得到 list[ContinuousEEG]
     print("有标签的 run 数量:", len(runs))
