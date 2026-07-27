@@ -4,7 +4,7 @@ Phase 2：诱导 MVP 会话（适应 → 学习 → 准入 → 正式）+ WebSoc
 
 用法（仓库根，lsl_connect venv）:
 
-  .\\collect_data\\LSL_connect_model\\LSL_connect_model\\.venv\\Scripts\\python.exe ^
+  .\\.venv\\Scripts\\python.exe ^
     -m experiment_game.tools.run_phase2_session --acquire-trials 4 --yes
 
 浏览器打开终端打印的 http://127.0.0.1:8080/ ，按页面提示继续。

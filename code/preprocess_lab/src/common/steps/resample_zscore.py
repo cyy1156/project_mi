@@ -6,11 +6,11 @@ def resample_to_1000(
     x_win: np.ndarray,
     fs_in: float,
     fs_out: float = 250,
-    win_sec: float = 4.0,
+    win_sec: float = 2.0,
 ) -> np.ndarray:
     """
     x_win: (n_times_in, 8)，应对应 win_sec 秒。
-    输出: (int(win_sec*fs_out), 8)，默认 4s→1000，2s→500。
+    输出: (int(win_sec*fs_out), 8)，默认 2s→500@250Hz（与 BCI2a/Stieger 现行一致）。
     """
     n_out = int(round(win_sec * fs_out))
     if abs(fs_in - fs_out) < 1e-6 and x_win.shape[0] == n_out:

@@ -7,11 +7,11 @@ if errorlevel 1 (
   exit /b 1
 )
 
-set "PY=%CD%\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe"
+set "PY=%CD%\.venv\Scripts\python.exe"
 if not exist "%PY%" (
   echo ERROR: Python venv not found:
   echo   %PY%
-  echo Create lsl_connect .venv and install experiment_game\requirements.txt
+  echo Create repo-root .venv and: pip install -r requirements.txt
   pause
   exit /b 1
 )

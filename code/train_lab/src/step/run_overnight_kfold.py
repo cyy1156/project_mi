@@ -33,7 +33,7 @@ STAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 MD_DIR = REPO_ROOT / "资料" / "模型训练"
 MD_PATH = MD_DIR / f"五折过夜实验记录_{STAMP}.md"
 MD_LATEST = MD_DIR / "五折过夜实验记录_最新.md"
-OUT_ROOT = TRAIN_LAB / "out" / f"overnight_stieger_{STAMP}"
+OUT_ROOT = TRAIN_LAB / "out" / f"overnight_{STAMP}"
 LOG_PATH = OUT_ROOT / "overnight.log"
 
 
@@ -120,10 +120,18 @@ def write_task_section(run_name: str, summary: dict, note: str = "") -> None:
         f"- **Test Acc** mean±std = `{summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f}`",
         f"- **Test F1** mean±std = `{summary['test_f1_mean']:.4f} ± {summary['test_f1_std']:.4f}`",
         f"- 平均 best_epoch = `{summary['mean_best_epoch']:.1f}`",
-        "",
-        "---",
-        "",
     ]
+    if summary.get("test_f1_bci2a_only_mean") is not None:
+        lines.append(
+            f"- **Test F1 bci2a_only** mean±std = "
+            f"`{summary['test_f1_bci2a_only_mean']:.4f} ± {summary['test_f1_bci2a_only_std']:.4f}`"
+        )
+    if summary.get("test_f1_stieger_only_mean") is not None:
+        lines.append(
+            f"- **Test F1 stieger_only** mean±std = "
+            f"`{summary['test_f1_stieger_only_mean']:.4f} ± {summary['test_f1_stieger_only_std']:.4f}`"
+        )
+    lines += ["", "---", ""]
     append_md("\n".join(lines))
 
 
@@ -166,10 +174,20 @@ def write_three_section(run_name: str, summary: dict, note: str = "") -> None:
         f"- **Test F1-macro** mean±std = "
         f"`{summary['test_f1_macro_mean']:.4f} ± {summary['test_f1_macro_std']:.4f}`",
         f"- 平均 best_epoch = `{summary['mean_best_epoch']:.1f}`",
-        "",
-        "---",
-        "",
     ]
+    if summary.get("test_f1_macro_bci2a_only_mean") is not None:
+        lines.append(
+            f"- **Test F1-macro bci2a_only** mean±std = "
+            f"`{summary['test_f1_macro_bci2a_only_mean']:.4f} ± "
+            f"{summary['test_f1_macro_bci2a_only_std']:.4f}`"
+        )
+    if summary.get("test_f1_macro_stieger_only_mean") is not None:
+        lines.append(
+            f"- **Test F1-macro stieger_only** mean±std = "
+            f"`{summary['test_f1_macro_stieger_only_mean']:.4f} ± "
+            f"{summary['test_f1_macro_stieger_only_std']:.4f}`"
+        )
+    lines += ["", "---", ""]
     append_md("\n".join(lines))
 
 
@@ -315,6 +333,129 @@ def pick_best_three(run_a: dict, run_b: dict) -> dict:
     return run_a
 
 
+def _banner(title: str) -> None:
+    bar = "=" * 64
+    print(bar, flush=True)
+    print(title, flush=True)
+    print(bar, flush=True)
+    log(title)
+
+
+def print_best_task_pair(
+    tag_a: str,
+    sum_a: dict,
+    tag_b: str,
+    sum_b: dict,
+    best: dict,
+    best_tag: str,
+) -> None:
+    """头1两轮（基线+调参）结束后：对比并打印选中的结果/超参。"""
+    lines = [
+        "",
+        f"[头1] 两轮对比选优：{tag_a} vs {tag_b}",
+        f"  {tag_a}: Val F1={sum_a['val_f1_mean']:.4f}±{sum_a['val_f1_std']:.4f} | "
+        f"Test F1={sum_a['test_f1_mean']:.4f}±{sum_a['test_f1_std']:.4f} | "
+        f"Test Acc={sum_a['test_acc_mean']:.4f}±{sum_a['test_acc_std']:.4f}",
+        f"  {tag_b}: Val F1={sum_b['val_f1_mean']:.4f}±{sum_b['val_f1_std']:.4f} | "
+        f"Test F1={sum_b['test_f1_mean']:.4f}±{sum_b['test_f1_std']:.4f} | "
+        f"Test Acc={sum_b['test_acc_mean']:.4f}±{sum_b['test_acc_std']:.4f}",
+        f"  >> 选中（按 Val F1）：{best_tag}",
+        f"  >> Val F1 = {best['val_f1_mean']:.4f} ± {best['val_f1_std']:.4f}",
+        f"  >> Test F1 = {best['test_f1_mean']:.4f} ± {best['test_f1_std']:.4f}（仅报告）",
+        f"  >> Test Acc = {best['test_acc_mean']:.4f} ± {best['test_acc_std']:.4f}",
+        f"  >> 权重目录：{best['out_dir']}",
+        "  >> 最优超参：",
+    ]
+    hp = best["hparams"]
+    for k in ("lr", "weight_decay", "drop_prob", "patience", "max_epochs", "batch_train", "seed"):
+        if k in hp:
+            lines.append(f"       {k} = {hp[k]}")
+    _banner("\n".join(lines))
+
+
+def print_best_three_pair(
+    tag_a: str,
+    sum_a: dict,
+    tag_b: str,
+    sum_b: dict,
+    best: dict,
+    best_tag: str,
+) -> None:
+    """头2两轮（基线+调参）结束后：对比并打印选中的结果/超参。"""
+    lines = [
+        "",
+        f"[头2] 两轮对比选优：{tag_a} vs {tag_b}",
+        f"  {tag_a}: Val F1m={sum_a['val_f1_macro_mean']:.4f}±{sum_a['val_f1_macro_std']:.4f} | "
+        f"Test F1m={sum_a['test_f1_macro_mean']:.4f}±{sum_a['test_f1_macro_std']:.4f} | "
+        f"Test Acc={sum_a['test_acc_mean']:.4f}±{sum_a['test_acc_std']:.4f}",
+        f"  {tag_b}: Val F1m={sum_b['val_f1_macro_mean']:.4f}±{sum_b['val_f1_macro_std']:.4f} | "
+        f"Test F1m={sum_b['test_f1_macro_mean']:.4f}±{sum_b['test_f1_macro_std']:.4f} | "
+        f"Test Acc={sum_b['test_acc_mean']:.4f}±{sum_b['test_acc_std']:.4f}",
+        f"  >> 选中（按 Val F1-macro）：{best_tag}",
+        f"  >> Val F1-macro = {best['val_f1_macro_mean']:.4f} ± {best['val_f1_macro_std']:.4f}",
+        f"  >> Test F1-macro = {best['test_f1_macro_mean']:.4f} ± {best['test_f1_macro_std']:.4f}（仅报告）",
+        f"  >> Test Acc = {best['test_acc_mean']:.4f} ± {best['test_acc_std']:.4f}",
+        f"  >> 权重目录：{best['out_dir']}",
+        "  >> 最优超参：",
+    ]
+    hp = best["hparams"]
+    for k in (
+        "lr",
+        "weight_decay",
+        "drop_prob",
+        "patience",
+        "max_epochs",
+        "batch_train",
+        "seed",
+        "freeze_backbone",
+        "task_kfold_dir",
+    ):
+        if k in hp:
+            lines.append(f"       {k} = {hp[k]}")
+    _banner("\n".join(lines))
+
+
+def print_final_best(best_tag: str, best_task: dict, best3_tag: str, best_three: dict) -> None:
+    """全部跑完后：汇总打印两头最优结果与参数。"""
+    lines = [
+        "",
+        "过夜实验最终汇总（头1 + 头2）",
+        "",
+        f"[头1 静息/任务] 选中 {best_tag}",
+        f"  Val F1     = {best_task['val_f1_mean']:.4f} ± {best_task['val_f1_std']:.4f}",
+        f"  Test F1    = {best_task['test_f1_mean']:.4f} ± {best_task['test_f1_std']:.4f}",
+        f"  Test Acc   = {best_task['test_acc_mean']:.4f} ± {best_task['test_acc_std']:.4f}",
+        f"  out_dir    = {best_task['out_dir']}",
+        "  hparams:",
+    ]
+    for k in ("lr", "weight_decay", "drop_prob", "patience", "max_epochs", "batch_train", "seed"):
+        if k in best_task["hparams"]:
+            lines.append(f"    {k} = {best_task['hparams'][k]}")
+    lines += [
+        "",
+        f"[头2 空闲/左/右] 选中 {best3_tag}",
+        f"  Val F1m    = {best_three['val_f1_macro_mean']:.4f} ± {best_three['val_f1_macro_std']:.4f}",
+        f"  Test F1m   = {best_three['test_f1_macro_mean']:.4f} ± {best_three['test_f1_macro_std']:.4f}",
+        f"  Test Acc   = {best_three['test_acc_mean']:.4f} ± {best_three['test_acc_std']:.4f}",
+        f"  out_dir    = {best_three['out_dir']}",
+        "  hparams:",
+    ]
+    for k in (
+        "lr",
+        "weight_decay",
+        "drop_prob",
+        "patience",
+        "max_epochs",
+        "batch_train",
+        "seed",
+        "freeze_backbone",
+        "task_kfold_dir",
+    ):
+        if k in best_three["hparams"]:
+            lines.append(f"    {k} = {best_three['hparams'][k]}")
+    _banner("\n".join(lines))
+
+
 def main() -> None:
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -330,8 +471,9 @@ def main() -> None:
                 "",
                 f"- 开始时间：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-                f"- 数据：`code/preprocess_lab/out/stieger_2s/stieger_*.npy`（反馈段末 2s；不含 S1）",
+                f"- 数据：`code/preprocess_lab/out/merged_2s/merged_*.npy`（方案A：BCI2a+Stieger 简单拼接；按库分层五折）",
                 f"- 输入：`n_times=500` @ 250Hz",
+                f"- 报数：Overall + bci2a_only + stieger_only（选型仍只看 Overall Val）",
                 f"- 权重根目录：`{OUT_ROOT}`",
                 f"- 运行日志：`{LOG_PATH}`",
                 "",
@@ -343,6 +485,9 @@ def main() -> None:
     log(f"MD_PATH={MD_PATH}")
     log(f"OUT_ROOT={OUT_ROOT}")
     log(f"device={device}")
+    from train_task_kfold import DATA_DIR as TASK_DATA_DIR  # noqa: E402
+
+    log(f"DATA_DIR={TASK_DATA_DIR}")
 
     try:
         # ----- 头1：小网格筛一轮（只看 Val F1）再进 overnight 微调 -----
@@ -422,6 +567,7 @@ def main() -> None:
 
         best_task = pick_best_task(sum1, sum2)
         best_tag = "Run01" if best_task is sum1 else "Run02"
+        print_best_task_pair("Run01", sum1, "Run02", sum2, best_task, best_tag)
         append_md(
             "\n".join(
                 [
@@ -432,6 +578,10 @@ def main() -> None:
                     f"- 对应 Test F1（仅报告）= "
                     f"`{best_task['test_f1_mean']:.4f} ± {best_task['test_f1_std']:.4f}`",
                     f"- 后续头2迁移权重目录：`{best_task['out_dir']}`",
+                    "",
+                    "### 选中超参",
+                    "",
+                    fmt_hparams(best_task["hparams"]),
                     "",
                     "---",
                     "",
@@ -479,11 +629,26 @@ def main() -> None:
 
         best_three = pick_best_three(sum3, sum4)
         best3_tag = "Run03" if best_three is sum3 else "Run04"
+        print_best_three_pair("Run03", sum3, "Run04", sum4, best_three, best3_tag)
 
         # 同步一份「当前推荐」超参回默认脚本常量说明进 md
         append_md(
             "\n".join(
                 [
+                    "## 头2选优",
+                    "",
+                    f"- 按 **Val F1-macro** 选中：**{best3_tag}**",
+                    f"- Val F1-macro = `{best_three['val_f1_macro_mean']:.4f} ± {best_three['val_f1_macro_std']:.4f}`",
+                    f"- 对应 Test F1-macro（仅报告）= "
+                    f"`{best_three['test_f1_macro_mean']:.4f} ± {best_three['test_f1_macro_std']:.4f}`",
+                    f"- 权重目录：`{best_three['out_dir']}`",
+                    "",
+                    "### 选中超参",
+                    "",
+                    fmt_hparams(best_three["hparams"]),
+                    "",
+                    "---",
+                    "",
                     "## 最终结论（明早可读）",
                     "",
                     f"- 结束时间：`{datetime.now().isoformat(timespec='seconds')}`",
@@ -517,6 +682,8 @@ def main() -> None:
                 ]
             )
         )
+
+        print_final_best(best_tag, best_task, best3_tag, best_three)
 
         # 把推荐超参写回 train_*_kfold.py 顶部常量，方便明早直接用
         apply_recommended_defaults(best_task["hparams"], best_three["hparams"])

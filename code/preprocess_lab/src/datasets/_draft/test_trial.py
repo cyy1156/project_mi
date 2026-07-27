@@ -5,7 +5,7 @@ import numpy as np
 
 def main() -> None:
     mat = scipy.io.loadmat(
-        Path(r"d:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\bci2a\A01T.mat"),
+        Path(r"D:\cyy\MI\DATA\bci2a\A01T.mat"),
         squeeze_me=True,
         struct_as_record=False,
     )
