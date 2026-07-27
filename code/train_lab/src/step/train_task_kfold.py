@@ -1,4 +1,4 @@
-"""被试独立五折：分类头1（静息/任务）。读全库 bci2a_*.npy。"""
+"""被试独立五折：分类头1（静息/任务）。读全库 stieger_*.npy。"""
 
 from __future__ import annotations
 
@@ -11,7 +11,10 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from braindecode.models import EEGNet
+try:
+    from braindecode.models import EEGNet
+except ImportError:  # braindecode>=0.8
+    from braindecode.models import EEGNetv4 as EEGNet
 from torch.utils.data import DataLoader
 
 from dataset import ArrayTaskDataset
@@ -20,10 +23,8 @@ from metrics import binary_task_metrics, format_task_metrics
 # step → src → train_lab → code
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-#DATA_DIR = PRE_ROOT / "out" / "bci2a_2s"
 DATA_DIR = PRE_ROOT / "out" / "stieger_2s"
 DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_stieger_2s"
-#DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_task_2s"
 
 sys.path.insert(0, str(PRE_ROOT))
 from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
@@ -35,12 +36,12 @@ class TaskKFoldConfig:
     val_ratio: float = 0.2
     seed: int = 42
     max_epochs: int = 100
-    patience: int = 15
+    patience: int = 18
     batch_train: int = 32
     batch_eval: int = 64
-    lr: float = 0.001
+    lr: float = 0.0007
     weight_decay: float = 0.0001
-    drop_prob: float = 0.5
+    drop_prob: float = 0.55
     f1: int = 8
     d: int = 2
     f2: int = 16
@@ -206,19 +207,9 @@ def run_task_kfold(cfg: TaskKFoldConfig | None = None, device: torch.device | No
         f"被试独立 {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
         f"patience={cfg.patience} | lr={cfg.lr} | wd={cfg.weight_decay} | drop={cfg.drop_prob}"
     )
-    """
-    for name in ("bci2a_X.npy", "bci2a_y_task.npy", "bci2a_subjects.npy"):
+    for name in ("stieger_X.npy", "stieger_y_task.npy", "stieger_subjects.npy"):
         if not (DATA_DIR / name).exists():
             raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
-
-    X = np.load(DATA_DIR / "bci2a_X.npy")
-    y = np.load(DATA_DIR / "bci2a_y_task.npy")
-    subjects = np.load(DATA_DIR / "bci2a_subjects.npy", allow_pickle=True)
-    """
-
-    for name in ("stieger_X.npy", "stieger_y_task.npy", "stieger_subjects.npy"):
-      if not (DATA_DIR / name).exists():
-         raise FileNotFoundError(f"缺少 {DATA_DIR / name}（请先跑批处理且 save_full=true）")
 
     X = np.load(DATA_DIR / "stieger_X.npy")
     y = np.load(DATA_DIR / "stieger_y_task.npy")
