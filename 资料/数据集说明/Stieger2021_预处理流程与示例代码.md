@@ -1,11 +1,15 @@
 # Stieger 2021 数据集 —— 预处理流程与完整示例代码
 
-> **性质**：实现说明文档。写清「怎么切、怎么标、代码放哪、示例怎么写」；**落地时新建专用模块，尽量不改 BCI2a 现有 steps / `pipeline.py`**。  
+> **【现行入口 · 2026-07】**  
+> - 环境：仓库根 `D:\cyy\MI\.venv`；DATA：`D:/cyy/MI/DATA/stieger/`  
+> - 批处理：`cd code\preprocess_lab` → `python -m src.datasets.stieger.batch --cfg config/stieger.yaml`  
+> - 输出：**`out/stieger_2s/`**，`(N,1,8,500)`（反馈段最后 2s）  
+> - 训练：与二分类/三分类**独立训练、原生头**约定一致（见 `资料/实验结果说明/训练策略_*.md`）  
+>  
+> **性质**：实现说明；目录迁移**已完成**。文中若仍写 `out/stieger/`（无 `_2s`）或 Desktop 路径，视为旧草稿，以本节为准。  
 > **文献**：Stieger, Engel & He, *Scientific Data* (2021)  
 > DOI：https://doi.org/10.1038/s41597-021-00883-1  
-> **数据**：https://doi.org/10.6084/m9.figshare.13123148（亦见 NEMAR `nm000339`）  
-> **对照**：`资料/数据集说明/数据集适配分析_扩展推荐.md` §1.3；目录结构见本文 §3（`src/datasets/{bci2a,stieger}` + `src/common`）  
-> **注意**：本节结构为文档约定；**确认前不直接移动仓库代码**
+> **数据**：https://doi.org/10.6084/m9.figshare.13123148（亦见 NEMAR `nm000339`）
 
 ---
 
@@ -16,15 +20,15 @@
 最终写出：
 
 ```text
-code/preprocess_lab/out/stieger/
-├── stieger_X.npy            # (N, 1, 8, 500) float32  # 现行：反馈段最后 2s
+code/preprocess_lab/out/stieger_2s/
+├── stieger_X.npy            # (N, 1, 8, 500) float32  # 反馈段最后 2s
 ├── stieger_y_task.npy       # (N,)  0=静息, 1=任务
 ├── stieger_y_three.npy      # (N,)  0=空闲, 1=左, 2=右
 ├── stieger_subjects.npy     # (N,)  被试 ID，五折用
-├── train_*.npy / val_*.npy  # 可选：试次级 8:2（基线用）
+├── train_*.npy / val_*.npy  # 可选：试次级 8:2（非正式五折）
 ```
 
-训练侧只认这套形状与标签；**Stieger 权重目录与 BCI2a 分开，从零训练，不做权重迁移对比。**
+训练侧只认这套形状与标签；Stieger 与 BCI2a **分库或合并库均可训**，但二分类→三分类之间**不迁权重**（新策略）。
 
 ### 0.2 实现原则
 
@@ -335,11 +339,11 @@ dataset: stieger
 loader: load_stieger_mat
 
 # 按本机路径修改
-data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/stieger/S*_Session_*.mat"
+data_glob: "D:/cyy/MI/DATA/stieger/S*_Session_*.mat"
 
 # 调试时可改为只列几个文件：
 # data_files:
-#   - "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/stieger/S1_Session_1.mat"
+#   - "D:/cyy/MI/DATA/stieger/S1_Session_1.mat"
 
 subject_from: stieger_stem   # S12_Session_3.mat → "S12"
 
@@ -878,7 +882,7 @@ def sanity_check_outputs(X, y_task, y_three) -> None:
 def main() -> None:
     # 调试：先跑一个会话
     mat_path = Path(
-        r"D:\360MoveData\Users\ckgxnn\Desktop\MI\DATA\stieger\S1_Session_1.mat"
+        r"D:\cyy\MI\DATA\stieger\S1_Session_1.mat"
     )
     out_dir = Path(__file__).resolve().parents[1] / "out" / "stieger"
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -911,7 +915,7 @@ Stieger 全库约 598 个会话、体量很大，典型操作是：
 
 ```text
 下载一批 .mat
-  → 预处理并【追加】到 out/stieger/*.npy
+  → 预处理并【追加】到 out/stieger_2s/*.npy
   → 写入 processed_manifest（防重复）
   → （可选）删除本批原始 .mat 腾磁盘
   → 再下载下一批，重复
@@ -1393,8 +1397,8 @@ python -m src.datasets.stieger.batch --delete-raw
 | `src/datasets/stieger/batch.py` | **已实现**（§5.8；默认 `out/stieger_2s`） |
 | `src/datasets/registry.py` | 由 `io/registry.py` **迁入** |
 | `config/bci2a.yaml` / `config/stieger.yaml` | 配置并列 |
-| `out/stieger/processed_manifest.json` | 运行时生成 |
-| `out/stieger/batch_log.jsonl` | 运行时生成 |
+| `out/stieger_2s/processed_manifest.json` | 运行时生成 |
+| `out/stieger_2s/batch_log.jsonl` | 运行时生成 |
 
 > **本文阶段**：目录已按 §3 迁移；`stieger/batch.py` 已按 §5.8 落地。
 

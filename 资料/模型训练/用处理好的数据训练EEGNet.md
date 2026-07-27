@@ -6,7 +6,10 @@
 > - 正式评估（被试独立五折）：  
 >   `cd code\train_lab\src\step` →  
 >   `python train_task_kfold.py` / `python train_three_kfold.py` / `python run_overnight_kfold.py`  
-> - 下文仍含早期 `train_task.py`（试次混合 8:2）教学示例，可作对照；**正式实验以 `*_kfold` 为准**。
+> - **训练策略（新约定）**：二分类与三分类**独立训练、不迁权重、原生分类头** →  
+>   [`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
+> - 下文仍含早期 `train_task.py`（试次混合 8:2）教学示例，可作对照；**正式实验以 `*_kfold` 为准**。  
+> - 文中若出现 Desktop / `code\.venv` 路径，一律改为 `D:\cyy\MI` / 根 `.venv`。
 
 > **性质**：示例文档。  
 > **阶段 A**：braindecode `EEGNet`，`n_outputs=2`（静息/任务）。
@@ -438,18 +441,12 @@ if __name__ == "__main__":
 ### 怎么运行
 
 ```powershell
-cd D:\360MoveData\Users\ckgxnn\Desktop\MI\code\train_lab
+cd D:\cyy\MI\code\train_lab
 $env:PYTHONPATH = "."
-..\ .venv\Scripts\python.exe -m src.step.train_task
+D:\cyy\MI\.venv\Scripts\python.exe -m src.step.train_task_kfold
 ```
 
-更稳妥（避免路径笔误）：
-
-```powershell
-cd D:\360MoveData\Users\ckgxnn\Desktop\MI\code\train_lab
-$env:PYTHONPATH = "."
-D:\360MoveData\Users\ckgxnn\Desktop\MI\code\.venv\Scripts\python.exe -m src.step.train_task
-```
+> 早期教学用的 `train_task`（试次混合）仅作对照；正式请用上面的 `*_kfold`。
 
 ---
 
