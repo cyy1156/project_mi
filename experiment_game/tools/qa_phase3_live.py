@@ -12,7 +12,7 @@ from pathlib import Path
 import websockets
 
 REPO = Path(__file__).resolve().parents[2]
-PY = REPO / "collect_data" / "LSL_connect_model" / "LSL_connect_model" / ".venv" / "Scripts" / "python.exe"
+PY = REPO / ".venv" / "Scripts" / "python.exe"
 LOG = REPO / "experiment_game" / "data" / "_p3_live_qa_log.txt"
 EDGE_CANDIDATES = [
     Path(r"C:\Program Files (x86)\Microsoft\Edge\Application\msedge.exe"),

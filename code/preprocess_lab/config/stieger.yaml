@@ -1,8 +1,8 @@
-# Stieger 2021 —— 整库批处理（第一版：仅 LR）
+# Stieger 2021 —— 整库批处理（LR + UD + 2D；窗长 2s → 500@250Hz）
 dataset: stieger
 loader: load_stieger_mat
 
-# 按本机路径修改
+# 本机路径（仓库根 D:/360MoveData/Users/ckgxnn/Desktop/MI）
 data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/stieger/S*_Session_*.mat"
 
 # 调试时可改为只列几个文件：

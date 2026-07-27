@@ -27,6 +27,7 @@
 
 - MI 窗：[`mi_start`, `mi_end`)，时长 4.0 s；等价于 `cue` 后 **+2.0 s 起**连续 4.0 s（Cue 展示 2 s 结束后进入纯静想象）。
 - Rest 窗：[`rest_start`, `rest_end`)，时长 4.0 s；**不含** Transition。
+- **离线 Phase4 训练切窗**：只取 `mi_start`/`rest_start` 起连续 **2.0 s → 500@250Hz**（与 BCI2a/Stieger 统一）；在线仍按上表 4.0 s 呈现与校验。
 - 若下游习惯「cue 后 0–4 s」语义，本系统提供显式 `mi_*`；适配器应优先用 `mi_start`/`mi_end`，避免把 Cue 展示段误切进训练窗。
 
 ---

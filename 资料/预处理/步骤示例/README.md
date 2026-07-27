@@ -10,39 +10,50 @@
 1. **你写代码，AI 只审阅**：指出问题、给修改建议与对照点；不直接改你仓库里的实现文件。
 2. **先单受试者**：用 `A01T.mat` 跑通再扩展。
 3. **中间结构统一**：所有 loader 返回 `ContinuousEEG`（见 `00_中间结构.md`）。
-4. **最终输出固定**（双标签，与项目计划 §3.1.2 一致；**BCI2a 现行**）：
-   - `X.shape == (N, 1, 8, 500)`（样本只存一份，不按头复制；其它库 T 可不同）
+4. **最终输出固定**（双标签，与项目计划 §3.1.2 一致；**全库统一 2s → 500 点**）：
+   - `X.shape == (N, 1, 8, 500)`（样本只存一份，不按头复制）
    - `y_task ∈ {0, 1}`：`0`=静息，`1`=任务
    - `y_three ∈ {0, 1, 2}`：`0`=空闲，`1`=左手，`2`=右手
    - 映射：静息→`(0,0)`；左手→`(1,1)`；右手→`(1,2)`
    - 通道顺序：`Cz, C3, C4, CP3, FC4, FC3, CP4, CPz`
-   - 采样率：250 Hz；**任务 Cue+2~4s / 静息 Cue 前 2s → 500 点**
+   - 采样率：250 Hz；**BCI2a：任务 Cue+2~4s / 静息 Cue 前 2s；Stieger：反馈段最后 2s；Phase4：mi/rest 起点起 2s**
 
 ---
 
-## 推荐文件落地位置（自学工程）
-
-你可以自己建（名称可微调，但步骤对应关系建议保持）：
+## 推荐文件落地位置（与仓库现行一致）
 
 ```text
-preprocess_lab/
-  src/
-    types.py                 # ContinuousEEG
-    io/
-      load_bci2a_mat.py      # Step1
-      load_gdf.py
-      load_openbci_csv.py
-    steps/
-      harmonize_labels.py    # Step2
-      select_channels.py     # Step3
-      filter_car.py          # Step4–5
-      epoch_baseline.py      # Step6–8
-      resample_zscore.py     # Step9–11
-      split_subjects.py      # Step12（全体混合 8:2 + 跨被试）
-    pipeline.py              # 串联
-  scripts/
-    run_one_subject.py
-  out/
+MI/                              # 仓库根 D:/cyy/MI；venv 仅用根目录 .venv
+├── .venv/
+├── DATA/
+│   ├── bci2a/
+│   └── stieger/
+└── code/preprocess_lab/
+    ├── config/
+    │   ├── bci2a_2s.yaml        # 正式 2a 批处理
+    │   ├── bci2a.yaml           # 同 2s，输出 out/bci2a_2s
+    │   └── stieger.yaml         # Stieger 2s → out/stieger_2s
+    ├── src/
+    │   ├── common/
+    │   │   ├── eeg_types.py
+    │   │   ├── config_load.py
+    │   │   └── steps/           # 共用：通道/滤波/切窗/重采样/划分
+    │   └── datasets/
+    │       ├── registry.py
+    │       ├── bci2a/           # load_mat / labels / pipeline / batch
+    │       └── stieger/         # load / labels / windows / pipeline / batch
+    └── out/
+        ├── bci2a_2s/
+        └── stieger_2s/
+```
+
+**现行批处理入口（仓库根 `.venv`）：**
+
+```text
+cd D:\cyy\MI\code\preprocess_lab
+$env:PYTHONPATH='.'
+D:\cyy\MI\.venv\Scripts\python.exe -m src.datasets.bci2a.batch --cfg config/bci2a_2s.yaml
+D:\cyy\MI\.venv\Scripts\python.exe -m src.datasets.stieger.batch --cfg config/stieger.yaml
 ```
 
 ---

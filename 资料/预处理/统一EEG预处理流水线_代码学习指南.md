@@ -28,7 +28,7 @@
 | 幅值 | **单试次、单通道 Z-score** |
 
 > 说明：范式上 MI 段仍是 Cue 后 0~4 s；本项目分类**只用后半段 2~4 s**（想象更稳定）。  
-> 其它库（如 Stieger）可自定窗长（常见仍为 4 s → 1000 点），勿与 2a 混用同一 `n_times` 硬编码。
+> **全库统一训练窗：2 s → 500 点 @250Hz**（BCI2a / Stieger / 自采 Phase4）。勿硬编码其它 `n_times`。
 
 双标签映射（项目计划 §3.1.2）：
 
@@ -407,7 +407,7 @@ def resample_to_1000(
 ) -> np.ndarray:
     """
     x_win: (n_times_in, 8)，应对应 win_sec 秒。
-    输出: (int(win_sec*fs_out), 8)；2a 默认 2s→500，其它库可传 4.0→1000。
+    输出: (int(win_sec*fs_out), 8)；现行默认 2s→500（BCI2a/Stieger/Phase4 统一）。
     """
     n_out = int(round(win_sec * fs_out))
     if abs(fs_in - fs_out) < 1e-6 and x_win.shape[0] == n_out:

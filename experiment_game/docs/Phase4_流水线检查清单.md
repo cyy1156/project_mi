@@ -12,11 +12,11 @@
 
 | 数组 | 形状 | 含义 |
 |------|------|------|
-| `X` | `(N, 1, 8, 1000)` | 4 s × 250 Hz，8 通道 |
+| `X` | `(N, 1, 8, 500)` | 2 s × 250 Hz，8 通道（与 preprocess_lab 统一） |
 | `y_task` | `(N,)` | 0=Rest，1=Task(左或右) |
 | `y_three` | `(N,)` | 0=Rest，1=Left，2=Right |
 
-切窗锚点：**`mi_start` / `rest_start`**（不用 `cue`，避免把 Cue 展示段切进训练窗）。  
+切窗锚点：**`mi_start` / `rest_start`**（不用 `cue`）。在线范式可仍呈现 4 s MI/Rest；**离线只取起点起连续 2 s**（MI 等价 Cue+2~Cue+4）。  
 默认只保留 **`phase == acquire`**，并丢弃 `trial_reject` 的 trial。
 
 ---
@@ -40,12 +40,12 @@
 
 ## 3. 一键切窗
 
-在仓库根、使用 lsl_connect 的 venv（需已 `pip install scipy`）：
+在仓库根、使用根目录 `.venv`（需已 `pip install scipy`）：
 
 ```powershell
 cd d:\cyy\MI
 
-.\collect_data\LSL_connect_model\LSL_connect_model\.venv\Scripts\python.exe `
+.\.venv\Scripts\python.exe `
   -m experiment_game.tools.run_phase4_epochs `
   --session experiment_game\data\sessions\<会话目录名>
 ```
@@ -88,7 +88,7 @@ experiment_game/data/epochs/<会话目录名>/
 ### B. 切窗
 
 - [ ] `run_phase4_epochs --session <dir>` 打印 `PHASE4_OK`
-- [ ] `X.shape[1:] == (1, 8, 1000)`
+- [ ] `X.shape[1:] == (1, 8, 500)`
 - [ ] `y_task` 同时有 0 与 1；`y_three` 在有左右数据时含 1 与 2
 - [ ] `meta.json` 中 `skipped` 可解释（多为时间越界）
 
@@ -96,8 +96,8 @@ experiment_game/data/epochs/<会话目录名>/
 
 - [ ] 将 `DATA_DIR` 指向本会话的 `data/epochs/<名>/`（含 `train_X.npy` 等）
 - [ ] 或把 npy 拷到 `preprocess_lab/out/...` 约定位置
-- [ ] 运行既有 `train_task.py`（当前主任务头用 `y_task`）
-- [ ] 确认 `n_chans=8`、`n_times=1000`
+- [ ] 运行 `train_task_kfold.py`（或把会话 npy 接到现有训练入口；主任务头用 `y_task`）
+- [ ] 确认 `n_chans=8`、`n_times=500`
 
 > 说明：synthetic 数据仅用于**流水线打通**，分类准确率无参考价值。
 
@@ -107,7 +107,7 @@ experiment_game/data/epochs/<会话目录名>/
 
 | 项 | 通过条件 |
 |----|----------|
-| 形状 | `(N,1,8,1000)` |
+| 形状 | `(N,1,8,500)` |
 | 标签 | `y_task∈{0,1}`，`y_three∈{0,1,2}`，且 Rest/Task 互相对应 |
 | 过滤 | 默认不含 adapt/learn；reject trial 不进集 |
 | 可训 | `train_X.npy` + `train_y_task.npy` 可被 Dataset 加载 |
