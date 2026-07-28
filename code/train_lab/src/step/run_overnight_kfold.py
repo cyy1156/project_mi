@@ -1,13 +1,12 @@
 """
-过夜实验编排：依次跑头1五折 → 按 val 自动调超参再跑一轮 →
-用最优头1权重跑头2五折 → 再按 val 调一轮。
-
-调参只看验证集（协议要求）；测试集仅终评写入报告。
-结果追加写入：资料/模型训练/五折过夜实验记录_*.md
+过夜实验编排：按模型独立搜参。
+默认：Task 网格+调参 → Three 网格+调参（不迁权重）。
+可选 --init-from-task 做历史迁移对照。
 """
 
 from __future__ import annotations
 
+import argparse
 import copy
 import json
 import sys
@@ -26,6 +25,8 @@ REPO_ROOT = CODE_ROOT.parent
 sys.path.insert(0, str(STEP_DIR))
 sys.path.insert(0, str(TRAIN_LAB))
 
+from data_paths import resolve_data  # noqa: E402
+from models import list_models  # noqa: E402
 from train_task_kfold import TaskKFoldConfig, run_task_kfold  # noqa: E402
 from train_three_kfold import ThreeKFoldConfig, run_three_kfold  # noqa: E402
 
@@ -33,8 +34,9 @@ STAMP = datetime.now().strftime("%Y%m%d_%H%M%S")
 MD_DIR = REPO_ROOT / "资料" / "模型训练"
 MD_PATH = MD_DIR / f"五折过夜实验记录_{STAMP}.md"
 MD_LATEST = MD_DIR / "五折过夜实验记录_最新.md"
-OUT_ROOT = TRAIN_LAB / "out" / f"overnight_{STAMP}"
-LOG_PATH = OUT_ROOT / "overnight.log"
+# OUT_ROOT 在 main 里按 model 设定
+OUT_ROOT: Path = TRAIN_LAB / "out" / f"overnight_{STAMP}"
+LOG_PATH: Path = OUT_ROOT / "overnight.log"
 
 
 def append_md(text: str) -> None:
@@ -142,8 +144,11 @@ def write_three_section(run_name: str, summary: dict, note: str = "") -> None:
         "",
         f"- 时间：`{datetime.now().isoformat(timespec='seconds')}`",
         f"- 输出目录：`{summary['out_dir']}`",
-        f"- 头1权重目录：`{hp.get('task_kfold_dir', '')}`",
+        f"- weight_transfer：`{summary.get('weight_transfer', hp.get('init_from_task', False))}`",
+        f"- model：`{summary.get('model_name', hp.get('model_name', ''))}`",
     ]
+    if hp.get("init_from_task") and hp.get("task_kfold_dir"):
+        lines.append(f"- 头1权重目录：`{hp.get('task_kfold_dir', '')}`")
     if note:
         lines.append(f"- 说明：{note}")
     lines += [
@@ -457,22 +462,46 @@ def print_final_best(best_tag: str, best_task: dict, best3_tag: str, best_three:
 
 
 def main() -> None:
+    global OUT_ROOT, LOG_PATH, MD_PATH
+
+    p = argparse.ArgumentParser(description="单模型过夜：Task/Three 各自网格+调参")
+    p.add_argument("--model", default="eegnet", choices=list_models())
+    p.add_argument("--data", default="merged_2s")
+    p.add_argument(
+        "--init-from-task",
+        action="store_true",
+        help="历史对照：三分类迁移二分类主干（默认关闭）",
+    )
+    p.add_argument("--no-writeback", action="store_true", help="不回写 kfold 脚本默认超参")
+    args = p.parse_args()
+
+    model_name = args.model
+    data_tag = args.data
+    init_from_task = bool(args.init_from_task)
+    data_dir, data_prefix = resolve_data(data_tag)
+
+    OUT_ROOT = TRAIN_LAB / "out" / "baseline" / model_name / data_tag / f"overnight_{STAMP}"
+    LOG_PATH = OUT_ROOT / "overnight.log"
+    MD_PATH = MD_DIR / f"五折过夜实验记录_{STAMP}_{model_name}.md"
+
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     append_md(
         "\n".join(
             [
-                f"# 被试独立五折过夜实验记录（{STAMP}）",
+                f"# 被试独立五折过夜实验记录（{STAMP} / {model_name}）",
                 "",
                 "> 协议：被试独立五折 + 内层按人 val；早停看 val；test 仅终评。  ",
                 "> 自动调参：**只根据验证集**改超参，不用测试集选型。  ",
-                "> 顺序：头1基线 → 头1调参轮 →（选优）→ 头2基线 → 头2调参轮。",
+                "> 顺序：Task 网格→调参 → Three 网格→调参（默认**不迁权重**）。  ",
+                f"> model=`{model_name}` | data=`{data_tag}` | "
+                f"weight_transfer=`{init_from_task}` | classifier=`native`",
                 "",
                 f"- 开始时间：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-                f"- 数据：`code/preprocess_lab/out/merged_2s/merged_*.npy`（方案A：BCI2a+Stieger 简单拼接；按库分层五折）",
-                f"- 输入：`n_times=500` @ 250Hz",
+                f"- 数据：`{data_dir}/{data_prefix}_*.npy`",
+                f"- 输入：`n_times=500` @ 250Hz，进模 `(B,8,500)`",
                 f"- 报数：Overall + bci2a_only + stieger_only（选型仍只看 Overall Val）",
                 f"- 权重根目录：`{OUT_ROOT}`",
                 f"- 运行日志：`{LOG_PATH}`",
@@ -485,26 +514,57 @@ def main() -> None:
     log(f"MD_PATH={MD_PATH}")
     log(f"OUT_ROOT={OUT_ROOT}")
     log(f"device={device}")
-    from train_task_kfold import DATA_DIR as TASK_DATA_DIR  # noqa: E402
-
-    log(f"DATA_DIR={TASK_DATA_DIR}")
+    log(f"model={model_name} data={data_tag} init_from_task={init_from_task}")
+    log(f"DATA_DIR={data_dir}")
 
     try:
-        # ----- 头1：小网格筛一轮（只看 Val F1）再进 overnight 微调 -----
+        # ----- Task：小网格 -----
         grid_cfgs = [
-            TaskKFoldConfig(lr=1e-3, weight_decay=1e-4, drop_prob=0.50, patience=15, max_epochs=100),
-            TaskKFoldConfig(lr=7e-4, weight_decay=1e-4, drop_prob=0.55, patience=18, max_epochs=100),
-            TaskKFoldConfig(lr=5e-4, weight_decay=2e-4, drop_prob=0.60, patience=20, max_epochs=100),
-            TaskKFoldConfig(lr=1.5e-3, weight_decay=5e-5, drop_prob=0.40, patience=15, max_epochs=100),
+            TaskKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                lr=1e-3,
+                weight_decay=1e-4,
+                drop_prob=0.50,
+                patience=15,
+                max_epochs=100,
+            ),
+            TaskKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                lr=7e-4,
+                weight_decay=1e-4,
+                drop_prob=0.55,
+                patience=18,
+                max_epochs=100,
+            ),
+            TaskKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                lr=5e-4,
+                weight_decay=2e-4,
+                drop_prob=0.60,
+                patience=20,
+                max_epochs=100,
+            ),
+            TaskKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                lr=1.5e-3,
+                weight_decay=5e-5,
+                drop_prob=0.40,
+                patience=15,
+                max_epochs=100,
+            ),
         ]
         grid_sums = []
         for gi, gcfg in enumerate(grid_cfgs, start=1):
             gcfg.out_dir = str(OUT_ROOT / f"00_task_grid_{gi}")
-            log(f"开始：头1网格 {gi}/{len(grid_cfgs)} lr={gcfg.lr} drop={gcfg.drop_prob}")
+            log(f"开始：Task 网格 {gi}/{len(grid_cfgs)} lr={gcfg.lr} drop={gcfg.drop_prob}")
             gsum = run_task_kfold(gcfg, device=device)
             grid_sums.append(gsum)
             write_task_section(
-                f"Run00-G{gi} 头1网格",
+                f"Run00-G{gi} Task 网格",
                 gsum,
                 note=f"grid lr={gcfg.lr}, drop={gcfg.drop_prob}, wd={gcfg.weight_decay}",
             )
@@ -516,23 +576,34 @@ def main() -> None:
         best_grid = grid_sums[0]
         for g in grid_sums[1:]:
             best_grid = pick_best_task(best_grid, g)
-        cfg1 = TaskKFoldConfig(**{
-            k: best_grid["hparams"][k]
-            for k in (
-                "n_folds", "val_ratio", "seed", "max_epochs", "patience",
-                "batch_train", "batch_eval", "lr", "weight_decay", "drop_prob",
-                "f1", "d", "f2",
-            )
-        })
-        # 用网格最优超参再跑一轮正式基线目录（便于头2对齐）；若与最优网格同参可直接复用
-        cfg1.out_dir = str(OUT_ROOT / "01_task_baseline")
+        hp0 = best_grid["hparams"]
+        cfg1 = TaskKFoldConfig(
+            model_name=model_name,
+            data_tag=data_tag,
+            n_folds=int(hp0.get("n_folds", 5)),
+            val_ratio=float(hp0.get("val_ratio", 0.2)),
+            seed=int(hp0.get("seed", 42)),
+            max_epochs=int(hp0["max_epochs"]),
+            patience=int(hp0["patience"]),
+            batch_train=int(hp0.get("batch_train", 32)),
+            batch_eval=int(hp0.get("batch_eval", 64)),
+            lr=float(hp0["lr"]),
+            weight_decay=float(hp0["weight_decay"]),
+            drop_prob=float(hp0["drop_prob"]),
+            f1=int(hp0.get("f1", 8)),
+            d=int(hp0.get("d", 2)),
+            f2=int(hp0.get("f2", 16)),
+            model_kwargs=hp0.get("model_kwargs"),
+            out_dir=str(OUT_ROOT / "01_task_baseline"),
+        )
         append_md(
             "\n".join(
                 [
-                    "## 头1网格选优",
+                    "## Task 网格选优",
                     "",
                     f"- 选中 Val F1 = `{best_grid['val_f1_mean']:.4f} ± {best_grid['val_f1_std']:.4f}`",
-                    f"- 超参：lr=`{cfg1.lr}`, drop=`{cfg1.drop_prob}`, wd=`{cfg1.weight_decay}`, patience=`{cfg1.patience}`",
+                    f"- 超参：lr=`{cfg1.lr}`, drop=`{cfg1.drop_prob}`, wd=`{cfg1.weight_decay}`, "
+                    f"patience=`{cfg1.patience}`",
                     f"- 网格最优目录：`{best_grid['out_dir']}`",
                     "",
                     "---",
@@ -540,30 +611,25 @@ def main() -> None:
                 ]
             )
         )
-        # 直接复用网格最优作为 Run01，避免重复五折
-        sum1 = best_grid
-        sum1 = dict(sum1)
-        # 复制一份路径标记
+        sum1 = dict(best_grid)
         write_task_section(
-            "Run01 头1五折（基线=网格最优）",
+            "Run01 Task 五折（基线=网格最优）",
             sum1,
             note="由网格选优直接作为基线，不再重复训练",
         )
-        log(
-            f"Run01 完成 val_F1={sum1['val_f1_mean']:.4f} test_F1={sum1['test_f1_mean']:.4f}"
-        )
+        log(f"Run01 完成 val_F1={sum1['val_f1_mean']:.4f} test_F1={sum1['test_f1_mean']:.4f}")
 
         cfg2, reasons = suggest_task_hparams(cfg1, sum1)
+        cfg2.model_name = model_name
+        cfg2.data_tag = data_tag
         cfg2.out_dir = str(OUT_ROOT / "02_task_tuned")
-        write_tune_note("自动调参：头1 → Run02", reasons, cfg2.__dict__)
+        write_tune_note("自动调参：Task → Run02", reasons, cfg2.__dict__)
         log("调参建议: " + " | ".join(reasons))
 
-        log("开始：头1五折 调参轮")
+        log("开始：Task 五折 调参轮")
         sum2 = run_task_kfold(cfg2, device=device)
-        write_task_section("Run02 头1五折（自动调参）", sum2, note="；".join(reasons))
-        log(
-            f"Run02 完成 val_F1={sum2['val_f1_mean']:.4f} test_F1={sum2['test_f1_mean']:.4f}"
-        )
+        write_task_section("Run02 Task 五折（自动调参）", sum2, note="；".join(reasons))
+        log(f"Run02 完成 val_F1={sum2['val_f1_mean']:.4f} test_F1={sum2['test_f1_mean']:.4f}")
 
         best_task = pick_best_task(sum1, sum2)
         best_tag = "Run01" if best_task is sum1 else "Run02"
@@ -571,13 +637,13 @@ def main() -> None:
         append_md(
             "\n".join(
                 [
-                    "## 头1选优",
+                    "## Task 选优",
                     "",
                     f"- 按 **Val F1** 选中：**{best_tag}**",
                     f"- Val F1 = `{best_task['val_f1_mean']:.4f} ± {best_task['val_f1_std']:.4f}`",
                     f"- 对应 Test F1（仅报告）= "
                     f"`{best_task['test_f1_mean']:.4f} ± {best_task['test_f1_std']:.4f}`",
-                    f"- 后续头2迁移权重目录：`{best_task['out_dir']}`",
+                    f"- 权重目录：`{best_task['out_dir']}`",
                     "",
                     "### 选中超参",
                     "",
@@ -588,25 +654,126 @@ def main() -> None:
                 ]
             )
         )
-        log(f"头1选优: {best_tag} → {best_task['out_dir']}")
+        log(f"Task 选优: {best_tag} → {best_task['out_dir']}")
 
-        # ----- 头2 第1轮 -----
+        # ----- Three：小网格（与 Task 对称）→ 选优 → 规则微调 -----
+        three_grid_cfgs = [
+            ThreeKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                init_from_task=init_from_task,
+                task_kfold_dir=best_task["out_dir"] if init_from_task else "",
+                lr=1e-3,
+                weight_decay=1e-4,
+                drop_prob=0.50,
+                patience=15,
+                max_epochs=100,
+                freeze_backbone=False,
+            ),
+            ThreeKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                init_from_task=init_from_task,
+                task_kfold_dir=best_task["out_dir"] if init_from_task else "",
+                lr=7e-4,
+                weight_decay=1e-4,
+                drop_prob=0.55,
+                patience=18,
+                max_epochs=100,
+                freeze_backbone=False,
+            ),
+            ThreeKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                init_from_task=init_from_task,
+                task_kfold_dir=best_task["out_dir"] if init_from_task else "",
+                lr=5e-4,
+                weight_decay=2e-4,
+                drop_prob=0.60,
+                patience=20,
+                max_epochs=100,
+                freeze_backbone=False,
+            ),
+            ThreeKFoldConfig(
+                model_name=model_name,
+                data_tag=data_tag,
+                init_from_task=init_from_task,
+                task_kfold_dir=best_task["out_dir"] if init_from_task else "",
+                lr=1.5e-3,
+                weight_decay=5e-5,
+                drop_prob=0.40,
+                patience=15,
+                max_epochs=100,
+                freeze_backbone=False,
+            ),
+        ]
+        three_grid_sums = []
+        for gi, gcfg in enumerate(three_grid_cfgs, start=1):
+            gcfg.out_dir = str(OUT_ROOT / f"03_three_grid_{gi}")
+            log(
+                f"开始：Three 网格 {gi}/{len(three_grid_cfgs)} "
+                f"lr={gcfg.lr} drop={gcfg.drop_prob} "
+                f"(weight_transfer={init_from_task})"
+            )
+            gsum = run_three_kfold(gcfg, device=device)
+            three_grid_sums.append(gsum)
+            write_three_section(
+                f"Run03-G{gi} Three 网格",
+                gsum,
+                note=f"grid lr={gcfg.lr}, drop={gcfg.drop_prob}, wd={gcfg.weight_decay}",
+            )
+            log(
+                f"Three Grid{gi} 完成 val_F1m={gsum['val_f1_macro_mean']:.4f} "
+                f"test_F1m={gsum['test_f1_macro_mean']:.4f}"
+            )
+
+        best_three_grid = three_grid_sums[0]
+        for g in three_grid_sums[1:]:
+            best_three_grid = pick_best_three(best_three_grid, g)
+        hp3 = best_three_grid["hparams"]
         cfg3 = ThreeKFoldConfig(
+            model_name=model_name,
+            data_tag=data_tag,
+            init_from_task=init_from_task,
+            task_kfold_dir=best_task["out_dir"] if init_from_task else "",
+            n_folds=int(hp3.get("n_folds", 5)),
+            val_ratio=float(hp3.get("val_ratio", 0.2)),
+            seed=int(hp3.get("seed", 42)),
+            max_epochs=int(hp3["max_epochs"]),
+            patience=int(hp3["patience"]),
+            batch_train=int(hp3.get("batch_train", 32)),
+            batch_eval=int(hp3.get("batch_eval", 64)),
+            lr=float(hp3["lr"]),
+            weight_decay=float(hp3["weight_decay"]),
+            drop_prob=float(hp3["drop_prob"]),
+            f1=int(hp3.get("f1", 8)),
+            d=int(hp3.get("d", 2)),
+            f2=int(hp3.get("f2", 16)),
+            model_kwargs=hp3.get("model_kwargs"),
+            freeze_backbone=bool(hp3.get("freeze_backbone", False)),
             out_dir=str(OUT_ROOT / "03_three_baseline"),
-            task_kfold_dir=best_task["out_dir"],
-            lr=1e-3,
-            weight_decay=1e-4,
-            drop_prob=0.60,
-            patience=15,
-            max_epochs=100,
-            freeze_backbone=False,
         )
-        log("开始：头2五折 基线（迁移最优头1）")
-        sum3 = run_three_kfold(cfg3, device=device)
+        append_md(
+            "\n".join(
+                [
+                    "## Three 网格选优",
+                    "",
+                    f"- 选中 Val F1-macro = `{best_three_grid['val_f1_macro_mean']:.4f} ± "
+                    f"{best_three_grid['val_f1_macro_std']:.4f}`",
+                    f"- 超参：lr=`{cfg3.lr}`, drop=`{cfg3.drop_prob}`, wd=`{cfg3.weight_decay}`, "
+                    f"patience=`{cfg3.patience}`",
+                    f"- 网格最优目录：`{best_three_grid['out_dir']}`",
+                    "",
+                    "---",
+                    "",
+                ]
+            )
+        )
+        sum3 = dict(best_three_grid)
         write_three_section(
-            "Run03 头2五折（基线，迁移最优头1）",
+            "Run03 Three 五折（基线=网格最优）",
             sum3,
-            note=f"init from {best_tag}",
+            note="由 Three 网格选优直接作为基线，不再重复训练",
         )
         log(
             f"Run03 完成 val_F1m={sum3['val_f1_macro_mean']:.4f} "
@@ -614,14 +781,17 @@ def main() -> None:
         )
 
         cfg4, reasons3 = suggest_three_hparams(cfg3, sum3)
+        cfg4.model_name = model_name
+        cfg4.data_tag = data_tag
+        cfg4.init_from_task = init_from_task
         cfg4.out_dir = str(OUT_ROOT / "04_three_tuned")
-        cfg4.task_kfold_dir = best_task["out_dir"]
-        write_tune_note("自动调参：头2 → Run04", reasons3, cfg4.__dict__)
+        cfg4.task_kfold_dir = best_task["out_dir"] if init_from_task else ""
+        write_tune_note("自动调参：Three → Run04", reasons3, cfg4.__dict__)
         log("调参建议: " + " | ".join(reasons3))
 
-        log("开始：头2五折 调参轮")
+        log("开始：Three 五折 调参轮")
         sum4 = run_three_kfold(cfg4, device=device)
-        write_three_section("Run04 头2五折（自动调参）", sum4, note="；".join(reasons3))
+        write_three_section("Run04 Three 五折（自动调参）", sum4, note="；".join(reasons3))
         log(
             f"Run04 完成 val_F1m={sum4['val_f1_macro_mean']:.4f} "
             f"test_F1m={sum4['test_f1_macro_mean']:.4f}"
@@ -631,16 +801,18 @@ def main() -> None:
         best3_tag = "Run03" if best_three is sum3 else "Run04"
         print_best_three_pair("Run03", sum3, "Run04", sum4, best_three, best3_tag)
 
-        # 同步一份「当前推荐」超参回默认脚本常量说明进 md
         append_md(
             "\n".join(
                 [
-                    "## 头2选优",
+                    "## Three 选优",
                     "",
                     f"- 按 **Val F1-macro** 选中：**{best3_tag}**",
-                    f"- Val F1-macro = `{best_three['val_f1_macro_mean']:.4f} ± {best_three['val_f1_macro_std']:.4f}`",
+                    f"- weight_transfer=`{init_from_task}`",
+                    f"- Val F1-macro = `{best_three['val_f1_macro_mean']:.4f} ± "
+                    f"{best_three['val_f1_macro_std']:.4f}`",
                     f"- 对应 Test F1-macro（仅报告）= "
-                    f"`{best_three['test_f1_macro_mean']:.4f} ± {best_three['test_f1_macro_std']:.4f}`",
+                    f"`{best_three['test_f1_macro_mean']:.4f} ± "
+                    f"{best_three['test_f1_macro_std']:.4f}`",
                     f"- 权重目录：`{best_three['out_dir']}`",
                     "",
                     "### 选中超参",
@@ -649,11 +821,13 @@ def main() -> None:
                     "",
                     "---",
                     "",
-                    "## 最终结论（明早可读）",
+                    "## 最终结论",
                     "",
                     f"- 结束时间：`{datetime.now().isoformat(timespec='seconds')}`",
+                    f"- model=`{model_name}` data=`{data_tag}` "
+                    f"weight_transfer=`{init_from_task}` classifier=`native`",
                     "",
-                    "### 头1（静息/任务）推荐",
+                    "### Task（静息/任务）推荐",
                     "",
                     f"- 轮次：**{best_tag}**",
                     f"- Val F1：`{best_task['val_f1_mean']:.4f} ± {best_task['val_f1_std']:.4f}`",
@@ -662,22 +836,22 @@ def main() -> None:
                     "",
                     fmt_hparams(best_task["hparams"]),
                     "",
-                    "### 头2（空闲/左/右）推荐",
+                    "### Three（空闲/左/右）推荐",
                     "",
                     f"- 轮次：**{best3_tag}**",
-                    f"- Val F1-macro：`{best_three['val_f1_macro_mean']:.4f} ± {best_three['val_f1_macro_std']:.4f}`",
-                    f"- Test F1-macro：`{best_three['test_f1_macro_mean']:.4f} ± {best_three['test_f1_macro_std']:.4f}`",
-                    f"- Test Acc：`{best_three['test_acc_mean']:.4f} ± {best_three['test_acc_std']:.4f}`",
+                    f"- Val F1-macro：`{best_three['val_f1_macro_mean']:.4f} ± "
+                    f"{best_three['val_f1_macro_std']:.4f}`",
+                    f"- Test F1-macro：`{best_three['test_f1_macro_mean']:.4f} ± "
+                    f"{best_three['test_f1_macro_std']:.4f}`",
+                    f"- Test Acc：`{best_three['test_acc_mean']:.4f} ± "
+                    f"{best_three['test_acc_std']:.4f}`",
                     "",
                     fmt_hparams(best_three["hparams"]),
                     "",
                     "### 权重路径",
                     "",
-                    f"- 头1：`{best_task['out_dir']}`",
-                    f"- 头2：`{best_three['out_dir']}`",
-                    "",
-                    "> 说明：BCI IV 2a 仅 9 人，五折时 val 往往只有 1～2 人，早停与调参噪声大；",
-                    "> 以上为按协议自动跑通的过夜基线，人多后同一流程会更稳。",
+                    f"- Task：`{best_task['out_dir']}`",
+                    f"- Three：`{best_three['out_dir']}`",
                     "",
                 ]
             )
@@ -685,11 +859,15 @@ def main() -> None:
 
         print_final_best(best_tag, best_task, best3_tag, best_three)
 
-        # 把推荐超参写回 train_*_kfold.py 顶部常量，方便明早直接用
-        apply_recommended_defaults(best_task["hparams"], best_three["hparams"])
+        if not args.no_writeback:
+            apply_recommended_defaults(best_task["hparams"], best_three["hparams"])
 
         meta = {
             "stamp": STAMP,
+            "model_name": model_name,
+            "data_tag": data_tag,
+            "weight_transfer": init_from_task,
+            "classifier": "native",
             "md": str(MD_PATH),
             "best_task_run": best_tag,
             "best_three_run": best3_tag,
@@ -709,6 +887,7 @@ def main() -> None:
         with open(OUT_ROOT / "final_meta.json", "w", encoding="utf-8") as f:
             json.dump(meta, f, ensure_ascii=False, indent=2)
         log("全部完成")
+        return meta
     except Exception:
         err = traceback.format_exc()
         log("失败:\n" + err)
@@ -772,18 +951,12 @@ def apply_recommended_defaults(task_hp: dict, three_hp: dict) -> None:
             [
                 "## 代码默认超参已更新",
                 "",
-                "已按选优结果改写：",
-                "",
-                "- `code/train_lab/src/step/train_task_kfold.py` 的 `TaskKFoldConfig` 默认值",
-                "- `code/train_lab/src/step/train_three_kfold.py` 的 `ThreeKFoldConfig` 默认值",
-                "",
-                "明早可直接：",
+                "已按选优结果改写 Task/Three kfold 默认 lr/wd/drop/patience。",
                 "",
                 "```powershell",
-                "cd code/train_lab",
-                "$env:PYTHONPATH=\"src/step;.\"",
-                "python -m src.step.train_task_kfold",
-                "python -m src.step.train_three_kfold",
+                "cd code/train_lab/src/step",
+                r"D:\cyy\MI\.venv\Scripts\python.exe train_task_kfold.py --model eegnet",
+                r"D:\cyy\MI\.venv\Scripts\python.exe train_three_kfold.py --model eegnet",
                 "```",
                 "",
             ]
