@@ -1,4 +1,4 @@
-"""被试独立五折：分类头2（空闲/左/右）。读合并库 merged_*.npy（方案 A）；每折加载同折头1主干。"""
+"""被试独立五折：三分类（空闲/左/右）。默认独立训练、不迁权重；可选 --init-from-task。"""
 
 from __future__ import annotations
 
@@ -11,9 +11,9 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from braindecode.models import EEGNet
 from torch.utils.data import DataLoader
 
+from data_paths import resolve_data
 from dataset import ArrayThreeDataset
 from metrics import (
     format_three_metrics,
@@ -21,22 +21,24 @@ from metrics import (
     metrics_by_dataset_prefix,
     three_class_metrics,
 )
+from models import build_model, get_spec, list_models
 
 ROOT = Path(__file__).resolve().parents[3]
 PRE_ROOT = ROOT / "preprocess_lab"
-DATA_DIR = PRE_ROOT / "out" / "merged_2s"
-DATA_PREFIX = "merged"
-DEFAULT_OUT_DIR = ROOT / "train_lab" / "out" / "kfold_three_merged_2s"
 DEFAULT_TASK_KFOLD_DIR = ROOT / "train_lab" / "out" / "kfold_task_merged_2s"
 FALLBACK_TASK_CKPT = ROOT / "train_lab" / "out" / "best_task.pt"
 
 sys.path.insert(0, str(PRE_ROOT))
 from src.common.steps.split_subjects import (  # noqa: E402
+    iter_subject_kfold,
     iter_subject_kfold_stratified_by_dataset,
 )
 
+
 @dataclass
 class ThreeKFoldConfig:
+    model_name: str = "eegnet"
+    data_tag: str = "merged_2s"
     n_folds: int = 5
     val_ratio: float = 0.2
     seed: int = 42
@@ -50,15 +52,53 @@ class ThreeKFoldConfig:
     f1: int = 8
     d: int = 2
     f2: int = 16
+    model_kwargs: dict | None = None
+    # 新策略默认 False；旧对照才 True
+    init_from_task: bool = False
     freeze_backbone: bool = False
     out_dir: str = ""
     task_kfold_dir: str = ""
 
     def resolved_out_dir(self) -> Path:
-        return Path(self.out_dir) if self.out_dir else DEFAULT_OUT_DIR
+        if self.out_dir:
+            return Path(self.out_dir)
+        return (
+            ROOT
+            / "train_lab"
+            / "out"
+            / "baseline"
+            / self.model_name
+            / self.data_tag
+            / "three_default"
+        )
 
     def resolved_task_kfold_dir(self) -> Path:
         return Path(self.task_kfold_dir) if self.task_kfold_dir else DEFAULT_TASK_KFOLD_DIR
+
+
+def _iter_folds(subjects, cfg: ThreeKFoldConfig):
+    if cfg.data_tag.startswith("merged"):
+        return iter_subject_kfold_stratified_by_dataset(
+            subjects, n_folds=cfg.n_folds, val_ratio=cfg.val_ratio, seed=cfg.seed
+        )
+    return iter_subject_kfold(
+        subjects, n_folds=cfg.n_folds, val_ratio=cfg.val_ratio, seed=cfg.seed
+    )
+
+
+def _build_kwargs(cfg: ThreeKFoldConfig) -> dict:
+    kw = {
+        "drop_prob": cfg.drop_prob,
+        "F1": cfg.f1,
+        "D": cfg.d,
+        "F2": cfg.f2,
+        "f1": cfg.f1,
+        "d": cfg.d,
+        "f2": cfg.f2,
+    }
+    if cfg.model_kwargs:
+        kw.update(cfg.model_kwargs)
+    return kw
 
 
 def load_backbone_from_task_ckpt(
@@ -66,6 +106,7 @@ def load_backbone_from_task_ckpt(
     ckpt_path: Path,
     freeze_backbone: bool = False,
 ) -> None:
+    """历史对照：迁二分类主干（跳过分类层）。新实验默认不调用。"""
     try:
         ckpt = torch.load(ckpt_path, map_location="cpu", weights_only=False)
     except TypeError:
@@ -76,7 +117,8 @@ def load_backbone_from_task_ckpt(
     new_state = {}
     skipped = []
     for k, v in src.items():
-        if k.startswith("final_layer.conv_classifier"):
+        # 跳过分类头（EEGNet: final_layer.*；其它含 classifier 的键）
+        if k.startswith("final_layer") or "classifier" in k:
             skipped.append(k)
             continue
         if k not in dst or dst[k].shape != v.shape:
@@ -87,8 +129,9 @@ def load_backbone_from_task_ckpt(
     missing, unexpected = model_three.load_state_dict(new_state, strict=False)
     if freeze_backbone:
         for name, p in model_three.named_parameters():
-            if not name.startswith("final_layer"):
-                p.requires_grad = False
+            if name.startswith("final_layer") or "classifier" in name:
+                continue
+            p.requires_grad = False
 
     print(f"[init] loaded {len(new_state)} tensors from {ckpt_path}")
     print(f"[init] skipped: {skipped}")
@@ -102,6 +145,8 @@ def collect_preds(model, loader, device):
     ys, ps = [], []
     for x, y in loader:
         logits = model(x.to(device))
+        if logits.ndim > 2:
+            logits = logits.reshape(logits.shape[0], -1)
         pred = logits.argmax(dim=1).cpu().numpy()
         ys.append(y.numpy())
         ps.append(pred)
@@ -118,6 +163,8 @@ def run_epoch(model, loader, criterion, optimizer, device, train: bool):
             if train:
                 optimizer.zero_grad()
             logits = model(x)
+            if logits.ndim > 2:
+                logits = logits.reshape(logits.shape[0], -1)
             loss = criterion(logits, y)
             if train:
                 loss.backward()
@@ -137,7 +184,6 @@ def make_loader(X, y, cfg: ThreeKFoldConfig, train: bool):
 
 
 def resolve_task_ckpt(fold: int, cfg: ThreeKFoldConfig) -> Path:
-    """优先用同折头1权重，避免用全库 best_task 泄漏测试被试。"""
     fold_ckpt = cfg.resolved_task_kfold_dir() / f"fold{fold}" / "best_task.pt"
     if fold_ckpt.exists():
         return fold_ckpt
@@ -158,32 +204,39 @@ def train_one_fold(fold_info, X, y, subjects, device, cfg: ThreeKFoldConfig) -> 
     out_dir = cfg.resolved_out_dir()
     fold_dir = out_dir / f"fold{fold}"
     fold_dir.mkdir(parents=True, exist_ok=True)
-    task_ckpt = resolve_task_ckpt(fold, cfg)
+
+    init_from = None
+    if cfg.init_from_task:
+        init_from = str(resolve_task_ckpt(fold, cfg))
 
     print(
         f"\n======== fold {fold} ========\n"
+        f"  model={cfg.model_name}  data={cfg.data_tag}  "
+        f"weight_transfer={cfg.init_from_task}\n"
         f"  train subjects ({len(fold_info['train_subjects'])}): {fold_info['train_subjects']}\n"
         f"  val   subjects ({len(fold_info['val_subjects'])}): {fold_info['val_subjects']}\n"
         f"  test  subjects ({len(fold_info['test_subjects'])}): {fold_info['test_subjects']}\n"
         f"  trials train/val/test = "
         f"{int(masks['train'].sum())}/{int(masks['val'].sum())}/{int(masks['test'].sum())}\n"
-        f"  init from: {task_ckpt}"
+        f"  init from: {init_from or '(random / independent)'}"
     )
 
     train_loader = make_loader(X[masks["train"]], y[masks["train"]], cfg, train=True)
     val_loader = make_loader(X[masks["val"]], y[masks["val"]], cfg, train=False)
     test_loader = make_loader(X[masks["test"]], y[masks["test"]], cfg, train=False)
 
-    model = EEGNet(
+    model = build_model(
+        cfg.model_name,
         n_chans=8,
-        n_outputs=3,
         n_times=int(X.shape[-1]),
-        F1=cfg.f1,
-        D=cfg.d,
-        F2=cfg.f2,
-        drop_prob=cfg.drop_prob,
+        n_outputs=3,
+        **_build_kwargs(cfg),
     ).to(device)
-    load_backbone_from_task_ckpt(model, task_ckpt, freeze_backbone=cfg.freeze_backbone)
+
+    if cfg.init_from_task:
+        load_backbone_from_task_ckpt(
+            model, Path(init_from), freeze_backbone=cfg.freeze_backbone
+        )
 
     criterion = nn.CrossEntropyLoss()
     params = filter(lambda p: p.requires_grad, model.parameters())
@@ -218,8 +271,11 @@ def train_one_fold(fold_info, X, y, subjects, device, cfg: ThreeKFoldConfig) -> 
                 {
                     "stage": "B_kfold_three3",
                     "fold": fold,
+                    "model_name": cfg.model_name,
                     "n_outputs": 3,
-                    "init_from": str(task_ckpt),
+                    "weight_transfer": bool(cfg.init_from_task),
+                    "classifier": "native",
+                    "init_from": init_from,
                     "model": best_state,
                     "epoch": ep,
                     "val_metrics": m_save,
@@ -261,7 +317,8 @@ def train_one_fold(fold_info, X, y, subjects, device, cfg: ThreeKFoldConfig) -> 
         "best_val_loss": float(best_val_loss),
         "best_epoch": int(best_ep),
         "stopped_epoch": int(ep),
-        "init_from": str(task_ckpt),
+        "init_from": init_from,
+        "weight_transfer": bool(cfg.init_from_task),
         "test_metrics": m_te,
         "test_metrics_by_dataset": by_ds,
         "n_train": int(masks["train"].sum()),
@@ -275,36 +332,37 @@ def train_one_fold(fold_info, X, y, subjects, device, cfg: ThreeKFoldConfig) -> 
 
 def run_three_kfold(cfg: ThreeKFoldConfig | None = None, device: torch.device | None = None) -> dict:
     cfg = cfg or ThreeKFoldConfig()
+    get_spec(cfg.model_name)
+    data_dir, data_prefix = resolve_data(cfg.data_tag)
     out_dir = cfg.resolved_out_dir()
     out_dir.mkdir(parents=True, exist_ok=True)
     device = device or torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     print("device:", device)
-    print("DATA_DIR:", DATA_DIR)
+    print("model:", cfg.model_name, "| family:", get_spec(cfg.model_name).family)
+    print("DATA_DIR:", data_dir)
     print("OUT_DIR:", out_dir)
-    print("TASK_KFOLD_DIR:", cfg.resolved_task_kfold_dir())
+    print("weight_transfer (init_from_task):", cfg.init_from_task)
+    if cfg.init_from_task:
+        print("TASK_KFOLD_DIR:", cfg.resolved_task_kfold_dir())
     print(
-        f"被试独立(按库分层) {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
+        f"被试独立 {cfg.n_folds} 折 | val_ratio={cfg.val_ratio} | seed={cfg.seed} | "
         f"patience={cfg.patience} | lr={cfg.lr} | wd={cfg.weight_decay} | "
         f"drop={cfg.drop_prob} | freeze={cfg.freeze_backbone}"
     )
 
     for suffix in ("X", "y_three", "subjects"):
-        path = DATA_DIR / f"{DATA_PREFIX}_{suffix}.npy"
+        path = data_dir / f"{data_prefix}_{suffix}.npy"
         if not path.exists():
-            raise FileNotFoundError(
-                f"缺少 {path}（请先: python -m src.datasets.merge_bci2a_stieger）"
-            )
+            raise FileNotFoundError(f"缺少 {path}")
 
-    X = np.load(DATA_DIR / f"{DATA_PREFIX}_X.npy")
-    y = np.load(DATA_DIR / f"{DATA_PREFIX}_y_three.npy")
-    subjects = np.load(DATA_DIR / f"{DATA_PREFIX}_subjects.npy", allow_pickle=True)
+    X = np.load(data_dir / f"{data_prefix}_X.npy")
+    y = np.load(data_dir / f"{data_prefix}_y_three.npy")
+    subjects = np.load(data_dir / f"{data_prefix}_subjects.npy", allow_pickle=True)
     subjects = np.asarray([str(s) for s in subjects], dtype=object)
 
     fold_results = []
-    for fold_info in iter_subject_kfold_stratified_by_dataset(
-        subjects, n_folds=cfg.n_folds, val_ratio=cfg.val_ratio, seed=cfg.seed
-    ):
+    for fold_info in _iter_folds(subjects, cfg):
         fold_results.append(train_one_fold(fold_info, X, y, subjects, device, cfg))
 
     test_f1s = [r["test_metrics"]["f1_macro"] for r in fold_results]
@@ -325,8 +383,13 @@ def run_three_kfold(cfg: ThreeKFoldConfig | None = None, device: torch.device | 
     sti_f1_m, sti_f1_s = _ms("stieger_only", "f1_macro")
 
     summary = {
-        "task": "three_kfold",
-        "data": {"dir": str(DATA_DIR), "prefix": DATA_PREFIX, "scheme": "A"},
+        "task": "three",
+        "model_name": cfg.model_name,
+        "family": get_spec(cfg.model_name).family,
+        "n_outputs": 3,
+        "weight_transfer": bool(cfg.init_from_task),
+        "classifier": "native",
+        "data": {"dir": str(data_dir), "prefix": data_prefix, "tag": cfg.data_tag},
         "hparams": asdict(cfg),
         "out_dir": str(out_dir),
         "folds": fold_results,
@@ -352,7 +415,10 @@ def run_three_kfold(cfg: ThreeKFoldConfig | None = None, device: torch.device | 
             f"{m['recall_idle']:.3f}/{m['recall_left']:.3f}/{m['recall_right']:.3f}"
         )
     print(f"  Acc      mean±std = {summary['test_acc_mean']:.4f} ± {summary['test_acc_std']:.4f}")
-    print(f"  F1macro  mean±std = {summary['test_f1_macro_mean']:.4f} ± {summary['test_f1_macro_std']:.4f}")
+    print(
+        f"  F1macro  mean±std = {summary['test_f1_macro_mean']:.4f} ± "
+        f"{summary['test_f1_macro_std']:.4f}"
+    )
     print(
         f"  Val F1macro mean±std = {summary['val_f1_macro_mean']:.4f} ± "
         f"{summary['val_f1_macro_std']:.4f}"
@@ -370,9 +436,12 @@ def run_three_kfold(cfg: ThreeKFoldConfig | None = None, device: torch.device | 
 
 def parse_args() -> ThreeKFoldConfig:
     d = ThreeKFoldConfig()
-    p = argparse.ArgumentParser(description="被试独立五折：头2 空闲/左/右")
+    p = argparse.ArgumentParser(description="被试独立五折：三分类空闲/左/右（默认不迁权重）")
+    p.add_argument("--model", default=d.model_name, choices=list_models())
+    p.add_argument("--data", default=d.data_tag)
     p.add_argument("--out-dir", default="")
-    p.add_argument("--task-kfold-dir", default="")
+    p.add_argument("--task-kfold-dir", default="", help="仅 --init-from-task 时使用")
+    p.add_argument("--init-from-task", action="store_true", help="历史对照：迁移二分类主干")
     p.add_argument("--lr", type=float, default=d.lr)
     p.add_argument("--weight-decay", type=float, default=d.weight_decay)
     p.add_argument("--drop-prob", type=float, default=d.drop_prob)
@@ -381,10 +450,16 @@ def parse_args() -> ThreeKFoldConfig:
     p.add_argument("--seed", type=int, default=d.seed)
     p.add_argument("--batch-train", type=int, default=d.batch_train)
     p.add_argument("--freeze-backbone", action="store_true")
+    p.add_argument("--f1", type=int, default=d.f1)
+    p.add_argument("--d", type=int, default=d.d)
+    p.add_argument("--f2", type=int, default=d.f2)
     args = p.parse_args()
     return ThreeKFoldConfig(
+        model_name=args.model,
+        data_tag=args.data,
         out_dir=args.out_dir,
         task_kfold_dir=args.task_kfold_dir,
+        init_from_task=bool(args.init_from_task),
         lr=args.lr,
         weight_decay=args.weight_decay,
         drop_prob=args.drop_prob,
@@ -393,6 +468,9 @@ def parse_args() -> ThreeKFoldConfig:
         seed=args.seed,
         batch_train=args.batch_train,
         freeze_backbone=args.freeze_backbone,
+        f1=args.f1,
+        d=args.d,
+        f2=args.f2,
     )
 
 
