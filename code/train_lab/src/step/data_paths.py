@@ -1,0 +1,24 @@
+"""数据目录解析：merged_2s / bci2a_2s / stieger_2s。"""
+
+from __future__ import annotations
+
+from pathlib import Path
+
+# step → src → train_lab → code
+CODE_ROOT = Path(__file__).resolve().parents[3]
+PRE_ROOT = CODE_ROOT / "preprocess_lab"
+
+# data_tag -> (相对 out 的子目录, npy 前缀)
+DATA_TAGS: dict[str, tuple[str, str]] = {
+    "merged_2s": ("merged_2s", "merged"),
+    "bci2a_2s": ("bci2a_2s", "bci2a"),
+    "stieger_2s": ("stieger_2s", "stieger"),
+}
+
+
+def resolve_data(data_tag: str) -> tuple[Path, str]:
+    tag = data_tag.strip().lower()
+    if tag not in DATA_TAGS:
+        raise KeyError(f"未知 data_tag={data_tag!r}；可选: {list(DATA_TAGS)}")
+    sub, prefix = DATA_TAGS[tag]
+    return PRE_ROOT / "out" / sub, prefix
