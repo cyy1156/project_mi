@@ -1,15 +1,15 @@
 # 用处理好的数据训练 EEGNet（入门步骤）
 
-> **【现行入口 · 2026-07 更新】**  
-> - 环境：仓库根 `D:\cyy\MI\.venv`  
-> - 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`，形状 `(N,1,8,500)`  
-> - 正式评估（被试独立五折）：  
->   `cd code\train_lab\src\step` →  
->   `python train_task_kfold.py` / `python train_three_kfold.py` / `python run_overnight_kfold.py`  
-> - **训练策略（新约定）**：二分类与三分类**独立训练、不迁权重、原生分类头** →  
+> **【现行入口 · 2026-07-28 更新】**  
+> - 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`（或 `merged_2s` / `stieger_2s`），形状 `(N,1,8,500)`  
+> - **训练策略**：二分类与三分类**独立训练、不迁权重、原生分类头** →  
 >   [`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
-> - 下文仍含早期 `train_task.py`（试次混合 8:2）教学示例，可作对照；**正式实验以 `*_kfold` 为准**。  
-> - 文中若出现 Desktop / `code\.venv` 路径，一律改为 `D:\cyy\MI` / 根 `.venv`。
+> - **新计划入口**：`code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；EEGNet 脚本待写）  
+> - **旧五折/过夜脚本**：已移至 `code/train_lab/src/step/归档_旧训练入口/`（`train_*_kfold.py` / `run_overnight_kfold.py` 等），仅作对照，非现行入口  
+> - 可复用：`dataset.py` / `metrics.py` / `data_paths.py`  
+> - 归类清单：[`归类清单_单模型入口重构.md`](./归类清单_单模型入口重构.md)  
+> - 下文仍含早期 `train_task.py`（试次混合 8:2）及旧 `*_kfold` 教学示例，可作对照；**新实验以 `baselines_single/` 为准**。  
+> - 文中本机绝对路径（如 `D:\cyy\MI`）若与本机不符，可忽略，按相对仓库根理解即可。
 
 > **性质**：示例文档。  
 > **阶段 A**：braindecode `EEGNet`，`n_outputs=2`（静息/任务）。
@@ -21,8 +21,7 @@
 ### 与当前工程一致的目录
 
 ```text
-MI/                                   # D:/cyy/MI
-├── .venv/                            ← 唯一虚拟环境
+MI/
 ├── DATA/bci2a/
 ├── code/
 │   ├── preprocess_lab/
@@ -32,11 +31,9 @@ MI/                                   # D:/cyy/MI
 │   └── train_lab/
 │       ├── out/
 │       └── src/step/
-│           ├── dataset.py
-│           ├── metrics.py
-│           ├── train_task_kfold.py   ← 头1 五折（正式）
-│           ├── train_three_kfold.py  ← 头2 五折
-│           └── run_overnight_kfold.py
+│           ├── dataset.py / metrics.py / data_paths.py   ← 可复用
+│           ├── baselines_single/       ← 【新】一模型一脚本（待写）
+│           └── 归档_旧训练入口/         ← 旧 train_*_kfold / overnight / registry
 └── 资料/模型训练/
 ```
 
@@ -45,26 +42,17 @@ MI/                                   # D:/cyy/MI
 | 用途 | 路径（相对 `MI/`） |
 |------|-------------------|
 | 预处理批处理 | `code/preprocess_lab` → `python -m src.datasets.bci2a.batch --cfg config/bci2a_2s.yaml` |
-| 五折头1 | `code/train_lab/src/step/train_task_kfold.py` |
-| 五折头2 | `code/train_lab/src/step/train_three_kfold.py` |
-| 过夜网格 | `code/train_lab/src/step/run_overnight_kfold.py` |
+| **新**单模型入口 | `code/train_lab/src/step/baselines_single/` |
+| 旧五折/过夜（归档） | `code/train_lab/src/step/归档_旧训练入口/` |
 | 输入数据 | `code/preprocess_lab/out/bci2a_2s/bci2a_*.npy` |
-
-运行（仓库根 `.venv`）：
-
-```text
-cd D:\cyy\MI\code\train_lab\src\step
-D:\cyy\MI\.venv\Scripts\python.exe train_task_kfold.py
-```
-
 ---
 
 ## 0. 阶段目标
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
-| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | ✅ 五折见 `train_task_kfold.py` |
-| B | 第二头三分类 | ✅ 五折见 `train_three_kfold.py` |
+| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | 新入口：`baselines_single/`；旧实现见归档 `train_task_kfold.py` |
+| B | 第二头三分类 | 独立训、不迁权重；新入口同上；旧实现见归档 `train_three_kfold.py` |
 
 ```text
 预处理 X: (N, 1, 8, 500)     # out/bci2a_2s
@@ -440,13 +428,16 @@ if __name__ == "__main__":
 
 ### 怎么运行
 
+**新实验（现行）**：在 `baselines_single/` 手写并运行对应 `baseline_*.py`（目录尚在建设，见文首）。
+
+**历史对照**（脚本已归档，非现行入口）：
+
 ```powershell
-cd D:\cyy\MI\code\train_lab
-$env:PYTHONPATH = "."
-D:\cyy\MI\.venv\Scripts\python.exe -m src.step.train_task_kfold
+cd <repo>\code\train_lab\src\step\归档_旧训练入口
+python train_task_kfold.py
 ```
 
-> 早期教学用的 `train_task`（试次混合）仅作对照；正式请用上面的 `*_kfold`。
+> 早期教学用的 `train_task`（试次混合）仅作对照；**不要**再把 `src.step.train_task_kfold` 当作现行入口（该模块已不在 `step/` 根下）。
 
 ---
 
@@ -504,4 +495,4 @@ D:\cyy\MI\.venv\Scripts\python.exe -m src.step.train_task_kfold
 
 ## 12. 一句话
 
-> **数据在 `preprocess_lab/out`；训练代码在 `train_lab/src/step/`；用 `from src.step...` 与 `python -m src.step.train_task`；`parents[3]` 定位到 `code/`；braindecode `EEGNet(n_outputs=2)` 做阶段 A 基线。**
+> **数据在 `preprocess_lab/out`；可复用 `train_lab/src/step/` 的 `dataset` / `metrics` / `data_paths`；新训练入口在 `baselines_single/`（一模型一脚本）；旧 `*_kfold` / overnight 在 `归档_旧训练入口/`；braindecode `EEGNet(n_outputs=2)` 做阶段 A 基线。**
