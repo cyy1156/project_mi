@@ -1,10 +1,11 @@
 # 技术方案 A：BCI2a + Stieger 简单拼接合并合训
 
 > **【HISTORICAL】** 下文「历史对照」中若仍写迁主干，仅描述**已跑过夜**；新实验勿仿照。  
-> 版本：v0.3（2026-07-27）  
-> 状态：**代码已落地，合并过夜已跑完**（`overnight_20260727_141553`）  
-> **注意**：该次过夜三分类仍为**旧策略（迁二分类主干）**。新约定「①独立训练 ②原生头 ③不迁权重」见 [`训练策略_二分类与三分类独立训练.md`](./训练策略_二分类与三分类独立训练.md)；**尚未改代码重跑**。  
-> 对照：单库过夜见同目录 `20260727_上午单库过夜实验结果.md`；完整折表见 [`../模型训练/五折过夜实验记录_20260727_141553.md`](../模型训练/五折过夜实验记录_20260727_141553.md)  
+> 版本：v0.4（2026-07-28）  
+> 状态：**合并方案与合并过夜结果仍有效作对照**（`overnight_20260727_141553`）  
+> **注意**：该次过夜三分类仍为**旧策略（迁二分类主干）**。新约定「①独立训练 ②原生头 ③不迁权重」见 [`训练策略_二分类与三分类独立训练.md`](./训练策略_二分类与三分类独立训练.md)。  
+> **入口变更**：旧 `train_*_kfold` / `run_overnight_kfold` 已归入 `code/train_lab/src/step/归档_旧训练入口/`；新实验入口为 `baselines_single/`（待写）。  
+> 完整折表见 [`../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md`](../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md)  
 > 原文件夹 `资料/实验_合并库合训方案A` 已删除，方案与结果统一归档本夹。
 
 ---
@@ -106,23 +107,23 @@ code/preprocess_lab/src/datasets/merge_bci2a_stieger.py
 
 ---
 
-## 4. 训练与过夜入口（实现时改动点）
+## 4. 训练与过夜入口（历史跑法 / 新入口对照）
 
-仍复用现有流水线：
+**该次合并过夜当时**复用：
 
-| 步骤 | 入口 |
-|------|------|
-| 头1 五折 | `code/train_lab/src/step/train_task_kfold.py` |
-| 头2 五折 | `code/train_lab/src/step/train_three_kfold.py` |
-| 过夜编排 | `code/train_lab/src/step/run_overnight_kfold.py` |
+| 步骤 | 当时路径（现已归档） |
+|------|----------------------|
+| 头1 五折 | `code/train_lab/src/step/归档_旧训练入口/train_task_kfold.py` |
+| 头2 五折 | `code/train_lab/src/step/归档_旧训练入口/train_three_kfold.py` |
+| 过夜编排 | `code/train_lab/src/step/归档_旧训练入口/run_overnight_kfold.py` |
 
-建议实现方式（仍属方案，未改代码）：
+**新实验**请改用 `code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；脚本待写），并遵守独立训练策略。
+
+历史实现要点（仍属方案 A）：
 
 1. `DATA_DIR = .../out/merged_2s`，`DATA_PREFIX = "merged"`
-2. 超参网格 **先沿用 Stieger 过夜同款**（样本量接近 Stieger）
+2. 超参网格当时沿用 Stieger 过夜同款
 3. `n_times` 从 `X.shape[-1]` 读取（500）
-4. 环境：仓库根 `.venv`，device=cuda
-
 ### 4.1 报数扩展（方案 A 必做）
 
 每个 fold 的 test 除 Overall 外，按 `subjects` 前缀拆：
@@ -204,16 +205,15 @@ code/preprocess_lab/src/datasets/merge_bci2a_stieger.py
 | 合并脚本 | `code/preprocess_lab/src/datasets/merge_bci2a_stieger.py` |
 | 合并产物 | `code/preprocess_lab/out/merged_2s/merged_*.npy` |
 | 分层五折 | `iter_subject_kfold_stratified_by_dataset`（`split_subjects.py`） |
-| 头1/头2 | `train_task_kfold.py` / `train_three_kfold.py` → `DATA_DIR=out/merged_2s` |
-| 过夜 | `run_overnight_kfold.py` |
+| 头1/头2（历史） | `归档_旧训练入口/train_*_kfold.py` → 当时 `DATA_DIR=out/merged_2s` |
+| 过夜（历史） | `归档_旧训练入口/run_overnight_kfold.py` |
+| 新入口（待写） | `baselines_single/` |
 
 ```text
-cd D:\cyy\MI\code\preprocess_lab
-$env:PYTHONPATH='.'
-D:\cyy\MI\.venv\Scripts\python.exe -m src.datasets.merge_bci2a_stieger
-
-cd D:\cyy\MI\code\train_lab\src\step
-D:\cyy\MI\.venv\Scripts\python.exe run_overnight_kfold.py
+# 历史复现（脚本已归档；绝对路径按本机调整）
+cd <repo>/code/train_lab/src/step/归档_旧训练入口
+python run_overnight_kfold.py
+# 新实验请改用 ../baselines_single/
 ```
 
 ---
@@ -230,7 +230,7 @@ D:\cyy\MI\.venv\Scripts\python.exe run_overnight_kfold.py
 | 数据 | `out/merged_2s/merged_*.npy`，方案 A 简单拼接 |
 | 规模 | N=31089，`(N,1,8,500)`，22 人（bci2a 9 + stieger 13） |
 | 划分 | 按库分层五折；选型只看 Overall Val |
-| 完整记录 | [`../模型训练/五折过夜实验记录_20260727_141553.md`](../模型训练/五折过夜实验记录_20260727_141553.md) |
+| 完整记录 | [`../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md`](../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md) |
 | 权重根目录 | `code/train_lab/out/overnight_20260727_141553/` |
 
 ### 10.2 头1 网格（Val F1 选型）
