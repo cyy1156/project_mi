@@ -4,7 +4,7 @@
 > 版本：v0.4（2026-07-28）  
 > 状态：**合并方案与合并过夜结果仍有效作对照**（`overnight_20260727_141553`）  
 > **注意**：该次过夜三分类仍为**旧策略（迁二分类主干）**。新约定「①独立训练 ②原生头 ③不迁权重」见 [`训练策略_二分类与三分类独立训练.md`](./训练策略_二分类与三分类独立训练.md)。  
-> **入口变更**：旧 `train_*_kfold` / `run_overnight_kfold` 已归入 `code/train_lab/src/step/归档_旧训练入口/`；新实验入口为 `baselines_single/`（待写）。  
+> **入口变更**：旧 `train_*_kfold` / `run_overnight_kfold` 已归入 `归档_旧训练入口/`（仅对照）；新实验入口为 `baselines_single/`（五基线脚本已落地）。  
 > 完整折表见 [`../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md`](../模型训练/归档_过夜实验记录/五折过夜实验记录_20260727_141553.md)  
 > 原文件夹 `资料/实验_合并库合训方案A` 已删除，方案与结果统一归档本夹。
 
@@ -117,7 +117,7 @@ code/preprocess_lab/src/datasets/merge_bci2a_stieger.py
 | 头2 五折 | `code/train_lab/src/step/归档_旧训练入口/train_three_kfold.py` |
 | 过夜编排 | `code/train_lab/src/step/归档_旧训练入口/run_overnight_kfold.py` |
 
-**新实验**请改用 `code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；脚本待写），并遵守独立训练策略。
+**新实验**请改用 `code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；例如 `python baseline_eegnet.py --data merged_2s`），并遵守独立训练策略。
 
 历史实现要点（仍属方案 A）：
 
@@ -206,14 +206,15 @@ code/preprocess_lab/src/datasets/merge_bci2a_stieger.py
 | 合并产物 | `code/preprocess_lab/out/merged_2s/merged_*.npy` |
 | 分层五折 | `iter_subject_kfold_stratified_by_dataset`（`split_subjects.py`） |
 | 头1/头2（历史） | `归档_旧训练入口/train_*_kfold.py` → 当时 `DATA_DIR=out/merged_2s` |
-| 过夜（历史） | `归档_旧训练入口/run_overnight_kfold.py` |
-| 新入口（待写） | `baselines_single/` |
+| 过夜（历史） | `归档_旧训练入口/run_overnight_kfold.py`（搬迁后路径未修，**不可直接跑**） |
+| 新入口（现行） | `baselines_single/baseline_*.py` |
 
 ```text
-# 历史复现（脚本已归档；绝对路径按本机调整）
-cd <repo>/code/train_lab/src/step/归档_旧训练入口
-python run_overnight_kfold.py
-# 新实验请改用 ../baselines_single/
+# 新实验（现行）
+cd <repo>/code/train_lab/src/step/baselines_single
+python baseline_eegnet.py --data merged_2s
+
+# 历史 overnight 仅作对照；归档脚本搬迁后 parents[]/import 已失效，勿直接复跑
 ```
 
 ---

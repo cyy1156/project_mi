@@ -17,6 +17,22 @@
 
 - **不删除**；仅归类，重写时可对照。
 - 上级 `step/` 仍保留可复用：`dataset.py` / `metrics.py` / `data_paths.py`。
-- 新计划代码目录：`../baselines_single/`（本步不写训练函数）。
+- **现行入口**：`../baselines_single/`（五基线脚本已落地）。
 
-若需临时跑旧脚本，把工作目录设到本归档目录，或把本目录加回 `sys.path`（自备依赖）。
+## 不可直接运行（重要）
+
+搬入子目录后，脚本内 `Path(...).parents[N]` 与 `from data_paths import ...` 等仍按「位于 `step/` 根」编写，**未做路径修复**。  
+因此本目录默认视为**只读对照**，不要 `cd` 到这里直接 `python run_overnight_kfold.py`。
+
+若确实需要临时复跑旧脚本，须先自行：
+
+1. 把 `step/` 加入 `sys.path`（以便 `import dataset/metrics/data_paths`）；  
+2. 按多一层目录修正 `ROOT` / `CODE_ROOT` / `REPO_ROOT` 的 `parents[]`；  
+3. 确认数据与输出目录仍指向本机 `preprocess_lab/out` 与 `train_lab/out`。
+
+新实验请一律使用：
+
+```bash
+cd ../baselines_single
+python baseline_eegnet.py --data merged_2s
+```

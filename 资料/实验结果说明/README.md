@@ -11,11 +11,12 @@
 | [20260727_上午单库过夜实验结果.md](./20260727_上午单库过夜实验结果.md) | BCI2a / Stieger 单库过夜汇总（旧迁移策略） |
 | [归档_旧方案说明/](./归档_旧方案说明/) | **历史**：注册表 + 多模型矩阵方案（已归档，非现行入口） |
 
-## 状态提醒（2026-07-28）
+## 状态提醒（2026-07-29）
 
 - **训练策略约定仍有效**：独立训练 + 原生头 + 不迁权重。  
-- **代码入口已调整**：不再以「模型注册表 + 一次跑多模型」为现行入口。  
-  - 旧脚本已归入 `code/train_lab/src/step/归档_旧训练入口/`（未删）。  
-  - 新计划目录：`code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；训练脚本待写）。  
+- **现行代码入口**：`code/train_lab/src/step/baselines_single/`  
+  - 五基线脚本已落地：`baseline_{eegnet,shallow,deep,eegtcnet,conformer}.py` + `shared_hparams.py`。  
+  - 可选串跑：`run_all_five_model.py`（日常对照仍建议单脚本）。  
+  - 旧 registry / matrix / overnight 已归入 `归档_旧训练入口/`（仅对照，搬迁后不可直接跑）。  
   - 归类清单：[`资料/模型训练/归类清单_单模型入口重构.md`](../模型训练/归类清单_单模型入口重构.md)  
 - 旧过夜结果可对照，须标注 `weight_transfer`；新实验默认 `false`。
