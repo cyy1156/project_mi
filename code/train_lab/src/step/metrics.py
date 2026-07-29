@@ -42,7 +42,7 @@ def format_task_metrics(part_name: str, m: dict[str, float]) -> str:
     """part_name: 如 'val' / 'train'，表示打印的是哪一份。"""
     return "\n".join(
         [
-            f"===== [{part_name}] 分类头1（静息=0 / 任务=1）braindecode EEGNet =====",
+            f"===== [{part_name}] 分类头1（静息=0 / 任务=1） =====",
             f"  混淆矩阵: TP={m['tp']} TN={m['tn']} FP={m['fp']} FN={m['fn']}",
             f"  Accuracy      分类准确率   = {m['accuracy']:.4f}",
             f"  Recall        召回率/灵敏度 = {m['recall']:.4f}",
@@ -50,7 +50,6 @@ def format_task_metrics(part_name: str, m: dict[str, float]) -> str:
             f"  Precision     精确率       = {m['precision']:.4f}",
             f"  F1-score      F1          = {m['f1']:.4f}",
             f"  Balanced Acc  平衡准确率   = {m['balanced_accuracy']:.4f}",
-            f"  ※ 第二分类头请用 train_three_kfold.py / three_class_metrics",
         ]
     )
 
@@ -83,15 +82,15 @@ def three_class_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, flo
 
 
 def format_three_metrics(part_name: str, m: dict) -> str:
-    cm = m["cm"]
+    cm = m["cm"]  # 可能是 ndarray 或 jsonify 后的 list，统一用 cm[i][j]
     return "\n".join(
         [
             f"===== [{part_name}] 分类头2（空闲=0 / 左=1 / 右=2） =====",
             f"  混淆矩阵 (行=真实, 列=预测):",
             f"            pred0  pred1  pred2",
-            f"    true0  {cm[0, 0]:5d}  {cm[0, 1]:5d}  {cm[0, 2]:5d}",
-            f"    true1  {cm[1, 0]:5d}  {cm[1, 1]:5d}  {cm[1, 2]:5d}",
-            f"    true2  {cm[2, 0]:5d}  {cm[2, 1]:5d}  {cm[2, 2]:5d}",
+            f"    true0  {cm[0][0]:5d}  {cm[0][1]:5d}  {cm[0][2]:5d}",
+            f"    true1  {cm[1][0]:5d}  {cm[1][1]:5d}  {cm[1][2]:5d}",
+            f"    true2  {cm[2][0]:5d}  {cm[2][1]:5d}  {cm[2][2]:5d}",
             f"  Accuracy     = {m['accuracy']:.4f}",
             f"  F1-macro     = {m['f1_macro']:.4f}",
             f"  Recall-macro = {m['recall_macro']:.4f}",

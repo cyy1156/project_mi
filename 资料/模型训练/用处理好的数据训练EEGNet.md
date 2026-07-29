@@ -1,14 +1,14 @@
 # 用处理好的数据训练 EEGNet（入门步骤）
 
-> **【现行入口 · 2026-07-28 更新】**  
+> **【现行入口 · 2026-07-29 更新】**  
 > - 数据：`code/preprocess_lab/out/bci2a_2s/bci2a_*.npy`（或 `merged_2s` / `stieger_2s`），形状 `(N,1,8,500)`  
 > - **训练策略**：二分类与三分类**独立训练、不迁权重、原生分类头** →  
 >   [`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
-> - **新计划入口**：`code/train_lab/src/step/baselines_single/`（一模型一脚本、共用超参；EEGNet 脚本待写）  
-> - **旧五折/过夜脚本**：已移至 `code/train_lab/src/step/归档_旧训练入口/`（`train_*_kfold.py` / `run_overnight_kfold.py` 等），仅作对照，非现行入口  
+> - **现行入口**：`code/train_lab/src/step/baselines_single/baseline_eegnet.py`（及同目录其它基线）  
+> - **旧五折/过夜脚本**：已移至 `归档_旧训练入口/`，仅作对照，**不可直接跑**  
 > - 可复用：`dataset.py` / `metrics.py` / `data_paths.py`  
 > - 归类清单：[`归类清单_单模型入口重构.md`](./归类清单_单模型入口重构.md)  
-> - 下文仍含早期 `train_task.py`（试次混合 8:2）及旧 `*_kfold` 教学示例，可作对照；**新实验以 `baselines_single/` 为准**。  
+> - 下文仍含早期 `train_task.py`（试次混合 8:2）教学示例，可作对照；**新实验以 `baselines_single/` 为准**。  
 > - 文中本机绝对路径（如 `D:\cyy\MI`）若与本机不符，可忽略，按相对仓库根理解即可。
 
 > **性质**：示例文档。  
@@ -32,8 +32,8 @@ MI/
 │       ├── out/
 │       └── src/step/
 │           ├── dataset.py / metrics.py / data_paths.py   ← 可复用
-│           ├── baselines_single/       ← 【新】一模型一脚本（待写）
-│           └── 归档_旧训练入口/         ← 旧 train_*_kfold / overnight / registry
+│           ├── baselines_single/       ← 【现行】baseline_eegnet.py 等
+│           └── 归档_旧训练入口/         ← 旧 train_*_kfold / overnight / registry（仅对照）
 └── 资料/模型训练/
 ```
 
@@ -51,8 +51,8 @@ MI/
 
 | 阶段 | 内容 | 状态 |
 |------|------|------|
-| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | 新入口：`baselines_single/`；旧实现见归档 `train_task_kfold.py` |
-| B | 第二头三分类 | 独立训、不迁权重；新入口同上；旧实现见归档 `train_three_kfold.py` |
+| A | `EEGNet(n_outputs=2)`：静息(0)/任务(1) | **现行**：`baselines_single/baseline_eegnet.py`；旧实现见归档 `train_task_kfold.py` |
+| B | 第二头三分类 | 独立训、不迁权重；**现行**：同上脚本 Three 阶段；旧实现见归档 `train_three_kfold.py` |
 
 ```text
 预处理 X: (N, 1, 8, 500)     # out/bci2a_2s
@@ -428,13 +428,21 @@ if __name__ == "__main__":
 
 ### 怎么运行
 
-**新实验（现行）**：在 `baselines_single/` 手写并运行对应 `baseline_*.py`（目录尚在建设，见文首）。
-
-**历史对照**（脚本已归档，非现行入口）：
+**新实验（现行）**：
 
 ```powershell
-cd <repo>\code\train_lab\src\step\归档_旧训练入口
-python train_task_kfold.py
+cd <repo>\code\train_lab\src\step\baselines_single
+python baseline_eegnet.py --data merged_2s
+# 或单库：--data bci2a_2s / stieger_2s
+```
+
+完整可粘贴对照：[`代码示例_baseline_eegnet_单模型入口.md`](./代码示例_baseline_eegnet_单模型入口.md)。
+
+**历史对照**（脚本已归档且路径未修，**勿直接当可运行入口**）：
+
+```powershell
+# 仅说明历史位置；需要复跑须先修 parents[] / sys.path
+# <repo>\code\train_lab\src\step\归档_旧训练入口\train_task_kfold.py
 ```
 
 > 早期教学用的 `train_task`（试次混合）仅作对照；**不要**再把 `src.step.train_task_kfold` 当作现行入口（该模块已不在 `step/` 根下）。
@@ -471,28 +479,30 @@ python train_task_kfold.py
 
 ---
 
-## 10. 动手顺序
+## 10. 动手顺序（现行）
 
-1. 确认目录为 `train_lab/src/step/{dataset,metrics,train_task}.py`。  
+1. 确认 `train_lab/src/step/` 下有 `dataset.py` / `metrics.py` / `data_paths.py`，以及 `baselines_single/`。  
 2. 安装 `requirements_train.txt`（可用清华镜像）。  
-3. 自检 npy。  
-4. 对照本文粘贴/核对三份源码（尤其 `train_task.py` 与 metrics 的 argmax）。  
-5. `python -m src.step.train_task`。  
-6. 确认 `train_lab/out/best_task.pt`。
+3. 自检 npy（`preprocess_lab/out/<data>/`）。  
+4. 阅读 [`代码示例_baseline_eegnet_单模型入口.md`](./代码示例_baseline_eegnet_单模型入口.md)（与仓库脚本对照即可）。  
+5. `cd baselines_single` 后运行 `python baseline_eegnet.py --data merged_2s`（或单库标签）。  
+6. 确认权重在 `train_lab/out/baseline/eegnet/<data>/run_<stamp>/`，MD 在 `资料/模型训练/runs/`。
+
+> 下文 §7 的 `train_task.py` 粘贴示例仅历史教学；正式报数不要再新建该文件。
 
 ---
 
-## 11. 验收
+## 11. 验收（现行入口）
 
-- [ ] 代码在 `src/step/` 下，导入带 `src.step`  
-- [ ] `ROOT = parents[3]` 指向 `code/`  
-- [ ] `EEGNet(n_outputs=2)`，输入 `(B,8,T)`，`n_times=T`  
+- [ ] 使用 `baselines_single/baseline_eegnet.py`（或同目录其它基线）  
+- [ ] `CODE_ROOT = HERE.parents[3]` 指向 `code/`（见脚本内注释）  
+- [ ] `EEGNet(n_outputs=2/3)`，输入 `(B,8,T)`，`n_times=T`  
+- [ ] Three **未**加载 Task 权重；报告含 `weight_transfer=False`  
 - [ ] metrics **无** `argmax` 误用  
-- [ ] 日志有 Accuracy / Recall / Specificity  
-- [ ] 保存 `best_task.pt`，结束评估用的是 best 权重  
+- [ ] 权重写入 `out/baseline/eegnet/<data>/run_<stamp>/`，MD 写入 `资料/模型训练/runs/`  
 
 ---
 
 ## 12. 一句话
 
-> **数据在 `preprocess_lab/out`；可复用 `train_lab/src/step/` 的 `dataset` / `metrics` / `data_paths`；新训练入口在 `baselines_single/`（一模型一脚本）；旧 `*_kfold` / overnight 在 `归档_旧训练入口/`；braindecode `EEGNet(n_outputs=2)` 做阶段 A 基线。**
+> **数据在 `preprocess_lab/out`；可复用 `train_lab/src/step/` 的 `dataset` / `metrics` / `data_paths`；现行训练入口在 `baselines_single/baseline_*.py`；旧 `*_kfold` / overnight 在 `归档_旧训练入口/`（仅对照）；braindecode `EEGNet` 做阶段 A/B 独立基线。**

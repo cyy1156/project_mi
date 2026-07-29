@@ -8,6 +8,9 @@ import sys
 from datetime import datetime
 from pathlib import Path
 
+import os
+import random
+
 import numpy as np
 import torch
 import torch.nn as nn
@@ -49,6 +52,20 @@ from src.common.steps.split_subjects import (
 MODEL_NAME = "eegnet"
 EEGNET_F1, EEGNET_D, EEGNET_F2 = 8, 2, 16
 
+def seed_everything(seed: int) -> None:
+    random.seed(seed)
+    os.environ['PYTHONHASHSEED'] = str(seed)
+    np.random.seed(seed)
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
+
+def make_generator(seed:int)->torch.Generator:
+    g=torch.Generator()
+    g.manual_seed(seed)
+    return g
 
 def build_eegnet(n_chans: int, n_times: int, n_outputs: int, drop_prob: float) -> nn.Module:
     return EEGNet(
@@ -150,6 +167,7 @@ def train_task_one_fold(
         f"  test ={fold_info['test_subjects']}\n"
         f"  n={int(masks['train'].sum())}/{int(masks['val'].sum())}/{int(masks['test'].sum())}"
     )
+    g=make_generator(hp.seed+fold)
 
     def loader(mask, train: bool):
         return DataLoader(
@@ -157,12 +175,14 @@ def train_task_one_fold(
             batch_size=hp.batch_train if train else hp.batch_eval,
             shuffle=train,
             num_workers=0,
+            generator=g if train else None,
         )
 
     train_loader = loader(masks["train"], True)
     val_loader = loader(masks["val"], False)
     test_loader = loader(masks["test"], False)
 
+    seed_everything(hp.seed + fold)
     model = build_eegnet(8, int(X.shape[-1]), 2, hp.drop_prob).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
@@ -265,18 +285,22 @@ def train_three_one_fold(
         f"  test ={fold_info['test_subjects']}"
     )
 
+    g=make_generator(hp.seed+fold)
+
     def loader(mask, train: bool):
         return DataLoader(
             ArrayThreeDataset(X[mask], y[mask]),
             batch_size=hp.batch_train if train else hp.batch_eval,
             shuffle=train,
             num_workers=0,
+            generator=g if train else None,
         )
 
     train_loader = loader(masks["train"], True)
     val_loader = loader(masks["val"], False)
     test_loader = loader(masks["test"], False)
 
+    seed_everything(hp.seed+fold)
     model = build_eegnet(8, int(X.shape[-1]), 3, hp.drop_prob).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
@@ -374,6 +398,7 @@ def main() -> None:
     args = p.parse_args()
 
     hp = SHARED
+    seed_everything(hp.seed)
     data_tag = args.data
     data_dir, prefix = resolve_data(data_tag)
 
@@ -390,7 +415,8 @@ def main() -> None:
     log_path = out_root / "run.log"
     records_root = REPO_ROOT / "资料" / "模型训练"
     run_md_dir = records_root / "runs" / f"{stamp}_{MODEL_NAME}"
-    md_path = run_md_dir / "五折实验记录.md"
+    md_path = (run_md_dir /
+               f"{MODEL_NAME}五折实验记录.md")
 
     append_md(
         md_path,
@@ -440,7 +466,7 @@ def main() -> None:
                 f"- Test F1：`{sum_task['test_f1_mean']:.4f} ± {sum_task['test_f1_std']:.4f}`",
                 f"- Test Acc：`{sum_task['test_acc_mean']:.4f} ± {sum_task['test_acc_std']:.4f}`",
                 "",
-                "### Three（空闲/左/右，独立初始化）",
+                "### Three（空闲/左/右，不使用Task的保存的权重，重新使用新的模型训练）",
                 f"- Val F1-macro：`{sum_three['val_f1_macro_mean']:.4f} ± {sum_three['val_f1_macro_std']:.4f}`",
                 f"- Test F1-macro：`{sum_three['test_f1_macro_mean']:.4f} ± {sum_three['test_f1_macro_std']:.4f}`",
                 f"- Test Acc：`{sum_three['test_acc_mean']:.4f} ± {sum_three['test_acc_std']:.4f}`",

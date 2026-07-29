@@ -1,6 +1,6 @@
 # 代码示例：EEGNet 单模型入口（完整可粘贴）
 
-> 性质：**示例文档**（先给完整代码，便于你手写落地；本步**不要求**已存在对应 `.py`）  
+> 性质：**示例文档**（与仓库内已落地脚本对照；若有出入以 `baselines_single/*.py` 为准）  
 > 目标目录：`code/train_lab/src/step/baselines_single/`  
 > 策略：[`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
 > 协议：[`正式评估协议_被试独立五折.md`](./正式评估协议_被试独立五折.md)  
@@ -646,9 +646,9 @@ if __name__ == "__main__":
 
 ---
 
-## 3. 自检清单（粘贴后）
+## 3. 自检清单（对照仓库脚本）
 
-- [ ] `baselines_single/shared_hparams.py` 与 `baseline_eegnet.py` 已按上文创建  
+- [x] `baselines_single/shared_hparams.py` 与 `baseline_eegnet.py` 已在仓库落地  
 - [ ] 工作目录为 `baselines_single/`（或保证能 `import shared_hparams`）  
 - [ ] 已有 `preprocess_lab/out/<data>/{prefix}_X.npy` 等四件套  
 - [ ] Three 阶段**没有** `load_state_dict(task_ckpt)`  
@@ -673,4 +673,4 @@ if __name__ == "__main__":
 
 ## 5. 一句话
 
-> 在 `baselines_single/` 放 `shared_hparams.py` + `baseline_eegnet.py`：手写 `EEGNet(...)`，共用超参，Task→Three 独立五折，写 MD；不走 registry，不迁权重。
+> 仓库已有 `baselines_single/shared_hparams.py` + `baseline_eegnet.py`（及其它基线）：手写构造模型、共用超参，Task→Three 独立五折，写 MD；不走 registry，不迁权重。本文示例供对照阅读。

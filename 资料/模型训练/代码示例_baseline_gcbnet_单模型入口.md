@@ -1,4 +1,72 @@
-"""Deep4Net 单模型入口：Task + Three 独立五折，写 MD。不用 registry。"""
+# 代码示例：GCBNet 单模型入口（完整可粘贴）
+
+> 性质：**示例文档**，尚未写入仓库 `.py`；按本文手写落地  
+> 目标：`code/train_lab/src/step/baselines_single/baseline_gcbnet.py`  
+> 策略：[`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
+> 协议：[`正式评估协议_被试独立五折.md`](./正式评估协议_被试独立五折.md)  
+> 对照：[`代码示例_baseline_eegnet_单模型入口.md`](./代码示例_baseline_eegnet_单模型入口.md)  
+> README：[`baselines_single/README.md`](../../code/train_lab/src/step/baselines_single/README.md)  
+> 索引：[`代码示例_图特征基线_DGCNN_GCBNet_DBN.md`](./代码示例_图特征基线_DGCNN_GCBNet_DBN.md)
+
+---
+
+## 0. 关键约定（写代码前先对齐）
+
+| 项 | 约定 |
+|----|------|
+| 入口 | **一模型一脚本**：落地为 `baseline_gcbnet.py` |
+| 输入 | **特征立方体** `(B, 8, F)`，**不是**时域 `(B, 8, 500)` |
+| 特征 | 脚本内 `raw_to_bandpower`：盘上 `(N,1,8,500)@250Hz` → `(N,8,5)`；频带 `(1–4),(4–8),(8–13),(13–30),(30–45)` Hz，取 **log 功率** |
+| Dataset | 本脚本内 `ArrayFeatDataset`（接受 `(N,8,F)`）；**不用** `ArrayTaskDataset`（那是时域） |
+| 超参 | **复用**已有 `baselines_single/shared_hparams.py`（**不要**再粘贴一份） |
+| 复用 | `data_paths` / `metrics` / `split_subjects`（与 shallow/eegnet 相同） |
+| Task | `n_outputs=2`，Val **F1** 早停；Test 终评 |
+| Three | **重新随机初始化**，`n_outputs=3`，Val **F1-macro** 早停；**不加载** Task 权重 |
+| 记录 | `资料/模型训练/runs/{stamp}_gcbnet/gcbnet五折实验记录.md` |
+| 权重 | `code/train_lab/out/baseline/gcbnet/<data>/run_<stamp>/` |
+| 锁种 | `main`：`seed_everything(hp.seed)`；每折建模型前：`seed_everything(hp.seed+fold)`；Train DataLoader：`generator=make_generator(hp.seed+fold)`，`num_workers=0` |
+| 路径 | `CODE_ROOT = HERE.parents[3]`（与 shallow 一致） |
+
+**模型来源**：WeChat LODO `【LODO62】GCBNET (1).py` 中的 `GCBNet` + `GraphConv` / `laplacian` / `B1ReLU` / `B2ReLU`。Config 用 **`k=2`**（类默认是 4，落地时按 Config）。`num_electrodes` 须为偶数（本项目 8 导联 OK，因 `MaxPool1d(kernel_size=2)`）。
+
+目录关系：
+
+```text
+code/train_lab/src/step/
+  data_paths.py / metrics.py                  ← 复用
+  baselines_single/
+    shared_hparams.py                         ← 已有，复用，本文不贴全文
+    baseline_gcbnet.py                                  ← 按本文粘贴落地
+```
+
+运行（落地后）：
+
+```text
+cd code/train_lab/src/step/baselines_single
+python baseline_gcbnet.py
+python baseline_gcbnet.py --data merged_2s
+```
+
+---
+
+## 1. `shared_hparams.py`（复用已有，不粘贴）
+
+路径：`code/train_lab/src/step/baselines_single/shared_hparams.py`
+
+本文脚本只 `from shared_hparams import SHARED, SharedTrainHP, shared_as_dict`。
+
+改训练超参（lr / seed / patience 等）请直接改仓库里那一份；**全基线共用**，勿在本文件再复制一份 dataclass。
+
+---
+
+## 2. `baseline_gcbnet.py`（完整单文件）
+
+路径：`code/train_lab/src/step/baselines_single/baseline_gcbnet.py`
+
+下面为一份**可直接粘贴**的完整脚本：在线 bandpower → Task 五折 → Three 五折（独立初始化）→ 写 MD / `final_meta.json`。
+
+```python
+"""GCBNet 单模型入口：特征立方体 + Task/Three 独立五折，写 MD。不用 registry。"""
 
 from __future__ import annotations
 
@@ -13,9 +81,8 @@ from pathlib import Path
 import numpy as np
 import torch
 import torch.nn as nn
-from torch.utils.data import DataLoader
-
-from braindecode.models import Deep4Net
+from scipy.signal import butter, filtfilt
+from torch.utils.data import DataLoader, Dataset
 
 HERE = Path(__file__).resolve().parent
 STEP_DIR = HERE.parent
@@ -31,7 +98,6 @@ if str(PRE_ROOT) not in sys.path:
 
 from shared_hparams import SHARED, SharedTrainHP, shared_as_dict
 from data_paths import resolve_data
-from dataset import ArrayTaskDataset, ArrayThreeDataset
 from metrics import (
     binary_task_metrics,
     format_task_metrics,
@@ -45,7 +111,45 @@ from src.common.steps.split_subjects import (
     iter_subject_kfold_stratified_by_dataset,
 )
 
-MODEL_NAME = "deep"
+MODEL_NAME = "gcbnet"
+
+# 5 频带 log 功率：(N,1,8,500)@250Hz -> (N,8,5)
+BANDS_HZ = ((1.0, 4.0), (4.0, 8.0), (8.0, 13.0), (13.0, 30.0), (30.0, 45.0))
+
+def raw_to_bandpower(X: np.ndarray, sfreq: float = 250.0) -> np.ndarray:
+    """盘上时域 (N,1,8,500) 或 (N,8,500) -> 特征立方体 (N,8,5) log 功率。"""
+    X = np.asarray(X, dtype=np.float64)
+    if X.ndim == 4 and X.shape[1] == 1:
+        X = X[:, 0, :, :]
+    assert X.ndim == 3 and X.shape[1] == 8, X.shape
+    n, n_ch, n_times = X.shape
+    nyq = sfreq / 2.0
+    out = np.empty((n, n_ch, len(BANDS_HZ)), dtype=np.float32)
+    for bi, (lo, hi) in enumerate(BANDS_HZ):
+        b, a = butter(4, [lo / nyq, hi / nyq], btype="band")
+        # filtfilt along time; vectorize over trials*channels
+        flat = X.reshape(-1, n_times)
+        filt = np.asarray([filtfilt(b, a, row) for row in flat], dtype=np.float64)
+        power = np.mean(filt ** 2, axis=1).reshape(n, n_ch)
+        out[:, :, bi] = np.log(power + 1e-10).astype(np.float32)
+    return out
+
+
+class ArrayFeatDataset(Dataset):
+    """五折用：特征立方体 (N, 8, F)，标签 Task 或 Three。"""
+
+    def __init__(self, X: np.ndarray, y: np.ndarray):
+        X = np.asarray(X, dtype=np.float32)
+        assert X.ndim == 3 and X.shape[1] == 8, X.shape
+        self.X = X
+        self.y = np.asarray(y, dtype=np.int64)
+        assert len(self.X) == len(self.y)
+
+    def __len__(self) -> int:
+        return len(self.X)
+
+    def __getitem__(self, idx: int):
+        return torch.from_numpy(self.X[idx]), torch.tensor(self.y[idx], dtype=torch.long)
 
 
 def seed_everything(seed: int) -> None:
@@ -64,15 +168,169 @@ def make_generator(seed: int) -> torch.Generator:
     g.manual_seed(seed)
     return g
 
+# --- GCBNet（摘自 LODO62；k=2 与 Config 一致；8 导联须为偶数以便 MaxPool1d） ---
+def laplacian(w: torch.Tensor) -> torch.Tensor:
+    d = torch.sum(w, dim=1)
+    d_re = 1 / torch.sqrt(d + 1e-5)
+    d_matrix = torch.diag_embed(d_re)
+    lap = torch.eye(d_matrix.shape[0], device=w.device) - torch.matmul(torch.matmul(d_matrix, w), d_matrix)
+    return lap
 
-def build_model(n_chans: int, n_times: int, n_outputs: int, drop_prob: float) -> nn.Module:
-    return Deep4Net(
-        n_chans=n_chans,
-        n_outputs=n_outputs,
-        n_times=n_times,
-        drop_prob=drop_prob,
+
+class GraphConv(nn.Module):
+    def __init__(self, k: int, in_channels: int, out_channels: int):
+        super().__init__()
+        self.in_channels = in_channels
+        self.out_channels = out_channels
+        self.k = k
+        self.weight = nn.Parameter(torch.Tensor(k * in_channels, out_channels))
+        nn.init.xavier_uniform_(self.weight)
+
+    def chebyshev_polynomial(self, x: torch.Tensor, lap: torch.Tensor) -> torch.Tensor:
+        t_list = []
+        t0 = x
+        t_list.append(t0)
+        if self.k > 1:
+            t1 = torch.matmul(lap, x)
+            t_list.append(t1)
+        for _ in range(2, self.k):
+            t2 = 2 * torch.matmul(lap, t1) - t0
+            t_list.append(t2)
+            t0, t1 = t1, t2
+        return torch.stack(t_list, dim=1)
+
+    def forward(self, x: torch.Tensor, lap: torch.Tensor) -> torch.Tensor:
+        cp = self.chebyshev_polynomial(x, lap)
+        cp = cp.permute(0, 2, 3, 1).flatten(start_dim=2)
+        return torch.matmul(cp, self.weight)
+
+
+class B1ReLU(nn.Module):
+    def __init__(self, bias_shape: int):
+        super().__init__()
+        self.bias = nn.Parameter(torch.Tensor(1, 1, bias_shape))
+        self.relu = nn.ReLU()
+        nn.init.zeros_(self.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.relu(self.bias + x)
+
+
+class B2ReLU(nn.Module):
+    def __init__(self, bias_shape1: int, bias_shape2: int):
+        super().__init__()
+        self.bias = nn.Parameter(torch.Tensor(1, bias_shape1, bias_shape2))
+        self.relu = nn.ReLU()
+        nn.init.zeros_(self.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return self.relu(self.bias + x)
+
+
+class GCBNet(nn.Module):
+    def __init__(
+        self,
+        num_electrodes: int = 8,
+        in_channels: int = 5,
+        num_classes: int = 2,
+        k: int = 2,
+        relu_is: int = 1,
+        layers: list[int] | None = None,
+        dropout_rate: float = 0.5,
+        lamb: float = 0.001,
+    ):
+        super().__init__()
+        if num_electrodes % 2 != 0:
+            raise ValueError(f"GCBNet MaxPool1d 要求偶数导联，got num_electrodes={num_electrodes}")
+        self.dropout_rate = dropout_rate
+        self.lamb = lamb
+        self.layers = layers if layers is not None else [128]
+        self.k = k
+        self.in_channels = in_channels
+        self.num_electrodes = num_electrodes
+        self.num_classes = num_classes
+        self.relu_is = relu_is
+
+        self.graphConvs = nn.ModuleList()
+        self.graphConvs.append(GraphConv(self.k, self.in_channels, self.layers[0]))
+        for i in range(len(self.layers) - 1):
+            self.graphConvs.append(GraphConv(self.k, self.layers[i], self.layers[i + 1]))
+
+        self.conv1 = nn.Conv1d(
+            in_channels=self.layers[0],
+            out_channels=self.layers[0] // 2,
+            stride=1,
+            kernel_size=7,
+            padding="same",
+        )
+        self.maxpool = nn.MaxPool1d(kernel_size=2, stride=2, padding=0)
+        self.conv2 = nn.Conv1d(
+            in_channels=self.layers[0] // 2,
+            out_channels=self.layers[0] // 4,
+            stride=1,
+            kernel_size=7,
+            padding="same",
+        )
+
+        pooled_len = self.num_electrodes // 2
+        fc_in_features = (
+            (self.layers[0] * self.num_electrodes)
+            + (self.layers[0] // 2 * pooled_len)
+            + (self.layers[0] // 4 * pooled_len)
+        )
+        self.original_fc = nn.Linear(fc_in_features, self.num_classes)
+
+        self.adj = nn.Parameter(torch.Tensor(self.num_electrodes, self.num_electrodes))
+        self.adj_bias = nn.Parameter(torch.Tensor(1))
+        self.relu = nn.ReLU(inplace=True)
+        self.b_relus = nn.ModuleList()
+        if self.relu_is == 1:
+            for i in range(len(self.layers)):
+                self.b_relus.append(B1ReLU(self.layers[i]))
+        elif self.relu_is == 2:
+            for i in range(len(self.layers)):
+                self.b_relus.append(B2ReLU(self.adj.shape[0], self.layers[i]))
+        self.dropout = nn.Dropout(p=self.dropout_rate)
+        self.init_weight()
+
+    def init_weight(self) -> None:
+        nn.init.xavier_uniform_(self.adj)
+        nn.init.trunc_normal_(self.adj_bias, mean=0, std=0.1)
+        nn.init.kaiming_uniform_(self.conv1.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.kaiming_uniform_(self.conv2.weight, mode="fan_in", nonlinearity="relu")
+        nn.init.zeros_(self.conv1.bias)
+        nn.init.zeros_(self.conv2.bias)
+        nn.init.xavier_uniform_(self.original_fc.weight)
+        nn.init.zeros_(self.original_fc.bias)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, electrodes, feats)
+        adj = self.relu(self.adj + self.adj_bias)
+        lap = laplacian(adj)
+        for i in range(len(self.layers)):
+            x = self.graphConvs[i](x, lap)
+            x = self.dropout(x)
+            x = self.b_relus[i](x)
+        bs = x.shape[0]
+        x = x.permute(0, 2, 1)  # (B, C, electrodes) for Conv1d
+        x1 = self.relu(self.conv1(x))
+        x2 = self.maxpool(x1)
+        x3 = self.relu(self.conv2(x2))
+        x, x2, x3 = x.reshape(bs, -1), x2.reshape(bs, -1), x3.reshape(bs, -1)
+        x_cat = torch.cat((x, x2, x3), dim=1)
+        x_cat = self.dropout(x_cat)
+        return self.original_fc(x_cat)
+
+
+def build_model(n_electrodes: int, n_feats: int, n_outputs: int, drop_prob: float) -> nn.Module:
+    return GCBNet(
+        num_electrodes=n_electrodes,
+        in_channels=n_feats,
+        num_classes=n_outputs,
+        k=2,  # LODO Config 用 2，不是类默认 4
+        layers=[128],
+        dropout_rate=drop_prob,
     )
-
 
 def append_md(md_path: Path, text: str, out_root: Path, log_path: Path) -> None:
     records_root = REPO_ROOT / "资料" / "模型训练"
@@ -167,7 +425,7 @@ def train_task_one_fold(
 
     def loader(mask, train: bool):
         return DataLoader(
-            ArrayTaskDataset(X[mask], y[mask]),
+            ArrayFeatDataset(X[mask], y[mask]),
             batch_size=hp.batch_train if train else hp.batch_eval,
             shuffle=train,
             num_workers=0,
@@ -179,7 +437,8 @@ def train_task_one_fold(
     test_loader = loader(masks["test"], False)
 
     seed_everything(hp.seed + fold)
-    model = build_model(8, int(X.shape[-1]), 2, hp.drop_prob).to(device)
+    n_feats = int(X.shape[-1])
+    model = build_model(8, n_feats, 2, hp.drop_prob).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
 
@@ -197,12 +456,13 @@ def train_task_one_fold(
             bad = 0
             torch.save(
                 {
-                    "stage": "task2_deep",
+                    "stage": "task2_gcbnet",
                     "fold": fold,
                     "model_name": MODEL_NAME,
                     "n_outputs": 2,
                     "weight_transfer": False,
                     "classifier": "native",
+                    "input": "bandpower_cube",
                     "model": best_state,
                     "epoch": ep,
                     "val_metrics": jsonify_metrics(m),
@@ -249,7 +509,7 @@ def run_task_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, dat
         "model_name": MODEL_NAME,
         "data_tag": data_tag,
         "hparams": shared_as_dict(),
-        "deep": {"backbone": "Deep4Net"},
+        "gcbnet": {"backbone": "GCBNet", "k": 2, "layers": [128]},
         "val_f1_mean": vm,
         "val_f1_std": vs,
         "test_f1_mean": tm,
@@ -285,7 +545,7 @@ def train_three_one_fold(
 
     def loader(mask, train: bool):
         return DataLoader(
-            ArrayThreeDataset(X[mask], y[mask]),
+            ArrayFeatDataset(X[mask], y[mask]),
             batch_size=hp.batch_train if train else hp.batch_eval,
             shuffle=train,
             num_workers=0,
@@ -297,7 +557,8 @@ def train_three_one_fold(
     test_loader = loader(masks["test"], False)
 
     seed_everything(hp.seed + fold)
-    model = build_model(8, int(X.shape[-1]), 3, hp.drop_prob).to(device)
+    n_feats = int(X.shape[-1])
+    model = build_model(8, n_feats, 3, hp.drop_prob).to(device)
     criterion = nn.CrossEntropyLoss()
     optimizer = torch.optim.Adam(model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay)
 
@@ -318,12 +579,13 @@ def train_three_one_fold(
             bad = 0
             torch.save(
                 {
-                    "stage": "three3_deep",
+                    "stage": "three3_gcbnet",
                     "fold": fold,
                     "model_name": MODEL_NAME,
                     "n_outputs": 3,
                     "weight_transfer": False,
                     "classifier": "native",
+                    "input": "bandpower_cube",
                     "model": best_state,
                     "epoch": ep,
                     "val_metrics": jsonify_metrics(m),
@@ -371,7 +633,7 @@ def run_three_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, da
         "data_tag": data_tag,
         "weight_transfer": False,
         "hparams": shared_as_dict(),
-        "deep": {"backbone": "Deep4Net"},
+        "gcbnet": {"backbone": "GCBNet", "k": 2, "layers": [128]},
         "val_f1_macro_mean": vm,
         "val_f1_macro_std": vs,
         "test_f1_macro_mean": tm,
@@ -389,7 +651,7 @@ def run_three_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, da
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="Deep4Net 单模型：Task+Three 独立五折")
+    p = argparse.ArgumentParser(description="GCBNet 单模型：特征 + Task/Three 独立五折")
     p.add_argument("--data", default=SHARED.data_tag, help="merged_2s | bci2a_2s | stieger_2s")
     args = p.parse_args()
 
@@ -398,11 +660,15 @@ def main() -> None:
     data_tag = args.data
     data_dir, prefix = resolve_data(data_tag)
 
-    X = np.load(data_dir / f"{prefix}_X.npy")
+    X_raw = np.load(data_dir / f"{prefix}_X.npy")
     y_task = np.load(data_dir / f"{prefix}_y_task.npy")
     y_three = np.load(data_dir / f"{prefix}_y_three.npy")
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
-    assert len(X) == len(y_task) == len(y_three) == len(subjects)
+    assert len(X_raw) == len(y_task) == len(y_three) == len(subjects)
+
+    # 时域 -> 特征立方体 (N,8,5)；模型吃 (B,8,F)
+    X = raw_to_bandpower(X_raw, sfreq=250.0)
+    assert X.ndim == 3 and X.shape[1] == 8 and X.shape[2] == len(BANDS_HZ), X.shape
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -423,7 +689,8 @@ def main() -> None:
                 f"- device：`{device}`",
                 f"- data：`{data_dir}`（prefix=`{prefix}`）",
                 f"- model：`{MODEL_NAME}`（单脚本；无 registry）",
-                f"- 结构：Deep4Net（braindecode 默认结构 + shared drop_prob）",
+                f"- 输入：bandpower 立方体 `{X.shape}`（非时域 500）",
+                f"- 结构：GCBNet(k=2, layers=[128], dropout=shared drop_prob)；8 导联偶数",
                 f"- shared hp：`{shared_as_dict()}`",
                 f"- weight_transfer：`False` | classifier：`native`",
                 f"- 权重：`{out_root}`",
@@ -435,7 +702,7 @@ def main() -> None:
         out_root,
         log_path,
     )
-    log_line(log_path, f"start model={MODEL_NAME} data={data_tag} device={device}")
+    log_line(log_path, f"start model={MODEL_NAME} data={data_tag} device={device} X={X.shape}")
 
     sum_task = run_task_kfold(X, y_task, subjects, device, hp, out_root / "task", data_tag)
     log_line(
@@ -485,6 +752,8 @@ def main() -> None:
         "stamp": stamp,
         "weight_transfer": False,
         "classifier": "native",
+        "input": "bandpower_cube",
+        "X_feat_shape": list(X.shape),
         "task": sum_task,
         "three": sum_three,
         "md": str(md_path),
@@ -498,3 +767,26 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
+
+```
+
+---
+
+## 3. 落地检查清单
+
+- [ ] 已粘贴为 `baselines_single/baseline_gcbnet.py`（仓库此前**无**此 `.py`）
+- [ ] **未**再写一份 `shared_hparams.py`；能 `from shared_hparams import SHARED`
+- [ ] 工作目录为 `baselines_single/`（或保证能 import 同级模块）
+- [ ] 盘上仍是 `(N,1,8,500)` 时域；`main` 内调用 `raw_to_bandpower` 得到 `(N,8,5)`
+- [ ] DataLoader 用 `ArrayFeatDataset`，模型输入 `(B,8,F)` 而非 `(B,8,500)`
+- [ ] `CODE_ROOT = HERE.parents[3]`；MD 路径为 `gcbnet五折实验记录.md`
+- [ ] Task → Three **独立**训练；Three **没有** `load_state_dict(task_ckpt)`
+- [ ] 每折 `seed_everything(hp.seed+fold)`；Train `generator=make_generator(hp.seed+fold)`；`num_workers=0`
+- [ ] `k=2`（与 LODO Config 一致，非类默认 4）；导联数为偶数
+- [ ] 未 `from models import build_model`（不用归档 registry）
+
+---
+
+## 4. 一句话
+
+> 按本文手写落地 `baseline_gcbnet.py`：在线 5 频带 log 功率特征 → GCBNet → Task/Three 独立五折；复用 `shared_hparams`，不迁权重，不走 registry。

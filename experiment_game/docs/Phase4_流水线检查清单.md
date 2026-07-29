@@ -94,10 +94,10 @@ experiment_game/data/epochs/<会话目录名>/
 
 ### C. 训练（train_lab）
 
-- [ ] 将 `DATA_DIR` 指向本会话的 `data/epochs/<名>/`（含 `train_X.npy` 等）
-- [ ] 或把 npy 拷到 `preprocess_lab/out/...` 约定位置
-- [ ] 运行 `train_task_kfold.py`（或把会话 npy 接到现有训练入口；主任务头用 `y_task`）
+- [ ] 将会话 npy 接到约定位置（或拷到 `preprocess_lab/out/...`），保证有 `*_X.npy` / `*_y_task.npy` / `*_y_three.npy` / `*_subjects.npy`
+- [ ] 现行入口：`code/train_lab/src/step/baselines_single/baseline_*.py`（例如 `python baseline_eegnet.py --data <tag>`；主任务头用 `y_task`，三分类独立训）
 - [ ] 确认 `n_chans=8`、`n_times=500`
+- [ ] 勿再把 `train_task_kfold.py` 当作现行入口（已在 `归档_旧训练入口/`，且不可直接跑）
 
 > 说明：synthetic 数据仅用于**流水线打通**，分类准确率无参考价值。
 
