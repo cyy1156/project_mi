@@ -12,11 +12,11 @@
 
 | | EEGNet 等时域基线 | 本页三模型（图/特征基线） |
 |--|--|--|
-| 模型输入 | `(B, 8, 500)` 时域波形 | **`(B, 8, F)` 特征立方体**（默认 F=5） |
-| 盘上数据 | 直接喂 Dataset | 先 `raw_to_bandpower`：`(N,1,8,500)@250Hz` → `(N,8,5)` |
-| 频带 | — | `(1–4),(4–8),(8–13),(13–30),(30–45)` Hz，**log 功率** |
+| 模型输入 | `(B, 8, 500)` 时域波形 | **`(B, 8, F)` 特征立方体**（默认 F=2） |
+| 盘上数据 | 直接喂 Dataset | 先 `raw_to_bandpower`：`(N,1,8,500)@250Hz` → `(N,8,2)` |
+| 频带 | — | 与预处理 8–30 对齐：`(8–13),(13–30)` Hz（μ+β），**log 功率**（勿再切 δ/θ/γ） |
 | Dataset | `ArrayTaskDataset` / `ArrayThreeDataset` | 脚本内 **`ArrayFeatDataset`** |
-| 落地状态 | 仓库已有 `.py` | **仅文档示例**，需按明细 MD 手写落地 |
+| 落地状态 | 仓库已有 `.py` | **DBN / GCBNet / DGCNN 均已落地** |
 
 其余约定与 `baselines_single` 一致：复用 `shared_hparams`、Task→Three **独立**训练（不迁权重）、被试独立五折、`seed_everything` / DataLoader `generator` 锁种。
 

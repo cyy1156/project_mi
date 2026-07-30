@@ -1,72 +1,4 @@
-# 代码示例：DGCNN 单模型入口（完整可粘贴）
-
-> 性质：**示例文档**（仓库已落地为 `baseline_dgcnn.py`）  
-> 目标：`code/train_lab/src/step/baselines_single/baseline_dgcnn.py`  
-> 策略：[`资料/实验结果说明/训练策略_二分类与三分类独立训练.md`](../实验结果说明/训练策略_二分类与三分类独立训练.md)  
-> 协议：[`正式评估协议_被试独立五折.md`](./正式评估协议_被试独立五折.md)  
-> 对照：[`代码示例_baseline_eegnet_单模型入口.md`](./代码示例_baseline_eegnet_单模型入口.md)  
-> README：[`baselines_single/README.md`](../../code/train_lab/src/step/baselines_single/README.md)  
-> 索引：[`代码示例_图特征基线_DGCNN_GCBNet_DBN.md`](./代码示例_图特征基线_DGCNN_GCBNet_DBN.md)
-
----
-
-## 0. 关键约定（写代码前先对齐）
-
-| 项 | 约定 |
-|----|------|
-| 入口 | **一模型一脚本**：落地为 `baseline_dgcnn.py` |
-| 输入 | **特征立方体** `(B, 8, F)`，**不是**时域 `(B, 8, 500)` |
-| 特征 | 脚本内 `raw_to_bandpower`：盘上 `(N,1,8,500)@250Hz` → `(N,8,2)`；频带与预处理通带对齐：`(8–13),(13–30)` Hz（μ+β），取 **log 功率** |
-| Dataset | 本脚本内 `ArrayFeatDataset`（接受 `(N,8,F)`）；**不用** `ArrayTaskDataset`（那是时域） |
-| 超参 | **复用**已有 `baselines_single/shared_hparams.py`（**不要**再粘贴一份） |
-| 复用 | `data_paths` / `metrics` / `split_subjects`（与 shallow/eegnet 相同） |
-| Task | `n_outputs=2`，Val **F1** 早停；Test 终评 |
-| Three | **重新随机初始化**，`n_outputs=3`，Val **F1-macro** 早停；**不加载** Task 权重 |
-| 记录 | `资料/模型训练/runs/{stamp}_dgcnn/dgcnn五折实验记录.md` |
-| 权重 | `code/train_lab/out/baseline/dgcnn/<data>/run_<stamp>/` |
-| 锁种 | `main`：`seed_everything(hp.seed)`；每折建模型前：`seed_everything(hp.seed+fold)`；Train DataLoader：`generator=make_generator(hp.seed+fold)`，`num_workers=0` |
-| 路径 | `CODE_ROOT = HERE.parents[3]`（与 shallow 一致） |
-
-**模型来源**：WeChat LODO `【LODO62】DGCNN (1).py` 中的 `laplacian` / `GraphConv` / `B1ReLU` / `B2ReLU` / `DGCNN`；`build_model(..., drop_prob)` → `DGCNN(k=2, layers=[128], dropout_rate=drop_prob)`，`num_electrodes=8`。
-
-目录关系：
-
-```text
-code/train_lab/src/step/
-  data_paths.py / metrics.py                  ← 复用
-  baselines_single/
-    shared_hparams.py                         ← 已有，复用，本文不贴全文
-    baseline_dgcnn.py                                  ← 按本文粘贴落地
-```
-
-运行（落地后）：
-
-```text
-cd code/train_lab/src/step/baselines_single
-python baseline_dgcnn.py
-python baseline_dgcnn.py --data merged_2s
-```
-
----
-
-## 1. `shared_hparams.py`（复用已有，不粘贴）
-
-路径：`code/train_lab/src/step/baselines_single/shared_hparams.py`
-
-本文脚本只 `from shared_hparams import SHARED, SharedTrainHP, shared_as_dict`。
-
-改训练超参（lr / seed / patience 等）请直接改仓库里那一份；**全基线共用**，勿在本文件再复制一份 dataclass。
-
----
-
-## 2. `baseline_dgcnn.py`（完整单文件）
-
-路径：`code/train_lab/src/step/baselines_single/baseline_dgcnn.py`
-
-下面为一份**可直接粘贴**的完整脚本：在线 bandpower → Task 五折 → Three 五折（独立初始化）→ 写 MD / `final_meta.json`。
-
-```python
-"""DGCNN 单模型入口：特征立方体 + Task/Three 独立五折，写 MD。不用 registry。"""
+"""DBN 单模型入口：特征立方体 + Task/Three 独立五折，写 MD。不用 registry。"""
 
 from __future__ import annotations
 
@@ -111,7 +43,7 @@ from src.common.steps.split_subjects import (
     iter_subject_kfold_stratified_by_dataset,
 )
 
-MODEL_NAME = "dgcnn"
+MODEL_NAME = "dbn"
 
 # 2 频带 log 功率（对齐预处理 8–30）：(N,1,8,500)@250Hz -> (N,8,2)
 BANDS_HZ = ((8.0, 13.0), (13.0, 30.0))  # μ, β
@@ -168,136 +100,54 @@ def make_generator(seed: int) -> torch.Generator:
     g.manual_seed(seed)
     return g
 
-# --- DGCNN（摘自 LODO62；默认改 8 导联） ---
-def laplacian(w: torch.Tensor) -> torch.Tensor:
-    d = torch.sum(w, dim=1)
-    d_re = 1 / torch.sqrt(d + 1e-5)
-    d_matrix = torch.diag_embed(d_re)
-    lap = torch.eye(d_matrix.shape[0], device=w.device) - torch.matmul(torch.matmul(d_matrix, w), d_matrix)
-    return lap
-
-
-class GraphConv(nn.Module):
-    def __init__(self, k: int, in_channels: int, out_channels: int):
+# --- DBN / RBM（摘自 LODO62；监督 forward 不做 RBM 预训练） ---
+class RBM(nn.Module):
+    def __init__(self, visible_units: int, hidden_units: int):
         super().__init__()
-        self.in_channels = in_channels
-        self.out_channels = out_channels
-        self.k = k
-        self.weight = nn.Parameter(torch.Tensor(k * in_channels, out_channels))
-        nn.init.xavier_uniform_(self.weight)
+        self.W = nn.Parameter(torch.randn(visible_units, hidden_units) * 0.01)
+        self.v_bias = nn.Parameter(torch.zeros(visible_units))
+        self.h_bias = nn.Parameter(torch.zeros(hidden_units))
 
-    def chebyshev_polynomial(self, x: torch.Tensor, lap: torch.Tensor) -> torch.Tensor:
-        if self.k < 1:
-            return torch.empty(0, device=x.device)
-        t_k = []
-        if self.k >= 1:
-            t_k.append(x)
-        if self.k >= 2:
-            t_k.append(torch.matmul(lap, x))
-        for _ in range(2, self.k):
-            t_k.append(2 * torch.matmul(lap, t_k[-1]) - t_k[-2])
-        return torch.stack(t_k, dim=1)
+    def sample_h(self, v: torch.Tensor):
+        prob_hidden = torch.sigmoid(torch.matmul(v, self.W) + self.h_bias)
+        return prob_hidden, torch.bernoulli(prob_hidden)
 
-    def forward(self, x: torch.Tensor, lap: torch.Tensor) -> torch.Tensor:
-        cp = self.chebyshev_polynomial(x, lap)
-        cp = cp.permute(0, 2, 3, 1).flatten(start_dim=2)
-        return torch.matmul(cp, self.weight)
+    def sample_v(self, h: torch.Tensor):
+        prob_visible = torch.sigmoid(torch.matmul(h, self.W.t()) + self.v_bias)
+        return prob_visible, torch.bernoulli(prob_visible)
 
 
-class B1ReLU(nn.Module):
-    def __init__(self, bias_shape: int):
-        super().__init__()
-        self.bias = nn.Parameter(torch.Tensor(1, 1, bias_shape))
-        self.relu = nn.ReLU()
-        nn.init.zeros_(self.bias)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.relu(self.bias + x)
-
-
-class B2ReLU(nn.Module):
-    def __init__(self, bias_shape1: int, bias_shape2: int):
-        super().__init__()
-        self.bias = nn.Parameter(torch.Tensor(1, bias_shape1, bias_shape2))
-        self.relu = nn.ReLU()
-        nn.init.zeros_(self.bias)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        return self.relu(self.bias + x)
-
-
-class DGCNN(nn.Module):
+class DBN(nn.Module):
     def __init__(
         self,
         num_electrodes: int = 8,
         in_channels: int = 2,
         num_classes: int = 2,
-        k: int = 2,
-        relu_is: int = 1,
-        layers: list[int] | None = None,
-        dropout_rate: float = 0.5,
+        hidden_size1: int = 300,
+        hidden_size2: int = 400,
     ):
         super().__init__()
-        if layers is None:
-            layers = [128]
-        self.dropout_rate = dropout_rate
-        self.layers = layers
-        self.k = k
-        self.num_electrodes = num_electrodes
-        self.relu_is = relu_is
+        self.rbm1 = RBM(num_electrodes * in_channels, hidden_size1)
+        self.rbm2 = RBM(hidden_size1, hidden_size2)
+        self.fc = nn.Linear(hidden_size2, num_classes)
 
-        self.graphConvs = nn.ModuleList()
-        self.graphConvs.append(GraphConv(self.k, in_channels, self.layers[0]))
-        for i in range(len(self.layers) - 1):
-            self.graphConvs.append(GraphConv(self.k, self.layers[i], self.layers[i + 1]))
-
-        self.fc = nn.Linear(self.num_electrodes * self.layers[-1], 256, bias=True)
-        self.fc2 = nn.Linear(256, num_classes, bias=True)
-        self.adj = nn.Parameter(torch.Tensor(self.num_electrodes, self.num_electrodes))
-        self.adj_bias = nn.Parameter(torch.Tensor(1))
-        self.relu = nn.ReLU(inplace=True)
-        self.b_relus = nn.ModuleList()
-        if self.relu_is == 1:
-            for i in range(len(self.layers)):
-                self.b_relus.append(B1ReLU(self.layers[i]))
-        elif self.relu_is == 2:
-            for i in range(len(self.layers)):
-                self.b_relus.append(B2ReLU(self.adj.shape[0], self.layers[i]))
-        self.dropout = nn.Dropout(p=self.dropout_rate)
-        self.init_weight()
-
-    def init_weight(self) -> None:
-        nn.init.xavier_uniform_(self.adj)
-        nn.init.trunc_normal_(self.adj_bias, mean=0, std=0.1)
-        nn.init.xavier_normal_(self.fc.weight)
-        nn.init.zeros_(self.fc.bias)
-        nn.init.xavier_normal_(self.fc2.weight)
-        nn.init.zeros_(self.fc2.bias)
-
-    def forward(self, x: torch.Tensor) -> torch.Tensor:
-        # x: (B, electrodes, feats)
-        adj = self.relu(self.adj + self.adj_bias)
-        lap = laplacian(adj)
-        for i in range(len(self.layers)):
-            x = self.graphConvs[i](x, lap)
-            x = self.dropout(x)
-            x = self.b_relus[i](x)
-        x = x.reshape(x.shape[0], -1)
-        x = self.dropout(x)
-        x = self.fc(x)
-        x = self.dropout(x)
-        x = self.fc2(x)
-        return x
+    def forward(self, v: torch.Tensor) -> torch.Tensor:
+        # 监督通路：仅用 RBM 权重做 sigmoid 映射 + 线性头；无 CD/预训练步骤
+        v = v.view(v.shape[0], -1)  # (B, electrodes*feats)
+        h1_prob = torch.sigmoid(torch.matmul(v, self.rbm1.W) + self.rbm1.h_bias)
+        h2_prob = torch.sigmoid(torch.matmul(h1_prob, self.rbm2.W) + self.rbm2.h_bias)
+        return self.fc(h2_prob)
 
 
 def build_model(n_electrodes: int, n_feats: int, n_outputs: int, drop_prob: float) -> nn.Module:
-    return DGCNN(
+    # drop_prob 与其它基线签名对齐；DBN 无 Dropout，此处忽略
+    _ = drop_prob
+    return DBN(
         num_electrodes=n_electrodes,
         in_channels=n_feats,
         num_classes=n_outputs,
-        k=2,
-        layers=[128],
-        dropout_rate=drop_prob,
+        hidden_size1=300,
+        hidden_size2=400,
     )
 
 def append_md(md_path: Path, text: str, out_root: Path, log_path: Path) -> None:
@@ -424,7 +274,7 @@ def train_task_one_fold(
             bad = 0
             torch.save(
                 {
-                    "stage": "task2_dgcnn",
+                    "stage": "task2_dbn",
                     "fold": fold,
                     "model_name": MODEL_NAME,
                     "n_outputs": 2,
@@ -477,7 +327,7 @@ def run_task_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, dat
         "model_name": MODEL_NAME,
         "data_tag": data_tag,
         "hparams": shared_as_dict(),
-        "dgcnn": {"backbone": "DGCNN", "k": 2, "layers": [128]},
+        "dbn": {"backbone": "DBN", "hidden": [300, 400]},
         "val_f1_mean": vm,
         "val_f1_std": vs,
         "test_f1_mean": tm,
@@ -547,7 +397,7 @@ def train_three_one_fold(
             bad = 0
             torch.save(
                 {
-                    "stage": "three3_dgcnn",
+                    "stage": "three3_dbn",
                     "fold": fold,
                     "model_name": MODEL_NAME,
                     "n_outputs": 3,
@@ -601,7 +451,7 @@ def run_three_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, da
         "data_tag": data_tag,
         "weight_transfer": False,
         "hparams": shared_as_dict(),
-        "dgcnn": {"backbone": "DGCNN", "k": 2, "layers": [128]},
+        "dbn": {"backbone": "DBN", "hidden": [300, 400]},
         "val_f1_macro_mean": vm,
         "val_f1_macro_std": vs,
         "test_f1_macro_mean": tm,
@@ -619,7 +469,7 @@ def run_three_kfold(X, y, subjects, device, hp: SharedTrainHP, out_dir: Path, da
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="DGCNN 单模型：特征 + Task/Three 独立五折")
+    p = argparse.ArgumentParser(description="DBN 单模型：特征 + Task/Three 独立五折")
     p.add_argument("--data", default=SHARED.data_tag, help="merged_2s | bci2a_2s | stieger_2s")
     args = p.parse_args()
 
@@ -658,7 +508,7 @@ def main() -> None:
                 f"- data：`{data_dir}`（prefix=`{prefix}`）",
                 f"- model：`{MODEL_NAME}`（单脚本；无 registry）",
                 f"- 输入：bandpower 立方体 `{X.shape}`（非时域 500）",
-                f"- 结构：DGCNN(k=2, layers=[128], dropout=shared drop_prob)",
+                f"- 结构：DBN(hidden 300/400)；监督 forward，无 RBM 预训练；drop_prob 忽略",
                 f"- shared hp：`{shared_as_dict()}`",
                 f"- weight_transfer：`False` | classifier：`native`",
                 f"- 权重：`{out_root}`",
@@ -735,26 +585,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-
-```
-
----
-
-## 3. 落地检查清单
-
-- [x] 已粘贴为 `baselines_single/baseline_dgcnn.py`（与本文一致；`BANDS_HZ` 为 8–13 / 13–30）
-- [ ] **未**再写一份 `shared_hparams.py`；能 `from shared_hparams import SHARED`
-- [ ] 工作目录为 `baselines_single/`（或保证能 import 同级模块）
-- [ ] 盘上仍是 `(N,1,8,500)` 时域；`main` 内调用 `raw_to_bandpower` 得到 `(N,8,2)`（仅 8–30 内 μ/β）
-- [ ] DataLoader 用 `ArrayFeatDataset`，模型输入 `(B,8,F)` 而非 `(B,8,500)`
-- [ ] `CODE_ROOT = HERE.parents[3]`；MD 路径为 `dgcnn五折实验记录.md`
-- [ ] Task → Three **独立**训练；Three **没有** `load_state_dict(task_ckpt)`
-- [ ] 每折 `seed_everything(hp.seed+fold)`；Train `generator=make_generator(hp.seed+fold)`；`num_workers=0`
-- [ ] `build_model` 使用 `k=2, layers=[128]`
-- [ ] 未 `from models import build_model`（不用归档 registry）
-
----
-
-## 4. 一句话
-
-> 按本文手写落地 `baseline_dgcnn.py`：在线 2 频带（8–13 / 13–30）log 功率特征 → DGCNN → Task/Three 独立五折；复用 `shared_hparams`，不迁权重，不走 registry。

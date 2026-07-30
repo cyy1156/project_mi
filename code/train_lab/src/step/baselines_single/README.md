@@ -9,6 +9,9 @@
 | `baseline_deep.py` | Deep4Net |
 | `baseline_eegtcnet.py` | EEGTCNet |
 | `baseline_conformer.py` | EEGConformer |
+| `baseline_dbn.py` | DBN（μ/β bandpower → `(N,8,2)`） |
+| `baseline_gcbnet.py` | GCBNet（同上特征立方体） |
+| `baseline_dgcnn.py` | DGCNN（同上特征立方体） |
 
 约定：
 
@@ -19,7 +22,7 @@
 
 ## 复现性（全局锁种）
 
-五个 `baseline_*.py` 均采用同一套思路（与 `shared_hparams.seed` 对齐）：
+五个时域 `baseline_*.py`（eegnet…conformer）均采用同一套思路（与 `shared_hparams.seed` 对齐）；`baseline_dbn.py` / `baseline_gcbnet.py` / `baseline_dgcnn.py` 同样锁种，输入为 bandpower 特征立方体。
 
 1. **`main` 开头**：`seed_everything(hp.seed)`  
    锁定 `random` / `numpy` / `torch` / CUDA，并设 `cudnn.deterministic=True`、`benchmark=False`。
@@ -39,12 +42,18 @@
 ```bash
 python baseline_shallow.py --data merged_2s
 python baseline_deep.py --data stieger_2s
+python baseline_dbn.py --data merged_2s
+python baseline_gcbnet.py --data bci2a_2s
+python baseline_dgcnn.py --data bci2a_2s
 
-# 可选：串跑（默认五个模型、merged_2s）
+# 可选：串跑五个时域基线（默认 eegnet…conformer、merged_2s）
 python run_all_five_model.py --data merged_2s
 python run_all_five_model.py --data stieger_2s --models eegnet,shallow
 ```
 
-EEGNet 文档示例：[`资料/模型训练/代码示例_baseline_eegnet_单模型入口.md`](../../../../../资料/模型训练/代码示例_baseline_eegnet_单模型入口.md)
+EEGNet 文档：[`代码示例_baseline_eegnet_单模型入口.md`](../../../../../资料/模型训练/代码示例_baseline_eegnet_单模型入口.md)  
+DBN 文档：[`代码示例_baseline_dbn_单模型入口.md`](../../../../../资料/模型训练/代码示例_baseline_dbn_单模型入口.md)  
+GCBNet 文档：[`代码示例_baseline_gcbnet_单模型入口.md`](../../../../../资料/模型训练/代码示例_baseline_gcbnet_单模型入口.md)  
+DGCNN 文档：[`代码示例_baseline_dgcnn_单模型入口.md`](../../../../../资料/模型训练/代码示例_baseline_dgcnn_单模型入口.md)
 
 旧 registry / matrix 入口：`../归档_旧训练入口/`。
