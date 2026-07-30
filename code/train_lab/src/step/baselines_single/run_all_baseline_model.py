@@ -14,7 +14,9 @@ import sys
 from pathlib import Path
 
 DIR = Path(__file__).resolve().parent
-ALL_MODELS = ("eegnet", "shallow", "deep", "eegtcnet", "conformer")
+ALL_MODELS = ("eegnet", "shallow", "deep", "eegtcnet", "conformer","dbn","gcbnet","dgcnn")
+def parse_args() -> argparse.Namespace:
+    p = argparse.ArgumentParser()
 
 
 def parse_args() -> argparse.Namespace:

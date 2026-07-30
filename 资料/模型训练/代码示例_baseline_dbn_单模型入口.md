@@ -16,7 +16,7 @@
 |----|------|
 | 入口 | **一模型一脚本**：落地为 `baseline_dbn.py` |
 | 输入 | **特征立方体** `(B, 8, F)`，**不是**时域 `(B, 8, 500)` |
-| 特征 | 脚本内 `raw_to_bandpower`：盘上 `(N,1,8,500)@250Hz` → `(N,8,5)`；频带 `(1–4),(4–8),(8–13),(13–30),(30–45)` Hz，取 **log 功率** |
+| 特征 | 脚本内 `raw_to_bandpower`：盘上 `(N,1,8,500)@250Hz` → `(N,8,2)`；频带与预处理通带对齐：`(8–13),(13–30)` Hz（μ+β），取 **log 功率** |
 | Dataset | 本脚本内 `ArrayFeatDataset`（接受 `(N,8,F)`）；**不用** `ArrayTaskDataset`（那是时域） |
 | 超参 | **复用**已有 `baselines_single/shared_hparams.py`（**不要**再粘贴一份） |
 | 复用 | `data_paths` / `metrics` / `split_subjects`（与 shallow/eegnet 相同） |
@@ -113,11 +113,11 @@ from src.common.steps.split_subjects import (
 
 MODEL_NAME = "dbn"
 
-# 5 频带 log 功率：(N,1,8,500)@250Hz -> (N,8,5)
-BANDS_HZ = ((1.0, 4.0), (4.0, 8.0), (8.0, 13.0), (13.0, 30.0), (30.0, 45.0))
+# 2 频带 log 功率（对齐预处理 8–30）：(N,1,8,500)@250Hz -> (N,8,2)
+BANDS_HZ = ((8.0, 13.0), (13.0, 30.0))  # μ, β
 
 def raw_to_bandpower(X: np.ndarray, sfreq: float = 250.0) -> np.ndarray:
-    """盘上时域 (N,1,8,500) 或 (N,8,500) -> 特征立方体 (N,8,5) log 功率。"""
+    """盘上时域 (N,1,8,500) 或 (N,8,500) -> 特征立方体 (N,8,F) log 功率；F=len(BANDS_HZ)。"""
     X = np.asarray(X, dtype=np.float64)
     if X.ndim == 4 and X.shape[1] == 1:
         X = X[:, 0, :, :]
@@ -189,7 +189,7 @@ class DBN(nn.Module):
     def __init__(
         self,
         num_electrodes: int = 8,
-        in_channels: int = 5,
+        in_channels: int = 2,
         num_classes: int = 2,
         hidden_size1: int = 300,
         hidden_size2: int = 400,
@@ -552,7 +552,7 @@ def main() -> None:
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
     assert len(X_raw) == len(y_task) == len(y_three) == len(subjects)
 
-    # 时域 -> 特征立方体 (N,8,5)；模型吃 (B,8,F)
+    # 时域 -> 特征立方体 (N,8,2)；模型吃 (B,8,F)
     X = raw_to_bandpower(X_raw, sfreq=250.0)
     assert X.ndim == 3 and X.shape[1] == 8 and X.shape[2] == len(BANDS_HZ), X.shape
 
@@ -660,10 +660,10 @@ if __name__ == "__main__":
 
 ## 3. 落地检查清单
 
-- [ ] 已粘贴为 `baselines_single/baseline_dbn.py`（仓库此前**无**此 `.py`）
+- [x] 已粘贴为 `baselines_single/baseline_dbn.py`（与本文一致；`BANDS_HZ` 为 8–13 / 13–30）
 - [ ] **未**再写一份 `shared_hparams.py`；能 `from shared_hparams import SHARED`
 - [ ] 工作目录为 `baselines_single/`（或保证能 import 同级模块）
-- [ ] 盘上仍是 `(N,1,8,500)` 时域；`main` 内调用 `raw_to_bandpower` 得到 `(N,8,5)`
+- [ ] 盘上仍是 `(N,1,8,500)` 时域；`main` 内调用 `raw_to_bandpower` 得到 `(N,8,2)`（仅 8–30 内 μ/β）
 - [ ] DataLoader 用 `ArrayFeatDataset`，模型输入 `(B,8,F)` 而非 `(B,8,500)`
 - [ ] `CODE_ROOT = HERE.parents[3]`；MD 路径为 `dbn五折实验记录.md`
 - [ ] Task → Three **独立**训练；Three **没有** `load_state_dict(task_ckpt)`
@@ -675,4 +675,4 @@ if __name__ == "__main__":
 
 ## 4. 一句话
 
-> 按本文手写落地 `baseline_dbn.py`：在线 5 频带 log 功率特征 → DBN → Task/Three 独立五折；复用 `shared_hparams`，不迁权重，不走 registry。
+> 按本文手写落地 `baseline_dbn.py`：在线 2 频带（8–13 / 13–30）log 功率特征 → DBN → Task/Three 独立五折；复用 `shared_hparams`，不迁权重，不走 registry。
