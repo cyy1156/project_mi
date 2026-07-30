@@ -30,6 +30,7 @@ if str(PRE_ROOT) not in sys.path:
     sys.path.insert(0, str(PRE_ROOT))
 
 from shared_hparams import SHARED, SharedTrainHP, shared_as_dict
+from md_fold_detail import task_fold_md_lines, three_fold_md_lines
 from data_paths import resolve_data
 from dataset import ArrayTaskDataset, ArrayThreeDataset
 from metrics import (
@@ -468,11 +469,13 @@ def main() -> None:
                 f"- Test F1：`{sum_task['test_f1_mean']:.4f} ± {sum_task['test_f1_std']:.4f}`",
                 f"- Test Acc：`{sum_task['test_acc_mean']:.4f} ± {sum_task['test_acc_std']:.4f}`",
                 "",
+                *task_fold_md_lines(sum_task["folds"]),
                 "### Three（空闲/左/右，不使用Task的保存的权重，重新使用新的模型训练）",
                 f"- Val F1-macro：`{sum_three['val_f1_macro_mean']:.4f} ± {sum_three['val_f1_macro_std']:.4f}`",
                 f"- Test F1-macro：`{sum_three['test_f1_macro_mean']:.4f} ± {sum_three['test_f1_macro_std']:.4f}`",
                 f"- Test Acc：`{sum_three['test_acc_mean']:.4f} ± {sum_three['test_acc_std']:.4f}`",
                 "",
+                *three_fold_md_lines(sum_three["folds"]),
                 "### 共用超参",
                 "```json",
                 json.dumps(shared_as_dict(), indent=2),
