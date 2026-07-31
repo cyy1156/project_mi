@@ -21,11 +21,11 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 
 ALL_MODELS = (
-    #"eegnet",
-    #"shallow",
-    #"deep",
-    #"eegtcnet",
-    #"conformer",
+    "eegnet",
+    "shallow",
+    "deep",
+    "eegtcnet",
+    "conformer",
     "dbn",
     "gcbnet",
     "dgcnn",
