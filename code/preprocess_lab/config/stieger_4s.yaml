@@ -1,0 +1,36 @@
+# Stieger —— 反馈段最后 4s → 1000@250Hz（相对 stieger_2s 的加长窗）
+dataset: stieger
+loader: load_stieger_mat
+
+data_glob: "D:/cyy/MI/DATA/stieger/S*_Session_*.mat"
+
+subject_from: stieger_stem
+
+use_tasks: [1, 2, 3]
+drop_targets: [3]
+rest_targets: [4]
+make_rest_from_iti: false
+
+# 切窗：反馈段最后 4s
+feedback_t_ms: 2000
+win_sec: 4.0
+baseline_sec: 0.5
+min_feedback_sec: 4.0
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+fs_out: 250
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/stieger_4s"
+save_full: true
+save_split: true
+
+# 新建目录整库跑，勿与 stieger_2s 清单混用
+incremental: true
+manifest_name: "processed_manifest.json"
+batch_log_name: "batch_log.jsonl"
+skip_if_processed: true
+delete_raw_after_ok: false
+rebuild_split: true

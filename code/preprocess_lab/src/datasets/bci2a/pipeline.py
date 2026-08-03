@@ -15,12 +15,19 @@ from src.datasets.bci2a.labels import (
 )
 from src.common.steps.epoch_baseline import (
     task_window_cue_2_to_4,
+    task_window_cue_0_to_4,
     rest_window_with_baseline,
 )
 from src.common.steps.resample_zscore import (
     resample_to_1000,
     trial_zscore,
     to_model_tensor,
+)
+from src.common.steps.slide_1s import (
+    N_TIMES_1S,
+    extract_segment_baseline,
+    iter_rest_sources_cue_before,
+    segment_to_1s_windows,
 )
 from src.common.steps.split_subjects import split_all_trials
 
@@ -107,6 +114,159 @@ def preprocess_run(
     )
 
 
+WIN_SEC_4S = 4.0
+N_TIMES_4S = 1000  # 4s @ 250Hz
+
+
+def preprocess_run_4s(
+    eeg: ContinuousEEG,
+    add_rest: bool = True,
+    max_rest: int | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray]:
+    """
+    4s 切窗：任务 = Cue 后 0~4s；静息 = 下一 Cue 前 4s → (N,1,8,1000)。
+    """
+    x = select_channels(eeg.x, eeg.ch_names)
+    x = car_reference(x)
+    x = notch_and_bandpass(x, eeg.fs)
+
+    kept = filter_left_right_events(eeg.events, eeg.artifacts)
+
+    xs: list[np.ndarray] = []
+    y_task: list[int] = []
+    y_three: list[int] = []
+
+    for cue, lab_task, lab_three, _ in kept:
+        win = task_window_cue_0_to_4(x, int(cue), eeg.fs)
+        if win is None:
+            continue
+        win = resample_to_1000(win, fs_in=eeg.fs, fs_out=250.0, win_sec=WIN_SEC_4S)
+        if win.shape != (N_TIMES_4S, 8):
+            continue
+        win = trial_zscore(win)
+        xs.append(win)
+        y_task.append(int(lab_task))
+        y_three.append(int(lab_three))
+
+    if add_rest and len(kept) > 0:
+        starts = extract_rest_cues(
+            kept[:, 0],
+            eeg.fs,
+            x.shape[0],
+            rest_sec=4.0,
+            task_sec=4.0,
+        )
+        if max_rest is None:
+            n_left = int(np.sum(kept[:, 2] == 1))
+            n_right = int(np.sum(kept[:, 2] == 2))
+            max_rest = min(n_left, n_right) if (n_left + n_right) else 0
+        starts = starts[:max_rest]
+
+        for start in starts:
+            win = rest_window_with_baseline(
+                x, int(start), eeg.fs, win_sec=4.0, baseline_sec=0.5
+            )
+            if win is None:
+                continue
+            win = resample_to_1000(win, fs_in=eeg.fs, fs_out=250.0, win_sec=WIN_SEC_4S)
+            if win.shape != (N_TIMES_4S, 8):
+                continue
+            win = trial_zscore(win)
+            xs.append(win)
+            y_task.append(0)
+            y_three.append(0)
+
+    if not xs:
+        empty_x = np.zeros((0, 1, 8, N_TIMES_4S), np.float32)
+        empty_y = np.zeros((0,), np.int64)
+        return empty_x, empty_y, empty_y.copy()
+
+    X = to_model_tensor(xs)
+    return (
+        X,
+        np.asarray(y_task, dtype=np.int64),
+        np.asarray(y_three, dtype=np.int64),
+    )
+
+
+def preprocess_run_1s(
+    eeg: ContinuousEEG,
+    add_rest: bool = True,
+    max_rest: int | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    1 s / 40 ms 协议：
+      Task = Cue 后 0~4 s 源段 → slide_1s
+      Rest = Cue 前 4 s（可缩短避让）→ slide_1s
+    返回 X (N,1,8,250), y_task, y_three, trial_id。
+    """
+    x = select_channels(eeg.x, eeg.ch_names)
+    x = car_reference(x)
+    x = notch_and_bandpass(x, eeg.fs)
+
+    kept = filter_left_right_events(eeg.events, eeg.artifacts)
+
+    xs: list[np.ndarray] = []
+    y_task: list[int] = []
+    y_three: list[int] = []
+    trial_ids: list[int] = []
+    tid = 0
+
+    for cue, lab_task, lab_three, _ in kept:
+        seg = task_window_cue_0_to_4(x, int(cue), eeg.fs)
+        if seg is None:
+            continue
+        wins = segment_to_1s_windows(seg, eeg.fs)
+        if not wins:
+            continue
+        for w in wins:
+            if w.shape != (N_TIMES_1S, 8):
+                continue
+            xs.append(w)
+            y_task.append(int(lab_task))
+            y_three.append(int(lab_three))
+            trial_ids.append(tid)
+        tid += 1
+
+    if add_rest and len(kept) > 0:
+        sources = iter_rest_sources_cue_before(
+            kept[:, 0], eeg.fs, x.shape[0], rest_sec=4.0, task_sec=4.0
+        )
+        if max_rest is None:
+            n_left = int(np.sum(kept[:, 2] == 1))
+            n_right = int(np.sum(kept[:, 2] == 2))
+            max_rest = min(n_left, n_right) if (n_left + n_right) else 0
+        sources = sources[: int(max_rest)]
+
+        for t0, t1 in sources:
+            seg = extract_segment_baseline(x, int(t0), int(t1), eeg.fs, baseline_sec=0.5)
+            if seg is None:
+                continue
+            wins = segment_to_1s_windows(seg, eeg.fs)
+            for w in wins:
+                if w.shape != (N_TIMES_1S, 8):
+                    continue
+                xs.append(w)
+                y_task.append(0)
+                y_three.append(0)
+                trial_ids.append(tid)
+            if wins:
+                tid += 1
+
+    if not xs:
+        empty_x = np.zeros((0, 1, 8, N_TIMES_1S), np.float32)
+        empty_y = np.zeros((0,), np.int64)
+        return empty_x, empty_y, empty_y.copy(), empty_y.copy()
+
+    X = to_model_tensor(xs)
+    return (
+        X,
+        np.asarray(y_task, dtype=np.int64),
+        np.asarray(y_three, dtype=np.int64),
+        np.asarray(trial_ids, dtype=np.int64),
+    )
+
+
 def preprocess_subject(
     mat_path: Path,
     add_rest: bool = True,
@@ -129,9 +289,10 @@ def preprocess_subject(
     )
 
 
-def sanity_check_outputs(X, y_task, y_three) -> None:
+def sanity_check_outputs(X, y_task, y_three, n_times: int | None = None) -> None:
     assert len(X) > 0, "没有有效试次"
-    assert X.ndim == 4 and X.shape[1:] == (1, 8, N_TIMES), X.shape
+    t = int(n_times) if n_times is not None else int(X.shape[-1])
+    assert X.ndim == 4 and X.shape[1:] == (1, 8, t), X.shape
     assert len(X) == len(y_task) == len(y_three)
     assert set(np.unique(y_task)).issubset({0, 1})
     assert set(np.unique(y_three)).issubset({0, 1, 2})

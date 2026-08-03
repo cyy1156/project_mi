@@ -5,13 +5,16 @@
 | 脚本 | 模型 |
 |------|------|
 | `baseline_eegnet.py` | EEGNet |
-| `baseline_shallow.py` | ShallowFBCSPNet |
+| `baseline_shallow.py` | ShallowFBCSPNet（**旧基线**：普通 CE + Val F1 早停） |
 | `baseline_deep.py` | Deep4Net |
 | `baseline_eegtcnet.py` | EEGTCNet |
 | `baseline_conformer.py` | EEGConformer |
 | `baseline_dbn.py` | DBN（μ/β bandpower → `(N,8,2)`） |
 | `baseline_gcbnet.py` | GCBNet（同上特征立方体） |
 | `baseline_dgcnn.py` | DGCNN（同上特征立方体） |
+
+**Task 特异度专项**（二分类 Spec 提升实验与结论，与上表主入口分开）：  
+→ [`task_specificity/`](./task_specificity/)（含 balbatch / SMOTE / 阈值扫描代码与 [`结论_20260801_Task特异度.md`](./task_specificity/结论_20260801_Task特异度.md)）
 
 约定：
 

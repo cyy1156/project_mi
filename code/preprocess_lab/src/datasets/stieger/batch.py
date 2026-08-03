@@ -137,6 +137,9 @@ def run_incremental_batch(
     rebuild_split: bool = False,
     manifest_name: str = "processed_manifest.json",
     batch_log_name: str = "batch_log.jsonl",
+    win_sec: float = 2.0,
+    feedback_t_ms: float = 2000.0,
+    baseline_sec: float = 0.5,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -152,7 +155,11 @@ def run_incremental_batch(
     n_skip = n_ok = n_fail = n_empty = 0
     new_Xs, new_yts, new_y3s, new_sids = [], [], [], []
 
-    print(f"[batch {batch_id}] 扫描到 {len(files)} 个文件；清单已有 {len(manifest['files'])} 条")
+    n_times = int(round(float(win_sec) * 250.0))
+    print(
+        f"[batch {batch_id}] 扫描到 {len(files)} 个文件；清单已有 {len(manifest['files'])} 条；"
+        f"win_sec={win_sec} → n_times={n_times}"
+    )
 
     for fp in files:
         fid = file_id(fp)
@@ -183,7 +190,12 @@ def run_incremental_batch(
             continue
 
         try:
-            X, yt, y3, sid, stats = preprocess_session(fp)
+            X, yt, y3, sid, stats = preprocess_session(
+                fp,
+                win_sec=float(win_sec),
+                feedback_t_ms=float(feedback_t_ms),
+                baseline_sec=float(baseline_sec),
+            )
         except Exception as e:
             n_fail += 1
             print(f"  FAIL {fp.name}: {e}")
@@ -274,7 +286,7 @@ def run_incremental_batch(
         "y_three": np.concatenate(new_y3s, axis=0),
         "subjects": np.concatenate(new_sids, axis=0),
     }
-    sanity_check_outputs(new["X"], new["y_task"], new["y_three"])
+    sanity_check_outputs(new["X"], new["y_task"], new["y_three"], n_times=n_times)
 
     old = load_existing_full(out_dir)
     merged = concat_or_new(old, new)
@@ -342,8 +354,16 @@ def main() -> None:
     parser.add_argument(
         "--out",
         default=str(_PREPROCESS_ROOT / "out" / "stieger_2s"),
-        help="输出目录（现行 2s/500 点）",
+        help="输出目录（2s→stieger_2s；4s→stieger_4s）",
     )
+    parser.add_argument(
+        "--win-sec",
+        type=float,
+        default=2.0,
+        help="分类窗秒数（取反馈段最后 win_sec；2→500点，4→1000点）",
+    )
+    parser.add_argument("--feedback-t-ms", type=float, default=2000.0)
+    parser.add_argument("--baseline-sec", type=float, default=0.5)
     parser.add_argument("--delete-raw", action="store_true", help="成功后删除原始 mat")
     parser.add_argument(
         "--rebuild-split", action="store_true", help="用全量重划 train/val"
@@ -355,6 +375,9 @@ def main() -> None:
         out_dir=Path(args.out),
         delete_raw_after_ok=args.delete_raw,
         rebuild_split=args.rebuild_split,
+        win_sec=float(args.win_sec),
+        feedback_t_ms=float(args.feedback_t_ms),
+        baseline_sec=float(args.baseline_sec),
     )
 
 

@@ -57,6 +57,30 @@ def task_window_cue_2_to_4(
     return win.astype(np.float64)
 
 
+def task_window_cue_0_to_4(
+    x: np.ndarray,
+    cue: int,
+    fs: float,
+    baseline_sec: float = 0.5,
+) -> np.ndarray | None:
+    """
+    任务态：Cue 后 0~4s（共 4s），用 Cue 前 baseline_sec 做基线校正。
+    返回 (4*fs, n_ch)；越界则 None。
+    """
+    n_win = int(round(4.0 * fs))
+    n_base = int(round(baseline_sec * fs))
+    t0 = cue
+    t1 = cue + n_win
+    base_start = t0 - n_base
+    if base_start < 0 or t1 > x.shape[0]:
+        return None
+    base = x[base_start:t0].mean(axis=0, keepdims=True)
+    win = x[t0:t1] - base
+    if win.shape[0] != n_win:
+        return None
+    return win.astype(np.float64)
+
+
 def rest_window_with_baseline(
     x: np.ndarray,
     start: int,

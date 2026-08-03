@@ -1,4 +1,4 @@
-"""数据目录解析：merged_2s / bci2a_2s / stieger_2s。"""
+"""数据目录解析：merged_2s / bci2a_* / stieger_*（含 1s 滑窗）。"""
 
 from __future__ import annotations
 
@@ -12,7 +12,11 @@ PRE_ROOT = CODE_ROOT / "preprocess_lab"
 DATA_TAGS: dict[str, tuple[str, str]] = {
     "merged_2s": ("merged_2s", "merged"),
     "bci2a_2s": ("bci2a_2s", "bci2a"),
+    "bci2a_4s": ("bci2a_4s", "bci2a"),
+    "bci2a_1s": ("bci2a_1s", "bci2a"),
     "stieger_2s": ("stieger_2s", "stieger"),
+    "stieger_4s": ("stieger_4s", "stieger"),
+    "stieger_1s": ("stieger_1s", "stieger"),
 }
 
 

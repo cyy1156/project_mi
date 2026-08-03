@@ -10,15 +10,63 @@ def car_reference(x: np.ndarray) -> np.ndarray:
     """x: (n_times, n_ch) → 每时刻减去全通道均值。"""
     return x-x.mean(axis=1,keepdims=True)
 
-def notch_and_bandpass(x: np.ndarray,fs:float) -> np.ndarray:
+
+def _odd_fir_len_cap(n_times: int) -> int:
+    """不超过信号长度的奇数 FIR 长度。"""
+    fl = int(n_times) - 1
+    if fl % 2 == 0:
+        fl -= 1
+    return max(fl, 11)
+
+
+def _adaptive_notch_kwargs(n_times: int, fs: float) -> dict:
     """
-       Notch 50 Hz + Bandpass 8–30 Hz。
-       mne.filter 期望 (n_ch, n_times)，注意转置。
+    短试次：缩短 filter_length，并加宽 trans_bandwidth，使 FIR 可设计。
+
+    经验：fs=1000 时，默认 notch（trans_bandwidth=1）约需 6601 点；
+    若信号更短，需 ``trans_bandwidth >= need / fir_len``（并留一点余量）。
+    长信号仍用 MNE 默认 ``filter_length='auto'``。
     """
-    data =x.T # (n_ch, n_times)需要把通道先放在前面
-    data =mne.filter.notch_filter(data,Fs=fs,freqs=50.0,verbose=False)
-    data =mne.filter.filter_data(
-        data,sfreq=fs,l_freq=8.0,h_freq=30.0,verbose=False
+    if n_times <= 0:
+        raise ValueError(f"n_times must be positive, got {n_times}")
+    need_at_tb1 = int(round(6.601 * float(fs)))  # ≈ 默认核长
+    if n_times > need_at_tb1:
+        return {"filter_length": "auto"}
+    fl = _odd_fir_len_cap(n_times)
+    # MNE notch：参数 trans_bandwidth=T 时，有效过渡≈T/4，所需长度≈need_at_tb1/T
+    tb = 1.05 * (need_at_tb1 / float(fl))
+    tb = float(max(tb, 2.0))  # 短试次至少 2 Hz，保证可设计
+    return {"filter_length": fl, "trans_bandwidth": tb}
+
+
+def _adaptive_bandpass_kwargs(n_times: int, fs: float) -> dict:
+    """长信号 auto；短试次仅封顶 filter_length（带通过渡带较宽，一般可设计）。"""
+    need_at_tb1 = int(round(6.601 * float(fs)))
+    if n_times > need_at_tb1:
+        return {"filter_length": "auto"}
+    return {"filter_length": _odd_fir_len_cap(n_times)}
+
+
+def notch_and_bandpass(x: np.ndarray, fs: float) -> np.ndarray:
+    """
+    Notch 50 Hz + Bandpass 8–30 Hz。
+    mne.filter 期望 (n_ch, n_times)，注意转置。
+    短试次按信号自适应 FIR 长度（并加宽 notch 过渡带），消除过长警告。
+    """
+    data = x.T  # (n_ch, n_times)
+    n_times = int(data.shape[-1])
+    notch_kw = _adaptive_notch_kwargs(n_times, fs)
+    bp_kw = _adaptive_bandpass_kwargs(n_times, fs)
+    data = mne.filter.notch_filter(
+        data, Fs=fs, freqs=50.0, verbose=False, **notch_kw
+    )
+    data = mne.filter.filter_data(
+        data,
+        sfreq=fs,
+        l_freq=8.0,
+        h_freq=30.0,
+        verbose=False,
+        **bp_kw,
     )
     return data.T
 
