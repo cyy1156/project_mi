@@ -16,12 +16,22 @@ def _f(x, nd: int = 4) -> str:
 def _task_fold_lines(r: dict) -> list[str]:
     m = r.get("test_metrics") or {}
     fold = r.get("fold", "?")
+    # 旧基线仅有 best_val_f1；特异度臂另有 best_val_balanced_accuracy
+    has_bal = r.get("best_val_balanced_accuracy") is not None
+    val_lines = (
+        [
+            f"- Val 选模分数（Balanced Acc）：`{_f(r.get('best_val_balanced_accuracy'))}`",
+            f"- Val F1（最优 checkpoint 时，附报）：`{_f(r.get('best_val_f1'))}`",
+        ]
+        if has_bal
+        else [f"- Val F1（最优）：`{_f(r.get('best_val_f1'))}`"]
+    )
     lines = [
         f"#### Fold {fold}",
         "",
         f"- 早停/结束轮次（stopped_epoch）：`{r.get('stopped_epoch')}`",
         f"- 验证最优轮次（best_epoch）：`{r.get('best_epoch')}`",
-        f"- Val F1（最优）：`{_f(r.get('best_val_f1'))}`",
+        *val_lines,
         f"- Val loss（最优时）：`{_f(r.get('best_val_loss'))}`",
         "",
         "**Test（overall）**",
@@ -98,7 +108,8 @@ def task_fold_md_lines(folds: list[dict]) -> list[str]:
         "### Task 各折明细",
         "",
         "说明：`stopped_epoch` 为早停触发（或跑满）时的轮次；"
-        "`best_epoch` 为验证集最优并保存权重的轮次。",
+        "`best_epoch` 为验证集最优并保存权重的轮次"
+        "（旧基线多为 Val F1；特异度臂多为 Balanced Acc）。",
         "",
     ]
     for r in folds:

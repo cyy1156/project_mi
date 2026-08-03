@@ -1,0 +1,28 @@
+# BCI Competition IV 2a — Cue后 0~4s / Cue前 4s → 40ms 滑 1s → (N,1,8,250)
+dataset: bci2a
+loader: load_bci2a_mat
+
+data_glob: "D:/cyy/MI/DATA/bci2a/A0*T.mat"
+
+subject_from: stem3
+
+label_map:
+  1: [1, 1]
+  2: [1, 2]
+drop_codes: [3, 4]
+make_rest: true
+rest_balance: min_left_right
+
+window_mode: slide_1s
+win_sec: 1.0
+hop_ms: 40
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/bci2a_1s"
+save_full: true
+save_split: true
