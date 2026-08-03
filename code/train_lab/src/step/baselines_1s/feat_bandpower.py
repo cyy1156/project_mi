@@ -1,4 +1,7 @@
-"""1 s 窗上的 2 频带 log 功率：(N,1,8,250) → (N,8,2)。"""
+"""1 s 窗上的 2 频带 log 功率：(N,1,8,250) → (N,8,2)。
+
+分块计算，避免一次性分配 (N*8, T) float64 导致 OOM。
+"""
 
 from __future__ import annotations
 
@@ -6,20 +9,24 @@ import numpy as np
 from scipy.signal import butter, filtfilt
 
 BANDS_HZ = ((8.0, 13.0), (13.0, 30.0))
+_CHUNK = 2048
 
 
 def raw_to_bandpower(X: np.ndarray, sfreq: float = 250.0) -> np.ndarray:
-    X = np.asarray(X, dtype=np.float64)
+    X = np.asarray(X)
     if X.ndim == 4 and X.shape[1] == 1:
         X = X[:, 0, :, :]
     assert X.ndim == 3 and X.shape[1] == 8, X.shape
     n, n_ch, n_times = X.shape
     nyq = sfreq / 2.0
     out = np.empty((n, n_ch, len(BANDS_HZ)), dtype=np.float32)
-    for bi, (lo, hi) in enumerate(BANDS_HZ):
-        b, a = butter(4, [lo / nyq, hi / nyq], btype="band")
-        flat = X.reshape(-1, n_times)
-        filt = np.asarray([filtfilt(b, a, row) for row in flat], dtype=np.float64)
-        power = np.mean(filt**2, axis=1).reshape(n, n_ch)
-        out[:, :, bi] = np.log(power + 1e-10).astype(np.float32)
+    coeffs = [butter(4, [lo / nyq, hi / nyq], btype="band") for lo, hi in BANDS_HZ]
+
+    for start in range(0, n, _CHUNK):
+        sl = slice(start, min(start + _CHUNK, n))
+        block = np.asarray(X[sl], dtype=np.float64)  # (B, 8, T)
+        for bi, (b, a) in enumerate(coeffs):
+            filt = filtfilt(b, a, block, axis=-1)
+            power = np.mean(filt * filt, axis=-1)
+            out[sl, :, bi] = np.log(power + 1e-10).astype(np.float32)
     return out

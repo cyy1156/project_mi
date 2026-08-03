@@ -1,19 +1,13 @@
 """DGCNN 1s 离线：1s 窗 bandpower；Val BalAcc + batch balance。"""
 from __future__ import annotations
 
-import importlib.util
-from pathlib import Path
-
 import torch.nn as nn
 
 from feat_bandpower import raw_to_bandpower
+from load_external import load_baselines_single
 from task_runner import run_baseline_main
 
-_OLD = Path(__file__).resolve().parent.parent / "baselines_single" / "baseline_dgcnn.py"
-_spec = importlib.util.spec_from_file_location("_old_baseline_dgcnn_1s", _OLD)
-_old = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
-_spec.loader.exec_module(_old)
+_old = load_baselines_single("baseline_dgcnn.py")
 
 
 def build_model(n_electrodes: int, n_feats: int, n_outputs: int, drop_prob: float) -> nn.Module:
