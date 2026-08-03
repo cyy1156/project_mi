@@ -1,26 +1,13 @@
-"""GCBNet + TemporalEncoder：1s 原始时域；Val BalAcc + batch balance。
-
-模型定义来自 Self_development_model/TepmoralEncoder_GCBNet.py（n_times=250）。
-"""
+"""GCBNet + TemporalEncoder：1s 原始时域；Val BalAcc + batch balance。"""
 from __future__ import annotations
-
-import importlib.util
-from pathlib import Path
 
 import torch.nn as nn
 
+from load_external import load_selfdev
 from raw_time import squeeze_raw_1s
 from task_runner import run_baseline_main
 
-_SRC = (
-    Path(__file__).resolve().parent.parent
-    / "Self_development_model"
-    / "TepmoralEncoder_GCBNet.py"
-)
-_spec = importlib.util.spec_from_file_location("_selfdev_gcbnet_raw_1s", _SRC)
-_mod = importlib.util.module_from_spec(_spec)
-assert _spec.loader is not None
-_spec.loader.exec_module(_mod)
+_mod = load_selfdev("TepmoralEncoder_GCBNet.py")
 
 
 def build_model(n_chans: int, n_times: int, n_outputs: int, drop_prob: float) -> nn.Module:

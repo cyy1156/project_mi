@@ -45,3 +45,12 @@ def task_fold_md_lines(folds: list[dict]) -> list[str]:
     for r in folds:
         lines.extend(_task_fold_lines(r))
     return lines
+
+
+def three_fold_md_lines(folds: list[dict]) -> list[str]:
+    """兼容桩：供 importlib 加载 baselines_single / Self_development 旧脚本时导入。
+
+    baselines_1s 本身只跑 Task，不会调用此函数写 MD。
+    """
+    _ = folds
+    return []

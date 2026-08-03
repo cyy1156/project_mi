@@ -23,9 +23,15 @@ REPO_ROOT = CODE_ROOT.parent
 PRE_ROOT = CODE_ROOT / "preprocess_lab"
 OLD_BASELINES = STEP_DIR / "baselines_single"
 
-for p in (HERE, STEP_DIR, PRE_ROOT, OLD_BASELINES):
+# STEP / preprocess / baselines_single 仅作依赖；本包必须优先，
+# 否则会阴影到 baselines_single.shared_hparams（缺 n_times_expected 等）。
+for p in (STEP_DIR, PRE_ROOT, OLD_BASELINES):
     if str(p) not in sys.path:
         sys.path.insert(0, str(p))
+_here = str(HERE)
+if _here in sys.path:
+    sys.path.remove(_here)
+sys.path.insert(0, _here)
 
 from shared_hparams import SHARED, SharedTrainHP, shared_as_dict
 from md_fold_detail import task_fold_md_lines
