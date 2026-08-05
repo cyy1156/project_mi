@@ -29,6 +29,12 @@ from src.common.steps.slide_1s import (
     iter_rest_sources_cue_before,
     segment_to_1s_windows,
 )
+from src.common.steps.slide_2s_hop100 import (
+    N_TIMES_2S,
+    WIN_SEC as WIN_SEC_2S_HOP100,
+    HOP_SEC as HOP_SEC_2S_HOP100,
+    segment_to_2s_hop100_windows,
+)
 from src.common.steps.split_subjects import split_all_trials
 
 WIN_SEC = 2.0
@@ -255,6 +261,90 @@ def preprocess_run_1s(
 
     if not xs:
         empty_x = np.zeros((0, 1, 8, N_TIMES_1S), np.float32)
+        empty_y = np.zeros((0,), np.int64)
+        return empty_x, empty_y, empty_y.copy(), empty_y.copy()
+
+    X = to_model_tensor(xs)
+    return (
+        X,
+        np.asarray(y_task, dtype=np.int64),
+        np.asarray(y_three, dtype=np.int64),
+        np.asarray(trial_ids, dtype=np.int64),
+    )
+
+
+def preprocess_run_2s_hop100(
+    eeg: ContinuousEEG,
+    add_rest: bool = True,
+    max_rest: int | None = None,
+) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
+    """
+    旁路 2 s / 100 ms：
+      Task = Cue 后 0~4 s → slide
+      Rest = Cue 前 4 s（可缩短避让）→ slide
+    返回 X (N,1,8,500), y_task, y_three, trial_id。
+    """
+    x = select_channels(eeg.x, eeg.ch_names)
+    x = car_reference(x)
+    x = notch_and_bandpass(x, eeg.fs)
+
+    kept = filter_left_right_events(eeg.events, eeg.artifacts)
+
+    xs: list[np.ndarray] = []
+    y_task: list[int] = []
+    y_three: list[int] = []
+    trial_ids: list[int] = []
+    tid = 0
+    n_times = N_TIMES_2S
+
+    for cue, lab_task, lab_three, _ in kept:
+        seg = task_window_cue_0_to_4(x, int(cue), eeg.fs)
+        if seg is None:
+            continue
+        wins = segment_to_2s_hop100_windows(seg, eeg.fs)
+        if not wins:
+            continue
+        for w in wins:
+            if w.shape != (n_times, 8):
+                continue
+            xs.append(w)
+            y_task.append(int(lab_task))
+            y_three.append(int(lab_three))
+            trial_ids.append(tid)
+        tid += 1
+
+    if add_rest and len(kept) > 0:
+        sources = iter_rest_sources_cue_before(
+            kept[:, 0],
+            eeg.fs,
+            x.shape[0],
+            rest_sec=4.0,
+            task_sec=4.0,
+            min_win_sec=WIN_SEC_2S_HOP100,
+        )
+        if max_rest is None:
+            n_left = int(np.sum(kept[:, 2] == 1))
+            n_right = int(np.sum(kept[:, 2] == 2))
+            max_rest = min(n_left, n_right) if (n_left + n_right) else 0
+        sources = sources[: int(max_rest)]
+
+        for t0, t1 in sources:
+            seg = extract_segment_baseline(x, int(t0), int(t1), eeg.fs, baseline_sec=0.5)
+            if seg is None:
+                continue
+            wins = segment_to_2s_hop100_windows(seg, eeg.fs)
+            for w in wins:
+                if w.shape != (n_times, 8):
+                    continue
+                xs.append(w)
+                y_task.append(0)
+                y_three.append(0)
+                trial_ids.append(tid)
+            if wins:
+                tid += 1
+
+    if not xs:
+        empty_x = np.zeros((0, 1, 8, n_times), np.float32)
         empty_y = np.zeros((0,), np.int64)
         return empty_x, empty_y, empty_y.copy(), empty_y.copy()
 

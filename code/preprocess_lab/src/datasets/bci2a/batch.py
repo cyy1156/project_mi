@@ -11,6 +11,7 @@ from src.datasets.registry import as_run_list, get_loader
 from src.datasets.bci2a.pipeline import (
     preprocess_run,
     preprocess_run_1s,
+    preprocess_run_2s_hop100,
     preprocess_run_4s,
     sanity_check_outputs,
 )
@@ -22,6 +23,8 @@ def _pick_preprocess(cfg: dict):
     win = float(cfg.get("win_sec", 2.0))
     if mode in {"slide_1s", "1s", "cue0_4_slide1s"}:
         return preprocess_run_1s, 250
+    if mode in {"slide_2s_hop100", "2s_hop100", "cue0_4_slide2s_hop100"}:
+        return preprocess_run_2s_hop100, 500
     if mode in {"cue0_4", "4s", "cue_0_4"} or win >= 3.9:
         return preprocess_run_4s, 1000
     return preprocess_run, 500
@@ -63,13 +66,13 @@ def process_one_file(
     print(f"->{path.name}:subject={sid},runs={len(runs)}")
 
     preprocess_fn, n_times = _pick_preprocess(cfg)
-    is_1s = preprocess_fn is preprocess_run_1s
+    is_slide = preprocess_fn in (preprocess_run_1s, preprocess_run_2s_hop100)
     xs,yts,y3s,tids=[],[],[],[]
     add_rest=bool(cfg.get("make_rest",True))
     tid_offset = 0
 
     for eeg in runs:
-        if is_1s:
+        if is_slide:
             x, yt, y3, tid = preprocess_fn(eeg, add_rest=add_rest)
             if len(yt) == 0:
                 continue

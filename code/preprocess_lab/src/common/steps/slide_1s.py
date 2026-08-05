@@ -12,14 +12,19 @@ N_TIMES_1S = int(round(WIN_SEC * FS_OUT))  # 250
 HOP_SAMPLES = int(round(HOP_SEC * FS_OUT))  # 10
 
 
-def n_windows_for_duration(duration_sec: float) -> int:
-    """源时长 T 秒、T>=1 时的理论窗数；否则 0。"""
-    if duration_sec < WIN_SEC - 1e-9:
+def n_windows_for_duration(
+    duration_sec: float,
+    *,
+    win_sec: float = WIN_SEC,
+    hop_sec: float = HOP_SEC,
+) -> int:
+    """源时长 T 秒、T>=win_sec 时的理论窗数；否则 0。"""
+    if duration_sec < win_sec - 1e-9:
         return 0
-    return int(1 + round((duration_sec - WIN_SEC) / HOP_SEC))
+    return int(1 + round((duration_sec - win_sec) / hop_sec))
 
 
-def slide_windows_1s(
+def slide_windows(
     x_tc: np.ndarray,
     *,
     fs: float = FS_OUT,
@@ -44,6 +49,17 @@ def slide_windows_1s(
     return outs
 
 
+def slide_windows_1s(
+    x_tc: np.ndarray,
+    *,
+    fs: float = FS_OUT,
+    win_sec: float = WIN_SEC,
+    hop_sec: float = HOP_SEC,
+) -> list[np.ndarray]:
+    """1 s / 40 ms 默认；参数可覆盖。"""
+    return slide_windows(x_tc, fs=fs, win_sec=win_sec, hop_sec=hop_sec)
+
+
 def extract_segment_baseline(
     x_tc: np.ndarray,
     t0: int,
@@ -66,6 +82,31 @@ def extract_segment_baseline(
     return (x_tc[t0:t1] - base).astype(np.float64)
 
 
+def segment_to_windows(
+    seg_tc: np.ndarray,
+    fs_in: float,
+    *,
+    win_sec: float = WIN_SEC,
+    hop_sec: float = HOP_SEC,
+    fs_out: float = FS_OUT,
+    zscore: bool = True,
+) -> list[np.ndarray]:
+    """
+    源段 (T_in, C) → 重采样到 fs_out → 滑窗 → 可选每窗 z-score。
+    返回 list[(n_times, C)]，n_times = win_sec * fs_out。
+    """
+    if seg_tc is None or seg_tc.shape[0] < int(round(win_sec * fs_in)):
+        return []
+    dur = float(seg_tc.shape[0]) / float(fs_in)
+    if dur < win_sec - 1e-9:
+        return []
+    seg_rs = resample_to_1000(seg_tc, fs_in=fs_in, fs_out=fs_out, win_sec=dur)
+    wins = slide_windows(seg_rs, fs=fs_out, win_sec=win_sec, hop_sec=hop_sec)
+    if zscore:
+        return [trial_zscore(w) for w in wins]
+    return wins
+
+
 def segment_to_1s_windows(
     seg_tc: np.ndarray,
     fs_in: float,
@@ -73,20 +114,10 @@ def segment_to_1s_windows(
     fs_out: float = FS_OUT,
     zscore: bool = True,
 ) -> list[np.ndarray]:
-    """
-    源段 (T_in, C) → 重采样到 fs_out → 40 ms 滑 1 s → 可选每窗 z-score。
-    返回 list[(250, C)]。
-    """
-    if seg_tc is None or seg_tc.shape[0] < int(round(WIN_SEC * fs_in)):
-        return []
-    dur = float(seg_tc.shape[0]) / float(fs_in)
-    if dur < WIN_SEC - 1e-9:
-        return []
-    seg_rs = resample_to_1000(seg_tc, fs_in=fs_in, fs_out=fs_out, win_sec=dur)
-    wins = slide_windows_1s(seg_rs, fs=fs_out)
-    if zscore:
-        return [trial_zscore(w) for w in wins]
-    return wins
+    """源段 → 40 ms 滑 1 s。"""
+    return segment_to_windows(
+        seg_tc, fs_in, win_sec=WIN_SEC, hop_sec=HOP_SEC, fs_out=fs_out, zscore=zscore
+    )
 
 
 def iter_rest_sources_cue_before(
@@ -96,16 +127,17 @@ def iter_rest_sources_cue_before(
     *,
     rest_sec: float = 4.0,
     task_sec: float = 4.0,
+    min_win_sec: float | None = None,
 ) -> list[tuple[int, int]]:
     """
     Rest 源区间：每个 Cue（除首个之外）的 Cue 前 rest_sec。
     若与上一试次 MI [prev_cue, prev_cue+task_sec) 重叠，则缩短起点；
-    缩短后仍不足 1 s 则丢弃该源段。
+    缩短后仍不足 min_win_sec（默认 1 s）则丢弃该源段。
     返回 [(t0, t1), ...] 半开区间。
     """
     rest_len = int(round(rest_sec * fs))
     task_len = int(round(task_sec * fs))
-    min_len = int(round(WIN_SEC * fs))
+    min_len = int(round((WIN_SEC if min_win_sec is None else min_win_sec) * fs))
     cues = np.sort(np.asarray(cue_samples, dtype=int).reshape(-1))
     out: list[tuple[int, int]] = []
     for i in range(1, len(cues)):

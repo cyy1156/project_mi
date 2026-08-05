@@ -63,26 +63,46 @@ def three_class_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, flo
 
     acc = accuracy_score(y_true, y_pred)
     f1_macro = f1_score(y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0)
+    precision_macro = precision_score(
+        y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0
+    )
     recall_macro = recall_score(
         y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0
     )
     recall_per = recall_score(
         y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
     )
+    precision_per = precision_score(
+        y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
+    )
+    f1_per = f1_score(
+        y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
+    )
 
     return {
         "accuracy": float(acc),
         "f1_macro": float(f1_macro),
+        "precision_macro": float(precision_macro),
         "recall_macro": float(recall_macro),
+        # 三类等权：balanced accuracy ≡ recall_macro
+        "balanced_accuracy": float(recall_macro),
         "recall_idle": float(recall_per[0]),
         "recall_left": float(recall_per[1]),
         "recall_right": float(recall_per[2]),
+        "precision_idle": float(precision_per[0]),
+        "precision_left": float(precision_per[1]),
+        "precision_right": float(precision_per[2]),
+        "f1_idle": float(f1_per[0]),
+        "f1_left": float(f1_per[1]),
+        "f1_right": float(f1_per[2]),
         "cm": cm,
     }
 
 
 def format_three_metrics(part_name: str, m: dict) -> str:
     cm = m["cm"]  # 可能是 ndarray 或 jsonify 后的 list，统一用 cm[i][j]
+    bal = m.get("balanced_accuracy", m.get("recall_macro", 0.0))
+    prec_m = m.get("precision_macro", float("nan"))
     return "\n".join(
         [
             f"===== [{part_name}] 分类头2（空闲=0 / 左=1 / 右=2） =====",
@@ -91,11 +111,21 @@ def format_three_metrics(part_name: str, m: dict) -> str:
             f"    true0  {cm[0][0]:5d}  {cm[0][1]:5d}  {cm[0][2]:5d}",
             f"    true1  {cm[1][0]:5d}  {cm[1][1]:5d}  {cm[1][2]:5d}",
             f"    true2  {cm[2][0]:5d}  {cm[2][1]:5d}  {cm[2][2]:5d}",
-            f"  Accuracy     = {m['accuracy']:.4f}",
-            f"  F1-macro     = {m['f1_macro']:.4f}",
-            f"  Recall-macro = {m['recall_macro']:.4f}",
+            f"  Accuracy        = {m['accuracy']:.4f}",
+            f"  Balanced Acc    = {bal:.4f}",
+            f"  F1-macro        = {m['f1_macro']:.4f}",
+            f"  Precision-macro = {prec_m:.4f}",
+            f"  Recall-macro    = {m['recall_macro']:.4f}",
             f"  Recall idle/left/right = "
             f"{m['recall_idle']:.4f} / {m['recall_left']:.4f} / {m['recall_right']:.4f}",
+            f"  Prec   idle/left/right = "
+            f"{m.get('precision_idle', float('nan')):.4f} / "
+            f"{m.get('precision_left', float('nan')):.4f} / "
+            f"{m.get('precision_right', float('nan')):.4f}",
+            f"  F1     idle/left/right = "
+            f"{m.get('f1_idle', float('nan')):.4f} / "
+            f"{m.get('f1_left', float('nan')):.4f} / "
+            f"{m.get('f1_right', float('nan')):.4f}",
         ]
     )
 

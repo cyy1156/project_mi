@@ -1,0 +1,845 @@
+{
+  "subject_id": "sub03",
+  "session": "sub03_ses01_20260723_185153",
+  "head": "three",
+  "split": {
+    "train_trials": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19,
+      20,
+      21,
+      22,
+      23,
+      24,
+      25,
+      26,
+      27,
+      28,
+      29,
+      30,
+      31,
+      32,
+      33
+    ],
+    "eval_trials": [
+      34,
+      35,
+      36,
+      37,
+      38,
+      39,
+      40,
+      41,
+      42,
+      43,
+      44,
+      45,
+      46,
+      47,
+      48,
+      49,
+      50,
+      51,
+      52,
+      53,
+      54,
+      55,
+      56,
+      57,
+      58,
+      59,
+      60,
+      61,
+      62,
+      63,
+      64
+    ],
+    "ft_train_trials": [
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      13,
+      14,
+      15,
+      16,
+      17,
+      19,
+      21,
+      22,
+      23,
+      24,
+      25,
+      27,
+      28,
+      29,
+      31,
+      32,
+      33
+    ],
+    "ft_val_trials": [
+      11,
+      12,
+      18,
+      20,
+      26,
+      30
+    ]
+  },
+  "model": {
+    "head": "three",
+    "n_folds": 5,
+    "acc_paper_mean": 0.3548387096774194,
+    "acc_paper_std": 0.09066754401648514,
+    "balacc_maj_mean": 0.3629569892473118,
+    "balacc_maj_std": 0.0749735279138464,
+    "window_balacc_mean": 0.3431131592421915,
+    "window_balacc_std": 0.07789079389298116,
+    "folds": [
+      {
+        "fold": 0,
+        "best_epoch": 26,
+        "best_val_acc_paper": 0.6666666666666666,
+        "val_segment_metrics": {
+          "n_segments": 12,
+          "n_windows": 252,
+          "acc_paper": 0.6666666666666666,
+          "balanced_accuracy": 0.7222222222222222,
+          "f1_macro": 0.6962962962962963,
+          "recall_idle": 0.6666666666666666,
+          "recall_left": 0.5,
+          "recall_right": 1.0,
+          "accuracy": 0.75
+        },
+        "val_window_metrics": {
+          "accuracy": 0.5396825396825397,
+          "f1_macro": 0.5047169337030463,
+          "precision_macro": 0.5314664913979982,
+          "recall_macro": 0.5026455026455027,
+          "balanced_accuracy": 0.5026455026455027,
+          "recall_idle": 0.5555555555555556,
+          "recall_left": 0.3333333333333333,
+          "recall_right": 0.6190476190476191,
+          "precision_idle": 0.7070707070707071,
+          "precision_left": 0.175,
+          "precision_right": 0.7123287671232876,
+          "f1_idle": 0.6222222222222222,
+          "f1_left": 0.22950819672131148,
+          "f1_right": 0.6624203821656051,
+          "cm": [
+            [
+              70,
+              53,
+              3
+            ],
+            [
+              10,
+              14,
+              18
+            ],
+            [
+              19,
+              13,
+              52
+            ]
+          ]
+        },
+        "eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.3870967741935484,
+          "balanced_accuracy": 0.41478494623655915,
+          "f1_macro": 0.38905723905723905,
+          "recall_idle": 0.41935483870967744,
+          "recall_left": 0.625,
+          "recall_right": 0.2,
+          "accuracy": 0.41935483870967744
+        },
+        "eval_window_metrics": {
+          "accuracy": 0.3709677419354839,
+          "f1_macro": 0.34865669996190646,
+          "precision_macro": 0.35996831001291313,
+          "recall_macro": 0.36407023382829834,
+          "balanced_accuracy": 0.36407023382829834,
+          "recall_idle": 0.3824884792626728,
+          "recall_left": 0.49702380952380953,
+          "recall_right": 0.2126984126984127,
+          "precision_idle": 0.5040485829959515,
+          "precision_left": 0.291958041958042,
+          "precision_right": 0.2838983050847458,
+          "f1_idle": 0.4349344978165939,
+          "f1_left": 0.36784140969163,
+          "f1_right": 0.24319419237749546,
+          "cm": [
+            [
+              249,
+              321,
+              81
+            ],
+            [
+              81,
+              167,
+              88
+            ],
+            [
+              164,
+              84,
+              67
+            ]
+          ]
+        },
+        "n_ft_train_windows": 1050,
+        "n_ft_val_windows": 252,
+        "n_eval_windows": 1302,
+        "ckpt": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\eegtcnet_game_ft_half_balbatch_accpaper\\20260805_015555\\sub03\\three\\fold0\\best_three.pt",
+        "finetune_mode": "full_model",
+        "freeze_backbone": false,
+        "head_only": false,
+        "zeroshot_eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.27419354838709675,
+          "balanced_accuracy": 0.35694444444444445,
+          "f1_macro": 0.2074074074074074,
+          "recall_idle": 0.0,
+          "recall_left": 0.9375,
+          "recall_right": 0.13333333333333333,
+          "accuracy": 0.27419354838709675
+        },
+        "zeroshot_eval_window_metrics": {
+          "accuracy": 0.28417818740399386,
+          "f1_macro": 0.22435892617785966,
+          "precision_macro": 0.5920745101484931,
+          "recall_macro": 0.365983956306537,
+          "balanced_accuracy": 0.365983956306537,
+          "recall_idle": 0.013824884792626729,
+          "recall_left": 0.9285714285714286,
+          "recall_right": 0.15555555555555556,
+          "precision_idle": 1.0,
+          "precision_left": 0.2604340567612688,
+          "precision_right": 0.5157894736842106,
+          "f1_idle": 0.02727272727272727,
+          "f1_left": 0.4067796610169492,
+          "f1_right": 0.23902439024390243,
+          "cm": [
+            [
+              9,
+              620,
+              22
+            ],
+            [
+              0,
+              312,
+              24
+            ],
+            [
+              0,
+              266,
+              49
+            ]
+          ]
+        }
+      },
+      {
+        "fold": 1,
+        "best_epoch": 1,
+        "best_val_acc_paper": 0.5,
+        "val_segment_metrics": {
+          "n_segments": 12,
+          "n_windows": 252,
+          "acc_paper": 0.5,
+          "balanced_accuracy": 0.3333333333333333,
+          "f1_macro": 0.2222222222222222,
+          "recall_idle": 1.0,
+          "recall_left": 0.0,
+          "recall_right": 0.0,
+          "accuracy": 0.5
+        },
+        "val_window_metrics": {
+          "accuracy": 0.44047619047619047,
+          "f1_macro": 0.2929851223804191,
+          "precision_macro": 0.2822259410281189,
+          "recall_macro": 0.34788359788359785,
+          "balanced_accuracy": 0.34788359788359785,
+          "recall_idle": 0.7936507936507936,
+          "recall_left": 0.23809523809523808,
+          "recall_right": 0.011904761904761904,
+          "precision_idle": 0.49261083743842365,
+          "precision_left": 0.2631578947368421,
+          "precision_right": 0.09090909090909091,
+          "f1_idle": 0.60790273556231,
+          "f1_left": 0.25,
+          "f1_right": 0.021052631578947368,
+          "cm": [
+            [
+              100,
+              19,
+              7
+            ],
+            [
+              29,
+              10,
+              3
+            ],
+            [
+              74,
+              9,
+              1
+            ]
+          ]
+        },
+        "eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.41935483870967744,
+          "balanced_accuracy": 0.3010752688172043,
+          "f1_macro": 0.2074074074074074,
+          "recall_idle": 0.9032258064516129,
+          "recall_left": 0.0,
+          "recall_right": 0.0,
+          "accuracy": 0.45161290322580644
+        },
+        "eval_window_metrics": {
+          "accuracy": 0.3740399385560676,
+          "f1_macro": 0.22916701249068175,
+          "precision_macro": 0.22059418572374181,
+          "recall_macro": 0.26882573818057687,
+          "balanced_accuracy": 0.26882573818057687,
+          "recall_idle": 0.6866359447004609,
+          "recall_left": 0.10714285714285714,
+          "recall_right": 0.012698412698412698,
+          "precision_idle": 0.44477611940298506,
+          "precision_left": 0.15450643776824036,
+          "precision_right": 0.0625,
+          "f1_idle": 0.5398550724637681,
+          "f1_left": 0.1265377855887522,
+          "f1_right": 0.021108179419525065,
+          "cm": [
+            [
+              447,
+              151,
+              53
+            ],
+            [
+              293,
+              36,
+              7
+            ],
+            [
+              265,
+              46,
+              4
+            ]
+          ]
+        },
+        "n_ft_train_windows": 1050,
+        "n_ft_val_windows": 252,
+        "n_eval_windows": 1302,
+        "ckpt": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\eegtcnet_game_ft_half_balbatch_accpaper\\20260805_015555\\sub03\\three\\fold1\\best_three.pt",
+        "finetune_mode": "full_model",
+        "freeze_backbone": false,
+        "head_only": false,
+        "zeroshot_eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.4838709677419355,
+          "balanced_accuracy": 0.3333333333333333,
+          "f1_macro": 0.2222222222222222,
+          "recall_idle": 1.0,
+          "recall_left": 0.0,
+          "recall_right": 0.0,
+          "accuracy": 0.5
+        },
+        "zeroshot_eval_window_metrics": {
+          "accuracy": 0.4062980030721966,
+          "f1_macro": 0.20290255433505142,
+          "precision_macro": 0.16708127553197974,
+          "recall_macro": 0.27468851339819084,
+          "balanced_accuracy": 0.27468851339819084,
+          "recall_idle": 0.8018433179723502,
+          "recall_left": 0.0,
+          "recall_right": 0.022222222222222223,
+          "precision_idle": 0.45194805194805193,
+          "precision_left": 0.0,
+          "precision_right": 0.04929577464788732,
+          "f1_idle": 0.5780730897009967,
+          "f1_left": 0.0,
+          "f1_right": 0.030634573304157548,
+          "cm": [
+            [
+              522,
+              5,
+              124
+            ],
+            [
+              325,
+              0,
+              11
+            ],
+            [
+              308,
+              0,
+              7
+            ]
+          ]
+        }
+      },
+      {
+        "fold": 2,
+        "best_epoch": 1,
+        "best_val_acc_paper": 0.16666666666666666,
+        "val_segment_metrics": {
+          "n_segments": 12,
+          "n_windows": 252,
+          "acc_paper": 0.16666666666666666,
+          "balanced_accuracy": 0.3333333333333333,
+          "f1_macro": 0.10256410256410257,
+          "recall_idle": 0.0,
+          "recall_left": 1.0,
+          "recall_right": 0.0,
+          "accuracy": 0.16666666666666666
+        },
+        "val_window_metrics": {
+          "accuracy": 0.3055555555555556,
+          "f1_macro": 0.24756013745704467,
+          "precision_macro": 0.266554162648666,
+          "recall_macro": 0.3941798941798942,
+          "balanced_accuracy": 0.3941798941798942,
+          "recall_idle": 0.3253968253968254,
+          "recall_left": 0.8571428571428571,
+          "recall_right": 0.0,
+          "precision_idle": 0.6029411764705882,
+          "precision_left": 0.19672131147540983,
+          "precision_right": 0.0,
+          "f1_idle": 0.422680412371134,
+          "f1_left": 0.32,
+          "f1_right": 0.0,
+          "cm": [
+            [
+              41,
+              85,
+              0
+            ],
+            [
+              5,
+              36,
+              1
+            ],
+            [
+              22,
+              62,
+              0
+            ]
+          ]
+        },
+        "eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.27419354838709675,
+          "balanced_accuracy": 0.3138440860215054,
+          "f1_macro": 0.19218559218559217,
+          "recall_idle": 0.12903225806451613,
+          "recall_left": 0.8125,
+          "recall_right": 0.0,
+          "accuracy": 0.27419354838709675
+        },
+        "eval_window_metrics": {
+          "accuracy": 0.3225806451612903,
+          "f1_macro": 0.24535228670266718,
+          "precision_macro": 0.2600515995872033,
+          "recall_macro": 0.3307411674347158,
+          "balanced_accuracy": 0.3307411674347158,
+          "recall_idle": 0.2749615975422427,
+          "recall_left": 0.7172619047619048,
+          "recall_right": 0.0,
+          "precision_idle": 0.5264705882352941,
+          "precision_left": 0.2536842105263158,
+          "precision_right": 0.0,
+          "f1_idle": 0.3612512613521695,
+          "f1_left": 0.374805598755832,
+          "f1_right": 0.0,
+          "cm": [
+            [
+              179,
+              462,
+              10
+            ],
+            [
+              93,
+              241,
+              2
+            ],
+            [
+              68,
+              247,
+              0
+            ]
+          ]
+        },
+        "n_ft_train_windows": 1050,
+        "n_ft_val_windows": 252,
+        "n_eval_windows": 1302,
+        "ckpt": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\eegtcnet_game_ft_half_balbatch_accpaper\\20260805_015555\\sub03\\three\\fold2\\best_three.pt",
+        "finetune_mode": "full_model",
+        "freeze_backbone": false,
+        "head_only": false,
+        "zeroshot_eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.25806451612903225,
+          "balanced_accuracy": 0.323252688172043,
+          "f1_macro": 0.15178096757044127,
+          "recall_idle": 0.03225806451612903,
+          "recall_left": 0.9375,
+          "recall_right": 0.0,
+          "accuracy": 0.25806451612903225
+        },
+        "zeroshot_eval_window_metrics": {
+          "accuracy": 0.3033794162826421,
+          "f1_macro": 0.2178242322313905,
+          "precision_macro": 0.2683217966466697,
+          "recall_macro": 0.34050179211469533,
+          "balanced_accuracy": 0.34050179211469533,
+          "recall_idle": 0.16436251920122888,
+          "recall_left": 0.8571428571428571,
+          "recall_right": 0.0,
+          "precision_idle": 0.5431472081218274,
+          "precision_left": 0.26181818181818184,
+          "precision_right": 0.0,
+          "f1_idle": 0.25235849056603776,
+          "f1_left": 0.4011142061281337,
+          "f1_right": 0.0,
+          "cm": [
+            [
+              107,
+              539,
+              5
+            ],
+            [
+              48,
+              288,
+              0
+            ],
+            [
+              42,
+              273,
+              0
+            ]
+          ]
+        }
+      },
+      {
+        "fold": 3,
+        "best_epoch": 1,
+        "best_val_acc_paper": 0.25,
+        "val_segment_metrics": {
+          "n_segments": 12,
+          "n_windows": 252,
+          "acc_paper": 0.25,
+          "balanced_accuracy": 0.2222222222222222,
+          "f1_macro": 0.2222222222222222,
+          "recall_idle": 0.6666666666666666,
+          "recall_left": 0.0,
+          "recall_right": 0.0,
+          "accuracy": 0.3333333333333333
+        },
+        "val_window_metrics": {
+          "accuracy": 0.38095238095238093,
+          "f1_macro": 0.31066759418288764,
+          "precision_macro": 0.3164786876651284,
+          "recall_macro": 0.3108465608465608,
+          "balanced_accuracy": 0.3108465608465608,
+          "recall_idle": 0.5634920634920635,
+          "recall_left": 0.14285714285714285,
+          "recall_right": 0.2261904761904762,
+          "precision_idle": 0.5461538461538461,
+          "precision_left": 0.1016949152542373,
+          "precision_right": 0.30158730158730157,
+          "f1_idle": 0.5546875,
+          "f1_left": 0.1188118811881188,
+          "f1_right": 0.2585034013605442,
+          "cm": [
+            [
+              71,
+              31,
+              24
+            ],
+            [
+              16,
+              6,
+              20
+            ],
+            [
+              43,
+              22,
+              19
+            ]
+          ]
+        },
+        "eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.22580645161290322,
+          "balanced_accuracy": 0.2991935483870967,
+          "f1_macro": 0.2969947149513713,
+          "recall_idle": 0.3225806451612903,
+          "recall_left": 0.375,
+          "recall_right": 0.2,
+          "accuracy": 0.3064516129032258
+        },
+        "eval_window_metrics": {
+          "accuracy": 0.2910906298003072,
+          "f1_macro": 0.2706094715491487,
+          "precision_macro": 0.2742779848560397,
+          "recall_macro": 0.2709272060078512,
+          "balanced_accuracy": 0.2709272060078512,
+          "recall_idle": 0.3486943164362519,
+          "recall_left": 0.2767857142857143,
+          "recall_right": 0.1873015873015873,
+          "precision_idle": 0.4203703703703704,
+          "precision_left": 0.25271739130434784,
+          "precision_right": 0.14974619289340102,
+          "f1_idle": 0.3811922753988245,
+          "f1_left": 0.26420454545454547,
+          "f1_right": 0.16643159379407615,
+          "cm": [
+            [
+              227,
+              178,
+              246
+            ],
+            [
+              154,
+              93,
+              89
+            ],
+            [
+              159,
+              97,
+              59
+            ]
+          ]
+        },
+        "n_ft_train_windows": 1050,
+        "n_ft_val_windows": 252,
+        "n_eval_windows": 1302,
+        "ckpt": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\eegtcnet_game_ft_half_balbatch_accpaper\\20260805_015555\\sub03\\three\\fold3\\best_three.pt",
+        "finetune_mode": "full_model",
+        "freeze_backbone": false,
+        "head_only": false,
+        "zeroshot_eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.1935483870967742,
+          "balanced_accuracy": 0.310663082437276,
+          "f1_macro": 0.3005698005698006,
+          "recall_idle": 0.2903225806451613,
+          "recall_left": 0.375,
+          "recall_right": 0.26666666666666666,
+          "accuracy": 0.3064516129032258
+        },
+        "zeroshot_eval_window_metrics": {
+          "accuracy": 0.28648233486943164,
+          "f1_macro": 0.2777931944953014,
+          "precision_macro": 0.28535530373765666,
+          "recall_macro": 0.2870882403140467,
+          "balanced_accuracy": 0.2870882403140467,
+          "recall_idle": 0.28110599078341014,
+          "recall_left": 0.34523809523809523,
+          "recall_right": 0.23492063492063492,
+          "precision_idle": 0.4236111111111111,
+          "precision_left": 0.2510822510822511,
+          "precision_right": 0.18137254901960784,
+          "f1_idle": 0.3379501385041551,
+          "f1_left": 0.2907268170426065,
+          "f1_right": 0.20470262793914246,
+          "cm": [
+            [
+              183,
+              230,
+              238
+            ],
+            [
+              124,
+              116,
+              96
+            ],
+            [
+              125,
+              116,
+              74
+            ]
+          ]
+        }
+      },
+      {
+        "fold": 4,
+        "best_epoch": 8,
+        "best_val_acc_paper": 0.5833333333333334,
+        "val_segment_metrics": {
+          "n_segments": 12,
+          "n_windows": 252,
+          "acc_paper": 0.5833333333333334,
+          "balanced_accuracy": 0.6111111111111112,
+          "f1_macro": 0.4468864468864469,
+          "recall_idle": 0.8333333333333334,
+          "recall_left": 1.0,
+          "recall_right": 0.0,
+          "accuracy": 0.5833333333333334
+        },
+        "val_window_metrics": {
+          "accuracy": 0.4444444444444444,
+          "f1_macro": 0.3595645410035442,
+          "precision_macro": 0.374264314749547,
+          "recall_macro": 0.44841269841269843,
+          "balanced_accuracy": 0.44841269841269843,
+          "recall_idle": 0.6428571428571429,
+          "recall_left": 0.6666666666666666,
+          "recall_right": 0.03571428571428571,
+          "precision_idle": 0.7168141592920354,
+          "precision_left": 0.22950819672131148,
+          "precision_right": 0.17647058823529413,
+          "f1_idle": 0.6778242677824268,
+          "f1_left": 0.34146341463414637,
+          "f1_right": 0.0594059405940594,
+          "cm": [
+            [
+              81,
+              41,
+              4
+            ],
+            [
+              4,
+              28,
+              10
+            ],
+            [
+              28,
+              53,
+              3
+            ]
+          ]
+        },
+        "eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.46774193548387094,
+          "balanced_accuracy": 0.4858870967741935,
+          "f1_macro": 0.4182908545727136,
+          "recall_idle": 0.6451612903225806,
+          "recall_left": 0.8125,
+          "recall_right": 0.0,
+          "accuracy": 0.532258064516129
+        },
+        "eval_window_metrics": {
+          "accuracy": 0.5207373271889401,
+          "f1_macro": 0.4442039258772115,
+          "precision_macro": 0.4537400744641114,
+          "recall_macro": 0.48100145075951534,
+          "balanced_accuracy": 0.48100145075951534,
+          "recall_idle": 0.620583717357911,
+          "recall_left": 0.7113095238095238,
+          "recall_right": 0.1111111111111111,
+          "precision_idle": 0.725314183123878,
+          "precision_left": 0.401006711409396,
+          "precision_right": 0.2348993288590604,
+          "f1_idle": 0.6688741721854304,
+          "f1_left": 0.5128755364806867,
+          "f1_right": 0.15086206896551724,
+          "cm": [
+            [
+              404,
+              167,
+              80
+            ],
+            [
+              63,
+              239,
+              34
+            ],
+            [
+              90,
+              190,
+              35
+            ]
+          ]
+        },
+        "n_ft_train_windows": 1050,
+        "n_ft_val_windows": 252,
+        "n_eval_windows": 1302,
+        "ckpt": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\eegtcnet_game_ft_half_balbatch_accpaper\\20260805_015555\\sub03\\three\\fold4\\best_three.pt",
+        "finetune_mode": "full_model",
+        "freeze_backbone": false,
+        "head_only": false,
+        "zeroshot_eval_segment_metrics": {
+          "n_segments": 62,
+          "n_windows": 1302,
+          "acc_paper": 0.27419354838709675,
+          "balanced_accuracy": 0.3440860215053763,
+          "f1_macro": 0.16497747747747749,
+          "recall_idle": 0.03225806451612903,
+          "recall_left": 1.0,
+          "recall_right": 0.0,
+          "accuracy": 0.27419354838709675
+        },
+        "zeroshot_eval_window_metrics": {
+          "accuracy": 0.26881720430107525,
+          "f1_macro": 0.1788298672598634,
+          "precision_macro": 0.45249042145593865,
+          "recall_macro": 0.3373229220003413,
+          "balanced_accuracy": 0.3373229220003413,
+          "recall_idle": 0.03379416282642089,
+          "recall_left": 0.9464285714285714,
+          "recall_right": 0.031746031746031744,
+          "precision_idle": 1.0,
+          "precision_left": 0.27413793103448275,
+          "precision_right": 0.08333333333333333,
+          "f1_idle": 0.06537890044576523,
+          "f1_left": 0.42513368983957217,
+          "f1_right": 0.04597701149425287,
+          "cm": [
+            [
+              22,
+              537,
+              92
+            ],
+            [
+              0,
+              318,
+              18
+            ],
+            [
+              0,
+              305,
+              10
+            ]
+          ]
+        }
+      }
+    ],
+    "zeroshot_acc_paper_mean": 0.2967741935483871,
+    "zeroshot_acc_paper_std": 0.09816209067550284,
+    "model": "eegtcnet",
+    "init_run": "run_20260804_190821",
+    "n_eval_windows": 1302
+  }
+}
