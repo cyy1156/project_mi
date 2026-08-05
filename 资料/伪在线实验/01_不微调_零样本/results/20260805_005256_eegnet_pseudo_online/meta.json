@@ -1,0 +1,28 @@
+{
+  "stamp": "20260805_005256",
+  "model_name": "eegnet",
+  "out_name": "eegnet_pseudo_online",
+  "protocol": "game_pseudo_online Tw=2s hop=100ms seg=acquire_mi|rest concat=per_subject_trial_order win=in_segment_only no_cross_boundary models=shallow,deep,conformer,eegnet,eegtcnet select_list=trialmaj_task_acc_paper_top5 weights=bci2a_2s_hop100_balbatch_accpaper weight_pkg=baselines_2s_hop100_accpaper metrics=segment_acc_paper_main + balacc_maj + window_balacc_aux no_game_retrain no_rap no_otta",
+  "structure_note": "EEGNet F1=8, D=2, F2=16",
+  "sessions": [
+    "sub02_ses01_20260723_180607",
+    "sub03_ses01_20260723_185153"
+  ],
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "weight_run": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_2s_hop100_accpaper\\eegnet_2s_hop100_balbatch_accpaper\\bci2a_2s_hop100\\run_20260804_160649",
+  "device": "cuda",
+  "preprocess": "game_phase4_like",
+  "extra_meta": {
+    "eegnet": {
+      "F1": 8,
+      "D": 2,
+      "F2": 16
+    }
+  }
+}

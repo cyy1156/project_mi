@@ -1,0 +1,28 @@
+# OpenBMI / Lee2019-MI — Cue后 0~4s / Cue前 4s → 100ms 滑 2s → (N,1,8,500)
+# 被试键方案 A：sess01+sess02 → 同一 openbmi:subjNN
+dataset: openbmi
+loader: load_openbmi_mat
+
+data_glob: "D:/cyy/MI/DATA/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+
+subject_from: openbmi_subj  # 由 batch 从文件名解析，不走 stem3
+
+label_map:
+  left: [1, 1]
+  right: [1, 2]
+make_rest: true
+rest_balance: min_left_right
+
+window_mode: slide_2s_hop100
+win_sec: 2.0
+hop_ms: 100
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/openbmi_2s_hop100"
+save_full: true
+save_split: true

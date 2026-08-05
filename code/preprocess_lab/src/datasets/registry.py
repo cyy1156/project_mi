@@ -5,12 +5,14 @@ from typing import Callable
 
 from src.common.eeg_types import ContinuousEEG
 from src.datasets.bci2a.load_mat import load_bci2a_mat
+from src.datasets.openbmi.load_mat import load_openbmi_mat
 from src.datasets.stieger.load_mat import load_stieger_mat
 
 LoaderFn = Callable[[Path], list[ContinuousEEG]|ContinuousEEG]
 
 LOADERS:dict[str, LoaderFn] = {
     "load_bci2a_mat": load_bci2a_mat,
+    "load_openbmi_mat": load_openbmi_mat,
     "load_stieger_mat": load_stieger_mat,  # 返回 list[StiegerTrial]，勿直接塞进 2a preprocess_run
 }
 

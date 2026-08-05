@@ -1,0 +1,54 @@
+{
+  "stamp": "20260805_014630",
+  "model_name": "conformer",
+  "out_name": "conformer_game_ft_half",
+  "protocol": "game_pseudo_online_ft Tw=2s hop=100ms arm=02_finetune_first_half_train_second_half_eval finetune_mode=full_model freeze_backbone=false head_only=false split=trial_order_half init=bci2a_2s_hop100_balbatch_accpaper train=game_first_half_windows eval=game_second_half_pseudo_online early_stop=val_acc_paper max_epochs=300 patience=20 lr=1e-4 balbatch no_rap no_otta metrics=segment_acc_paper_main + balacc_maj + window_balacc_aux",
+  "structure_note": "EEGConformer num_layers=2, num_heads=10; full_model FT",
+  "sessions": [
+    "sub02_ses01_20260723_180607",
+    "sub03_ses01_20260723_185153"
+  ],
+  "folds": [
+    0,
+    1,
+    2,
+    3,
+    4
+  ],
+  "init_run": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_2s_hop100_accpaper\\conformer_2s_hop100_balbatch_accpaper\\bci2a_2s_hop100\\run_20260804_195303",
+  "weight_root": "D:\\cyy\\MI\\code\\train_lab\\out\\baseline_game_ft_hop100_accpaper\\conformer_game_ft_half_balbatch_accpaper\\20260805_014630",
+  "device": "cuda",
+  "finetune_mode": "full_model",
+  "freeze_backbone": false,
+  "head_only": false,
+  "hparams": {
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "game-ft-half-fullmodel-balbatch-accpaper finetune_mode=full_model freeze_backbone=false head_only=false",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_times_expected": 500,
+    "no_rap": true,
+    "no_balbatch": false,
+    "finetune_mode": "full_model",
+    "freeze_backbone": false,
+    "head_only": false
+  },
+  "n_times": 500,
+  "extra_meta": {
+    "conformer": {
+      "backbone": "EEGConformer",
+      "num_layers": 2,
+      "num_heads": 10
+    }
+  },
+  "also_zeroshot_on_eval_half": true
+}
