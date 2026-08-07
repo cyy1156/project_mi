@@ -3,7 +3,8 @@
 dataset: openbmi
 loader: load_openbmi_mat
 
-data_glob: "DATA/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+# 本机 nested 路径；相对路径亦可 DATA/openbmi/openbmi/openbmi/...
+data_glob: "D:/cyy/MI/DATA/openbmi/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
 source_blocks: [EEG_MI_train]
 exclude_blocks: [EEG_MI_test]
 
@@ -27,4 +28,5 @@ seed: 42
 
 out_dir: "out/openbmi_2s_hop100"
 save_full: true
-save_split: true
+save_split: false  # 五折只用 openbmi_*.npy；不写 train_/val_ 拷贝
+blocks: [EEG_MI_train]  # 仅官方 train 块；不含 EEG_MI_test
