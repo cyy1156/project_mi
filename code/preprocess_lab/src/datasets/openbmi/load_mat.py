@@ -78,7 +78,11 @@ def _block_to_eeg(
     )
 
 
-def load_openbmi_mat(mat_path: Path | str) -> list[ContinuousEEG]:
+def load_openbmi_mat(
+    mat_path: Path | str,
+    *,
+    blocks: tuple[str, ...] = ("EEG_MI_train",),
+) -> list[ContinuousEEG]:
     """
     读取单个 OpenBMI MI mat。
 

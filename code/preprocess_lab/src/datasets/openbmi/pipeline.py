@@ -115,7 +115,7 @@ def preprocess_file_2s_hop100(
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
     """单 mat（仅 EEG_MI_train 块）→ 切窗；subjects 全为 openbmi:subjNN。"""
     mat_path = Path(mat_path)
-    runs = load_openbmi_mat(mat_path)
+    runs = load_openbmi_mat(mat_path)  # 默认 blocks=("EEG_MI_train",)
     xs, yts, y3s, tids, sids = [], [], [], [], []
     tid_offset = 0
     stats = {
@@ -123,6 +123,7 @@ def preprocess_file_2s_hop100(
         "n_windows": 0,
         "subject": runs[0].subject if runs else "",
         "protocol": "openbmi_2s_hop100",
+        "blocks": ["EEG_MI_train"],
     }
     for eeg in runs:
         X, yt, y3, tid = preprocess_run_2s_hop100(eeg, add_rest=add_rest)

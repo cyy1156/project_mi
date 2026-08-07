@@ -219,37 +219,16 @@ def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> No
     assert set(np.unique(y_three)).issubset({0, 1, 2})
     assert np.all((y_three == 0) == (y_task == 0))
 
-    # train/val split（索引划分 + 分块写出，避免整表 fancy index）
-    print("写 train/val split …")
-    from sklearn.model_selection import train_test_split
-
-    idx = np.arange(n_total)
-    idx_tr, idx_va = train_test_split(
-        idx,
-        test_size=val_ratio,
-        random_state=seed,
-        stratify=y_three,
-    )
-    for split_name, ii in (("train", idx_tr), ("val", idx_va)):
-        out_x = out_dir / f"{split_name}_X.npy"
-        n_s = int(len(ii))
-        mm = np.lib.format.open_memmap(
-            out_x, mode="w+", dtype=np.float32, shape=(n_s, *x_shape_tail)
-        )
-        bs = 4096
-        for a in range(0, n_s, bs):
-            b = min(a + bs, n_s)
-            mm[a:b] = X[ii[a:b]]
-        mm.flush()
-        del mm
-        np.save(out_dir / f"{split_name}_y_task.npy", y_task[ii])
-        np.save(out_dir / f"{split_name}_y_three.npy", y_three[ii])
-        np.save(out_dir / f"{split_name}_subjects.npy", subjects[ii])
-        print(f"  {split_name}", n_s)
-        gc.collect()
+    # 不写 train_*/val_*：五折训练只用 openbmi_*.npy；避免再占 ~10GiB
+    for p in out_dir.glob("train_*.npy"):
+        p.unlink(missing_ok=True)
+    for p in out_dir.glob("val_*.npy"):
+        p.unlink(missing_ok=True)
 
     meta = {
         "protocol": "openbmi_2s_hop100",
+        "blocks": ["EEG_MI_train"],
+        "blocks_note": "train-only；不含官方 EEG_MI_test",
         "subject_key": "openbmi:subjNN (sess01+sess02 same person)",
         "n_windows": int(n_total),
         "n_subjects": int(n_subj),
@@ -264,11 +243,12 @@ def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> No
         "excluded_blocks": ["EEG_MI_test"],
         "label_map": {"left": 1, "right": 2, "rest": 0},
         "merge": "memmap",
+        "wrote_train_val_split": False,
     }
     (out_dir / "preprocess_meta.json").write_text(
         json.dumps(meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
-    print("saved full + train/val + preprocess_meta.json →", out_dir)
+    print("saved openbmi_*.npy + preprocess_meta.json →", out_dir)
 
 
 def run_batch(
@@ -406,7 +386,9 @@ def main() -> None:
     p = argparse.ArgumentParser(description="OpenBMI 2s/hop100 shard 预处理")
     p.add_argument(
         "--glob",
-        default=str(_REPO_ROOT / "DATA" / "openbmi" / "openbmi" / "sess*_subj*_EEG_MI.mat"),
+        default=str(
+            _REPO_ROOT / "DATA" / "openbmi" / "openbmi" / "openbmi" / "sess*_subj*_EEG_MI.mat"
+        ),
     )
     p.add_argument("--out", default=str(_PREPROCESS_ROOT / "out" / "openbmi_2s_hop100"))
     p.add_argument("--limit", type=int, default=None)
