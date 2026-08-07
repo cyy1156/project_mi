@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/run_all.py
-"""串跑 OpenBMI Acc_paper 全 11 模型。
-========
 """串跑 OpenBMI Acc_paper 十一模型（与 03 同名单，含 *_raw）。
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/run_all.py
 
 用法：
   python run_all.py
@@ -20,19 +16,6 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 
 ALL_MODELS = (
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/run_all.py
-    #"shallow",
-    #"deep",
-    #"conformer",
-    #"eegnet",
-    #"eegtcnet",
-    "gcbnet",
-    "dgcnn",
-    "dbn",
-    "dbn_raw",
-    "gcbnet_raw",
-    "dgcnn_raw",
-========
     "shallow",
     "deep",
     #"conformer",
@@ -44,7 +27,6 @@ ALL_MODELS = (
     #"dbn_raw",
     #"gcbnet_raw",
     #"dgcnn_raw",
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/run_all.py
 )
 
 

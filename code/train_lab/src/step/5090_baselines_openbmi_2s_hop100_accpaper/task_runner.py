@@ -69,13 +69,12 @@ from src.common.steps.split_subjects import iter_subject_kfold
 
 # hop100 包内采样器（只读）
 from task_sampler import make_balanced_sampler
-from perf_loader import apply_runtime_threads, configure_cuda_backends, make_loader
 
 BuildFn = Callable[..., nn.Module]
 
 
 class IndexArrayDataset(Dataset):
-    """按全局下标从 mmap/数组取窗，避免 X[mask] 整段物化。"""
+    """按全局下标从 mmap/数组取窗，避免 X[mask] 整段物化（OpenBMI ~10 GiB）。"""
 
     def __init__(
         self,
@@ -84,32 +83,23 @@ class IndexArrayDataset(Dataset):
         indices: np.ndarray,
         *,
         input_kind: str,
-        x_path: str | None = None,
     ):
-        # Windows DataLoader spawn：优先用路径在 worker 内 mmap
-        self.x_path = x_path
-        self._X = None if x_path else X
+        self.X = X
         self.y = np.asarray(y, dtype=np.int64)
         self.indices = np.asarray(indices, dtype=np.int64).reshape(-1)
         self.input_kind = input_kind
-        n = int(np.load(x_path, mmap_mode="r").shape[0]) if x_path else len(X)
-        assert len(self.y) == n
+        assert len(self.y) == len(X)
         if len(self.indices):
             assert int(self.indices.min()) >= 0
-            assert int(self.indices.max()) < n
-
-    def _X_view(self) -> np.ndarray:
-        if self._X is None:
-            assert self.x_path is not None
-            self._X = np.load(self.x_path, mmap_mode="r")
-        return self._X
+            assert int(self.indices.max()) < len(X)
 
     def __len__(self) -> int:
         return len(self.indices)
 
     def __getitem__(self, i: int):
         idx = int(self.indices[i])
-        x = np.array(self._X_view()[idx], dtype=np.float32, copy=True)
+        # mmap 只读 → copy 成可写 float32，供 from_numpy
+        x = np.array(self.X[idx], dtype=np.float32, copy=True)
         if self.input_kind != "feat":
             if x.ndim == 3 and x.shape[0] == 1:
                 x = x[0]
@@ -120,25 +110,18 @@ class IndexArrayDataset(Dataset):
 
 
 class PackedArrayDataset(Dataset):
-    """折内打包窗：用路径 mmap，便于 Windows 多进程 DataLoader。"""
+    """折内已打包的连续数组 X_pack[i] ↔ y_pack[i]（通常 float16 memmap）。"""
 
-    def __init__(self, y_pack: np.ndarray, *, x_path: str | Path):
-        self.x_path = str(x_path)
-        self._X = None
+    def __init__(self, X_pack: np.ndarray, y_pack: np.ndarray):
+        self.X = X_pack
         self.y = np.asarray(y_pack, dtype=np.int64)
-        n = int(np.load(self.x_path, mmap_mode="r").shape[0])
-        assert len(self.y) == n
-
-    def _X_view(self) -> np.ndarray:
-        if self._X is None:
-            self._X = np.load(self.x_path, mmap_mode="r")
-        return self._X
+        assert len(self.X) == len(self.y)
 
     def __len__(self) -> int:
         return len(self.y)
 
     def __getitem__(self, i: int):
-        x = np.array(self._X_view()[i], dtype=np.float32, copy=True)
+        x = np.array(self.X[i], dtype=np.float32, copy=True)
         if x.ndim == 3 and x.shape[0] == 1:
             x = x[0]
         return torch.from_numpy(x), torch.tensor(self.y[i], dtype=torch.long)
@@ -163,9 +146,10 @@ def materialize_time_pack(
     out_path: Path,
     *,
     dtype=np.float16,
-) -> Path:
+) -> np.ndarray:
     """
-    将全局下标对应的时域窗顺序写入磁盘 memmap，返回路径（供多进程 Dataset 打开）。
+    将全局下标对应的时域窗顺序写入磁盘 memmap，供折内随机采样。
+    避免对 10GiB 源文件做整 epoch 随机 IO（16GB 机易抖动）。
     """
     indices = np.asarray(indices, dtype=np.int64).reshape(-1)
     n = int(len(indices))
@@ -182,21 +166,15 @@ def materialize_time_pack(
         block = _squeeze_time_windows(np.array(X_src[idxs]))
         fp[s:e] = block.astype(dtype, copy=False)
     fp.flush()
-    del fp
-    return out_path
+    return fp
 
 
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
 def seed_everything(seed: int, *, cudnn_benchmark: bool = True) -> None:
-========
-def seed_everything(seed: int, *, cudnn_benchmark: bool = False, deterministic: bool = False) -> None:
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
     if cudnn_benchmark:
         torch.backends.cudnn.deterministic = False
         torch.backends.cudnn.benchmark = True
@@ -228,12 +206,6 @@ def _dataloader_kwargs(hp: SharedTrainHP) -> dict:
 
 def _use_amp(hp: SharedTrainHP, device: torch.device) -> bool:
     return bool(hp.use_amp and device.type == "cuda")
-========
-    configure_cuda_backends(
-        cudnn_benchmark=cudnn_benchmark,
-        deterministic=deterministic,
-    )
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
 
 
 def append_md(md_path: Path, text: str, out_root: Path, log_path: Path) -> None:
@@ -261,7 +233,6 @@ def log_line(log_path: Path, msg: str) -> None:
 
 
 @torch.no_grad()
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
 def eval_epoch(
     model: nn.Module,
     loader: DataLoader,
@@ -270,15 +241,11 @@ def eval_epoch(
     hp: SharedTrainHP,
 ) -> tuple[float, np.ndarray, np.ndarray]:
     """单次 forward：同时算 loss 与预测（避免验证扫两遍）。"""
-========
-def collect_preds(model: nn.Module, loader: DataLoader, device: torch.device, *, non_blocking: bool = True):
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
     model.eval()
     use_amp = _use_amp(hp, device)
     total, n = 0.0, 0
     ys, ps = [], []
     for x, y in loader:
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
         x, y = _to_device(x, y, device, hp)
         with torch.amp.autocast("cuda", enabled=use_amp):
             logits = model(x)
@@ -290,14 +257,6 @@ def collect_preds(model: nn.Module, loader: DataLoader, device: torch.device, *,
         ps.append(logits.argmax(dim=1).cpu().numpy())
         ys.append(y.cpu().numpy())
     return total / max(n, 1), np.concatenate(ys), np.concatenate(ps)
-========
-        logits = model(x.to(device, non_blocking=non_blocking))
-        if logits.ndim > 2:
-            logits = logits.reshape(logits.shape[0], -1)
-        ps.append(logits.argmax(dim=1).cpu().numpy())
-        ys.append(y.numpy())
-    return np.concatenate(ys), np.concatenate(ps)
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
 
 
 def run_epoch(
@@ -307,7 +266,6 @@ def run_epoch(
     optimizer,
     device,
     train: bool,
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
     hp: SharedTrainHP,
     scaler: torch.amp.GradScaler | None = None,
 ) -> float:
@@ -327,36 +285,6 @@ def run_epoch(
                 loss = criterion(logits, y)
             if train:
                 if scaler is not None:
-========
-    *,
-    non_blocking: bool = True,
-    use_amp: bool = False,
-    scaler: torch.cuda.amp.GradScaler | None = None,
-) -> float:
-    model.train(train)
-    total, n = 0.0, 0
-    amp_on = bool(use_amp) and device.type == "cuda"
-    ctx = torch.enable_grad() if train else torch.no_grad()
-    with ctx:
-        for x, y in loader:
-            x = x.to(device, non_blocking=non_blocking)
-            y = y.to(device, non_blocking=non_blocking)
-            if train:
-                optimizer.zero_grad(set_to_none=True)
-            if amp_on:
-                with torch.amp.autocast("cuda", enabled=True):
-                    logits = model(x)
-                    if logits.ndim > 2:
-                        logits = logits.reshape(logits.shape[0], -1)
-                    loss = criterion(logits, y)
-            else:
-                logits = model(x)
-                if logits.ndim > 2:
-                    logits = logits.reshape(logits.shape[0], -1)
-                loss = criterion(logits, y)
-            if train:
-                if amp_on and scaler is not None:
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
                     scaler.scale(loss).backward()
                     scaler.step(optimizer)
                     scaler.update()
@@ -377,24 +305,8 @@ def _indices_from_mask(mask: np.ndarray) -> np.ndarray:
     return np.flatnonzero(np.asarray(mask, dtype=bool)).astype(np.int64)
 
 
-def _make_ds(
-    X,
-    y,
-    indices: np.ndarray,
-    input_kind: str,
-    *,
-    x_path: str | None = None,
-) -> IndexArrayDataset:
-    return IndexArrayDataset(X, y, indices, input_kind=input_kind, x_path=x_path)
-
-
-def _loader_kwargs(hp: SharedTrainHP) -> dict:
-    return dict(
-        num_workers=hp.num_workers,
-        pin_memory=hp.pin_memory,
-        persistent_workers=hp.persistent_workers,
-        prefetch_factor=hp.prefetch_factor,
-    )
+def _make_ds(X, y, indices: np.ndarray, input_kind: str) -> IndexArrayDataset:
+    return IndexArrayDataset(X, y, indices, input_kind=input_kind)
 
 
 def _eval_split(
@@ -409,53 +321,32 @@ def _eval_split(
     *,
     input_kind: str,
     n_classes: int,
-    packed_path: Path | None = None,
+    packed_X: np.ndarray | None = None,
     packed_indices: np.ndarray | None = None,
-    x_path: str | None = None,
 ) -> tuple[dict, dict, float]:
     """返回 (trial_metrics, window_metrics, val_loss)。shuffle=False 保证与 subjects/trial_ids 对齐。"""
-    if packed_path is not None:
+    if packed_X is not None:
         assert packed_indices is not None
         indices = np.asarray(packed_indices, dtype=np.int64)
         subs, tids = subjects[indices], trial_ids[indices]
         y_pack = y[indices]
-        loader = make_loader(
-            PackedArrayDataset(y_pack, x_path=packed_path),
+        loader = DataLoader(
+            PackedArrayDataset(packed_X, y_pack),
             batch_size=hp.batch_eval,
             shuffle=False,
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
             **_dataloader_kwargs(hp),
-========
-            **_loader_kwargs(hp),
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
         )
     else:
         indices = _indices_from_mask(mask)
         subs, tids = subjects[indices], trial_ids[indices]
-        loader = make_loader(
-            _make_ds(X, y, indices, input_kind, x_path=x_path),
+        loader = DataLoader(
+            _make_ds(X, y, indices, input_kind),
             batch_size=hp.batch_eval,
             shuffle=False,
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
             **_dataloader_kwargs(hp),
         )
     criterion = nn.CrossEntropyLoss()
     va_loss, yt, yp = eval_epoch(model, loader, criterion, device, hp)
-========
-            **_loader_kwargs(hp),
-        )
-    loss = run_epoch(
-        model,
-        loader,
-        nn.CrossEntropyLoss(),
-        None,
-        device,
-        False,
-        non_blocking=hp.non_blocking,
-        use_amp=hp.use_amp,
-    )
-    yt, yp = collect_preds(model, loader, device, non_blocking=hp.non_blocking)
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
     assert len(yt) == len(subs) == len(tids)
     trial = aggregate_windows_to_trials(yt, yp, subs, tids, n_classes=n_classes)
     if n_classes == 2:
@@ -481,7 +372,6 @@ def train_one_fold(
     n_outputs: int,
     ckpt_name: str,
     stage_tag: str,
-    x_path: str | None = None,
 ) -> dict:
     fold = fold_info["fold"]
     masks = fold_info["masks"]
@@ -516,50 +406,39 @@ def train_one_fold(
     tr_idx = _indices_from_mask(masks["train"])
     y_tr = y[tr_idx]
     cache_paths: list[Path] = []
-    pack_tr_path: Path | None = None
-    pack_va_path: Path | None = None
+    X_tr_pack = None
+    X_va_pack = None
     try:
         va_idx = _indices_from_mask(masks["val"])
         if input_kind == "feat":
-            train_ds: Dataset = _make_ds(X, y, tr_idx, input_kind, x_path=x_path)
+            train_ds: Dataset = _make_ds(X, y, tr_idx, input_kind)
         else:
-            pack_tr_path = fold_dir / "_cache_train_X.npy"
-            pack_va_path = fold_dir / "_cache_val_X.npy"
+            pack_tr = fold_dir / "_cache_train_X.npy"
+            pack_va = fold_dir / "_cache_val_X.npy"
             print(
                 f"  packing train/val windows → float16 "
                 f"(n={len(tr_idx)}/{len(va_idx)}) …",
                 flush=True,
             )
-            pack_tr_path = materialize_time_pack(X, tr_idx, pack_tr_path)
-            pack_va_path = materialize_time_pack(X, va_idx, pack_va_path)
-            cache_paths.extend([pack_tr_path, pack_va_path])
-            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path)
+            X_tr_pack = materialize_time_pack(X, tr_idx, pack_tr)
+            X_va_pack = materialize_time_pack(X, va_idx, pack_va)
+            cache_paths.extend([pack_tr, pack_va])
+            train_ds = PackedArrayDataset(X_tr_pack, y_tr)
             print(
-                f"  pack done train={pack_tr_path.name} val={pack_va_path.name}",
+                f"  pack done train={tuple(X_tr_pack.shape)} val={tuple(X_va_pack.shape)}",
                 flush=True,
             )
 
-        train_loader = make_loader(
+        train_loader = DataLoader(
             train_ds,
             batch_size=hp.batch_train,
             sampler=make_balanced_sampler(
                 y_tr, n_classes=n_classes, generator=g
             ),
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
             **_dataloader_kwargs(hp),
         )
 
         seed_everything(hp.seed + fold, cudnn_benchmark=hp.cudnn_benchmark)
-========
-            **_loader_kwargs(hp),
-        )
-
-        seed_everything(
-            hp.seed + fold,
-            cudnn_benchmark=hp.cudnn_benchmark,
-            deterministic=hp.deterministic,
-        )
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
         # time: (N,1,8,T) → T；feat: (N,8,n_band) → n_band
         n_times = int(X.shape[-1])
         model = build_model(8, n_times, n_outputs, hp.drop_prob).to(device)
@@ -567,20 +446,11 @@ def train_one_fold(
         optimizer = torch.optim.Adam(
             model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay
         )
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
         scaler = (
             torch.amp.GradScaler("cuda")
             if _use_amp(hp, device)
             else None
         )
-========
-        scaler = None
-        if hp.use_amp and device.type == "cuda":
-            try:
-                scaler = torch.amp.GradScaler("cuda")
-            except (TypeError, AttributeError):
-                scaler = torch.cuda.amp.GradScaler()
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
 
         best_score, best_state, best_ep = -1.0, None, 0
         best_val_loss = float("inf")
@@ -590,19 +460,7 @@ def train_one_fold(
 
         for ep in range(1, hp.max_epochs + 1):
             tr = run_epoch(
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
                 model, train_loader, criterion, optimizer, device, True, hp, scaler
-========
-                model,
-                train_loader,
-                criterion,
-                optimizer,
-                device,
-                True,
-                non_blocking=hp.non_blocking,
-                use_amp=hp.use_amp,
-                scaler=scaler,
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
             )
             val_trial, val_win, va_loss = _eval_split(
                 model,
@@ -615,9 +473,8 @@ def train_one_fold(
                 hp,
                 input_kind=input_kind,
                 n_classes=n_classes,
-                packed_path=pack_va_path if input_kind != "feat" else None,
+                packed_X=X_va_pack if input_kind != "feat" else None,
                 packed_indices=va_idx if input_kind != "feat" else None,
-                x_path=x_path if input_kind == "feat" else None,
             )
             score = float(val_trial["acc_paper"])
             bal_maj = float(val_trial["balanced_accuracy"])
@@ -673,7 +530,6 @@ def train_one_fold(
             hp,
             input_kind=input_kind,
             n_classes=n_classes,
-            x_path=x_path,
         )
         if n_classes == 2:
             print(
@@ -702,7 +558,7 @@ def train_one_fold(
             "test_window_metrics": te_win,
         }
     finally:
-        # Windows：先释放 Dataset/Loader 再删缓存，避免文件锁
+        # Windows：须先关掉 memmap 句柄才能删缓存文件
         try:
             del train_loader  # type: ignore[name-defined]
         except Exception:
@@ -711,9 +567,17 @@ def train_one_fold(
             del train_ds  # type: ignore[name-defined]
         except Exception:
             pass
-        import gc
-
-        gc.collect()
+        for pack in (X_tr_pack, X_va_pack):
+            if pack is None:
+                continue
+            try:
+                mmap = getattr(pack, "_mmap", None)
+                if mmap is not None:
+                    mmap.close()
+            except Exception:
+                pass
+        X_tr_pack = None
+        X_va_pack = None
         for p in cache_paths:
             try:
                 if p.is_file():
@@ -740,7 +604,6 @@ def run_kfold(
     stage_tag: str,
     task_key: str,
     extra_meta: dict | None = None,
-    x_path: str | None = None,
 ) -> dict:
     out_dir.mkdir(parents=True, exist_ok=True)
     folds = []
@@ -763,7 +626,6 @@ def run_kfold(
                 n_outputs=n_outputs,
                 ckpt_name=ckpt_name,
                 stage_tag=stage_tag,
-                x_path=x_path,
             )
         )
 
@@ -865,15 +727,9 @@ def run_baseline_main(
         default=0,
         help=">0 时覆盖默认 patience（冒烟）",
     )
-    p.add_argument("--num-workers", type=int, default=-1, help=">=0 覆盖 DataLoader workers")
-    p.add_argument("--batch-train", type=int, default=0, help=">0 覆盖 batch_train")
-    p.add_argument("--batch-eval", type=int, default=0, help=">0 覆盖 batch_eval")
-    p.add_argument("--no-amp", action="store_true", help="关闭 CUDA AMP")
-    p.add_argument("--deterministic", action="store_true", help="关 cudnn.benchmark，偏复现")
     args = p.parse_args()
 
     hp = SHARED
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
     if args.max_epochs > 0 or args.patience > 0:
         hp = replace(
             hp,
@@ -881,39 +737,11 @@ def run_baseline_main(
             patience=args.patience if args.patience > 0 else hp.patience,
         )
     seed_everything(hp.seed, cudnn_benchmark=hp.cudnn_benchmark)
-========
-    repl: dict = {}
-    if args.max_epochs > 0:
-        repl["max_epochs"] = args.max_epochs
-    if args.patience > 0:
-        repl["patience"] = args.patience
-    if args.num_workers >= 0:
-        repl["num_workers"] = args.num_workers
-    if args.batch_train > 0:
-        repl["batch_train"] = args.batch_train
-    if args.batch_eval > 0:
-        repl["batch_eval"] = args.batch_eval
-    if args.no_amp:
-        repl["use_amp"] = False
-    if args.deterministic:
-        repl["deterministic"] = True
-        repl["cudnn_benchmark"] = False
-    if repl:
-        hp = replace(hp, **repl)
-
-    apply_runtime_threads(hp.torch_num_threads)
-    seed_everything(
-        hp.seed,
-        cudnn_benchmark=hp.cudnn_benchmark,
-        deterministic=hp.deterministic,
-    )
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
     data_tag = args.data
     data_dir, prefix = resolve_data(data_tag)
 
-    x_npy = data_dir / f"{prefix}_X.npy"
-    # OpenBMI X 较大：必须 mmap；标签/被试键可常驻内存
-    X = np.load(x_npy, mmap_mode="r")
+    # OpenBMI 合并 X ~10 GiB：必须 mmap；标签/被试键可常驻内存
+    X = np.load(data_dir / f"{prefix}_X.npy", mmap_mode="r")
     y_task = np.load(data_dir / f"{prefix}_y_task.npy")
     y_three = np.load(data_dir / f"{prefix}_y_three.npy")
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
@@ -931,9 +759,7 @@ def run_baseline_main(
             "python -m src.datasets.openbmi.batch_2s_hop100"
             "（或 --subjects 01,02,... 子集后再训）。"
         )
-    x_path: str | None = str(x_npy)
     if prepare_X is not None:
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
         from raw_time_openbmi import squeeze_raw_2s as _squeeze_openbmi
 
         if prepare_X is _squeeze_openbmi or getattr(prepare_X, "__name__", "") == "squeeze_raw_2s":
@@ -949,22 +775,8 @@ def run_baseline_main(
             print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
             X = prepare_X(X)
         print(f"[load] prepare_X done → X{tuple(X.shape)}", flush=True)
-========
-        # bandpower → 小阵常驻；raw squeeze → float16 mmap（保留 filename 供 worker）
-        print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
-        X = prepare_X(X)
-        fn = getattr(X, "filename", None)
-        x_path = str(fn) if fn else None
-        print(f"[load] prepare_X done → X{tuple(X.shape)} x_path={x_path}", flush=True)
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    print(
-        f"[perf] device={device} workers={hp.num_workers} "
-        f"batch={hp.batch_train}/{hp.batch_eval} amp={hp.use_amp} "
-        f"cudnn_benchmark={hp.cudnn_benchmark} threads={hp.torch_num_threads}",
-        flush=True,
-    )
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_name = f"{model_name}_openbmi_2s_hop100_balbatch_accpaper"
     out_root = (
@@ -1025,7 +837,6 @@ def run_baseline_main(
                     n_outputs=kwargs["n_outputs"],
                     ckpt_name=kwargs["ckpt_name"],
                     stage_tag=kwargs["stage_tag"],
-                    x_path=kwargs.get("x_path"),
                 )
             )
         # rebuild summary like run_kfold
@@ -1088,12 +899,8 @@ def run_baseline_main(
                 "",
                 f"- 开始：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/task_runner.py
                 f"- 训练设备：**{TRAIN_DEVICE_LABEL}**（{TRAIN_DEVICE_NOTE}）",
                 f"- data：`{data_dir}`（OpenBMI hop100 · 仅 EEG_MI_train）",
-========
-                f"- data：`{data_dir}`（**仅 OpenBMI / hop100**；blocks=EEG_MI_train）",
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/task_runner.py
                 f"- protocol：`{hp.protocol}` | early_stop=**Acc_paper** | **balbatch** | no_rap",
                 f"- 读数口径：`Tw=2s hop=100ms openbmi_sess01+02 subject_key=openbmi:subjNN early_stop=val_acc_paper select=test_acc_paper balbatch patience={hp.patience}`",
                 f"- model：`{model_name}` | {structure_note}",
@@ -1125,7 +932,6 @@ def run_baseline_main(
         build_model=build_model,
         input_kind=input_kind,
         extra_meta=extra_meta,
-        x_path=x_path,
     )
 
     sum_task = run_kfold_limited(

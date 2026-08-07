@@ -1,8 +1,4 @@
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/model_registry.py
-"""本包全 11 模型（与 baselines_2s_hop100_accpaper 同名单）。"""
-========
 """本包十一模型（与 03 Acc_paper / hop100 同名单，含 *_raw）。"""
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/model_registry.py
 
 from __future__ import annotations
 
@@ -25,15 +21,9 @@ MODEL_SPEC: dict[str, tuple[str, str | None]] = {
     "gcbnet": ("feat", "bandpower"),
     "dgcnn": ("feat", "bandpower"),
     "dbn": ("feat", "bandpower"),
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/model_registry.py
-    "dbn_raw": ("feat", "squeeze"),
-    "gcbnet_raw": ("feat", "squeeze"),
-    "dgcnn_raw": ("feat", "squeeze"),
-========
     "dbn_raw": ("feat", "raw"),
     "gcbnet_raw": ("feat", "raw"),
     "dgcnn_raw": ("feat", "raw"),
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/model_registry.py
 }
 
 ALL_MODELS = tuple(MODEL_SPEC.keys())
@@ -59,17 +49,10 @@ def get_prepare_X(name: str) -> Callable[[np.ndarray], np.ndarray] | None:
         from feat_bandpower import raw_to_bandpower
 
         return raw_to_bandpower
-<<<<<<<< HEAD:code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/model_registry.py
-    if kind == "squeeze":
-        from raw_time_openbmi import squeeze_raw_2s
-
-        return squeeze_raw_2s
-========
     if kind == "raw":
         from raw_time_openbmi import squeeze_raw_2s_openbmi
 
         return squeeze_raw_2s_openbmi
->>>>>>>> d4bcbfd (Rename OpenBMI Acc_paper package for 5060, add MI feature analysis and experiment records.):code/train_lab/src/step/baselines5060_openbmi_2s_hop100_accpaper/model_registry.py
     raise ValueError(kind)
 
 
