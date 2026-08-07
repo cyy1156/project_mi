@@ -82,25 +82,20 @@ def load_openbmi_mat(mat_path: Path | str) -> list[ContinuousEEG]:
     """
     读取单个 OpenBMI MI mat。
 
-    返回 list[ContinuousEEG]：通常为 [EEG_MI_train, EEG_MI_test] 两段连续流。
-    subject 字段 = openbmi:subjNN（方案 A，与 sess 无关）。
+    方案 §1.2：仅 ``EEG_MI_train``；不读 ``EEG_MI_test``。
+    返回 list[ContinuousEEG]（长度 1）；subject = openbmi:subjNN（方案 A）。
     """
     mat_path = Path(mat_path)
     sess, subj = parse_sess_subj(mat_path)
     subject = subject_key(subj)
     raw = loadmat(mat_path, squeeze_me=True, struct_as_record=False)
-    runs: list[ContinuousEEG] = []
-    for name in ("EEG_MI_train", "EEG_MI_test"):
-        if name not in raw:
-            continue
-        runs.append(
-            _block_to_eeg(
-                raw[name],
-                subject=subject,
-                session=sess,
-                block_name=name,
-            )
+    if "EEG_MI_train" not in raw:
+        raise KeyError(f"{mat_path.name}: 缺少 EEG_MI_train")
+    return [
+        _block_to_eeg(
+            raw["EEG_MI_train"],
+            subject=subject,
+            session=sess,
+            block_name="EEG_MI_train",
         )
-    if not runs:
-        raise KeyError(f"{mat_path.name}: 缺少 EEG_MI_train / EEG_MI_test")
-    return runs
+    ]

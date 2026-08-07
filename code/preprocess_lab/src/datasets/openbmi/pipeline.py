@@ -113,7 +113,7 @@ def preprocess_file_2s_hop100(
     *,
     add_rest: bool = True,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
-    """单 mat（可含 train/test 两段）→ 合并窗；subjects 全为 openbmi:subjNN。"""
+    """单 mat（仅 EEG_MI_train 块）→ 切窗；subjects 全为 openbmi:subjNN。"""
     mat_path = Path(mat_path)
     runs = load_openbmi_mat(mat_path)
     xs, yts, y3s, tids, sids = [], [], [], [], []
