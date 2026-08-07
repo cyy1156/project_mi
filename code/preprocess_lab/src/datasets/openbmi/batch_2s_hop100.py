@@ -260,6 +260,8 @@ def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> No
         "fs_out": 250,
         "task": "cue_0_to_4s",
         "rest": "cue_before_4s",
+        "source_blocks": ["EEG_MI_train"],
+        "excluded_blocks": ["EEG_MI_test"],
         "label_map": {"left": 1, "right": 2, "rest": 0},
         "merge": "memmap",
     }

@@ -3,7 +3,9 @@
 dataset: openbmi
 loader: load_openbmi_mat
 
-data_glob: "D:/cyy/MI/DATA/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+data_glob: "DATA/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+source_blocks: [EEG_MI_train]
+exclude_blocks: [EEG_MI_test]
 
 subject_from: openbmi_subj  # 由 batch 从文件名解析，不走 stem3
 

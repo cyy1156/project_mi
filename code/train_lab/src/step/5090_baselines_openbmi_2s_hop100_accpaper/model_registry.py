@@ -1,4 +1,4 @@
-"""本包仅 Task Acc_paper Top-8（不含 *_raw）。"""
+"""本包全 11 模型（与 baselines_2s_hop100_accpaper 同名单）。"""
 
 from __future__ import annotations
 
@@ -21,6 +21,9 @@ MODEL_SPEC: dict[str, tuple[str, str | None]] = {
     "gcbnet": ("feat", "bandpower"),
     "dgcnn": ("feat", "bandpower"),
     "dbn": ("feat", "bandpower"),
+    "dbn_raw": ("feat", "squeeze"),
+    "gcbnet_raw": ("feat", "squeeze"),
+    "dgcnn_raw": ("feat", "squeeze"),
 }
 
 ALL_MODELS = tuple(MODEL_SPEC.keys())
@@ -47,6 +50,10 @@ def get_prepare_X(name: str) -> Callable[[np.ndarray], np.ndarray] | None:
         from feat_bandpower import raw_to_bandpower
 
         return raw_to_bandpower
+    if kind == "squeeze":
+        from raw_time_openbmi import squeeze_raw_2s
+
+        return squeeze_raw_2s
     raise ValueError(kind)
 
 

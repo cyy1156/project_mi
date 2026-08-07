@@ -1,4 +1,4 @@
-"""串跑 OpenBMI Acc_paper Top-8。
+"""串跑 OpenBMI Acc_paper 全 11 模型。
 
 用法：
   python run_all.py
@@ -16,14 +16,17 @@ from pathlib import Path
 DIR = Path(__file__).resolve().parent
 
 ALL_MODELS = (
-    "shallow",
-    "deep",
-    "conformer",
-    "eegnet",
-    "eegtcnet",
+    #"shallow",
+    #"deep",
+    #"conformer",
+    #"eegnet",
+    #"eegtcnet",
     "gcbnet",
     "dgcnn",
     "dbn",
+    "dbn_raw",
+    "gcbnet_raw",
+    "dgcnn_raw",
 )
 
 

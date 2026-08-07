@@ -34,7 +34,27 @@ if _here in sys.path:
     sys.path.remove(_here)
 sys.path.insert(0, _here)
 
-from shared_hparams import SHARED, SharedTrainHP
+
+def _ensure_local_module(name: str) -> None:
+    """load_external 可能把 hop100/single 的同名模块留在 sys.modules，须强制用本包版本。"""
+    want = (HERE / f"{name}.py").resolve()
+    mod = sys.modules.get(name)
+    if mod is None:
+        return
+    got = getattr(mod, "__file__", None)
+    if got is None or Path(got).resolve() != want:
+        del sys.modules[name]
+
+
+_ensure_local_module("shared_hparams")
+_ensure_local_module("md_fold_detail")
+from shared_hparams import (
+    OUT_ROOT_TAG,
+    SHARED,
+    TRAIN_DEVICE_LABEL,
+    TRAIN_DEVICE_NOTE,
+    SharedTrainHP,
+)
 from md_fold_detail import task_fold_md_lines, three_fold_md_lines
 from trial_metrics import aggregate_windows_to_trials
 from data_paths import resolve_data
@@ -149,14 +169,43 @@ def materialize_time_pack(
     return fp
 
 
-def seed_everything(seed: int) -> None:
+def seed_everything(seed: int, *, cudnn_benchmark: bool = True) -> None:
     random.seed(seed)
     os.environ["PYTHONHASHSEED"] = str(seed)
     np.random.seed(seed)
     torch.manual_seed(seed)
     torch.cuda.manual_seed_all(seed)
-    torch.backends.cudnn.deterministic = True
-    torch.backends.cudnn.benchmark = False
+    if cudnn_benchmark:
+        torch.backends.cudnn.deterministic = False
+        torch.backends.cudnn.benchmark = True
+    else:
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+
+
+def _cuda_ready() -> bool:
+    return torch.cuda.is_available()
+
+
+def _to_device(x, y, device: torch.device, hp: SharedTrainHP):
+    nb = hp.non_blocking and _cuda_ready() and device.type == "cuda"
+    return x.to(device, non_blocking=nb), y.to(device, non_blocking=nb)
+
+
+def _dataloader_kwargs(hp: SharedTrainHP) -> dict:
+    nw = int(hp.num_workers)
+    kw: dict = {"num_workers": nw}
+    if nw > 0:
+        kw["pin_memory"] = bool(hp.pin_memory and _cuda_ready())
+        if hp.persistent_workers:
+            kw["persistent_workers"] = True
+    else:
+        kw["pin_memory"] = False
+    return kw
+
+
+def _use_amp(hp: SharedTrainHP, device: torch.device) -> bool:
+    return bool(hp.use_amp and device.type == "cuda")
 
 
 def append_md(md_path: Path, text: str, out_root: Path, log_path: Path) -> None:
@@ -184,34 +233,64 @@ def log_line(log_path: Path, msg: str) -> None:
 
 
 @torch.no_grad()
-def collect_preds(model: nn.Module, loader: DataLoader, device: torch.device):
+def eval_epoch(
+    model: nn.Module,
+    loader: DataLoader,
+    criterion: nn.Module,
+    device: torch.device,
+    hp: SharedTrainHP,
+) -> tuple[float, np.ndarray, np.ndarray]:
+    """单次 forward：同时算 loss 与预测（避免验证扫两遍）。"""
     model.eval()
+    use_amp = _use_amp(hp, device)
+    total, n = 0.0, 0
     ys, ps = [], []
     for x, y in loader:
-        logits = model(x.to(device))
-        if logits.ndim > 2:
-            logits = logits.reshape(logits.shape[0], -1)
-        ps.append(logits.argmax(dim=1).cpu().numpy())
-        ys.append(y.numpy())
-    return np.concatenate(ys), np.concatenate(ps)
-
-
-def run_epoch(model, loader, criterion, optimizer, device, train: bool) -> float:
-    model.train(train)
-    total, n = 0.0, 0
-    ctx = torch.enable_grad() if train else torch.no_grad()
-    with ctx:
-        for x, y in loader:
-            x, y = x.to(device), y.to(device)
-            if train:
-                optimizer.zero_grad()
+        x, y = _to_device(x, y, device, hp)
+        with torch.amp.autocast("cuda", enabled=use_amp):
             logits = model(x)
             if logits.ndim > 2:
                 logits = logits.reshape(logits.shape[0], -1)
             loss = criterion(logits, y)
+        total += loss.item() * x.size(0)
+        n += x.size(0)
+        ps.append(logits.argmax(dim=1).cpu().numpy())
+        ys.append(y.cpu().numpy())
+    return total / max(n, 1), np.concatenate(ys), np.concatenate(ps)
+
+
+def run_epoch(
+    model,
+    loader,
+    criterion,
+    optimizer,
+    device,
+    train: bool,
+    hp: SharedTrainHP,
+    scaler: torch.amp.GradScaler | None = None,
+) -> float:
+    model.train(train)
+    use_amp = _use_amp(hp, device)
+    total, n = 0.0, 0
+    ctx = torch.enable_grad() if train else torch.no_grad()
+    with ctx:
+        for x, y in loader:
+            x, y = _to_device(x, y, device, hp)
             if train:
-                loss.backward()
-                optimizer.step()
+                optimizer.zero_grad(set_to_none=True)
+            with torch.amp.autocast("cuda", enabled=use_amp):
+                logits = model(x)
+                if logits.ndim > 2:
+                    logits = logits.reshape(logits.shape[0], -1)
+                loss = criterion(logits, y)
+            if train:
+                if scaler is not None:
+                    scaler.scale(loss).backward()
+                    scaler.step(optimizer)
+                    scaler.update()
+                else:
+                    loss.backward()
+                    optimizer.step()
             total += loss.item() * x.size(0)
             n += x.size(0)
     return total / max(n, 1)
@@ -255,7 +334,7 @@ def _eval_split(
             PackedArrayDataset(packed_X, y_pack),
             batch_size=hp.batch_eval,
             shuffle=False,
-            num_workers=0,
+            **_dataloader_kwargs(hp),
         )
     else:
         indices = _indices_from_mask(mask)
@@ -264,17 +343,17 @@ def _eval_split(
             _make_ds(X, y, indices, input_kind),
             batch_size=hp.batch_eval,
             shuffle=False,
-            num_workers=0,
+            **_dataloader_kwargs(hp),
         )
-    loss = run_epoch(model, loader, nn.CrossEntropyLoss(), None, device, False)
-    yt, yp = collect_preds(model, loader, device)
+    criterion = nn.CrossEntropyLoss()
+    va_loss, yt, yp = eval_epoch(model, loader, criterion, device, hp)
     assert len(yt) == len(subs) == len(tids)
     trial = aggregate_windows_to_trials(yt, yp, subs, tids, n_classes=n_classes)
     if n_classes == 2:
         win_m = jsonify_metrics(binary_task_metrics(yt, yp))
     else:
         win_m = jsonify_metrics(three_class_metrics(yt, yp))
-    return trial["metrics"], win_m, float(loss)
+    return trial["metrics"], win_m, float(va_loss)
 
 
 def train_one_fold(
@@ -356,16 +435,21 @@ def train_one_fold(
             sampler=make_balanced_sampler(
                 y_tr, n_classes=n_classes, generator=g
             ),
-            num_workers=0,
+            **_dataloader_kwargs(hp),
         )
 
-        seed_everything(hp.seed + fold)
+        seed_everything(hp.seed + fold, cudnn_benchmark=hp.cudnn_benchmark)
         # time: (N,1,8,T) → T；feat: (N,8,n_band) → n_band
         n_times = int(X.shape[-1])
         model = build_model(8, n_times, n_outputs, hp.drop_prob).to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(
             model.parameters(), lr=hp.lr, weight_decay=hp.weight_decay
+        )
+        scaler = (
+            torch.amp.GradScaler("cuda")
+            if _use_amp(hp, device)
+            else None
         )
 
         best_score, best_state, best_ep = -1.0, None, 0
@@ -375,7 +459,9 @@ def train_one_fold(
         bad, ep = 0, 0
 
         for ep in range(1, hp.max_epochs + 1):
-            tr = run_epoch(model, train_loader, criterion, optimizer, device, True)
+            tr = run_epoch(
+                model, train_loader, criterion, optimizer, device, True, hp, scaler
+            )
             val_trial, val_win, va_loss = _eval_split(
                 model,
                 X,
@@ -650,7 +736,7 @@ def run_baseline_main(
             max_epochs=args.max_epochs if args.max_epochs > 0 else hp.max_epochs,
             patience=args.patience if args.patience > 0 else hp.patience,
         )
-    seed_everything(hp.seed)
+    seed_everything(hp.seed, cudnn_benchmark=hp.cudnn_benchmark)
     data_tag = args.data
     data_dir, prefix = resolve_data(data_tag)
 
@@ -674,9 +760,20 @@ def run_baseline_main(
             "（或 --subjects 01,02,... 子集后再训）。"
         )
     if prepare_X is not None:
-        # bandpower 等：分块读 mmap → 产出小特征阵（约几十 MB），勿整表拷贝 raw
-        print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
-        X = prepare_X(X)
+        from raw_time_openbmi import squeeze_raw_2s as _squeeze_openbmi
+
+        if prepare_X is _squeeze_openbmi or getattr(prepare_X, "__name__", "") == "squeeze_raw_2s":
+            cache = data_dir / f"{prefix}_X_squeeze_8x500.npy"
+            print(
+                f"[load] squeeze_raw_2s mmap cache → {cache} "
+                f"(source X{tuple(X.shape)}) …",
+                flush=True,
+            )
+            X = _squeeze_openbmi(X, cache_path=cache)
+        else:
+            # bandpower 等：分块读 mmap → 产出小特征阵（约几十 MB），勿整表拷贝 raw
+            print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
+            X = prepare_X(X)
         print(f"[load] prepare_X done → X{tuple(X.shape)}", flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -685,13 +782,23 @@ def run_baseline_main(
     out_root = (
         TRAIN_LAB
         / "out"
-        / "baseline_openbmi_2s_hop100_accpaper"
+        / OUT_ROOT_TAG
         / out_name
         / data_tag
         / f"run_{stamp}"
     )
     out_root.mkdir(parents=True, exist_ok=True)
     log_path = out_root / "run.log"
+    device_meta = {
+        "gpu": TRAIN_DEVICE_LABEL,
+        "note": TRAIN_DEVICE_NOTE,
+        "conda_env": "cyy",
+        "pytorch": "2.11.0+cu128",
+        "marked_at": datetime.now().isoformat(timespec="seconds"),
+    }
+    (out_root / "DEVICE.json").write_text(
+        json.dumps(device_meta, indent=2, ensure_ascii=False), encoding="utf-8"
+    )
     records_root = REPO_ROOT / "资料" / "模型训练"
     md_path = records_root / "runs" / f"{stamp}_{out_name}" / f"{out_name}五折实验记录.md"
 
@@ -792,7 +899,8 @@ def run_baseline_main(
                 "",
                 f"- 开始：`{datetime.now().isoformat(timespec='seconds')}`",
                 f"- device：`{device}`",
-                f"- data：`{data_dir}`（**仅 BCI2a T / hop100**；不用 E）",
+                f"- 训练设备：**{TRAIN_DEVICE_LABEL}**（{TRAIN_DEVICE_NOTE}）",
+                f"- data：`{data_dir}`（OpenBMI hop100 · 仅 EEG_MI_train）",
                 f"- protocol：`{hp.protocol}` | early_stop=**Acc_paper** | **balbatch** | no_rap",
                 f"- 读数口径：`Tw=2s hop=100ms openbmi_sess01+02 subject_key=openbmi:subjNN early_stop=val_acc_paper select=test_acc_paper balbatch patience={hp.patience}`",
                 f"- model：`{model_name}` | {structure_note}",
@@ -807,7 +915,11 @@ def run_baseline_main(
         out_root,
         log_path,
     )
-    log_line(log_path, f"start model={out_name} data={data_tag} device={device}")
+    log_line(
+        log_path,
+        f"start model={out_name} data={data_tag} device={device} "
+        f"workers={hp.num_workers} amp={hp.use_amp} cudnn_benchmark={hp.cudnn_benchmark}",
+    )
 
     common = dict(
         X=X,
@@ -900,6 +1012,9 @@ def run_baseline_main(
         "protocol": hp.protocol,
         "early_stop": "acc_paper",
         "balbatch": True,
+        "train_device": TRAIN_DEVICE_LABEL,
+        "train_device_note": TRAIN_DEVICE_NOTE,
+        "out_root_tag": OUT_ROOT_TAG,
         "task": sum_task,
         "three": sum_three,
     }

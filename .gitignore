@@ -28,6 +28,10 @@ Thumbs.db
 
 # Local outputs / plots (allow curated epoch .npy below)
 **/out/
+!code/train_lab/out/
+code/train_lab/out/*
+!code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/
+!code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/**
 *.png
 *.npy
 !experiment_game/data/epochs/**/*.npy

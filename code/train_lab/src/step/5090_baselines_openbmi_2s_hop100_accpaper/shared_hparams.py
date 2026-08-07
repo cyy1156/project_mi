@@ -1,8 +1,12 @@
-"""OpenBMI Acc_paper：Val Acc_paper 早停；balbatch；patience=20；Task Top-8。"""
+"""OpenBMI Acc_paper：Val Acc_paper 早停；balbatch；patience=20；全 11 模型（RTX 5090）。"""
 
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+
+TRAIN_DEVICE_LABEL = "NVIDIA RTX 5090"
+TRAIN_DEVICE_NOTE = "32GB · sm_120 · conda cyy · PyTorch 2.11+cu128"
+OUT_ROOT_TAG = "5090_baseline_openbmi_2s_hop100_accpaper"
 
 
 @dataclass(frozen=True)
@@ -28,6 +32,14 @@ class SharedTrainHP:
     no_rap: bool = True
     no_balbatch: bool = False
     openbmi_only: bool = True
+    # GPU / DataLoader（Windows 建议 num_workers=4；双项目同机可改为 2）
+    num_workers: int = 2
+    pin_memory: bool = True
+    persistent_workers: bool = True
+    non_blocking: bool = True
+    use_amp: bool = True
+    cudnn_benchmark: bool = False
+    gpu_memory_fraction: float = 1  # 双任务；独占 GPU 时改为 1.0
 
 
 SHARED = SharedTrainHP()
