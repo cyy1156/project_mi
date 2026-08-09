@@ -58,9 +58,9 @@ def file_fingerprint(path: Path) -> dict:
     }
 
 
-def load_manifest(path: Path) -> dict:
+def load_manifest(path: Path, *, protocol: str = "openbmi_2s_hop100") -> dict:
     if not path.exists():
-        return {"version": 1, "protocol": "openbmi_2s_hop100", "files": {}}
+        return {"version": 1, "protocol": protocol, "files": {}}
     with path.open("r", encoding="utf-8") as f:
         return json.load(f)
 
@@ -104,7 +104,14 @@ def load_shard(out_dir: Path, fid: str) -> dict[str, np.ndarray] | None:
     }
 
 
-def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> None:
+def merge_shards(
+    out_dir: Path,
+    *,
+    val_ratio: float = 0.2,
+    seed: int = 42,
+    protocol: str = "openbmi_2s_hop100",
+    zscore: bool = True,
+) -> None:
     """内存友好合并：先统计 N，再写入 memmap，避免一次性装入全部 shard。"""
     out_dir = Path(out_dir)
     man = load_manifest(out_dir / "manifest.json")
@@ -226,7 +233,8 @@ def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> No
         p.unlink(missing_ok=True)
 
     meta = {
-        "protocol": "openbmi_2s_hop100",
+        "protocol": protocol,
+        "zscore": bool(zscore),
         "blocks": ["EEG_MI_train"],
         "blocks_note": "train-only；不含官方 EEG_MI_test",
         "subject_key": "openbmi:subjNN (sess01+sess02 same person)",
@@ -260,10 +268,12 @@ def run_batch(
     merge: bool = True,
     subjects: list[str] | None = None,
     sessions: list[str] | None = None,
+    zscore: bool = True,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "manifest.json"
+    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
 
     if reset:
         sd = out_dir / "shards"
@@ -279,7 +289,8 @@ def run_batch(
             p.unlink(missing_ok=True)
         print("已重置", out_dir)
 
-    manifest = load_manifest(manifest_path)
+    manifest = load_manifest(manifest_path, protocol=protocol)
+    manifest["protocol"] = protocol
     files = [Path(p) for p in glob.glob(data_glob)]
     if subjects is not None:
         allow = {f"{int(s):02d}" for s in subjects}
@@ -309,7 +320,7 @@ def run_batch(
         raise FileNotFoundError(f"没有匹配到数据文件: {data_glob}")
     if limit is not None:
         files = files[: int(limit)]
-    print(f"[openbmi_2s_hop100] 候选 {len(files)} 个文件 → {out_dir}")
+    print(f"[{protocol}] 候选 {len(files)} 个文件 → {out_dir} zscore={zscore}")
 
     n_ok = n_skip = n_empty = n_fail = 0
     for fpath in files:
@@ -323,7 +334,9 @@ def run_batch(
             continue
 
         try:
-            X, yt, y3, sid, tid, stats = preprocess_file_2s_hop100(fpath)
+            X, yt, y3, sid, tid, stats = preprocess_file_2s_hop100(
+                fpath, zscore=zscore
+            )
         except Exception as e:
             print(f"  FAIL {fpath.name}: {type(e).__name__}: {e}")
             manifest["files"][fid] = {
@@ -379,7 +392,7 @@ def run_batch(
 
     print(f"shard 阶段完成 ok={n_ok} skip={n_skip} empty={n_empty} fail={n_fail}")
     if merge and (n_ok + n_skip) > 0:
-        merge_shards(out_dir)
+        merge_shards(out_dir, protocol=protocol, zscore=zscore)
 
 
 def main() -> None:
@@ -396,6 +409,11 @@ def main() -> None:
     p.add_argument("--merge-only", action="store_true")
     p.add_argument("--no-merge", action="store_true")
     p.add_argument(
+        "--no-zscore",
+        action="store_true",
+        help="关闭窗内 z-score（方案 07：写出 openbmi_2s_hop100_noz）",
+    )
+    p.add_argument(
         "--subjects",
         default="all",
         help="逗号分隔被试号如 01,02；all=全部",
@@ -406,9 +424,14 @@ def main() -> None:
         help="逗号分隔 01,02 或 sess01；all=两场",
     )
     args = p.parse_args()
+    zscore = not bool(args.no_zscore)
+    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+    out = Path(args.out)
+    if args.no_zscore and out.name == "openbmi_2s_hop100":
+        out = _PREPROCESS_ROOT / "out" / "openbmi_2s_hop100_noz"
 
     if args.merge_only:
-        merge_shards(Path(args.out))
+        merge_shards(out, protocol=protocol, zscore=zscore)
         return
 
     subj_arg = str(args.subjects).strip().lower()
@@ -422,12 +445,13 @@ def main() -> None:
 
     run_batch(
         args.glob,
-        Path(args.out),
+        out,
         limit=args.limit,
         reset=bool(args.reset),
         merge=not args.no_merge,
         subjects=subjects,
         sessions=sessions,
+        zscore=zscore,
     )
 
 

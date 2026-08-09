@@ -55,5 +55,5 @@
 
 OpenBMI 1 名被试、`OpenBMI_MI_feature_v2_hop100`：明显 0、中等 1、弱 0。
 
-- JSON：`D:\cyy\MI\资料\模型训练\04_旁路_2s滑窗100ms_openbmi_accpaper\OpenBMI_25被试_MI特征显著性分析.json`
+- JSON：`D:\cyy\MI\资料\模型训练\04_5090_旁路_2s滑窗100ms_openbmi_accpaper\OpenBMI_25被试_MI特征显著性分析.json`
 

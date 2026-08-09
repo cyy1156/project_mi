@@ -158,6 +158,7 @@ def slide_in_segments(
     metas: list[SegmentMeta],
     *,
     fs: float,
+    zscore_windows: bool = True,
 ) -> tuple[
     np.ndarray,
     np.ndarray,
@@ -190,7 +191,8 @@ def slide_in_segments(
             if win.shape != (N_TIMES, 8):
                 t += hop
                 continue
-            win = trial_zscore(win)
+            if zscore_windows:
+                win = trial_zscore(win)
             xs.append(win)
             y_task.append(meta.y_task)
             y_three.append(meta.y_three)
@@ -230,6 +232,7 @@ def build_eval_stream(
     session_dir: Path | str,
     *,
     apply_filter: bool = True,
+    zscore_windows: bool = True,
 ) -> EvalStream:
     session_dir = Path(session_dir)
     _require_verify(session_dir)
@@ -261,7 +264,7 @@ def build_eval_stream(
                 f"被试不一致: segment={m.subject_id} session={subject_id}"
             )
     X, yt, y3, tids, segs, keys, wstarts = slide_in_segments(
-        chunks, metas, fs=session.fs
+        chunks, metas, fs=session.fs, zscore_windows=zscore_windows
     )
     return EvalStream(
         subject_id=subject_id,
@@ -278,6 +281,7 @@ def build_eval_stream(
         meta={
             "preprocess": "game_phase4_like",
             "filter": "CAR+notch50+bp8-30" if apply_filter else "none",
+            "zscore_windows": bool(zscore_windows),
             "win_sec": WIN_SEC,
             "hop_samples": HOP_SAMPLES,
             "n_segments": len(metas),

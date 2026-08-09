@@ -1,0 +1,61 @@
+{
+  "stamp": "20260809_174855",
+  "model_name": "shallow",
+  "out_name": "shallow_openbmi_game_ft_half",
+  "arm": "05_openbmi_finetune_first_half_train_second_half_eval",
+  "protocol": "game_pseudo_online_ft Tw=2s hop=100ms arm=05_openbmi_finetune_first_half_train_second_half_eval finetune_mode=full_model freeze_backbone=false head_only=false split=trial_order_half init=openbmi_2s_hop100_balbatch_accpaper channel_remap=game_to_openbmi train=game_first_half_windows eval=game_second_half_pseudo_online early_stop=val_acc_paper max_epochs=300 patience=20 lr=1e-4 balbatch no_rap no_otta model=shallow_only metrics=segment_acc_paper_main + balacc_maj + window_balacc_aux",
+  "structure_note": "ShallowFBCSPNet；OpenBMI Acc_paper init；full_model FT；channel remap",
+  "sessions": [
+    "sub02_ses01_20260723_180607",
+    "sub03_ses01_20260723_185153"
+  ],
+  "folds": [
+    0
+  ],
+  "init_domain": "openbmi",
+  "init_run": "D:\\cyy\\MI\\code\\train_lab\\out\\5060_baseline_openbmi_2s_hop100_accpaper\\shallow_openbmi_2s_hop100_balbatch_accpaper\\openbmi_2s_hop100\\run_20260807_135828",
+  "channel_remap": [
+    "Cz",
+    "C3",
+    "C4",
+    "CP3",
+    "FC4",
+    "FC3",
+    "CP4",
+    "CPz"
+  ],
+  "weight_root": "D:\\cyy\\MI\\code\\train_lab\\out\\openbmi_game_ft_hop100_accpaper\\shallow_openbmi_game_ft_half_balbatch_accpaper\\20260809_174855",
+  "device": "cuda",
+  "finetune_mode": "full_model",
+  "freeze_backbone": false,
+  "head_only": false,
+  "hparams": {
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 2,
+    "patience": 2,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "game-ft-openbmi-half-fullmodel-balbatch-accpaper finetune_mode=full_model freeze_backbone=false head_only=false init=openbmi channel_remap=game_to_openbmi",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_times_expected": 500,
+    "no_rap": true,
+    "no_balbatch": false,
+    "finetune_mode": "full_model",
+    "freeze_backbone": false,
+    "head_only": false
+  },
+  "n_times": 500,
+  "extra_meta": {
+    "shallow": {
+      "backbone": "ShallowFBCSPNet",
+      "init_domain": "openbmi"
+    }
+  },
+  "also_zeroshot_on_eval_half": true
+}

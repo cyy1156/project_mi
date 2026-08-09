@@ -1,0 +1,594 @@
+[17:49:14] === stream sub02_ses01_20260723_180607 ===
+[17:49:15] remap ['C3', 'C4', 'Cz', 'CP3', 'CP4', 'CPz', 'FC3', 'FC4'] -> ['Cz', 'C3', 'C4', 'CP3', 'FC4', 'FC3', 'CP4', 'CPz'] X=(2583, 1, 8, 500)
+[17:49:15] subject=sub02 trials=62 train=31 eval=31
+[17:49:17] [sub02] shallow task fold0 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:17] fold0 ep 001 tr=0.7807 va=0.6830 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:17] fold0 ep 002 tr=0.5353 va=0.6260 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:18] fold0 ep 003 tr=0.4642 va=0.5660 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 004 tr=0.4065 va=0.5491 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 005 tr=0.3659 va=0.5431 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:18] fold0 ep 006 tr=0.3243 va=0.5047 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 007 tr=0.3011 va=0.5068 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 008 tr=0.2643 va=0.4800 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 009 tr=0.2435 va=0.4687 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:18] fold0 ep 010 tr=0.2194 va=0.4898 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 011 tr=0.2056 va=0.4676 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 012 tr=0.2023 va=0.4697 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 013 tr=0.1928 va=0.4512 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 014 tr=0.1580 va=0.4302 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 015 tr=0.1534 va=0.4487 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 016 tr=0.1395 va=0.4644 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:19] fold0 ep 017 tr=0.1346 va=0.4584 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:19] fold0 ep 018 tr=0.1365 va=0.4203 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:20] fold0 ep 019 tr=0.1104 va=0.4573 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:20] fold0 ep 020 tr=0.1057 va=0.4646 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:20] fold0 ep 021 tr=0.1039 va=0.4096 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:20] fold0 ep 022 tr=0.0787 va=0.4114 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:20] fold0 ep 023 tr=0.0933 va=0.3699 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:20]   early stop @ ep 23
+[17:49:20] [eval_half] Acc_paper=0.5574 BalAcc_maj=0.5629 win_BalAcc=0.5458
+[17:49:20] [sub02] shallow task fold1 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:20] fold1 ep 001 tr=0.7046 va=0.7352 val_AccPaper=0.4167 val_BalAccMaj=0.4167
+[17:49:20] fold1 ep 002 tr=0.5698 va=0.6719 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:21] fold1 ep 003 tr=0.4888 va=0.6727 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:21] fold1 ep 004 tr=0.4319 va=0.6392 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:21] fold1 ep 005 tr=0.3835 va=0.6153 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:21] fold1 ep 006 tr=0.3788 va=0.6048 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:21] fold1 ep 007 tr=0.3314 va=0.5711 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:21] fold1 ep 008 tr=0.2873 va=0.5429 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:21] fold1 ep 009 tr=0.2758 va=0.5306 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:21] fold1 ep 010 tr=0.2593 va=0.5148 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:21] fold1 ep 011 tr=0.2201 va=0.5023 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:22] fold1 ep 012 tr=0.2113 va=0.4790 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:22] fold1 ep 013 tr=0.1887 va=0.4682 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:22] fold1 ep 014 tr=0.1710 va=0.5054 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:22] fold1 ep 015 tr=0.1740 va=0.4776 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:22] fold1 ep 016 tr=0.1618 va=0.4590 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:22] fold1 ep 017 tr=0.1485 va=0.4687 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:22] fold1 ep 018 tr=0.1415 va=0.4577 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:22] fold1 ep 019 tr=0.1322 va=0.4538 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 020 tr=0.1256 va=0.4553 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 021 tr=0.1070 va=0.4541 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:23] fold1 ep 022 tr=0.1129 va=0.4163 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 023 tr=0.1032 va=0.3785 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 024 tr=0.0984 va=0.4164 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 025 tr=0.0944 va=0.3991 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 026 tr=0.0776 va=0.3508 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 027 tr=0.0723 va=0.3707 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23] fold1 ep 028 tr=0.0738 va=0.3693 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:23]   early stop @ ep 28
+[17:49:24] [eval_half] Acc_paper=0.4918 BalAcc_maj=0.4935 win_BalAcc=0.5192
+[17:49:24] [sub02] shallow task fold2 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:24] fold2 ep 001 tr=0.8569 va=0.5935 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:24] fold2 ep 002 tr=0.6214 va=0.5790 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:24] fold2 ep 003 tr=0.4953 va=0.5703 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:24] fold2 ep 004 tr=0.4644 va=0.5466 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:24] fold2 ep 005 tr=0.3687 va=0.5251 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:24] fold2 ep 006 tr=0.3628 va=0.4903 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 007 tr=0.3238 va=0.4917 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 008 tr=0.3122 va=0.4796 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 009 tr=0.2561 va=0.4661 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 010 tr=0.2280 va=0.4458 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 011 tr=0.2281 va=0.4380 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 012 tr=0.2016 va=0.4171 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 013 tr=0.1897 va=0.3901 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:25] fold2 ep 014 tr=0.1780 va=0.3888 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26] fold2 ep 015 tr=0.1684 va=0.4258 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:26] fold2 ep 016 tr=0.1385 va=0.4014 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:26] fold2 ep 017 tr=0.1307 va=0.3500 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26] fold2 ep 018 tr=0.1343 va=0.3775 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26] fold2 ep 019 tr=0.1206 va=0.4020 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:26] fold2 ep 020 tr=0.1125 va=0.3582 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26] fold2 ep 021 tr=0.1066 va=0.3568 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26] fold2 ep 022 tr=0.0980 va=0.3612 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:26]   early stop @ ep 22
+[17:49:26] [eval_half] Acc_paper=0.4098 BalAcc_maj=0.4124 win_BalAcc=0.4994
+[17:49:27] [sub02] shallow task fold3 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:27] fold3 ep 001 tr=0.6821 va=0.7142 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:27] fold3 ep 002 tr=0.5580 va=0.6726 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:27] fold3 ep 003 tr=0.4934 va=0.6022 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:27] fold3 ep 004 tr=0.4402 va=0.6010 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:27] fold3 ep 005 tr=0.3906 va=0.5628 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:27] fold3 ep 006 tr=0.3599 va=0.5628 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:27] fold3 ep 007 tr=0.3431 va=0.5499 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 008 tr=0.3101 va=0.5524 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:28] fold3 ep 009 tr=0.2878 va=0.5144 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:28] fold3 ep 010 tr=0.2530 va=0.5179 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:28] fold3 ep 011 tr=0.2330 va=0.4622 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 012 tr=0.2043 va=0.4608 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 013 tr=0.1938 va=0.4574 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 014 tr=0.1794 va=0.4346 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 015 tr=0.1844 va=0.4128 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:28] fold3 ep 016 tr=0.1532 va=0.4020 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 017 tr=0.1472 va=0.4138 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 018 tr=0.1433 va=0.3892 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 019 tr=0.1300 va=0.3695 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 020 tr=0.1194 va=0.3519 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 021 tr=0.1151 va=0.3404 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 022 tr=0.1023 va=0.3464 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 023 tr=0.1125 va=0.3642 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:29] fold3 ep 024 tr=0.0940 va=0.3405 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:30] fold3 ep 025 tr=0.0730 va=0.3441 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:30] fold3 ep 026 tr=0.0803 va=0.3324 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:30] fold3 ep 027 tr=0.0784 va=0.3151 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:30]   early stop @ ep 27
+[17:49:30] [eval_half] Acc_paper=0.5574 BalAcc_maj=0.5602 win_BalAcc=0.5488
+[17:49:30] [sub02] shallow task fold4 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:30] fold4 ep 001 tr=0.7774 va=0.7522 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:30] fold4 ep 002 tr=0.5879 va=0.6929 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:30] fold4 ep 003 tr=0.4580 va=0.6434 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:30] fold4 ep 004 tr=0.4216 va=0.6735 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:30] fold4 ep 005 tr=0.3898 va=0.6635 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:31] fold4 ep 006 tr=0.3427 va=0.6006 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:31] fold4 ep 007 tr=0.3232 va=0.5993 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:31] fold4 ep 008 tr=0.2910 va=0.5785 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:31] fold4 ep 009 tr=0.2689 va=0.5851 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:31] fold4 ep 010 tr=0.2452 va=0.5551 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:31] fold4 ep 011 tr=0.2124 va=0.5349 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:31] fold4 ep 012 tr=0.2001 va=0.5224 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:31] fold4 ep 013 tr=0.2006 va=0.5432 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:32] fold4 ep 014 tr=0.1823 va=0.5092 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:32] fold4 ep 015 tr=0.1668 va=0.5269 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:32] fold4 ep 016 tr=0.1622 va=0.5122 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:32] fold4 ep 017 tr=0.1402 va=0.4951 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:32] fold4 ep 018 tr=0.1534 va=0.5103 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:32] fold4 ep 019 tr=0.1457 va=0.5308 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:32] fold4 ep 020 tr=0.1386 va=0.4711 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:32] fold4 ep 021 tr=0.1222 va=0.4674 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33] fold4 ep 022 tr=0.1133 va=0.4671 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:33] fold4 ep 023 tr=0.1037 va=0.4676 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33] fold4 ep 024 tr=0.1071 va=0.4366 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33] fold4 ep 025 tr=0.0961 va=0.4744 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33] fold4 ep 026 tr=0.0940 va=0.4482 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33] fold4 ep 027 tr=0.1016 va=0.4793 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:33]   early stop @ ep 27
+[17:49:33] [eval_half] Acc_paper=0.5082 BalAcc_maj=0.5097 win_BalAcc=0.5040
+[17:49:33] [sub02] shallow three fold0 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:33] fold0 ep 001 tr=1.2351 va=0.9902 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:49:34] fold0 ep 002 tr=0.9508 va=0.9470 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:49:34] fold0 ep 003 tr=0.8444 va=0.8622 val_AccPaper=0.6667 val_BalAccMaj=0.7778
+[17:49:34] fold0 ep 004 tr=0.7381 va=0.8243 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:34] fold0 ep 005 tr=0.6532 va=0.7705 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:34] fold0 ep 006 tr=0.6035 va=0.7786 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:34] fold0 ep 007 tr=0.5786 va=0.7416 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:34] fold0 ep 008 tr=0.5262 va=0.7321 val_AccPaper=0.8333 val_BalAccMaj=0.8889
+[17:49:34] fold0 ep 009 tr=0.4753 va=0.7424 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 010 tr=0.4151 va=0.7358 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 011 tr=0.4044 va=0.7246 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 012 tr=0.3777 va=0.7289 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 013 tr=0.3332 va=0.7301 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 014 tr=0.3167 va=0.7068 val_AccPaper=0.9167 val_BalAccMaj=0.8889
+[17:49:35] fold0 ep 015 tr=0.3005 va=0.7194 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:35] fold0 ep 016 tr=0.2764 va=0.7202 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:35] fold0 ep 017 tr=0.2780 va=0.7142 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 018 tr=0.2435 va=0.7246 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 019 tr=0.2253 va=0.6965 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 020 tr=0.2248 va=0.6986 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 021 tr=0.2169 va=0.6846 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 022 tr=0.1912 va=0.6855 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 023 tr=0.1842 va=0.6563 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:36] fold0 ep 024 tr=0.1698 va=0.6729 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37] fold0 ep 025 tr=0.1578 va=0.6717 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37] fold0 ep 026 tr=0.1531 va=0.6759 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37] fold0 ep 027 tr=0.1485 va=0.6788 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37] fold0 ep 028 tr=0.1452 va=0.6699 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37] fold0 ep 029 tr=0.1276 va=0.6506 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:37]   early stop @ ep 29
+[17:49:37] [eval_half] Acc_paper=0.4754 BalAcc_maj=0.4167 win_BalAcc=0.3938
+[17:49:37] [sub02] shallow three fold1 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:37] fold1 ep 001 tr=1.1034 va=1.0029 val_AccPaper=0.5833 val_BalAccMaj=0.6667
+[17:49:38] fold1 ep 002 tr=0.9143 va=0.9693 val_AccPaper=0.5833 val_BalAccMaj=0.7222
+[17:49:38] fold1 ep 003 tr=0.7938 va=0.8782 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:38] fold1 ep 004 tr=0.7149 va=0.8657 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:38] fold1 ep 005 tr=0.6280 va=0.8894 val_AccPaper=0.5833 val_BalAccMaj=0.6667
+[17:49:38] fold1 ep 006 tr=0.6023 va=0.8125 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:38] fold1 ep 007 tr=0.5498 va=0.8069 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:38] fold1 ep 008 tr=0.5082 va=0.7790 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:39] fold1 ep 009 tr=0.4715 va=0.8562 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:39] fold1 ep 010 tr=0.4153 va=0.8174 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:39] fold1 ep 011 tr=0.3926 va=0.8298 val_AccPaper=0.8333 val_BalAccMaj=0.8889
+[17:49:39] fold1 ep 012 tr=0.3606 va=0.8305 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:39] fold1 ep 013 tr=0.3292 va=0.8257 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:39] fold1 ep 014 tr=0.3239 va=0.8645 val_AccPaper=0.5000 val_BalAccMaj=0.6111
+[17:49:39] fold1 ep 015 tr=0.2950 va=0.8470 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:39] fold1 ep 016 tr=0.2814 va=0.8137 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:40] fold1 ep 017 tr=0.2568 va=0.8431 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:40] fold1 ep 018 tr=0.2570 va=0.8677 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:40] fold1 ep 019 tr=0.2332 va=0.7926 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:40] fold1 ep 020 tr=0.2232 va=0.8004 val_AccPaper=0.8333 val_BalAccMaj=0.8889
+[17:49:40] fold1 ep 021 tr=0.2015 va=0.8322 val_AccPaper=0.7500 val_BalAccMaj=0.8333
+[17:49:40] fold1 ep 022 tr=0.2118 va=0.7762 val_AccPaper=0.7500 val_BalAccMaj=0.8889
+[17:49:40] fold1 ep 023 tr=0.2009 va=0.7931 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:40]   early stop @ ep 23
+[17:49:40] [eval_half] Acc_paper=0.4262 BalAcc_maj=0.3958 win_BalAcc=0.3544
+[17:49:40] [sub02] shallow three fold2 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:41] fold2 ep 001 tr=1.2462 va=0.9849 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:49:41] fold2 ep 002 tr=0.9560 va=0.9506 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:49:41] fold2 ep 003 tr=0.8476 va=0.9169 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:49:41] fold2 ep 004 tr=0.7901 va=0.8672 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:49:41] fold2 ep 005 tr=0.6585 va=0.8400 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:41] fold2 ep 006 tr=0.6191 va=0.8137 val_AccPaper=0.6667 val_BalAccMaj=0.7222
+[17:49:41] fold2 ep 007 tr=0.5984 va=0.8064 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:41] fold2 ep 008 tr=0.5530 va=0.7521 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:42] fold2 ep 009 tr=0.4871 va=0.7656 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 010 tr=0.4671 va=0.7691 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 011 tr=0.4581 va=0.7376 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 012 tr=0.4005 va=0.7384 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 013 tr=0.3882 va=0.7906 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 014 tr=0.3850 va=0.7575 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 015 tr=0.3466 va=0.7257 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:42] fold2 ep 016 tr=0.3231 va=0.7225 val_AccPaper=0.8333 val_BalAccMaj=0.8889
+[17:49:43] fold2 ep 017 tr=0.3006 va=0.7075 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:43] fold2 ep 018 tr=0.2798 va=0.7115 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 019 tr=0.2707 va=0.6988 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 020 tr=0.2528 va=0.7255 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 021 tr=0.2485 va=0.7022 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 022 tr=0.2213 va=0.6981 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 023 tr=0.1960 va=0.6843 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:43] fold2 ep 024 tr=0.1945 va=0.6704 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:44] fold2 ep 025 tr=0.1863 va=0.6543 val_AccPaper=0.8333 val_BalAccMaj=0.8889
+[17:49:44] fold2 ep 026 tr=0.1802 va=0.6692 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:44] fold2 ep 027 tr=0.1711 va=0.6527 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:44] fold2 ep 028 tr=0.1702 va=0.6557 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:44]   early stop @ ep 28
+[17:49:44] [eval_half] Acc_paper=0.5574 BalAcc_maj=0.4972 win_BalAcc=0.4178
+[17:49:44] [sub02] shallow three fold3 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:44] fold3 ep 001 tr=1.1292 va=1.1605 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:49:44] fold3 ep 002 tr=0.8948 va=1.0225 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:44] fold3 ep 003 tr=0.8167 va=1.0001 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:45] fold3 ep 004 tr=0.7470 va=0.9623 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:45] fold3 ep 005 tr=0.6314 va=0.9182 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:45] fold3 ep 006 tr=0.5956 va=0.8925 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:45] fold3 ep 007 tr=0.5734 va=0.9027 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:45] fold3 ep 008 tr=0.5171 va=0.9000 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:45] fold3 ep 009 tr=0.4768 va=0.8989 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:45] fold3 ep 010 tr=0.4349 va=0.8880 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:45] fold3 ep 011 tr=0.4048 va=0.8635 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:45] fold3 ep 012 tr=0.3584 va=0.8505 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:46] fold3 ep 013 tr=0.3331 va=0.8858 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:46] fold3 ep 014 tr=0.3146 va=0.8534 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:46] fold3 ep 015 tr=0.3200 va=0.8326 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:46] fold3 ep 016 tr=0.2961 va=0.8383 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:46] fold3 ep 017 tr=0.2817 va=0.8312 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:46] fold3 ep 018 tr=0.2546 va=0.8205 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:46] fold3 ep 019 tr=0.2413 va=0.8633 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:46] fold3 ep 020 tr=0.2229 va=0.8543 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:46] fold3 ep 021 tr=0.2167 va=0.8609 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:47] fold3 ep 022 tr=0.2057 va=0.8287 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:47] fold3 ep 023 tr=0.1917 va=0.8527 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:47] fold3 ep 024 tr=0.1846 va=0.8551 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:47] fold3 ep 025 tr=0.1857 va=0.8313 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:47] fold3 ep 026 tr=0.1447 va=0.8363 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:47] fold3 ep 027 tr=0.1606 va=0.8659 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:47] fold3 ep 028 tr=0.1448 va=0.8262 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:47]   early stop @ ep 28
+[17:49:47] [eval_half] Acc_paper=0.4590 BalAcc_maj=0.3639 win_BalAcc=0.3763
+[17:49:47] [sub02] shallow three fold4 ft_tr=1050 ft_va=252 eval=1281 full_model=True
+[17:49:48] fold4 ep 001 tr=1.2367 va=1.0884 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:49:48] fold4 ep 002 tr=0.9718 va=1.0453 val_AccPaper=0.3333 val_BalAccMaj=0.4444
+[17:49:48] fold4 ep 003 tr=0.8297 va=1.0011 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:48] fold4 ep 004 tr=0.7382 va=0.9985 val_AccPaper=0.5000 val_BalAccMaj=0.6111
+[17:49:48] fold4 ep 005 tr=0.6602 va=1.0056 val_AccPaper=0.6667 val_BalAccMaj=0.7222
+[17:49:48] fold4 ep 006 tr=0.6061 va=1.0016 val_AccPaper=0.5000 val_BalAccMaj=0.6111
+[17:49:48] fold4 ep 007 tr=0.5545 va=0.9637 val_AccPaper=0.5833 val_BalAccMaj=0.7222
+[17:49:48] fold4 ep 008 tr=0.5073 va=0.9024 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:49] fold4 ep 009 tr=0.4687 va=0.9099 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:49] fold4 ep 010 tr=0.4710 va=0.8728 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:49] fold4 ep 011 tr=0.4085 va=0.8992 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:49] fold4 ep 012 tr=0.3657 va=0.8890 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:49] fold4 ep 013 tr=0.3620 va=0.8789 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:49] fold4 ep 014 tr=0.3330 va=0.8162 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:49] fold4 ep 015 tr=0.2948 va=0.8715 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:49] fold4 ep 016 tr=0.2844 va=0.8568 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:50] fold4 ep 017 tr=0.2571 va=0.8355 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 018 tr=0.2567 va=0.8291 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 019 tr=0.2374 va=0.8199 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 020 tr=0.2208 va=0.8271 val_AccPaper=0.7500 val_BalAccMaj=0.7222
+[17:49:50] fold4 ep 021 tr=0.2162 va=0.7853 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 022 tr=0.1897 va=0.7921 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 023 tr=0.1925 va=0.7928 val_AccPaper=0.8333 val_BalAccMaj=0.7778
+[17:49:50] fold4 ep 024 tr=0.1767 va=0.8018 val_AccPaper=0.6667 val_BalAccMaj=0.5556
+[17:49:51] fold4 ep 025 tr=0.1545 va=0.8354 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:51] fold4 ep 026 tr=0.1617 va=0.7962 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:49:51] fold4 ep 027 tr=0.1533 va=0.7866 val_AccPaper=0.7500 val_BalAccMaj=0.6667
+[17:49:51] fold4 ep 028 tr=0.1371 va=0.7682 val_AccPaper=0.6667 val_BalAccMaj=0.5556
+[17:49:51]   early stop @ ep 28
+[17:49:51] [eval_half] Acc_paper=0.4426 BalAcc_maj=0.4194 win_BalAcc=0.3857
+[17:49:51] === stream sub03_ses01_20260723_185153 ===
+[17:49:52] remap ['C3', 'C4', 'Cz', 'CP3', 'CP4', 'CPz', 'FC3', 'FC4'] -> ['Cz', 'C3', 'C4', 'CP3', 'FC4', 'FC3', 'CP4', 'CPz'] X=(2604, 1, 8, 500)
+[17:49:52] subject=sub03 trials=62 train=31 eval=31
+[17:49:52] [sub03] shallow task fold0 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:49:52] fold0 ep 001 tr=0.6712 va=0.8933 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:52] fold0 ep 002 tr=0.4395 va=0.7807 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:52] fold0 ep 003 tr=0.3571 va=0.7737 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:53] fold0 ep 004 tr=0.2875 va=0.7300 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 005 tr=0.2443 va=0.6903 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 006 tr=0.2147 va=0.7041 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 007 tr=0.1950 va=0.7113 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 008 tr=0.1599 va=0.7038 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 009 tr=0.1365 va=0.6767 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 010 tr=0.1332 va=0.6478 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:53] fold0 ep 011 tr=0.1210 va=0.7432 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:54] fold0 ep 012 tr=0.1124 va=0.6975 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:54] fold0 ep 013 tr=0.1102 va=0.7120 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:54] fold0 ep 014 tr=0.0934 va=0.7901 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:54] fold0 ep 015 tr=0.0761 va=0.8031 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:54] fold0 ep 016 tr=0.0740 va=0.7566 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:54] fold0 ep 017 tr=0.0742 va=0.7438 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:54] fold0 ep 018 tr=0.0753 va=0.8657 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:49:54] fold0 ep 019 tr=0.0507 va=0.8206 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:54] fold0 ep 020 tr=0.0564 va=0.8098 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:55] fold0 ep 021 tr=0.0561 va=0.9037 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:55] fold0 ep 022 tr=0.0472 va=0.8418 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:55] fold0 ep 023 tr=0.0520 va=0.9954 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:55] fold0 ep 024 tr=0.0426 va=0.8442 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:55]   early stop @ ep 24
+[17:49:55] [eval_half] Acc_paper=0.8387 BalAcc_maj=0.8387 win_BalAcc=0.7896
+[17:49:55] [sub03] shallow task fold1 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:49:55] fold1 ep 001 tr=0.6078 va=0.7199 val_AccPaper=0.5833 val_BalAccMaj=0.5833
+[17:49:55] fold1 ep 002 tr=0.4436 va=0.6350 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:55] fold1 ep 003 tr=0.3846 va=0.6112 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 004 tr=0.3082 va=0.5940 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 005 tr=0.2496 va=0.6342 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 006 tr=0.2512 va=0.5723 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 007 tr=0.2060 va=0.6100 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 008 tr=0.1934 va=0.6409 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 009 tr=0.1873 va=0.6025 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 010 tr=0.1626 va=0.6373 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:56] fold1 ep 011 tr=0.1386 va=0.6613 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:57] fold1 ep 012 tr=0.1199 va=0.6473 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:57] fold1 ep 013 tr=0.1209 va=0.6583 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:57] fold1 ep 014 tr=0.1068 va=0.6299 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:57] fold1 ep 015 tr=0.1032 va=0.6599 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:57] fold1 ep 016 tr=0.0801 va=0.7399 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:57] fold1 ep 017 tr=0.0914 va=0.7207 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:57] fold1 ep 018 tr=0.0748 va=0.6951 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:57] fold1 ep 019 tr=0.0824 va=0.6892 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:58] fold1 ep 020 tr=0.0860 va=0.7518 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:58] fold1 ep 021 tr=0.0585 va=0.7788 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:58] fold1 ep 022 tr=0.0637 va=0.7499 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:58]   early stop @ ep 22
+[17:49:58] [eval_half] Acc_paper=0.8065 BalAcc_maj=0.8065 win_BalAcc=0.7435
+[17:49:58] [sub03] shallow task fold2 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:49:58] fold2 ep 001 tr=0.7050 va=1.0268 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:58] fold2 ep 002 tr=0.4381 va=0.8695 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:58] fold2 ep 003 tr=0.3220 va=0.8498 val_AccPaper=0.5833 val_BalAccMaj=0.5833
+[17:49:58] fold2 ep 004 tr=0.2745 va=0.9093 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:49:59] fold2 ep 005 tr=0.2262 va=0.8990 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:49:59] fold2 ep 006 tr=0.2012 va=0.8788 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:59] fold2 ep 007 tr=0.1899 va=0.9498 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:59] fold2 ep 008 tr=0.1716 va=0.9380 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:59] fold2 ep 009 tr=0.1370 va=0.9276 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:59] fold2 ep 010 tr=0.1330 va=0.8878 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:59] fold2 ep 011 tr=0.1286 va=0.9310 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:49:59] fold2 ep 012 tr=0.0977 va=0.9530 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:49:59] fold2 ep 013 tr=0.1052 va=0.9161 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 014 tr=0.0873 va=1.0121 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:00] fold2 ep 015 tr=0.0869 va=0.9393 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:00] fold2 ep 016 tr=0.0758 va=1.0023 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:00] fold2 ep 017 tr=0.0716 va=0.9517 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 018 tr=0.0674 va=0.9400 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 019 tr=0.0660 va=1.0175 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 020 tr=0.0581 va=0.9533 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 021 tr=0.0571 va=1.0779 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:00] fold2 ep 022 tr=0.0478 va=1.1096 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:50:01] fold2 ep 023 tr=0.0566 va=1.0469 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:01] fold2 ep 024 tr=0.0582 va=1.0412 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:01] fold2 ep 025 tr=0.0406 va=1.1339 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:01] fold2 ep 026 tr=0.0343 va=1.0797 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:01] fold2 ep 027 tr=0.0360 va=1.0771 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:01] fold2 ep 028 tr=0.0367 va=1.0517 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:01] fold2 ep 029 tr=0.0434 va=1.0770 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:01] fold2 ep 030 tr=0.0268 va=1.1399 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:50:01]   early stop @ ep 30
+[17:50:01] [eval_half] Acc_paper=0.8065 BalAcc_maj=0.8065 win_BalAcc=0.7642
+[17:50:01] [sub03] shallow task fold3 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:02] fold3 ep 001 tr=0.5861 va=0.7369 val_AccPaper=0.4167 val_BalAccMaj=0.4167
+[17:50:02] fold3 ep 002 tr=0.4395 va=0.7372 val_AccPaper=0.5000 val_BalAccMaj=0.5000
+[17:50:02] fold3 ep 003 tr=0.3658 va=0.6676 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:02] fold3 ep 004 tr=0.2969 va=0.7196 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:02] fold3 ep 005 tr=0.2592 va=0.6824 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:02] fold3 ep 006 tr=0.2040 va=0.6580 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:02] fold3 ep 007 tr=0.1956 va=0.6897 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:02] fold3 ep 008 tr=0.1799 va=0.7053 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 009 tr=0.1572 va=0.7043 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 010 tr=0.1402 va=0.7119 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:03] fold3 ep 011 tr=0.1348 va=0.7216 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 012 tr=0.1106 va=0.7708 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 013 tr=0.0941 va=0.7364 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 014 tr=0.1092 va=0.7354 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 015 tr=0.1006 va=0.7331 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 016 tr=0.0799 va=0.8184 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:03] fold3 ep 017 tr=0.0804 va=0.8434 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 018 tr=0.0718 va=0.8028 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 019 tr=0.0740 va=0.8871 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 020 tr=0.0610 va=0.8835 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 021 tr=0.0644 va=0.8304 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:04] fold3 ep 022 tr=0.0615 va=0.9943 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 023 tr=0.0593 va=0.8976 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04] fold3 ep 024 tr=0.0535 va=0.9011 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:04] fold3 ep 025 tr=0.0525 va=0.9897 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:04]   early stop @ ep 25
+[17:50:04] [eval_half] Acc_paper=0.7903 BalAcc_maj=0.7903 win_BalAcc=0.7442
+[17:50:05] [sub03] shallow task fold4 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:05] fold4 ep 001 tr=0.5660 va=0.9652 val_AccPaper=0.6667 val_BalAccMaj=0.6667
+[17:50:05] fold4 ep 002 tr=0.3899 va=0.8914 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:05] fold4 ep 003 tr=0.3154 va=0.8596 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:05] fold4 ep 004 tr=0.2654 va=0.8552 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:05] fold4 ep 005 tr=0.2090 va=0.8546 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:05] fold4 ep 006 tr=0.1896 va=0.8624 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:05] fold4 ep 007 tr=0.1728 va=0.8218 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:05] fold4 ep 008 tr=0.1525 va=0.8442 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 009 tr=0.1287 va=0.8428 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 010 tr=0.1194 va=0.8727 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:50:06] fold4 ep 011 tr=0.1090 va=0.8603 val_AccPaper=0.9167 val_BalAccMaj=0.9167
+[17:50:06] fold4 ep 012 tr=0.0920 va=0.8389 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 013 tr=0.0877 va=0.9285 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 014 tr=0.0756 va=0.8953 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 015 tr=0.0694 va=0.8800 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 016 tr=0.0788 va=0.8718 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:06] fold4 ep 017 tr=0.0699 va=0.9392 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 018 tr=0.0584 va=0.8986 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 019 tr=0.0590 va=0.9584 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 020 tr=0.0519 va=1.0235 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 021 tr=0.0496 va=0.9421 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 022 tr=0.0527 va=0.9617 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 023 tr=0.0438 va=0.9564 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 024 tr=0.0432 va=1.0167 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 025 tr=0.0418 va=0.9685 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:07] fold4 ep 026 tr=0.0391 va=0.9935 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:08] fold4 ep 027 tr=0.0465 va=1.0786 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:08] fold4 ep 028 tr=0.0331 va=1.0405 val_AccPaper=0.7500 val_BalAccMaj=0.7500
+[17:50:08] fold4 ep 029 tr=0.0389 va=1.0522 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:08] fold4 ep 030 tr=0.0265 va=1.0423 val_AccPaper=0.8333 val_BalAccMaj=0.8333
+[17:50:08]   early stop @ ep 30
+[17:50:08] [eval_half] Acc_paper=0.8226 BalAcc_maj=0.8226 win_BalAcc=0.7358
+[17:50:08] [sub03] shallow three fold0 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:08] fold0 ep 001 tr=1.0414 va=1.1446 val_AccPaper=0.5000 val_BalAccMaj=0.6389
+[17:50:08] fold0 ep 002 tr=0.7456 va=1.0827 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:50:08] fold0 ep 003 tr=0.5703 va=1.0952 val_AccPaper=0.6667 val_BalAccMaj=0.7778
+[17:50:09] fold0 ep 004 tr=0.4725 va=1.0869 val_AccPaper=0.5000 val_BalAccMaj=0.7222
+[17:50:09] fold0 ep 005 tr=0.3971 va=1.0816 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:09] fold0 ep 006 tr=0.3318 va=1.0450 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:09] fold0 ep 007 tr=0.2889 va=1.0658 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:09] fold0 ep 008 tr=0.2929 va=1.0443 val_AccPaper=0.5833 val_BalAccMaj=0.5278
+[17:50:09] fold0 ep 009 tr=0.2374 va=1.0271 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:09] fold0 ep 010 tr=0.2010 va=1.0275 val_AccPaper=0.5833 val_BalAccMaj=0.5278
+[17:50:09] fold0 ep 011 tr=0.2033 va=0.9829 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:10] fold0 ep 012 tr=0.1724 va=1.0133 val_AccPaper=0.5833 val_BalAccMaj=0.5278
+[17:50:10] fold0 ep 013 tr=0.1569 va=1.0059 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:10] fold0 ep 014 tr=0.1545 va=1.0423 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:10] fold0 ep 015 tr=0.1355 va=0.9856 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:10] fold0 ep 016 tr=0.1204 va=0.9816 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:10] fold0 ep 017 tr=0.1133 va=0.9808 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:10] fold0 ep 018 tr=0.1127 va=1.0488 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:11] fold0 ep 019 tr=0.0946 va=1.0255 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:11] fold0 ep 020 tr=0.0839 va=1.0004 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:11] fold0 ep 021 tr=0.0968 va=1.0315 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:11] fold0 ep 022 tr=0.0852 va=1.0526 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:11]   early stop @ ep 22
+[17:50:11] [eval_half] Acc_paper=0.5484 BalAcc_maj=0.5501 win_BalAcc=0.5036
+[17:50:11] [sub03] shallow three fold1 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:11] fold1 ep 001 tr=0.9551 va=1.1413 val_AccPaper=0.3333 val_BalAccMaj=0.5556
+[17:50:11] fold1 ep 002 tr=0.6839 va=1.0653 val_AccPaper=0.5833 val_BalAccMaj=0.7222
+[17:50:12] fold1 ep 003 tr=0.5665 va=1.0653 val_AccPaper=0.5833 val_BalAccMaj=0.6667
+[17:50:12] fold1 ep 004 tr=0.4573 va=1.0497 val_AccPaper=0.5833 val_BalAccMaj=0.6389
+[17:50:12] fold1 ep 005 tr=0.4071 va=1.0012 val_AccPaper=0.5833 val_BalAccMaj=0.7222
+[17:50:12] fold1 ep 006 tr=0.3469 va=0.9741 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:12] fold1 ep 007 tr=0.2916 va=0.9925 val_AccPaper=0.5833 val_BalAccMaj=0.6389
+[17:50:12] fold1 ep 008 tr=0.2778 va=0.9525 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:12] fold1 ep 009 tr=0.2232 va=0.9579 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:12] fold1 ep 010 tr=0.2213 va=0.9660 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:12] fold1 ep 011 tr=0.1775 va=1.0195 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:13] fold1 ep 012 tr=0.1705 va=1.0088 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:13] fold1 ep 013 tr=0.1500 va=0.9906 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:13] fold1 ep 014 tr=0.1380 va=0.9885 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:13] fold1 ep 015 tr=0.1334 va=0.9913 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:13] fold1 ep 016 tr=0.1200 va=1.0646 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:13] fold1 ep 017 tr=0.1047 va=1.0236 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:13] fold1 ep 018 tr=0.1049 va=0.9812 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:13] fold1 ep 019 tr=0.1153 va=1.0564 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 020 tr=0.0956 va=1.0954 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 021 tr=0.0768 va=1.1043 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 022 tr=0.0820 va=1.0102 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 023 tr=0.0830 va=1.0899 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 024 tr=0.0751 va=1.0940 val_AccPaper=0.6667 val_BalAccMaj=0.6111
+[17:50:14] fold1 ep 025 tr=0.0703 va=1.1103 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:14] fold1 ep 026 tr=0.0603 va=1.1012 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:15] fold1 ep 027 tr=0.0691 va=1.1172 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:15] fold1 ep 028 tr=0.0548 va=1.0893 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:15]   early stop @ ep 28
+[17:50:15] [eval_half] Acc_paper=0.5968 BalAcc_maj=0.5723 win_BalAcc=0.5591
+[17:50:15] [sub03] shallow three fold2 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:15] fold2 ep 001 tr=0.9848 va=1.2414 val_AccPaper=0.2500 val_BalAccMaj=0.3333
+[17:50:15] fold2 ep 002 tr=0.7464 va=1.0620 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:50:15] fold2 ep 003 tr=0.5699 va=0.9523 val_AccPaper=0.7500 val_BalAccMaj=0.7778
+[17:50:15] fold2 ep 004 tr=0.5008 va=0.9303 val_AccPaper=0.6667 val_BalAccMaj=0.7222
+[17:50:15] fold2 ep 005 tr=0.3928 va=0.8830 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 006 tr=0.3742 va=0.8774 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 007 tr=0.3300 va=0.9096 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 008 tr=0.2968 va=0.9044 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 009 tr=0.2410 va=0.9065 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 010 tr=0.2247 va=0.8258 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 011 tr=0.2114 va=0.8567 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 012 tr=0.1969 va=0.9136 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:16] fold2 ep 013 tr=0.1808 va=0.9176 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:17] fold2 ep 014 tr=0.1677 va=0.9576 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:17] fold2 ep 015 tr=0.1520 va=0.9792 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:17] fold2 ep 016 tr=0.1490 va=0.9667 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:17] fold2 ep 017 tr=0.1331 va=0.9447 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:17] fold2 ep 018 tr=0.1203 va=0.9381 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:17] fold2 ep 019 tr=0.1360 va=0.9818 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:17] fold2 ep 020 tr=0.1184 va=1.0053 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:18] fold2 ep 021 tr=0.1002 va=0.9973 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:18] fold2 ep 022 tr=0.0970 va=0.9883 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:18] fold2 ep 023 tr=0.0855 va=1.0395 val_AccPaper=0.7500 val_BalAccMaj=0.6944
+[17:50:18]   early stop @ ep 23
+[17:50:18] [eval_half] Acc_paper=0.5000 BalAcc_maj=0.4876 win_BalAcc=0.5023
+[17:50:18] [sub03] shallow three fold3 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:18] fold3 ep 001 tr=0.8691 va=1.2233 val_AccPaper=0.3333 val_BalAccMaj=0.4167
+[17:50:18] fold3 ep 002 tr=0.6427 va=1.1572 val_AccPaper=0.4167 val_BalAccMaj=0.4722
+[17:50:18] fold3 ep 003 tr=0.5181 va=1.0510 val_AccPaper=0.5833 val_BalAccMaj=0.5833
+[17:50:19] fold3 ep 004 tr=0.4089 va=1.0486 val_AccPaper=0.4167 val_BalAccMaj=0.5278
+[17:50:19] fold3 ep 005 tr=0.3569 va=1.0273 val_AccPaper=0.5000 val_BalAccMaj=0.5833
+[17:50:19] fold3 ep 006 tr=0.2991 va=1.0089 val_AccPaper=0.5000 val_BalAccMaj=0.5278
+[17:50:19] fold3 ep 007 tr=0.2630 va=1.0146 val_AccPaper=0.5000 val_BalAccMaj=0.5278
+[17:50:19] fold3 ep 008 tr=0.2334 va=1.0084 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:50:19] fold3 ep 009 tr=0.1939 va=1.0035 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:19] fold3 ep 010 tr=0.2051 va=0.9430 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:19] fold3 ep 011 tr=0.1664 va=0.9763 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:19] fold3 ep 012 tr=0.1690 va=1.0082 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:20] fold3 ep 013 tr=0.1456 va=1.0438 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:20] fold3 ep 014 tr=0.1420 va=1.0123 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:20] fold3 ep 015 tr=0.1160 va=0.9810 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:20] fold3 ep 016 tr=0.1247 va=0.9447 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:20] fold3 ep 017 tr=0.1261 va=0.9999 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:20] fold3 ep 018 tr=0.1052 va=1.0548 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:20] fold3 ep 019 tr=0.0938 va=1.0101 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:20] fold3 ep 020 tr=0.0915 va=1.0465 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 021 tr=0.0809 va=1.0033 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 022 tr=0.0690 va=1.0647 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 023 tr=0.0749 va=1.0922 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:21] fold3 ep 024 tr=0.0686 va=1.0540 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 025 tr=0.0633 va=1.0501 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 026 tr=0.0689 va=1.0988 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 027 tr=0.0590 va=1.1640 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:21] fold3 ep 028 tr=0.0637 va=1.1337 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21] fold3 ep 029 tr=0.0519 va=1.2056 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:21]   early stop @ ep 29
+[17:50:22] [eval_half] Acc_paper=0.5645 BalAcc_maj=0.5286 win_BalAcc=0.5272
+[17:50:22] [sub03] shallow three fold4 ft_tr=1050 ft_va=252 eval=1302 full_model=True
+[17:50:22] fold4 ep 001 tr=0.9163 va=1.1881 val_AccPaper=0.3333 val_BalAccMaj=0.3611
+[17:50:22] fold4 ep 002 tr=0.6982 va=1.0887 val_AccPaper=0.3333 val_BalAccMaj=0.4444
+[17:50:22] fold4 ep 003 tr=0.5297 va=1.0940 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:50:22] fold4 ep 004 tr=0.4674 va=1.0010 val_AccPaper=0.5000 val_BalAccMaj=0.5556
+[17:50:22] fold4 ep 005 tr=0.3940 va=1.0157 val_AccPaper=0.4167 val_BalAccMaj=0.5556
+[17:50:22] fold4 ep 006 tr=0.3618 va=1.0112 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:23] fold4 ep 007 tr=0.3216 va=0.9613 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:23] fold4 ep 008 tr=0.2881 va=0.9231 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:23] fold4 ep 009 tr=0.2439 va=0.9288 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:23] fold4 ep 010 tr=0.2229 va=0.8984 val_AccPaper=0.5833 val_BalAccMaj=0.6389
+[17:50:23] fold4 ep 011 tr=0.2015 va=0.9352 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:23] fold4 ep 012 tr=0.1727 va=0.9366 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:23] fold4 ep 013 tr=0.1576 va=0.9419 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:23] fold4 ep 014 tr=0.1462 va=0.8945 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:23] fold4 ep 015 tr=0.1457 va=0.8956 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:24] fold4 ep 016 tr=0.1317 va=0.9486 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:24] fold4 ep 017 tr=0.1171 va=0.9740 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:24] fold4 ep 018 tr=0.1092 va=0.9114 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:24] fold4 ep 019 tr=0.1182 va=0.9602 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:24] fold4 ep 020 tr=0.1168 va=0.9735 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:24] fold4 ep 021 tr=0.1020 va=1.0483 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:24] fold4 ep 022 tr=0.0838 va=1.0904 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:24] fold4 ep 023 tr=0.0923 va=1.0034 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:25] fold4 ep 024 tr=0.0851 va=1.0606 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:25] fold4 ep 025 tr=0.0800 va=1.0406 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:25] fold4 ep 026 tr=0.0787 va=1.0768 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:25] fold4 ep 027 tr=0.0706 va=1.0300 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:25] fold4 ep 028 tr=0.0597 va=1.0684 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:25] fold4 ep 029 tr=0.0592 va=1.1381 val_AccPaper=0.5833 val_BalAccMaj=0.5556
+[17:50:25] fold4 ep 030 tr=0.0574 va=1.1383 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:25] fold4 ep 031 tr=0.0537 va=1.1010 val_AccPaper=0.6667 val_BalAccMaj=0.6389
+[17:50:25]   early stop @ ep 31
+[17:50:25] [eval_half] Acc_paper=0.5806 BalAcc_maj=0.5192 win_BalAcc=0.5410
+[17:50:25] done -> D:\cyy\MI\资料\伪在线实验\05_旁路_OpenBMI_前半微调后半评\results\20260809_174914_shallow_openbmi_game_ft_half

@@ -3,11 +3,13 @@
 切段（与 preprocess openbmi_2s_hop100 一致）：
   - MI：Cue 后 0–4 s（Cue 前 0.5 s 基线校正）→ 2 s / 100 ms 滑窗至段尽
   - Rest：Cue 前 4 s（可缩短避让上一 MI）→ 同上滑窗
+  - 语料：仅 OpenBMI ``EEG_MI_train``（sess01+sess02；**不含**官方 EEG_MI_test）
   - CAR + notch50 + bp8–30；**不做**窗内 z-score（保绝对功率 ERD）
 
 用法（在 preprocess_lab 下）:
   python -m src.datasets.openbmi.analyze_mi_features_25
   python -m src.datasets.openbmi.analyze_mi_features_25 --subjects 01,02,03
+  # 默认：全部 54 名被试；仅 EEG_MI_train（不读 EEG_MI_test）
 """
 
 from __future__ import annotations
@@ -337,6 +339,8 @@ def analyze_subject(subj: str, mats: list[Path]) -> dict:
 
 
 def write_report(results: list[dict], out_md: Path, out_json: Path) -> None:
+    out_md.parent.mkdir(parents=True, exist_ok=True)
+    out_json.parent.mkdir(parents=True, exist_ok=True)
     out_json.write_text(
         json.dumps({"standards": STANDARDS, "results": results}, indent=2, ensure_ascii=False),
         encoding="utf-8",
@@ -346,7 +350,7 @@ def write_report(results: list[dict], out_md: Path, out_json: Path) -> None:
         f"# OpenBMI · {n} 被试 MI 特征显著性分析",
         "",
         f"- 生成时间：`{datetime.now().isoformat(timespec='seconds')}`",
-        f"- 数据：`{MAT_GLOB}` · 仅 `EEG_MI_train` · sess01+sess02 同人合并",
+        f"- 数据：`{MAT_GLOB}` · **仅 `EEG_MI_train`**（不含 `EEG_MI_test`）· sess01+sess02 同人合并",
         f"- 通道：`{CHANS}`（与 hop100 训练一致）",
         "- 参考文档：`脑电特征提取指标与模板量化分析.docx`",
         f"- 分析标准版本：`{STANDARDS['name']}`",
@@ -437,24 +441,25 @@ def write_report(results: list[dict], out_md: Path, out_json: Path) -> None:
         f"- JSON：`{out_json}`",
         "",
     ]
-    out_md.parent.mkdir(parents=True, exist_ok=True)
     out_md.write_text("\n".join(lines) + "\n", encoding="utf-8")
 
 
 def main() -> None:
-    p = argparse.ArgumentParser()
-    p.add_argument("--subjects", default="", help="逗号分隔；默认 01–25")
+    p = argparse.ArgumentParser(
+        description="OpenBMI MI 特征显著性：仅 EEG_MI_train；默认全部 54 被试"
+    )
+    p.add_argument("--subjects", default="", help="逗号分隔；默认 01–54（全部）")
     p.add_argument("--limit-mats-per-subj", type=int, default=0)
     p.add_argument(
         "--out-dir",
         default="",
-        help="报告输出目录；默认写 find_best_trail + 04 资料目录",
+        help="报告输出目录；默认写 find_best_trail + 04_5060 资料目录",
     )
     args = p.parse_args()
     if args.subjects.strip():
         subjs = [f"{int(x):02d}" for x in args.subjects.split(",") if x.strip()]
     else:
-        subjs = [f"{i:02d}" for i in range(1, 26)]
+        subjs = [f"{i:02d}" for i in range(1, 55)]
 
     all_mats = sorted(MAT_GLOB.glob("sess*_subj*_EEG_MI.mat"))
     by_subj: dict[str, list[Path]] = {}
@@ -483,10 +488,11 @@ def main() -> None:
         outs.append(Path(args.out_dir))
     else:
         outs.append(REPO / "find_best_trail")
-        outs.append(REPO / "资料" / "模型训练" / "04_旁路_2s滑窗100ms_openbmi_accpaper")
+        outs.append(REPO / "资料" / "模型训练" / "04_5060_旁路_2s滑窗100ms_openbmi_accpaper")
+    report_stem = f"OpenBMI_{len(results)}被试_MI特征显著性分析"
     for out_dir in outs:
-        md = out_dir / "OpenBMI_25被试_MI特征显著性分析.md"
-        js = out_dir / "OpenBMI_25被试_MI特征显著性分析.json"
+        md = out_dir / f"{report_stem}.md"
+        js = out_dir / f"{report_stem}.json"
         write_report(results, md, js)
         print(f"[done] {md}", flush=True)
 
