@@ -1,6 +1,6 @@
 # 模型训练资料索引
 
-> 更新：2026-08-04。主线已切换为 **2 s / 100 ms 滑窗 · BCI2a→OpenBMI · shallow/eegnet/conformer 深研**（严格 Val **BalAcc** 早停 + **batch balance**）。  
+> 更新：2026-08-09。主线已切换为 **2 s / 100 ms 滑窗 · BCI2a→OpenBMI · shallow/eegnet/conformer 深研**。  
 > 旧「1 s / 40 ms + Stieger」主线已迁入 [`归档/04_旧主线_1s伪在线/`](./归档/04_旧主线_1s伪在线/)。
 
 ## 当前主线（请从这里读）
@@ -21,7 +21,13 @@
 | [`01_旁路_2s滑窗100ms/`](./01_旁路_2s滑窗100ms/) | 阶段 A：窗级十一模型选型（BCI2a） |
 | [`02_固定窗_bci2a_cue2to4s/`](./02_固定窗_bci2a_cue2to4s/) | 固定窗对照（非主训协议） |
 | [`03_旁路_2s滑窗100ms_试次多数票/`](./03_旁路_2s滑窗100ms_试次多数票/) | 阶段 A′：试次过半投票 / Acc_paper 选模（BCI2a） |
-| [`04_旁路_2s滑窗100ms_openbmi_accpaper/`](./04_旁路_2s滑窗100ms_openbmi_accpaper/) | 阶段 D：OpenBMI · Acc_paper 重训（Task Top-8；**代码已落地**） |
+| [`04_5060_旁路_2s滑窗100ms_openbmi_accpaper/`](./04_5060_旁路_2s滑窗100ms_openbmi_accpaper/) | OpenBMI Acc_paper（**RTX 5060**） |
+| [`04_5090_旁路_2s滑窗100ms_openbmi_accpaper/`](./04_5090_旁路_2s滑窗100ms_openbmi_accpaper/) | OpenBMI Acc_paper（**RTX 5090**） |
+| [`05_旁路_shallow_MI特征工程_openbmi_accpaper/`](./05_旁路_shallow_MI特征工程_openbmi_accpaper/) | Shallow MI 特征工程旁路（偏侧通道等；非正式表；**已结案阴性**） |
+| [`06_旁路_可教试次_子集评估_微调_openbmi_accpaper/`](./06_旁路_可教试次_子集评估_微调_openbmi_accpaper/) | 可教试次清单 · 子集评估正式权重 · 可选子集 FT（非正式表） |
+| [`07_旁路_无zscore_2s滑窗_openbmi_accpaper/`](./07_旁路_无zscore_2s滑窗_openbmi_accpaper/) | 无 z-score · 2s/hop100；代码已落地（`*_hop100_noz_accpaper`）；待全量跑数 |
+| [`08_旁路_无zscore_固定窗_openbmi_accpaper/`](./08_旁路_无zscore_固定窗_openbmi_accpaper/) | 无 z-score · Cue+2–4s 固定窗；代码已落地（`*_fixed_noz_accpaper`）；待全量跑数 |
+| [`OpenBMI_Acc_paper_双机目录.md`](./OpenBMI_Acc_paper_双机目录.md) | 5060 / 5090 路径对照总览 |
 
 新实验 MD：[`runs/`](./runs/)  
 最新入口：[`五折实验记录_最新.md`](./五折实验记录_最新.md)

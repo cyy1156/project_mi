@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from config import N_FOLDS, WEIGHT_ROOT
+from config import N_FOLDS, TRAIN_LAB, WEIGHT_ROOT
+
+# 5060 正式 OpenBMI Acc_paper（旁路 04 冻结）
+OPENBMI_WEIGHT_ROOT = TRAIN_LAB / "out" / "5060_baseline_openbmi_2s_hop100_accpaper"
+OPENBMI_SHALLOW_RUN = "run_20260807_135828"
 
 
 def _run_complete(run_dir: Path) -> bool:
@@ -44,6 +48,38 @@ def resolve_accpaper_run(model: str, *, run_stamp: str | None = None) -> Path:
             return r
     raise FileNotFoundError(
         f"{model}: 无完整 5 折 Task+Three Acc_paper run under {base}"
+    )
+
+
+def resolve_openbmi_accpaper_run(model: str, *, run_stamp: str | None = None) -> Path:
+    """返回 OpenBMI 正式 Acc_paper run。
+
+    默认 shallow 冻结为 OPENBMI_SHALLOW_RUN。
+    """
+    name = f"{model}_openbmi_2s_hop100_balbatch_accpaper"
+    base = OPENBMI_WEIGHT_ROOT / name / "openbmi_2s_hop100"
+    if not base.is_dir():
+        raise FileNotFoundError(f"缺少 OpenBMI 权重目录: {base}")
+    stamp = run_stamp
+    if not stamp and model == "shallow":
+        stamp = OPENBMI_SHALLOW_RUN
+    if stamp:
+        run_dir = (
+            base / stamp if stamp.startswith("run_") else base / f"run_{stamp}"
+        )
+        if not _run_complete(run_dir):
+            raise FileNotFoundError(f"指定 OpenBMI run 不完整: {run_dir}")
+        return run_dir
+    runs = sorted(
+        [p for p in base.iterdir() if p.is_dir() and p.name.startswith("run_")],
+        key=lambda p: p.name,
+        reverse=True,
+    )
+    for r in runs:
+        if _run_complete(r):
+            return r
+    raise FileNotFoundError(
+        f"{model}: 无完整 OpenBMI Acc_paper run under {base}"
     )
 
 

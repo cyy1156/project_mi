@@ -800,7 +800,13 @@ def run_baseline_main(
         json.dumps(device_meta, indent=2, ensure_ascii=False), encoding="utf-8"
     )
     records_root = REPO_ROOT / "资料" / "模型训练"
-    md_path = records_root / "runs" / f"{stamp}_{out_name}" / f"{out_name}五折实验记录.md"
+    md_path = (
+        records_root
+        / "runs"
+        / "5090_openbmi_accpaper"
+        / f"{stamp}_{out_name}"
+        / f"{out_name}五折实验记录.md"
+    )
 
     # optional smoke: monkey-patch fold iterator via max_folds by wrapping later
     global_max_folds = int(args.max_folds)

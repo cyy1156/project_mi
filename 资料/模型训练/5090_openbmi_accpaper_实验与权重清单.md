@@ -1,12 +1,18 @@
-# RTX 5090 · OpenBMI Acc_paper 实验与权重清单
+# RTX 5090 · OpenBMI Acc_paper 实验与权重清单（**对照 · 非正式**）
+
+> **非正式**。正式 Acc_paper / 排名以本机 5060 Fast 清单为准：  
+> [`5060_openbmi_accpaper_实验与权重清单.md`](./5060_openbmi_accpaper_实验与权重清单.md)  
+> 本目录仅保留 5090 机历史跑数，便于对照，**不覆盖正式表**。
 
 - 标记时间：`2026-08-07T20:21:37`
 - 训练设备：**NVIDIA RTX 5090**（32GB · sm_120 · conda `cyy` · PyTorch 2.11+cu128）
 - 代码包：`code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/`
 - 权重根目录：`code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/`
-- 实验记录：`资料/模型训练/runs/*openbmi*`
+- 实验记录：`资料/模型训练/runs/5090_openbmi_accpaper/`
+- 结果副本：`资料/实验结果/5090/openbmi滑窗_paper_acc/`
+- 方案：`资料/模型训练/04_5090_旁路_2s滑窗100ms_openbmi_accpaper/`
 
-## 权重 run 目录
+## 权重 run 目录（历史）
 
 | 模型 | run 路径 |
 |------|----------|
@@ -24,3 +30,7 @@
 | gcbnet_raw | `code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/gcbnet_raw_openbmi_2s_hop100_balbatch_accpaper/openbmi_2s_hop100/run_20260807_011827` |
 | shallow | `code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/shallow_openbmi_2s_hop100_balbatch_accpaper/openbmi_2s_hop100/run_20260805_135815` |
 | shallow | `code/train_lab/out/5090_baseline_openbmi_2s_hop100_accpaper/shallow_openbmi_2s_hop100_balbatch_accpaper/openbmi_2s_hop100/run_20260805_160127` |
+
+## 五折记录目录
+
+`资料/模型训练/runs/5090_openbmi_accpaper/`（18 个 run，含冒烟/重跑）

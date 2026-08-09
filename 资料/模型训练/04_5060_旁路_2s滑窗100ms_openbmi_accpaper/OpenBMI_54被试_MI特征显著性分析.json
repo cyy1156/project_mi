@@ -1,0 +1,4779 @@
+{
+  "standards": {
+    "name": "OpenBMI_MI_feature_v2_hop100",
+    "epoch": "Rest=cue前4s(可缩短); MI=cue后0–4s; slide Tw=2s hop=100ms → 窗@250Hz; CAR+notch50+bp8-30; no z-score",
+    "mu_hz": [
+      8.0,
+      13.0
+    ],
+    "beta_l_hz": [
+      13.0,
+      20.0
+    ],
+    "beta_h_hz": [
+      20.0,
+      30.0
+    ],
+    "mu_erd_contra_ok": -15.0,
+    "mu_erd_contra_excellent": -35.0,
+    "laterality_pp_ok": 8.0,
+    "mu_vs_betal_slack": 5.0,
+    "rest_mu_frac_ok": 0.4,
+    "rest_mu_frac_excellent": 0.55,
+    "time_drop_ok": 0.08
+  },
+  "results": [
+    {
+      "subject": "openbmi:subj01",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -9.335944839468535,
+          "mu_erd_c4": -15.836160719635552,
+          "mu_erd_cp3": -21.567797493062333,
+          "mu_erd_cp4": -16.55178276967834,
+          "mu_erd_contra": -15.836160719635552,
+          "mu_erd_ipsi": -9.335944839468535,
+          "laterality_pp": 6.500215880167017,
+          "betal_erd_contra": 2.709897311522951,
+          "betah_erd_contra": 37.515422110727236,
+          "rest_mu_frac": 0.6412626785588182,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.011488180939937568,
+          "c3c4_corr_rest": -0.8145432217049288,
+          "c3c4_corr_mi": -0.7995298734970203,
+          "corr_drop": -0.01501334820790845
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -19.620352284296587,
+          "mu_erd_c4": 0.4764100896094294,
+          "mu_erd_cp3": -28.739190542504414,
+          "mu_erd_cp4": 8.983144719225985,
+          "mu_erd_contra": -19.620352284296587,
+          "mu_erd_ipsi": 0.4764100896094294,
+          "laterality_pp": 20.096762373906017,
+          "betal_erd_contra": -11.578809272432462,
+          "betah_erd_contra": 61.121852075764764,
+          "rest_mu_frac": 0.6412626785588182,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": -0.047592372519440415,
+          "c3c4_corr_rest": -0.8145432217049288,
+          "c3c4_corr_mi": -0.8036411809886437,
+          "corr_drop": -0.010902040716285089
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj02",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -12.759199469443608,
+          "mu_erd_c4": -9.96392758153605,
+          "mu_erd_cp3": -14.059497135956907,
+          "mu_erd_cp4": -16.692053803008,
+          "mu_erd_contra": -9.96392758153605,
+          "mu_erd_ipsi": -12.759199469443608,
+          "laterality_pp": -2.7952718879075586,
+          "betal_erd_contra": -42.405276514480086,
+          "betah_erd_contra": -50.706715449370364,
+          "rest_mu_frac": 0.4192184350226701,
+          "time_onset_ok": false,
+          "time_trough_s": 1.8,
+          "time_drop": 0.01564870087513642,
+          "c3c4_corr_rest": -0.4825980630881585,
+          "c3c4_corr_mi": -0.49589232431862423,
+          "corr_drop": 0.013294261230465731
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -22.07678830070702,
+          "mu_erd_c4": -9.260218078566524,
+          "mu_erd_cp3": -23.64145083213716,
+          "mu_erd_cp4": -11.707582606177283,
+          "mu_erd_contra": -22.07678830070702,
+          "mu_erd_ipsi": -9.260218078566524,
+          "laterality_pp": 12.816570222140495,
+          "betal_erd_contra": -21.48257386481988,
+          "betah_erd_contra": -35.322428034830764,
+          "rest_mu_frac": 0.4192184350226701,
+          "time_onset_ok": false,
+          "time_trough_s": 1.4000000000000001,
+          "time_drop": 0.0791379002313789,
+          "c3c4_corr_rest": -0.4825980630881585,
+          "c3c4_corr_mi": -0.4540100865505585,
+          "corr_drop": -0.02858797653759998
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.5,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj03",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -20.66936038512484,
+          "mu_erd_c4": -51.22533817317729,
+          "mu_erd_cp3": -20.54022473557126,
+          "mu_erd_cp4": -36.354719831481525,
+          "mu_erd_contra": -51.22533817317729,
+          "mu_erd_ipsi": -20.66936038512484,
+          "laterality_pp": 30.555977788052452,
+          "betal_erd_contra": -27.722573933891084,
+          "betah_erd_contra": -5.946022284646914,
+          "rest_mu_frac": 0.6305700974963482,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.06363050711474019,
+          "c3c4_corr_rest": -0.7737300164339113,
+          "c3c4_corr_mi": -0.7866944979220518,
+          "corr_drop": 0.012964481488140556
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -51.18032060540375,
+          "mu_erd_c4": -30.317132729041997,
+          "mu_erd_cp3": -35.32558218786385,
+          "mu_erd_cp4": -11.780875459626706,
+          "mu_erd_contra": -51.18032060540375,
+          "mu_erd_ipsi": -30.317132729041997,
+          "laterality_pp": 20.863187876361753,
+          "betal_erd_contra": -24.786685290642524,
+          "betah_erd_contra": -0.3371275492271539,
+          "rest_mu_frac": 0.6305700974963482,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.08604315990672179,
+          "c3c4_corr_rest": -0.7737300164339113,
+          "c3c4_corr_mi": -0.7900501431829674,
+          "corr_drop": 0.01632012674905614
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj04",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -38.85398585838207,
+          "mu_erd_c4": -35.38925938871524,
+          "mu_erd_cp3": -65.35514237542706,
+          "mu_erd_cp4": -61.10271306477626,
+          "mu_erd_contra": -35.38925938871524,
+          "mu_erd_ipsi": -38.85398585838207,
+          "laterality_pp": -3.4647264696668287,
+          "betal_erd_contra": -34.31116962987076,
+          "betah_erd_contra": -29.49405271792406,
+          "rest_mu_frac": 0.588941775860963,
+          "time_onset_ok": true,
+          "time_trough_s": 2.0,
+          "time_drop": 0.16066129658464898,
+          "c3c4_corr_rest": -0.6906758596406656,
+          "c3c4_corr_mi": -0.6391606967210091,
+          "corr_drop": -0.05151516291965652
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -37.476978070595706,
+          "mu_erd_c4": -28.72498522185541,
+          "mu_erd_cp3": -61.79611421758244,
+          "mu_erd_cp4": -58.14548307648799,
+          "mu_erd_contra": -37.476978070595706,
+          "mu_erd_ipsi": -28.72498522185541,
+          "laterality_pp": 8.751992848740297,
+          "betal_erd_contra": -11.499519477302945,
+          "betah_erd_contra": 1.4811634592924385,
+          "rest_mu_frac": 0.588941775860963,
+          "time_onset_ok": false,
+          "time_trough_s": 1.1,
+          "time_drop": 0.0564864996979715,
+          "c3c4_corr_rest": -0.6906758596406656,
+          "c3c4_corr_mi": -0.6339151348356287,
+          "corr_drop": -0.05676072480503691
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj05",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -35.81970103343117,
+          "mu_erd_c4": -53.42875399350059,
+          "mu_erd_cp3": -21.731956713422047,
+          "mu_erd_cp4": -50.69723867167968,
+          "mu_erd_contra": -53.42875399350059,
+          "mu_erd_ipsi": -35.81970103343117,
+          "laterality_pp": 17.60905296006942,
+          "betal_erd_contra": -58.77543867014358,
+          "betah_erd_contra": -65.69569869837973,
+          "rest_mu_frac": 0.45816133976883305,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.07657769318680403,
+          "c3c4_corr_rest": -0.7538933701921897,
+          "c3c4_corr_mi": -0.7390920433219519,
+          "corr_drop": -0.01480132687023783
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -45.559553282603844,
+          "mu_erd_c4": -39.731685261263294,
+          "mu_erd_cp3": -28.043777855998,
+          "mu_erd_cp4": -35.25291729893865,
+          "mu_erd_contra": -45.559553282603844,
+          "mu_erd_ipsi": -39.731685261263294,
+          "laterality_pp": 5.827868021340549,
+          "betal_erd_contra": -45.901906027614636,
+          "betah_erd_contra": -52.30620517290578,
+          "rest_mu_frac": 0.45816133976883305,
+          "time_onset_ok": false,
+          "time_trough_s": 0.30000000000000004,
+          "time_drop": 0.04581748377908832,
+          "c3c4_corr_rest": -0.7538933701921897,
+          "c3c4_corr_mi": -0.768260266437156,
+          "corr_drop": 0.014366896244966232
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj06",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -12.265008973393705,
+          "mu_erd_c4": -22.838875406714834,
+          "mu_erd_cp3": -16.590863935894976,
+          "mu_erd_cp4": -18.72107683862423,
+          "mu_erd_contra": -22.838875406714834,
+          "mu_erd_ipsi": -12.265008973393705,
+          "laterality_pp": 10.573866433321129,
+          "betal_erd_contra": -27.023436262866003,
+          "betah_erd_contra": -25.471635573644328,
+          "rest_mu_frac": 0.5668091014731645,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.0014837134314401599,
+          "c3c4_corr_rest": -0.793015075350257,
+          "c3c4_corr_mi": -0.8030770631134729,
+          "corr_drop": 0.010061987763215985
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -31.063159917607138,
+          "mu_erd_c4": -20.238915511266647,
+          "mu_erd_cp3": -34.52365299264732,
+          "mu_erd_cp4": -18.210600173903444,
+          "mu_erd_contra": -31.063159917607138,
+          "mu_erd_ipsi": -20.238915511266647,
+          "laterality_pp": 10.82424440634049,
+          "betal_erd_contra": -20.032920117705867,
+          "betah_erd_contra": -20.863574790801444,
+          "rest_mu_frac": 0.5668091014731645,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.030480852323232607,
+          "c3c4_corr_rest": -0.793015075350257,
+          "c3c4_corr_mi": -0.8018280265075542,
+          "corr_drop": 0.0088129511572973
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj07",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -16.172304909990295,
+          "mu_erd_c4": -23.20863536614788,
+          "mu_erd_cp3": -8.703574788464632,
+          "mu_erd_cp4": -13.247927230585258,
+          "mu_erd_contra": -23.20863536614788,
+          "mu_erd_ipsi": -16.172304909990295,
+          "laterality_pp": 7.036330456157586,
+          "betal_erd_contra": 13.179667067363951,
+          "betah_erd_contra": -4.634135485402051,
+          "rest_mu_frac": 0.5749291556119983,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.11727840748266682,
+          "c3c4_corr_rest": -0.7084856505731888,
+          "c3c4_corr_mi": -0.6968131539793719,
+          "corr_drop": -0.011672496593816861
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -26.320813223415158,
+          "mu_erd_c4": -22.751330341916404,
+          "mu_erd_cp3": -28.289079678716835,
+          "mu_erd_cp4": -11.675651864325541,
+          "mu_erd_contra": -26.320813223415158,
+          "mu_erd_ipsi": -22.751330341916404,
+          "laterality_pp": 3.569482881498754,
+          "betal_erd_contra": 4.9970513853087715,
+          "betah_erd_contra": 13.075476675959907,
+          "rest_mu_frac": 0.5749291556119983,
+          "time_onset_ok": false,
+          "time_trough_s": 0.30000000000000004,
+          "time_drop": -0.052502525879363,
+          "c3c4_corr_rest": -0.7084856505731888,
+          "c3c4_corr_mi": -0.6884216675398461,
+          "corr_drop": -0.02006398303334267
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj08",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -10.038834087126144,
+          "mu_erd_c4": -24.87172919039459,
+          "mu_erd_cp3": -29.65230919481377,
+          "mu_erd_cp4": -33.301973514147235,
+          "mu_erd_contra": -24.87172919039459,
+          "mu_erd_ipsi": -10.038834087126144,
+          "laterality_pp": 14.832895103268445,
+          "betal_erd_contra": -12.427695092814563,
+          "betah_erd_contra": -25.604309927419543,
+          "rest_mu_frac": 0.7932116282957855,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.1591435733125923,
+          "c3c4_corr_rest": -0.8072725033939209,
+          "c3c4_corr_mi": -0.8284476414688728,
+          "corr_drop": 0.02117513807495197
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -12.738538860320457,
+          "mu_erd_c4": -14.099456511397785,
+          "mu_erd_cp3": -30.976768849278116,
+          "mu_erd_cp4": -20.956166804544548,
+          "mu_erd_contra": -12.738538860320457,
+          "mu_erd_ipsi": -14.099456511397785,
+          "laterality_pp": -1.3609176510773278,
+          "betal_erd_contra": -22.4777592927025,
+          "betah_erd_contra": -10.016479410347399,
+          "rest_mu_frac": 0.7932116282957855,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.1031807603787493,
+          "c3c4_corr_rest": -0.8072725033939209,
+          "c3c4_corr_mi": -0.8291124216868921,
+          "corr_drop": 0.021839918292971272
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.5,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj09",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 12.354041746835263,
+          "mu_erd_c4": -6.974321864048542,
+          "mu_erd_cp3": 12.039661151148616,
+          "mu_erd_cp4": -4.342866211614367,
+          "mu_erd_contra": -6.974321864048542,
+          "mu_erd_ipsi": 12.354041746835263,
+          "laterality_pp": 19.328363610883805,
+          "betal_erd_contra": -15.866162017220466,
+          "betah_erd_contra": -31.54958146853801,
+          "rest_mu_frac": 0.66424365175282,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.007456479598311236,
+          "c3c4_corr_rest": -0.8007163989375451,
+          "c3c4_corr_mi": -0.8065661584739608,
+          "corr_drop": 0.005849759536415755
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -4.334253777728044,
+          "mu_erd_c4": 11.887133493150802,
+          "mu_erd_cp3": -5.638875870996065,
+          "mu_erd_cp4": 22.618395065019946,
+          "mu_erd_contra": -4.334253777728044,
+          "mu_erd_ipsi": 11.887133493150802,
+          "laterality_pp": 16.221387270878846,
+          "betal_erd_contra": -11.245895116930182,
+          "betah_erd_contra": -21.80006506789659,
+          "rest_mu_frac": 0.66424365175282,
+          "time_onset_ok": false,
+          "time_trough_s": 0.6000000000000001,
+          "time_drop": 0.017082158121810635,
+          "c3c4_corr_rest": -0.8007163989375451,
+          "c3c4_corr_mi": -0.799876570112269,
+          "corr_drop": -0.0008398288252761121
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj10",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 39.43137705938184,
+          "mu_erd_c4": 33.21995848929992,
+          "mu_erd_cp3": 68.9951766838456,
+          "mu_erd_cp4": 37.29504195366338,
+          "mu_erd_contra": 33.21995848929992,
+          "mu_erd_ipsi": 39.43137705938184,
+          "laterality_pp": 6.211418570081918,
+          "betal_erd_contra": -13.143007380688822,
+          "betah_erd_contra": -30.668484847623084,
+          "rest_mu_frac": 0.7745917575251308,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.15513886272114227,
+          "c3c4_corr_rest": -0.7899293271739771,
+          "c3c4_corr_mi": -0.7815546619130853,
+          "corr_drop": -0.008374665260891812
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 51.54801239200936,
+          "mu_erd_c4": 36.91587705907955,
+          "mu_erd_cp3": 48.60227746317183,
+          "mu_erd_cp4": 96.17037863827233,
+          "mu_erd_contra": 51.54801239200936,
+          "mu_erd_ipsi": 36.91587705907955,
+          "laterality_pp": -14.632135332929813,
+          "betal_erd_contra": 2.772225527816224,
+          "betah_erd_contra": 3.9257067666609675,
+          "rest_mu_frac": 0.7745917575251308,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.10928199255134703,
+          "c3c4_corr_rest": -0.7899293271739771,
+          "c3c4_corr_mi": -0.7564707254913482,
+          "corr_drop": -0.03345860168262893
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.2,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj11",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -37.12016400240064,
+          "mu_erd_c4": -29.47483023319686,
+          "mu_erd_cp3": -53.203438920308,
+          "mu_erd_cp4": -70.11693627038814,
+          "mu_erd_contra": -29.47483023319686,
+          "mu_erd_ipsi": -37.12016400240064,
+          "laterality_pp": -7.645333769203781,
+          "betal_erd_contra": -17.52819715997377,
+          "betah_erd_contra": -28.742259620656142,
+          "rest_mu_frac": 0.6531446422640251,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.004285269596621354,
+          "c3c4_corr_rest": -0.7701181455785463,
+          "c3c4_corr_mi": -0.7890009538992759,
+          "corr_drop": 0.018882808320729638
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -37.32449928668876,
+          "mu_erd_c4": -27.172990483252928,
+          "mu_erd_cp3": -51.58418875363532,
+          "mu_erd_cp4": -65.87278000573767,
+          "mu_erd_contra": -37.32449928668876,
+          "mu_erd_ipsi": -27.172990483252928,
+          "laterality_pp": 10.151508803435835,
+          "betal_erd_contra": -6.123201019029254,
+          "betah_erd_contra": -11.222986514661185,
+          "rest_mu_frac": 0.6531446422640251,
+          "time_onset_ok": false,
+          "time_trough_s": 0.6000000000000001,
+          "time_drop": 0.0020178664366088638,
+          "c3c4_corr_rest": -0.7701181455785463,
+          "c3c4_corr_mi": -0.7913160687695906,
+          "corr_drop": 0.0211979231910443
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj12",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -32.03791530869749,
+          "mu_erd_c4": -32.940112355015444,
+          "mu_erd_cp3": 8.764524132828996,
+          "mu_erd_cp4": -12.133070613603563,
+          "mu_erd_contra": -32.940112355015444,
+          "mu_erd_ipsi": -32.03791530869749,
+          "laterality_pp": 0.9021970463179514,
+          "betal_erd_contra": -31.938648056922357,
+          "betah_erd_contra": -30.369317306360514,
+          "rest_mu_frac": 0.4765933088723489,
+          "time_onset_ok": true,
+          "time_trough_s": 0.9,
+          "time_drop": 0.16352920710119104,
+          "c3c4_corr_rest": -0.7760159689871222,
+          "c3c4_corr_mi": -0.7709595812886281,
+          "corr_drop": -0.005056387698494147
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -27.02903221789725,
+          "mu_erd_c4": -32.20615074961,
+          "mu_erd_cp3": -4.512403029786847,
+          "mu_erd_cp4": 13.961445470935464,
+          "mu_erd_contra": -27.02903221789725,
+          "mu_erd_ipsi": -32.20615074961,
+          "laterality_pp": -5.177118531712754,
+          "betal_erd_contra": -21.000713928829963,
+          "betah_erd_contra": -28.71771956586112,
+          "rest_mu_frac": 0.4765933088723489,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.06007126650733139,
+          "c3c4_corr_rest": -0.7760159689871222,
+          "c3c4_corr_mi": -0.7833855773382071,
+          "corr_drop": 0.007369608351084911
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj13",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 60.48886442520899,
+          "mu_erd_c4": 48.7756148099813,
+          "mu_erd_cp3": 68.8965336292569,
+          "mu_erd_cp4": 47.3273790939058,
+          "mu_erd_contra": 48.7756148099813,
+          "mu_erd_ipsi": 60.48886442520899,
+          "laterality_pp": 11.713249615227689,
+          "betal_erd_contra": 0.4120977852855253,
+          "betah_erd_contra": -7.959597324427505,
+          "rest_mu_frac": 0.8202839918502027,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.16255744371230968,
+          "c3c4_corr_rest": -0.6510849143686674,
+          "c3c4_corr_mi": -0.6620953706357747,
+          "corr_drop": 0.011010456267107283
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 59.046816972798624,
+          "mu_erd_c4": 45.22969239687446,
+          "mu_erd_cp3": 53.736072193740384,
+          "mu_erd_cp4": 61.432164472754145,
+          "mu_erd_contra": 59.046816972798624,
+          "mu_erd_ipsi": 45.22969239687446,
+          "laterality_pp": -13.817124575924161,
+          "betal_erd_contra": 6.001179821591851,
+          "betah_erd_contra": -11.174502265380893,
+          "rest_mu_frac": 0.8202839918502027,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.1752035346466321,
+          "c3c4_corr_rest": -0.6510849143686674,
+          "c3c4_corr_mi": -0.6708358344983699,
+          "corr_drop": 0.019750920129702476
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj14",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -1.764178186203719,
+          "mu_erd_c4": -5.254153758726113,
+          "mu_erd_cp3": -2.481922323485358,
+          "mu_erd_cp4": -10.408372335295637,
+          "mu_erd_contra": -5.254153758726113,
+          "mu_erd_ipsi": -1.764178186203719,
+          "laterality_pp": 3.4899755725223938,
+          "betal_erd_contra": -18.486155153016554,
+          "betah_erd_contra": -13.492934353193409,
+          "rest_mu_frac": 0.6789816366671668,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.015708546364601596,
+          "c3c4_corr_rest": -0.8364610777452012,
+          "c3c4_corr_mi": -0.8365417358119999,
+          "corr_drop": 8.065806679868892e-05
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -12.742160958259301,
+          "mu_erd_c4": -3.002507290914522,
+          "mu_erd_cp3": -21.779481897482682,
+          "mu_erd_cp4": -1.173763559759455,
+          "mu_erd_contra": -12.742160958259301,
+          "mu_erd_ipsi": -3.002507290914522,
+          "laterality_pp": 9.739653667344779,
+          "betal_erd_contra": -8.496956182435136,
+          "betah_erd_contra": 3.1730044006421307,
+          "rest_mu_frac": 0.6789816366671668,
+          "time_onset_ok": false,
+          "time_trough_s": 1.2000000000000002,
+          "time_drop": -0.037655610863315044,
+          "c3c4_corr_rest": -0.8364610777452012,
+          "c3c4_corr_mi": -0.8293039643412841,
+          "corr_drop": -0.007157113403917115
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj15",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 8.228658117287715,
+          "mu_erd_c4": -1.3151631980241834,
+          "mu_erd_cp3": 16.56582199239925,
+          "mu_erd_cp4": 12.346659085569499,
+          "mu_erd_contra": -1.3151631980241834,
+          "mu_erd_ipsi": 8.228658117287715,
+          "laterality_pp": 9.543821315311899,
+          "betal_erd_contra": -44.07490624574727,
+          "betah_erd_contra": -37.30655822489201,
+          "rest_mu_frac": 0.646630663568872,
+          "time_onset_ok": false,
+          "time_trough_s": 0.6000000000000001,
+          "time_drop": -0.004248702137537435,
+          "c3c4_corr_rest": -0.6086586610234006,
+          "c3c4_corr_mi": -0.6388408845142193,
+          "corr_drop": 0.03018222349081867
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 7.097259174712715,
+          "mu_erd_c4": 1.096721896564483,
+          "mu_erd_cp3": -4.945305744176154,
+          "mu_erd_cp4": 12.240709078084521,
+          "mu_erd_contra": 7.097259174712715,
+          "mu_erd_ipsi": 1.096721896564483,
+          "laterality_pp": -6.000537278148232,
+          "betal_erd_contra": -36.81159423025692,
+          "betah_erd_contra": -30.95245344045636,
+          "rest_mu_frac": 0.646630663568872,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.05611955340667852,
+          "c3c4_corr_rest": -0.6086586610234006,
+          "c3c4_corr_mi": -0.6390102120660455,
+          "corr_drop": 0.030351551042644864
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj16",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -18.14659586862827,
+          "mu_erd_c4": -15.880644404320952,
+          "mu_erd_cp3": -29.92566305028898,
+          "mu_erd_cp4": -20.60928538884108,
+          "mu_erd_contra": -15.880644404320952,
+          "mu_erd_ipsi": -18.14659586862827,
+          "laterality_pp": -2.265951464307319,
+          "betal_erd_contra": 4.102303751297686,
+          "betah_erd_contra": 38.59123558025706,
+          "rest_mu_frac": 0.5807974125968377,
+          "time_onset_ok": false,
+          "time_trough_s": 1.7000000000000002,
+          "time_drop": -0.009397237344465379,
+          "c3c4_corr_rest": -0.7868723562548257,
+          "c3c4_corr_mi": -0.8035620235697438,
+          "corr_drop": 0.016689667314918166
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -25.102861982176083,
+          "mu_erd_c4": -16.69293792947148,
+          "mu_erd_cp3": -30.233247886273617,
+          "mu_erd_cp4": -8.906915731955554,
+          "mu_erd_contra": -25.102861982176083,
+          "mu_erd_ipsi": -16.69293792947148,
+          "laterality_pp": 8.409924052704604,
+          "betal_erd_contra": -17.455444469322515,
+          "betah_erd_contra": -18.102508112044937,
+          "rest_mu_frac": 0.5807974125968377,
+          "time_onset_ok": false,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": 0.07587420735422395,
+          "c3c4_corr_rest": -0.7868723562548257,
+          "c3c4_corr_mi": -0.7879407072152514,
+          "corr_drop": 0.0010683509604257901
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj17",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -57.82200022661165,
+          "mu_erd_c4": -69.0001791712654,
+          "mu_erd_cp3": -30.96408404217305,
+          "mu_erd_cp4": -50.585999431572915,
+          "mu_erd_contra": -69.0001791712654,
+          "mu_erd_ipsi": -57.82200022661165,
+          "laterality_pp": 11.178178944653752,
+          "betal_erd_contra": -51.64433226185222,
+          "betah_erd_contra": -30.31552302859295,
+          "rest_mu_frac": 0.5919405554320112,
+          "time_onset_ok": true,
+          "time_trough_s": 1.7000000000000002,
+          "time_drop": 0.14917642856582472,
+          "c3c4_corr_rest": -0.7697181716804689,
+          "c3c4_corr_mi": -0.769724733681788,
+          "corr_drop": 6.562001319099231e-06
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -61.53671504296078,
+          "mu_erd_c4": -70.41791952364306,
+          "mu_erd_cp3": -43.31955761505444,
+          "mu_erd_cp4": -44.45894483319317,
+          "mu_erd_contra": -61.53671504296078,
+          "mu_erd_ipsi": -70.41791952364306,
+          "laterality_pp": -8.881204480682285,
+          "betal_erd_contra": -45.67737919246947,
+          "betah_erd_contra": -21.362862599861092,
+          "rest_mu_frac": 0.5919405554320112,
+          "time_onset_ok": false,
+          "time_trough_s": 0.30000000000000004,
+          "time_drop": 0.07667177494593572,
+          "c3c4_corr_rest": -0.7697181716804689,
+          "c3c4_corr_mi": -0.7671120081146153,
+          "corr_drop": -0.0026061635658535254
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj18",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -19.510469273672186,
+          "mu_erd_c4": -46.99851073265005,
+          "mu_erd_cp3": -30.168627881842276,
+          "mu_erd_cp4": -31.371918263718875,
+          "mu_erd_contra": -46.99851073265005,
+          "mu_erd_ipsi": -19.510469273672186,
+          "laterality_pp": 27.48804145897786,
+          "betal_erd_contra": -34.62431448432739,
+          "betah_erd_contra": -47.97881632288598,
+          "rest_mu_frac": 0.6240257893426238,
+          "time_onset_ok": true,
+          "time_trough_s": 0.9,
+          "time_drop": 0.13651590671531036,
+          "c3c4_corr_rest": -0.7912149583323372,
+          "c3c4_corr_mi": -0.7826810341922273,
+          "corr_drop": -0.008533924140109894
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -49.23772938129211,
+          "mu_erd_c4": -17.964917362982053,
+          "mu_erd_cp3": -41.781882408369086,
+          "mu_erd_cp4": -22.301669570888443,
+          "mu_erd_contra": -49.23772938129211,
+          "mu_erd_ipsi": -17.964917362982053,
+          "laterality_pp": 31.27281201831006,
+          "betal_erd_contra": -41.76683210900201,
+          "betah_erd_contra": -48.34606550384773,
+          "rest_mu_frac": 0.6240257893426238,
+          "time_onset_ok": true,
+          "time_trough_s": 0.8,
+          "time_drop": 0.09950591054190978,
+          "c3c4_corr_rest": -0.7912149583323372,
+          "c3c4_corr_mi": -0.7789602701745539,
+          "corr_drop": -0.0122546881577833
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 1.0,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj19",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -49.54514837025402,
+          "mu_erd_c4": -57.65473833270763,
+          "mu_erd_cp3": -58.43986765825696,
+          "mu_erd_cp4": -55.71138630839648,
+          "mu_erd_contra": -57.65473833270763,
+          "mu_erd_ipsi": -49.54514837025402,
+          "laterality_pp": 8.109589962453612,
+          "betal_erd_contra": -32.539122482691035,
+          "betah_erd_contra": -49.26841518531102,
+          "rest_mu_frac": 0.7894532249506219,
+          "time_onset_ok": true,
+          "time_trough_s": 1.0,
+          "time_drop": 0.16133129090005172,
+          "c3c4_corr_rest": -0.8318718150958624,
+          "c3c4_corr_mi": -0.8311531225530158,
+          "corr_drop": -0.0007186925428466218
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -61.22604252160257,
+          "mu_erd_c4": -51.26048778484514,
+          "mu_erd_cp3": -66.25400130928672,
+          "mu_erd_cp4": -35.497472634467236,
+          "mu_erd_contra": -61.22604252160257,
+          "mu_erd_ipsi": -51.26048778484514,
+          "laterality_pp": 9.965554736757433,
+          "betal_erd_contra": -34.338876927309684,
+          "betah_erd_contra": -46.24518190376047,
+          "rest_mu_frac": 0.7894532249506219,
+          "time_onset_ok": true,
+          "time_trough_s": 1.5,
+          "time_drop": 0.14748580639780942,
+          "c3c4_corr_rest": -0.8318718150958624,
+          "c3c4_corr_mi": -0.8202579384834631,
+          "corr_drop": -0.011613876612399321
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 1.0,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj20",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -3.6929969675412035,
+          "mu_erd_c4": 3.8410796467092765,
+          "mu_erd_cp3": 3.4013375707889733,
+          "mu_erd_cp4": 16.281388801062825,
+          "mu_erd_contra": 3.8410796467092765,
+          "mu_erd_ipsi": -3.6929969675412035,
+          "laterality_pp": -7.5340766142504805,
+          "betal_erd_contra": -42.09053407557505,
+          "betah_erd_contra": -70.65497936808092,
+          "rest_mu_frac": 0.6058090028900895,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.06770903548509842,
+          "c3c4_corr_rest": -0.8206235311084148,
+          "c3c4_corr_mi": -0.7968042574217742,
+          "corr_drop": -0.023819273686640607
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 5.948924084881463,
+          "mu_erd_c4": 14.17729676582605,
+          "mu_erd_cp3": -1.092807735477301,
+          "mu_erd_cp4": 33.75187323568242,
+          "mu_erd_contra": 5.948924084881463,
+          "mu_erd_ipsi": 14.17729676582605,
+          "laterality_pp": 8.228372680944588,
+          "betal_erd_contra": -38.432706103039706,
+          "betah_erd_contra": -72.43064071083661,
+          "rest_mu_frac": 0.6058090028900895,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": -0.04772463551680275,
+          "c3c4_corr_rest": -0.8206235311084148,
+          "c3c4_corr_mi": -0.8124639290718633,
+          "corr_drop": -0.008159602036551528
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj21",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -63.875553329690796,
+          "mu_erd_c4": -76.44998419046215,
+          "mu_erd_cp3": -63.94148483103258,
+          "mu_erd_cp4": -70.77723913123374,
+          "mu_erd_contra": -76.44998419046215,
+          "mu_erd_ipsi": -63.875553329690796,
+          "laterality_pp": 12.57443086077135,
+          "betal_erd_contra": -78.94523177693661,
+          "betah_erd_contra": -52.994160935269,
+          "rest_mu_frac": 0.5101922209131884,
+          "time_onset_ok": true,
+          "time_trough_s": 0.7000000000000001,
+          "time_drop": 0.2624930478413309,
+          "c3c4_corr_rest": -0.7017010471473055,
+          "c3c4_corr_mi": -0.8087973239380919,
+          "corr_drop": 0.10709627679078637
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -68.52022069933429,
+          "mu_erd_c4": -70.55738019363298,
+          "mu_erd_cp3": -70.47325108110729,
+          "mu_erd_cp4": -60.15767012170002,
+          "mu_erd_contra": -68.52022069933429,
+          "mu_erd_ipsi": -70.55738019363298,
+          "laterality_pp": -2.0371594942986917,
+          "betal_erd_contra": -75.51249721895925,
+          "betah_erd_contra": -46.69155038378193,
+          "rest_mu_frac": 0.5101922209131884,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.22712778468626527,
+          "c3c4_corr_rest": -0.7017010471473055,
+          "c3c4_corr_mi": -0.7779174007063959,
+          "corr_drop": 0.0762163535590904
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj22",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -12.487884473355871,
+          "mu_erd_c4": -18.446470125852482,
+          "mu_erd_cp3": -4.351062180748124,
+          "mu_erd_cp4": -25.278215501279323,
+          "mu_erd_contra": -18.446470125852482,
+          "mu_erd_ipsi": -12.487884473355871,
+          "laterality_pp": 5.958585652496611,
+          "betal_erd_contra": -8.751148273113964,
+          "betah_erd_contra": -9.501839759576058,
+          "rest_mu_frac": 0.7018796654874235,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.055791966961962036,
+          "c3c4_corr_rest": -0.7921683885572096,
+          "c3c4_corr_mi": -0.7788719588602362,
+          "corr_drop": -0.013296429696973422
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -18.2229519252358,
+          "mu_erd_c4": -7.281423104592104,
+          "mu_erd_cp3": -10.35000716699273,
+          "mu_erd_cp4": -3.8025293454460956,
+          "mu_erd_contra": -18.2229519252358,
+          "mu_erd_ipsi": -7.281423104592104,
+          "laterality_pp": 10.941528820643697,
+          "betal_erd_contra": -4.28438618345207,
+          "betah_erd_contra": 30.055451981810787,
+          "rest_mu_frac": 0.7018796654874235,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.10622552138970777,
+          "c3c4_corr_rest": -0.7921683885572096,
+          "c3c4_corr_mi": -0.7641787949688098,
+          "corr_drop": -0.027989593588399808
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj23",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -49.940732229908576,
+          "mu_erd_c4": -56.01445685081164,
+          "mu_erd_cp3": -58.19926671238575,
+          "mu_erd_cp4": -66.12922424991173,
+          "mu_erd_contra": -56.01445685081164,
+          "mu_erd_ipsi": -49.940732229908576,
+          "laterality_pp": 6.073724620903064,
+          "betal_erd_contra": -36.77091597283601,
+          "betah_erd_contra": -62.77645710370657,
+          "rest_mu_frac": 0.6272193992327384,
+          "time_onset_ok": true,
+          "time_trough_s": 0.7000000000000001,
+          "time_drop": 0.13563074790078578,
+          "c3c4_corr_rest": -0.8110512535616629,
+          "c3c4_corr_mi": -0.8112938804623457,
+          "corr_drop": 0.00024262690068288517
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -54.03801147199064,
+          "mu_erd_c4": -47.169693066200225,
+          "mu_erd_cp3": -59.24049715524664,
+          "mu_erd_cp4": -59.94894188272883,
+          "mu_erd_contra": -54.03801147199064,
+          "mu_erd_ipsi": -47.169693066200225,
+          "laterality_pp": 6.8683184057904185,
+          "betal_erd_contra": -38.73455332844989,
+          "betah_erd_contra": -77.11400110264964,
+          "rest_mu_frac": 0.6272193992327384,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.07222046729947297,
+          "c3c4_corr_rest": -0.8110512535616629,
+          "c3c4_corr_mi": -0.8209307150349024,
+          "corr_drop": 0.009879461473239592
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj24",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -24.307005308208257,
+          "mu_erd_c4": -35.95335535473422,
+          "mu_erd_cp3": -19.868340430967287,
+          "mu_erd_cp4": -37.45064347636086,
+          "mu_erd_contra": -35.95335535473422,
+          "mu_erd_ipsi": -24.307005308208257,
+          "laterality_pp": 11.646350046525964,
+          "betal_erd_contra": -44.412281266562054,
+          "betah_erd_contra": -59.01727369233566,
+          "rest_mu_frac": 0.4264868995500232,
+          "time_onset_ok": false,
+          "time_trough_s": 1.0,
+          "time_drop": -0.000592034839265673,
+          "c3c4_corr_rest": -0.6905299210027944,
+          "c3c4_corr_mi": -0.6856028588487705,
+          "corr_drop": -0.004927062154023942
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -15.419910377670577,
+          "mu_erd_c4": -17.230362898524753,
+          "mu_erd_cp3": -9.083369100597835,
+          "mu_erd_cp4": -18.654542983497134,
+          "mu_erd_contra": -15.419910377670577,
+          "mu_erd_ipsi": -17.230362898524753,
+          "laterality_pp": -1.8104525208541755,
+          "betal_erd_contra": -34.14197872549357,
+          "betah_erd_contra": -52.58805212335721,
+          "rest_mu_frac": 0.4264868995500232,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.0318423443669187,
+          "c3c4_corr_rest": -0.6905299210027944,
+          "c3c4_corr_mi": -0.6909381186554997,
+          "corr_drop": 0.00040819765270527775
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.5,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj25",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -14.165828975921999,
+          "mu_erd_c4": -22.600504044214507,
+          "mu_erd_cp3": -14.633321751550483,
+          "mu_erd_cp4": -20.91289906883869,
+          "mu_erd_contra": -22.600504044214507,
+          "mu_erd_ipsi": -14.165828975921999,
+          "laterality_pp": 8.434675068292508,
+          "betal_erd_contra": -45.96827003856406,
+          "betah_erd_contra": -59.506198580560024,
+          "rest_mu_frac": 0.5450344655061635,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.01269535099936876,
+          "c3c4_corr_rest": -0.7992380999059968,
+          "c3c4_corr_mi": -0.8083884517773037,
+          "corr_drop": 0.009150351871306861
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -9.95583425223313,
+          "mu_erd_c4": -18.100790062246798,
+          "mu_erd_cp3": -8.175621873702523,
+          "mu_erd_cp4": -11.415241763803776,
+          "mu_erd_contra": -9.95583425223313,
+          "mu_erd_ipsi": -18.100790062246798,
+          "laterality_pp": -8.144955810013668,
+          "betal_erd_contra": -39.58955555581072,
+          "betah_erd_contra": -41.06290097120873,
+          "rest_mu_frac": 0.5450344655061635,
+          "time_onset_ok": false,
+          "time_trough_s": 0.5,
+          "time_drop": 0.004041119554430217,
+          "c3c4_corr_rest": -0.7992380999059968,
+          "c3c4_corr_mi": -0.8066449398237847,
+          "corr_drop": 0.0074068399177879
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj26",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -30.429687588903818,
+          "mu_erd_c4": -29.245134026913266,
+          "mu_erd_cp3": -39.85922858921324,
+          "mu_erd_cp4": -34.69683476652063,
+          "mu_erd_contra": -29.245134026913266,
+          "mu_erd_ipsi": -30.429687588903818,
+          "laterality_pp": -1.1845535619905512,
+          "betal_erd_contra": -30.78731021072599,
+          "betah_erd_contra": -11.964116128034965,
+          "rest_mu_frac": 0.7068372450592502,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.01026970693063991,
+          "c3c4_corr_rest": -0.8150638564832051,
+          "c3c4_corr_mi": -0.8147768456833625,
+          "corr_drop": -0.000287010799842613
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -25.42833384888746,
+          "mu_erd_c4": -26.048762181940372,
+          "mu_erd_cp3": -40.648989967243836,
+          "mu_erd_cp4": -31.959528316755055,
+          "mu_erd_contra": -25.42833384888746,
+          "mu_erd_ipsi": -26.048762181940372,
+          "laterality_pp": -0.6204283330529137,
+          "betal_erd_contra": -20.378152060437795,
+          "betah_erd_contra": 31.498294630907743,
+          "rest_mu_frac": 0.7068372450592502,
+          "time_onset_ok": false,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": -0.03919777381445025,
+          "c3c4_corr_rest": -0.8150638564832051,
+          "c3c4_corr_mi": -0.8071697702280306,
+          "corr_drop": -0.007894086255174515
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj27",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -48.68328037372549,
+          "mu_erd_c4": -45.48240796325714,
+          "mu_erd_cp3": -52.31498814643227,
+          "mu_erd_cp4": -61.18447218046619,
+          "mu_erd_contra": -45.48240796325714,
+          "mu_erd_ipsi": -48.68328037372549,
+          "laterality_pp": -3.2008724104683495,
+          "betal_erd_contra": -49.21577610700357,
+          "betah_erd_contra": -50.7159134173429,
+          "rest_mu_frac": 0.5315841560580985,
+          "time_onset_ok": false,
+          "time_trough_s": 0.5,
+          "time_drop": 0.0017451552171040402,
+          "c3c4_corr_rest": -0.7535763302300441,
+          "c3c4_corr_mi": -0.7212352014848834,
+          "corr_drop": -0.03234112874516071
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -40.89424648773501,
+          "mu_erd_c4": -36.91338216350793,
+          "mu_erd_cp3": -46.425350078229904,
+          "mu_erd_cp4": -53.9939905734221,
+          "mu_erd_contra": -40.89424648773501,
+          "mu_erd_ipsi": -36.91338216350793,
+          "laterality_pp": 3.9808643242270776,
+          "betal_erd_contra": -21.836792272390017,
+          "betah_erd_contra": -32.87011618523227,
+          "rest_mu_frac": 0.5315841560580985,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.03432439628963053,
+          "c3c4_corr_rest": -0.7535763302300441,
+          "c3c4_corr_mi": -0.7412951044929703,
+          "corr_drop": -0.012281225737073798
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj28",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -50.22427808444515,
+          "mu_erd_c4": -37.39468414797907,
+          "mu_erd_cp3": -33.25986846637665,
+          "mu_erd_cp4": -48.374651272018355,
+          "mu_erd_contra": -37.39468414797907,
+          "mu_erd_ipsi": -50.22427808444515,
+          "laterality_pp": -12.829593936466082,
+          "betal_erd_contra": -14.130959160691082,
+          "betah_erd_contra": -34.034192685095874,
+          "rest_mu_frac": 0.7483253936342897,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.07166903904451867,
+          "c3c4_corr_rest": -0.8147012438957558,
+          "c3c4_corr_mi": -0.8089240107930457,
+          "corr_drop": -0.0057772331027101664
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -44.19184824441454,
+          "mu_erd_c4": -15.22235278166811,
+          "mu_erd_cp3": -27.88466991566599,
+          "mu_erd_cp4": -11.669556161971686,
+          "mu_erd_contra": -44.19184824441454,
+          "mu_erd_ipsi": -15.22235278166811,
+          "laterality_pp": 28.969495462746426,
+          "betal_erd_contra": -30.377419043109303,
+          "betah_erd_contra": -30.788074517655613,
+          "rest_mu_frac": 0.7483253936342897,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.0594052139181435,
+          "c3c4_corr_rest": -0.8147012438957558,
+          "c3c4_corr_mi": -0.8268341073947177,
+          "corr_drop": 0.012132863498961921
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj29",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -9.377665278539833,
+          "mu_erd_c4": -19.940140890361953,
+          "mu_erd_cp3": -48.314584771647176,
+          "mu_erd_cp4": -57.00457612940087,
+          "mu_erd_contra": -19.940140890361953,
+          "mu_erd_ipsi": -9.377665278539833,
+          "laterality_pp": 10.56247561182212,
+          "betal_erd_contra": 75.4918885337929,
+          "betah_erd_contra": 432.09266767499906,
+          "rest_mu_frac": 0.7139445205336834,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.02919142865182139,
+          "c3c4_corr_rest": -0.7039783108342774,
+          "c3c4_corr_mi": -0.7989259804507567,
+          "corr_drop": 0.09494766961647927
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -42.0254548153956,
+          "mu_erd_c4": -35.6690597875322,
+          "mu_erd_cp3": -54.906479267864924,
+          "mu_erd_cp4": -53.99396684278157,
+          "mu_erd_contra": -42.0254548153956,
+          "mu_erd_ipsi": -35.6690597875322,
+          "laterality_pp": 6.3563950278634,
+          "betal_erd_contra": -29.87062933803482,
+          "betah_erd_contra": -38.74340480384617,
+          "rest_mu_frac": 0.7139445205336834,
+          "time_onset_ok": false,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": 0.0420200424174339,
+          "c3c4_corr_rest": -0.7039783108342774,
+          "c3c4_corr_mi": -0.7039277408396052,
+          "corr_drop": -5.0569994672233776e-05
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj30",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -30.373190512907893,
+          "mu_erd_c4": -39.92589528076767,
+          "mu_erd_cp3": -29.31253201734896,
+          "mu_erd_cp4": -46.39364415975476,
+          "mu_erd_contra": -39.92589528076767,
+          "mu_erd_ipsi": -30.373190512907893,
+          "laterality_pp": 9.552704767859776,
+          "betal_erd_contra": -42.222774125072334,
+          "betah_erd_contra": -40.33536652792608,
+          "rest_mu_frac": 0.363607686458743,
+          "time_onset_ok": true,
+          "time_trough_s": 1.1,
+          "time_drop": 0.08062434786622251,
+          "c3c4_corr_rest": -0.8152503343424674,
+          "c3c4_corr_mi": -0.814460992499772,
+          "corr_drop": -0.0007893418426954124
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": false,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -33.55809941301137,
+          "mu_erd_c4": -24.445606461687102,
+          "mu_erd_cp3": -34.57532349406785,
+          "mu_erd_cp4": -34.338092928654625,
+          "mu_erd_contra": -33.55809941301137,
+          "mu_erd_ipsi": -24.445606461687102,
+          "laterality_pp": 9.112492951324267,
+          "betal_erd_contra": -47.01404792312182,
+          "betah_erd_contra": -43.04062991073718,
+          "rest_mu_frac": 0.363607686458743,
+          "time_onset_ok": false,
+          "time_trough_s": 1.5,
+          "time_drop": 0.06558243878096502,
+          "c3c4_corr_rest": -0.8152503343424674,
+          "c3c4_corr_mi": -0.8190687985390503,
+          "corr_drop": 0.003818464196582938
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.6000000000000001,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj31",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 14.069038459186453,
+          "mu_erd_c4": 9.109359780279247,
+          "mu_erd_cp3": 9.41799215474661,
+          "mu_erd_cp4": -16.958825170892634,
+          "mu_erd_contra": 9.109359780279247,
+          "mu_erd_ipsi": 14.069038459186453,
+          "laterality_pp": 4.959678678907206,
+          "betal_erd_contra": -35.15248511757779,
+          "betah_erd_contra": -22.17738938797207,
+          "rest_mu_frac": 0.5953053595594048,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.06792216855755108,
+          "c3c4_corr_rest": -0.7628237167109266,
+          "c3c4_corr_mi": -0.7437818307135051,
+          "corr_drop": -0.019041885997421515
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 22.412092714779085,
+          "mu_erd_c4": 22.05186136389184,
+          "mu_erd_cp3": 0.8508346804974706,
+          "mu_erd_cp4": 10.35997727326804,
+          "mu_erd_contra": 22.412092714779085,
+          "mu_erd_ipsi": 22.05186136389184,
+          "laterality_pp": -0.36023135088724345,
+          "betal_erd_contra": -39.35285618936624,
+          "betah_erd_contra": -17.568394498943295,
+          "rest_mu_frac": 0.5953053595594048,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.06390254475277682,
+          "c3c4_corr_rest": -0.7628237167109266,
+          "c3c4_corr_mi": -0.7608112141929242,
+          "corr_drop": -0.002012502518002446
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.2,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj32",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -67.22908815359644,
+          "mu_erd_c4": -77.94586169174468,
+          "mu_erd_cp3": -68.04898691232555,
+          "mu_erd_cp4": -82.13832559052103,
+          "mu_erd_contra": -77.94586169174468,
+          "mu_erd_ipsi": -67.22908815359644,
+          "laterality_pp": 10.716773538148246,
+          "betal_erd_contra": -54.22110560765158,
+          "betah_erd_contra": -40.373641643981315,
+          "rest_mu_frac": 0.5981876825468477,
+          "time_onset_ok": true,
+          "time_trough_s": 1.2000000000000002,
+          "time_drop": 0.43374663349942155,
+          "c3c4_corr_rest": -0.7780202470369696,
+          "c3c4_corr_mi": -0.778465132924211,
+          "corr_drop": 0.00044488588724145295
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -71.83769597334091,
+          "mu_erd_c4": -45.449387460815494,
+          "mu_erd_cp3": -76.65150839406242,
+          "mu_erd_cp4": -42.496651159034464,
+          "mu_erd_contra": -71.83769597334091,
+          "mu_erd_ipsi": -45.449387460815494,
+          "laterality_pp": 26.38830851252542,
+          "betal_erd_contra": -53.06100567806781,
+          "betah_erd_contra": -48.70127186259153,
+          "rest_mu_frac": 0.5981876825468477,
+          "time_onset_ok": true,
+          "time_trough_s": 0.8,
+          "time_drop": 0.33445397839754476,
+          "c3c4_corr_rest": -0.7780202470369696,
+          "c3c4_corr_mi": -0.7672984686500031,
+          "corr_drop": -0.01072177838696653
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 1.0,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj33",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -74.00158105132591,
+          "mu_erd_c4": -73.01908453214159,
+          "mu_erd_cp3": -61.16112848464203,
+          "mu_erd_cp4": -63.306633392419045,
+          "mu_erd_contra": -73.01908453214159,
+          "mu_erd_ipsi": -74.00158105132591,
+          "laterality_pp": -0.9824965191843233,
+          "betal_erd_contra": -67.50329085918598,
+          "betah_erd_contra": -46.8101735047196,
+          "rest_mu_frac": 0.8380854288418481,
+          "time_onset_ok": true,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": 0.11646280332435809,
+          "c3c4_corr_rest": -0.8476202007464253,
+          "c3c4_corr_mi": -0.8301788964069493,
+          "corr_drop": -0.017441304339475994
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -71.48725409054151,
+          "mu_erd_c4": -63.77606177647394,
+          "mu_erd_cp3": -63.26471467909527,
+          "mu_erd_cp4": -45.47064554747731,
+          "mu_erd_contra": -71.48725409054151,
+          "mu_erd_ipsi": -63.77606177647394,
+          "laterality_pp": 7.711192314067574,
+          "betal_erd_contra": -73.04056343887794,
+          "betah_erd_contra": -65.21337375019654,
+          "rest_mu_frac": 0.8380854288418481,
+          "time_onset_ok": true,
+          "time_trough_s": 2.0,
+          "time_drop": 0.13452923181554527,
+          "c3c4_corr_rest": -0.8476202007464253,
+          "c3c4_corr_mi": -0.8408147056106827,
+          "corr_drop": -0.006805495135742579
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj34",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -21.64922119746804,
+          "mu_erd_c4": 0.7409185669817672,
+          "mu_erd_cp3": -11.847851538384017,
+          "mu_erd_cp4": -12.153362712021845,
+          "mu_erd_contra": 0.7409185669817672,
+          "mu_erd_ipsi": -21.64922119746804,
+          "laterality_pp": -22.39013976444981,
+          "betal_erd_contra": 11.302536515372072,
+          "betah_erd_contra": -27.475290261867926,
+          "rest_mu_frac": 0.23468075703708782,
+          "time_onset_ok": true,
+          "time_trough_s": 2.0,
+          "time_drop": 0.17350533717839983,
+          "c3c4_corr_rest": -0.6942926825615611,
+          "c3c4_corr_mi": -0.7054711595485019,
+          "corr_drop": 0.011178476986940855
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": false,
+            "time_pattern": true
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -11.743627080976006,
+          "mu_erd_c4": 22.556517915536865,
+          "mu_erd_cp3": -17.7569411443528,
+          "mu_erd_cp4": 4.861699914162737,
+          "mu_erd_contra": -11.743627080976006,
+          "mu_erd_ipsi": 22.556517915536865,
+          "laterality_pp": 34.30014499651287,
+          "betal_erd_contra": -30.61058737465877,
+          "betah_erd_contra": -31.954302637744693,
+          "rest_mu_frac": 0.23468075703708782,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.02351476816250855,
+          "c3c4_corr_rest": -0.6942926825615611,
+          "c3c4_corr_mi": -0.6895996502795705,
+          "corr_drop": -0.004693032281990583
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj35",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -16.568265635625465,
+          "mu_erd_c4": -23.45290282832056,
+          "mu_erd_cp3": -16.443840331123322,
+          "mu_erd_cp4": -35.89856863004288,
+          "mu_erd_contra": -23.45290282832056,
+          "mu_erd_ipsi": -16.568265635625465,
+          "laterality_pp": 6.884637192695095,
+          "betal_erd_contra": -7.856894726620239,
+          "betah_erd_contra": -17.7848618121195,
+          "rest_mu_frac": 0.4067059572171291,
+          "time_onset_ok": false,
+          "time_trough_s": 0.9,
+          "time_drop": 0.037192272967472656,
+          "c3c4_corr_rest": -0.766552440939308,
+          "c3c4_corr_mi": -0.7659574317560842,
+          "corr_drop": -0.0005950091832237492
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -14.663988009291486,
+          "mu_erd_c4": -22.069932070735963,
+          "mu_erd_cp3": -20.356301226546034,
+          "mu_erd_cp4": -29.162640660197372,
+          "mu_erd_contra": -14.663988009291486,
+          "mu_erd_ipsi": -22.069932070735963,
+          "laterality_pp": -7.405944061444476,
+          "betal_erd_contra": -5.407765980020402,
+          "betah_erd_contra": -11.754368612237572,
+          "rest_mu_frac": 0.4067059572171291,
+          "time_onset_ok": true,
+          "time_trough_s": 1.7000000000000002,
+          "time_drop": 0.08598097183481641,
+          "c3c4_corr_rest": -0.766552440939308,
+          "c3c4_corr_mi": -0.7602859984433115,
+          "corr_drop": -0.006266442495996505
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj36",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -31.236538793743257,
+          "mu_erd_c4": -70.72341899311196,
+          "mu_erd_cp3": -31.82114852511105,
+          "mu_erd_cp4": -61.462533754082926,
+          "mu_erd_contra": -70.72341899311196,
+          "mu_erd_ipsi": -31.236538793743257,
+          "laterality_pp": 39.486880199368706,
+          "betal_erd_contra": -26.08548868388554,
+          "betah_erd_contra": -40.78513147473195,
+          "rest_mu_frac": 0.7195984582713438,
+          "time_onset_ok": true,
+          "time_trough_s": 0.7000000000000001,
+          "time_drop": 0.2776680911933109,
+          "c3c4_corr_rest": -0.7989538626997664,
+          "c3c4_corr_mi": -0.8139566635797983,
+          "corr_drop": 0.015002800880031919
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -58.92534173161884,
+          "mu_erd_c4": 19.62975059044701,
+          "mu_erd_cp3": -55.90472129285238,
+          "mu_erd_cp4": 20.21746236831088,
+          "mu_erd_contra": -58.92534173161884,
+          "mu_erd_ipsi": 19.62975059044701,
+          "laterality_pp": 78.55509232206586,
+          "betal_erd_contra": -15.410052034062868,
+          "betah_erd_contra": -48.73203593700461,
+          "rest_mu_frac": 0.7195984582713438,
+          "time_onset_ok": false,
+          "time_trough_s": 0.5,
+          "time_drop": 0.14264150501281875,
+          "c3c4_corr_rest": -0.7989538626997664,
+          "c3c4_corr_mi": -0.8662826804620134,
+          "corr_drop": 0.06732881776224697
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.9,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj37",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -22.55813501504959,
+          "mu_erd_c4": -34.706004808939014,
+          "mu_erd_cp3": 4.11853820703609,
+          "mu_erd_cp4": -28.672342062948648,
+          "mu_erd_contra": -34.706004808939014,
+          "mu_erd_ipsi": -22.55813501504959,
+          "laterality_pp": 12.147869793889424,
+          "betal_erd_contra": -53.121212265408374,
+          "betah_erd_contra": -29.163608678447545,
+          "rest_mu_frac": 0.6256547077246347,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.08682142435096483,
+          "c3c4_corr_rest": -0.798652148560687,
+          "c3c4_corr_mi": -0.7718600760993787,
+          "corr_drop": -0.026792072461308325
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -10.381510985072515,
+          "mu_erd_c4": -0.46467696537731124,
+          "mu_erd_cp3": -8.995079740778444,
+          "mu_erd_cp4": 22.04643271869126,
+          "mu_erd_contra": -10.381510985072515,
+          "mu_erd_ipsi": -0.46467696537731124,
+          "laterality_pp": 9.916834019695203,
+          "betal_erd_contra": -42.668064930259476,
+          "betah_erd_contra": -33.17251137597616,
+          "rest_mu_frac": 0.6256547077246347,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.1030965744700337,
+          "c3c4_corr_rest": -0.798652148560687,
+          "c3c4_corr_mi": -0.813213141272245,
+          "corr_drop": 0.014560992711557974
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.5,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj38",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -35.68891467410553,
+          "mu_erd_c4": -57.97614710512716,
+          "mu_erd_cp3": -40.2621175793336,
+          "mu_erd_cp4": -37.87529068297154,
+          "mu_erd_contra": -57.97614710512716,
+          "mu_erd_ipsi": -35.68891467410553,
+          "laterality_pp": 22.28723243102163,
+          "betal_erd_contra": -45.3241567057335,
+          "betah_erd_contra": -61.739637000749276,
+          "rest_mu_frac": 0.4870849702919584,
+          "time_onset_ok": true,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": 0.128077338567501,
+          "c3c4_corr_rest": -0.7860899007964717,
+          "c3c4_corr_mi": -0.7718584838936349,
+          "corr_drop": -0.014231416902836802
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -32.01158427898692,
+          "mu_erd_c4": -49.8503594762866,
+          "mu_erd_cp3": -37.09444311075432,
+          "mu_erd_cp4": -27.98756654414864,
+          "mu_erd_contra": -32.01158427898692,
+          "mu_erd_ipsi": -49.8503594762866,
+          "laterality_pp": -17.838775197299675,
+          "betal_erd_contra": -26.604836426200194,
+          "betah_erd_contra": -36.39924968249633,
+          "rest_mu_frac": 0.4870849702919584,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.04460954357677643,
+          "c3c4_corr_rest": -0.7860899007964717,
+          "c3c4_corr_mi": -0.7698020876083067,
+          "corr_drop": -0.016287813188164968
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj39",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -41.498931810216526,
+          "mu_erd_c4": -45.917156700041915,
+          "mu_erd_cp3": -30.736588344688258,
+          "mu_erd_cp4": -31.389238259527428,
+          "mu_erd_contra": -45.917156700041915,
+          "mu_erd_ipsi": -41.498931810216526,
+          "laterality_pp": 4.418224889825389,
+          "betal_erd_contra": -38.23048822842562,
+          "betah_erd_contra": -53.05222225508717,
+          "rest_mu_frac": 0.7982495105462479,
+          "time_onset_ok": true,
+          "time_trough_s": 0.8,
+          "time_drop": 0.09491331465550507,
+          "c3c4_corr_rest": -0.7984747005742159,
+          "c3c4_corr_mi": -0.7862295079884164,
+          "corr_drop": -0.01224519258579948
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -38.90757718363788,
+          "mu_erd_c4": -33.255337012226086,
+          "mu_erd_cp3": -35.33905514018658,
+          "mu_erd_cp4": -29.069821112409002,
+          "mu_erd_contra": -38.90757718363788,
+          "mu_erd_ipsi": -33.255337012226086,
+          "laterality_pp": 5.652240171411798,
+          "betal_erd_contra": -32.391324825969804,
+          "betah_erd_contra": -41.40836087215914,
+          "rest_mu_frac": 0.7982495105462479,
+          "time_onset_ok": false,
+          "time_trough_s": 0.8,
+          "time_drop": 0.02718182911014356,
+          "c3c4_corr_rest": -0.7984747005742159,
+          "c3c4_corr_mi": -0.7947093091738878,
+          "corr_drop": -0.0037653914003280553
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.7,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj40",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -10.594211772199671,
+          "mu_erd_c4": -15.243428896643685,
+          "mu_erd_cp3": -10.926468012660953,
+          "mu_erd_cp4": -28.855746254452935,
+          "mu_erd_contra": -15.243428896643685,
+          "mu_erd_ipsi": -10.594211772199671,
+          "laterality_pp": 4.649217124444014,
+          "betal_erd_contra": -46.026224154832526,
+          "betah_erd_contra": -48.21285272432428,
+          "rest_mu_frac": 0.5290799484750928,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.018471689523431686,
+          "c3c4_corr_rest": -0.7501277866259376,
+          "c3c4_corr_mi": -0.7413565733391313,
+          "corr_drop": -0.0087712132868063
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -4.872191888685402,
+          "mu_erd_c4": -2.7678748477558823,
+          "mu_erd_cp3": -14.496977641759196,
+          "mu_erd_cp4": -17.135055997021183,
+          "mu_erd_contra": -4.872191888685402,
+          "mu_erd_ipsi": -2.7678748477558823,
+          "laterality_pp": 2.1043170409295193,
+          "betal_erd_contra": -40.10486201845395,
+          "betah_erd_contra": -33.312265911239066,
+          "rest_mu_frac": 0.5290799484750928,
+          "time_onset_ok": false,
+          "time_trough_s": 1.6,
+          "time_drop": -0.014469618330236722,
+          "c3c4_corr_rest": -0.7501277866259376,
+          "c3c4_corr_mi": -0.7516941796060677,
+          "corr_drop": 0.0015663929801300602
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj41",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -22.546438923088388,
+          "mu_erd_c4": -20.291646710618505,
+          "mu_erd_cp3": -28.283735409666658,
+          "mu_erd_cp4": -36.46947459430424,
+          "mu_erd_contra": -20.291646710618505,
+          "mu_erd_ipsi": -22.546438923088388,
+          "laterality_pp": -2.2547922124698836,
+          "betal_erd_contra": -33.197406888168004,
+          "betah_erd_contra": -31.493097501550437,
+          "rest_mu_frac": 0.42058733467167403,
+          "time_onset_ok": false,
+          "time_trough_s": 0.7000000000000001,
+          "time_drop": 0.02238627970782677,
+          "c3c4_corr_rest": -0.786170817840386,
+          "c3c4_corr_mi": -0.7716634132238549,
+          "corr_drop": -0.014507404616531105
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -28.918285906337932,
+          "mu_erd_c4": -20.496191974342967,
+          "mu_erd_cp3": -36.5353593322166,
+          "mu_erd_cp4": -45.14320411801511,
+          "mu_erd_contra": -28.918285906337932,
+          "mu_erd_ipsi": -20.496191974342967,
+          "laterality_pp": 8.422093931994965,
+          "betal_erd_contra": -27.96537496520194,
+          "betah_erd_contra": -30.368352056880898,
+          "rest_mu_frac": 0.42058733467167403,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.009670647499449223,
+          "c3c4_corr_rest": -0.786170817840386,
+          "c3c4_corr_mi": -0.7747665116751848,
+          "corr_drop": -0.011404306165201161
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.6000000000000001,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj42",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -32.2464585223338,
+          "mu_erd_c4": -32.818217067699834,
+          "mu_erd_cp3": -21.299770458277656,
+          "mu_erd_cp4": -42.049193405075904,
+          "mu_erd_contra": -32.818217067699834,
+          "mu_erd_ipsi": -32.2464585223338,
+          "laterality_pp": 0.5717585453660305,
+          "betal_erd_contra": -30.74379179153358,
+          "betah_erd_contra": -24.100679634214305,
+          "rest_mu_frac": 0.7065988697465418,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.003698233885885132,
+          "c3c4_corr_rest": -0.788218906618907,
+          "c3c4_corr_mi": -0.7723477948437059,
+          "corr_drop": -0.015871111775201174
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -46.50253052538183,
+          "mu_erd_c4": -41.74016061895518,
+          "mu_erd_cp3": -49.74610343142801,
+          "mu_erd_cp4": -46.58946405996237,
+          "mu_erd_contra": -46.50253052538183,
+          "mu_erd_ipsi": -41.74016061895518,
+          "laterality_pp": 4.762369906426649,
+          "betal_erd_contra": -35.461645363905085,
+          "betah_erd_contra": -40.62546266779927,
+          "rest_mu_frac": 0.7065988697465418,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.07178038416737396,
+          "c3c4_corr_rest": -0.788218906618907,
+          "c3c4_corr_mi": -0.7656815905306201,
+          "corr_drop": -0.022537316088286907
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj43",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -81.50684671306001,
+          "mu_erd_c4": -83.53364352797388,
+          "mu_erd_cp3": -68.25320325645541,
+          "mu_erd_cp4": -80.89106278512466,
+          "mu_erd_contra": -83.53364352797388,
+          "mu_erd_ipsi": -81.50684671306001,
+          "laterality_pp": 2.0267968149138653,
+          "betal_erd_contra": -79.75489847016492,
+          "betah_erd_contra": -66.31017671678963,
+          "rest_mu_frac": 0.704557892567228,
+          "time_onset_ok": false,
+          "time_trough_s": 0.6000000000000001,
+          "time_drop": 0.31156543867656034,
+          "c3c4_corr_rest": -0.7654264939100188,
+          "c3c4_corr_mi": -0.7323284500386092,
+          "corr_drop": -0.03309804387140958
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -80.13607948697229,
+          "mu_erd_c4": -78.69896972840891,
+          "mu_erd_cp3": -66.78298985271006,
+          "mu_erd_cp4": -72.33980382166662,
+          "mu_erd_contra": -80.13607948697229,
+          "mu_erd_ipsi": -78.69896972840891,
+          "laterality_pp": 1.4371097585633805,
+          "betal_erd_contra": -81.82004213384687,
+          "betah_erd_contra": -64.94529016409507,
+          "rest_mu_frac": 0.704557892567228,
+          "time_onset_ok": false,
+          "time_trough_s": 0.4,
+          "time_drop": 0.222076410719104,
+          "c3c4_corr_rest": -0.7654264939100188,
+          "c3c4_corr_mi": -0.7383570975065974,
+          "corr_drop": -0.02706939640342143
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj44",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -78.54499884447831,
+          "mu_erd_c4": -89.17557666258294,
+          "mu_erd_cp3": -83.59014042085137,
+          "mu_erd_cp4": -79.91703000796787,
+          "mu_erd_contra": -89.17557666258294,
+          "mu_erd_ipsi": -78.54499884447831,
+          "laterality_pp": 10.630577818104626,
+          "betal_erd_contra": -38.18993277238335,
+          "betah_erd_contra": -70.59562501791234,
+          "rest_mu_frac": 0.8865054906908212,
+          "time_onset_ok": false,
+          "time_trough_s": 0.5,
+          "time_drop": 0.12419449678395116,
+          "c3c4_corr_rest": -0.8432804677666801,
+          "c3c4_corr_mi": -0.8263331921937028,
+          "corr_drop": -0.01694727557297726
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 4,
+          "n_core": 5,
+          "rate": 0.8,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -84.75690849607035,
+          "mu_erd_c4": -75.9238507778352,
+          "mu_erd_cp3": -80.4761010397737,
+          "mu_erd_cp4": -75.38680956710787,
+          "mu_erd_contra": -84.75690849607035,
+          "mu_erd_ipsi": -75.9238507778352,
+          "laterality_pp": 8.833057718235153,
+          "betal_erd_contra": -39.26791102131478,
+          "betah_erd_contra": -71.79507755372155,
+          "rest_mu_frac": 0.8865054906908212,
+          "time_onset_ok": true,
+          "time_trough_s": 0.7000000000000001,
+          "time_drop": 0.09693261149522253,
+          "c3c4_corr_rest": -0.8432804677666801,
+          "c3c4_corr_mi": -0.8394191565728609,
+          "corr_drop": -0.0038613111938191613
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "mean_pass_rate": 0.9,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj45",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -55.140087723726296,
+          "mu_erd_c4": -70.20411285087222,
+          "mu_erd_cp3": -49.041542123186645,
+          "mu_erd_cp4": -72.09533568660473,
+          "mu_erd_contra": -70.20411285087222,
+          "mu_erd_ipsi": -55.140087723726296,
+          "laterality_pp": 15.064025127145925,
+          "betal_erd_contra": -41.798478860331414,
+          "betah_erd_contra": -50.39003159847358,
+          "rest_mu_frac": 0.47811934160970493,
+          "time_onset_ok": true,
+          "time_trough_s": 1.0,
+          "time_drop": 0.15241879905746505,
+          "c3c4_corr_rest": -0.7873279172735882,
+          "c3c4_corr_mi": -0.7504935193610388,
+          "corr_drop": -0.03683439791254939
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": true
+          },
+          "passed": 5,
+          "n_core": 5,
+          "rate": 1.0,
+          "grade": "明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -52.66633415113909,
+          "mu_erd_c4": -37.07180014648834,
+          "mu_erd_cp3": -48.98414105781642,
+          "mu_erd_cp4": -42.83350402626885,
+          "mu_erd_contra": -52.66633415113909,
+          "mu_erd_ipsi": -37.07180014648834,
+          "laterality_pp": 15.594534004650747,
+          "betal_erd_contra": -57.81030585036075,
+          "betah_erd_contra": -72.87243051919059,
+          "rest_mu_frac": 0.47811934160970493,
+          "time_onset_ok": false,
+          "time_trough_s": 0.8,
+          "time_drop": 0.07073371541890586,
+          "c3c4_corr_rest": -0.7873279172735882,
+          "c3c4_corr_mi": -0.765535404259351,
+          "corr_drop": -0.021792513014237236
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.8,
+      "subject_grade": "明显"
+    },
+    {
+      "subject": "openbmi:subj46",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 4.147662055690152,
+          "mu_erd_c4": -14.146503788118293,
+          "mu_erd_cp3": -21.05711589027058,
+          "mu_erd_cp4": -3.588945890335717,
+          "mu_erd_contra": -14.146503788118293,
+          "mu_erd_ipsi": 4.147662055690152,
+          "laterality_pp": 18.294165843808443,
+          "betal_erd_contra": -1.8261329903832988,
+          "betah_erd_contra": 17.952265106954524,
+          "rest_mu_frac": 0.7815236106561396,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.08468412812030324,
+          "c3c4_corr_rest": -0.6742032209191721,
+          "c3c4_corr_mi": -0.6997393260350805,
+          "corr_drop": 0.025536105115908425
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 29.84407453173939,
+          "mu_erd_c4": 3.6493691561331154,
+          "mu_erd_cp3": -19.291231400976102,
+          "mu_erd_cp4": 33.81135145816956,
+          "mu_erd_contra": 29.84407453173939,
+          "mu_erd_ipsi": 3.6493691561331154,
+          "laterality_pp": -26.194705375606276,
+          "betal_erd_contra": 6.980912508817897,
+          "betah_erd_contra": 15.265381012857935,
+          "rest_mu_frac": 0.7815236106561396,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.24003662189191016,
+          "c3c4_corr_rest": -0.6742032209191721,
+          "c3c4_corr_mi": -0.6760407181878948,
+          "corr_drop": 0.001837497268722732
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj47",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -30.61299404121544,
+          "mu_erd_c4": -31.17753401420996,
+          "mu_erd_cp3": -26.388793933890305,
+          "mu_erd_cp4": -30.35369375105144,
+          "mu_erd_contra": -31.17753401420996,
+          "mu_erd_ipsi": -30.61299404121544,
+          "laterality_pp": 0.5645399729945204,
+          "betal_erd_contra": -19.138957733208564,
+          "betah_erd_contra": -30.715513483012526,
+          "rest_mu_frac": 0.8817147246508207,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.1105318408362514,
+          "c3c4_corr_rest": -0.8553354812832172,
+          "c3c4_corr_mi": -0.8325345049941237,
+          "corr_drop": -0.0228009762890935
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -26.051335118991716,
+          "mu_erd_c4": -22.303603278701413,
+          "mu_erd_cp3": -27.788830299339086,
+          "mu_erd_cp4": -15.245112839695253,
+          "mu_erd_contra": -26.051335118991716,
+          "mu_erd_ipsi": -22.303603278701413,
+          "laterality_pp": 3.747731840290303,
+          "betal_erd_contra": -17.891686494150672,
+          "betah_erd_contra": -29.270435478441556,
+          "rest_mu_frac": 0.8817147246508207,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.11356893457236285,
+          "c3c4_corr_rest": -0.8553354812832172,
+          "c3c4_corr_mi": -0.8488773800782046,
+          "corr_drop": -0.006458101205012667
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 3,
+          "n_core": 5,
+          "rate": 0.6,
+          "grade": "中等"
+        }
+      },
+      "mean_pass_rate": 0.6,
+      "subject_grade": "中等"
+    },
+    {
+      "subject": "openbmi:subj48",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -23.08204675188344,
+          "mu_erd_c4": -16.554591105432188,
+          "mu_erd_cp3": -39.0818756499363,
+          "mu_erd_cp4": -25.434242429297647,
+          "mu_erd_contra": -16.554591105432188,
+          "mu_erd_ipsi": -23.08204675188344,
+          "laterality_pp": -6.527455646451251,
+          "betal_erd_contra": -39.06121735467485,
+          "betah_erd_contra": -46.73822392806242,
+          "rest_mu_frac": 0.8071330639341459,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.03959511139577615,
+          "c3c4_corr_rest": -0.630732370942742,
+          "c3c4_corr_mi": -0.5914424079061066,
+          "corr_drop": -0.039289963036635456
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 0.8244212151693099,
+          "mu_erd_c4": 9.743986018337903,
+          "mu_erd_cp3": -32.06239625234491,
+          "mu_erd_cp4": -1.144588601885562,
+          "mu_erd_contra": 0.8244212151693099,
+          "mu_erd_ipsi": 9.743986018337903,
+          "laterality_pp": 8.919564803168594,
+          "betal_erd_contra": -23.677219232398343,
+          "betah_erd_contra": -33.20663934907153,
+          "rest_mu_frac": 0.8071330639341459,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.11076562334080992,
+          "c3c4_corr_rest": -0.630732370942742,
+          "c3c4_corr_mi": -0.6382197109179807,
+          "corr_drop": 0.007487339975238649
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj49",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 17.605597061598004,
+          "mu_erd_c4": -1.9753082533123687,
+          "mu_erd_cp3": -6.335895574637482,
+          "mu_erd_cp4": -14.237558900338893,
+          "mu_erd_contra": -1.9753082533123687,
+          "mu_erd_ipsi": 17.605597061598004,
+          "laterality_pp": 19.580905314910375,
+          "betal_erd_contra": -33.85861698027345,
+          "betah_erd_contra": -56.35413606441869,
+          "rest_mu_frac": 0.5220291911764905,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.0720270094885116,
+          "c3c4_corr_rest": -0.7637489712154604,
+          "c3c4_corr_mi": -0.7688067025406274,
+          "corr_drop": 0.00505773132516707
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 5.060810138137718,
+          "mu_erd_c4": -11.200511022344285,
+          "mu_erd_cp3": -35.37646186716757,
+          "mu_erd_cp4": 13.576535274286464,
+          "mu_erd_contra": 5.060810138137718,
+          "mu_erd_ipsi": -11.200511022344285,
+          "laterality_pp": -16.261321160482005,
+          "betal_erd_contra": -33.202615642808986,
+          "betah_erd_contra": -62.58785538547673,
+          "rest_mu_frac": 0.5220291911764905,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.042038413563437564,
+          "c3c4_corr_rest": -0.7637489712154604,
+          "c3c4_corr_mi": -0.7575064687373031,
+          "corr_drop": -0.006242502478157275
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj50",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -0.7645836061507122,
+          "mu_erd_c4": -7.120120219565579,
+          "mu_erd_cp3": -3.8319318526428803,
+          "mu_erd_cp4": -14.837001811511046,
+          "mu_erd_contra": -7.120120219565579,
+          "mu_erd_ipsi": -0.7645836061507122,
+          "laterality_pp": 6.355536613414867,
+          "betal_erd_contra": 10.292550933489995,
+          "betah_erd_contra": 17.675447692300487,
+          "rest_mu_frac": 0.5479485117648875,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": -0.15778593360200516,
+          "c3c4_corr_rest": -0.7509518238224462,
+          "c3c4_corr_mi": -0.771758174306428,
+          "corr_drop": 0.020806350483981828
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -13.075083664476189,
+          "mu_erd_c4": -10.59017537923283,
+          "mu_erd_cp3": -18.515977616905918,
+          "mu_erd_cp4": -22.424243900082846,
+          "mu_erd_contra": -13.075083664476189,
+          "mu_erd_ipsi": -10.59017537923283,
+          "laterality_pp": 2.4849082852433586,
+          "betal_erd_contra": 11.441613007072498,
+          "betah_erd_contra": 40.57330605107945,
+          "rest_mu_frac": 0.5479485117648875,
+          "time_onset_ok": false,
+          "time_trough_s": 0.0,
+          "time_drop": -0.04657540360252407,
+          "c3c4_corr_rest": -0.7509518238224462,
+          "c3c4_corr_mi": -0.779768401764818,
+          "corr_drop": 0.0288165779423718
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": true,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj51",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -33.79563236749098,
+          "mu_erd_c4": -42.67112474061516,
+          "mu_erd_cp3": -41.11746111653002,
+          "mu_erd_cp4": -44.54424546542929,
+          "mu_erd_contra": -42.67112474061516,
+          "mu_erd_ipsi": -33.79563236749098,
+          "laterality_pp": 8.875492373124182,
+          "betal_erd_contra": -79.41621726641297,
+          "betah_erd_contra": -70.24220985205177,
+          "rest_mu_frac": 0.3246469399010142,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": -0.00693524183353475,
+          "c3c4_corr_rest": -0.8119299172761663,
+          "c3c4_corr_mi": -0.8199260434018691,
+          "corr_drop": 0.007996126125702885
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -40.433278122269364,
+          "mu_erd_c4": -43.478934540229474,
+          "mu_erd_cp3": -48.279159072643935,
+          "mu_erd_cp4": -44.33732075475881,
+          "mu_erd_contra": -40.433278122269364,
+          "mu_erd_ipsi": -43.478934540229474,
+          "laterality_pp": -3.04565641796011,
+          "betal_erd_contra": -82.84637822333738,
+          "betah_erd_contra": -73.55633599491833,
+          "rest_mu_frac": 0.3246469399010142,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.05370253876490689,
+          "c3c4_corr_rest": -0.8119299172761663,
+          "c3c4_corr_mi": -0.8087639865047467,
+          "corr_drop": -0.0031659307714195783
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.30000000000000004,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj52",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -54.98315688312191,
+          "mu_erd_c4": -54.91702603282863,
+          "mu_erd_cp3": -36.38978736105935,
+          "mu_erd_cp4": -51.36523349913916,
+          "mu_erd_contra": -54.91702603282863,
+          "mu_erd_ipsi": -54.98315688312191,
+          "laterality_pp": -0.06613085029327692,
+          "betal_erd_contra": -61.20362897781857,
+          "betah_erd_contra": -43.78931040678784,
+          "rest_mu_frac": 0.6599966941019485,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.01307537945227631,
+          "c3c4_corr_rest": -0.8051999950518073,
+          "c3c4_corr_mi": -0.7710708371320631,
+          "corr_drop": -0.034129157919744135
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -48.81972268275911,
+          "mu_erd_c4": -50.60188679319768,
+          "mu_erd_cp3": -39.114146003704896,
+          "mu_erd_cp4": -43.83941279265907,
+          "mu_erd_contra": -48.81972268275911,
+          "mu_erd_ipsi": -50.60188679319768,
+          "laterality_pp": -1.782164110438572,
+          "betal_erd_contra": -58.54248573090616,
+          "betah_erd_contra": -44.92313122690251,
+          "rest_mu_frac": 0.6599966941019485,
+          "time_onset_ok": false,
+          "time_trough_s": 0.2,
+          "time_drop": -0.01701677863581934,
+          "c3c4_corr_rest": -0.8051999950518073,
+          "c3c4_corr_mi": -0.7823773293208159,
+          "corr_drop": -0.022822665730991343
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": true,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.4,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj53",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 3.4604852665716006,
+          "mu_erd_c4": -1.982464847674166,
+          "mu_erd_cp3": 3.5968367911145913,
+          "mu_erd_cp4": -6.453745498372032,
+          "mu_erd_contra": -1.982464847674166,
+          "mu_erd_ipsi": 3.4604852665716006,
+          "laterality_pp": 5.442950114245766,
+          "betal_erd_contra": -19.4681535679873,
+          "betah_erd_contra": -24.938951146246403,
+          "rest_mu_frac": 0.8064776557827844,
+          "time_onset_ok": false,
+          "time_trough_s": 0.1,
+          "time_drop": 0.000834492522095982,
+          "c3c4_corr_rest": -0.814997658866474,
+          "c3c4_corr_mi": -0.8191166429604052,
+          "corr_drop": 0.004118984093931188
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": 5.199757309433235,
+          "mu_erd_c4": 10.55906746437436,
+          "mu_erd_cp3": -11.448948737871998,
+          "mu_erd_cp4": 6.044627167400747,
+          "mu_erd_contra": 5.199757309433235,
+          "mu_erd_ipsi": 10.55906746437436,
+          "laterality_pp": 5.359310154941125,
+          "betal_erd_contra": -24.792307924837175,
+          "betah_erd_contra": -31.7675602245611,
+          "rest_mu_frac": 0.8064776557827844,
+          "time_onset_ok": false,
+          "time_trough_s": 0.9,
+          "time_drop": -0.0012590612749309943,
+          "c3c4_corr_rest": -0.814997658866474,
+          "c3c4_corr_mi": -0.8260821635747959,
+          "corr_drop": 0.011084504708321896
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": true,
+            "time_pattern": false
+          },
+          "passed": 1,
+          "n_core": 5,
+          "rate": 0.2,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.2,
+      "subject_grade": "弱/不明显"
+    },
+    {
+      "subject": "openbmi:subj54",
+      "n_mats": 2,
+      "n_left": 2100,
+      "n_right": 2100,
+      "n_rest": 2100,
+      "n_left_trials": 100,
+      "n_right_trials": 100,
+      "n_rest_trials": 100,
+      "left": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -9.439191867589054,
+          "mu_erd_c4": -5.991585486151548,
+          "mu_erd_cp3": -21.566066710526734,
+          "mu_erd_cp4": -7.279372609090583,
+          "mu_erd_contra": -5.991585486151548,
+          "mu_erd_ipsi": -9.439191867589054,
+          "laterality_pp": -3.447606381437506,
+          "betal_erd_contra": -27.097128673823576,
+          "betah_erd_contra": -18.802887871921484,
+          "rest_mu_frac": 0.3077136869190588,
+          "time_onset_ok": false,
+          "time_trough_s": 2.0,
+          "time_drop": 0.05471413282113286,
+          "c3c4_corr_rest": -0.7918350301183771,
+          "c3c4_corr_mi": -0.8014476175277873,
+          "corr_drop": 0.009612587409410178
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": false,
+            "mu_erd_excellent": false,
+            "laterality": false,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 0,
+          "n_core": 5,
+          "rate": 0.0,
+          "grade": "弱/不明显"
+        }
+      },
+      "right": {
+        "metrics": {
+          "n_mi_trials": 100,
+          "n_rest_trials": 100,
+          "n_mi_windows": 2100,
+          "n_rest_windows": 2100,
+          "mu_erd_c3": -19.20625614911795,
+          "mu_erd_c4": -7.326941845241411,
+          "mu_erd_cp3": -25.83533755150968,
+          "mu_erd_cp4": -8.0554639740734,
+          "mu_erd_contra": -19.20625614911795,
+          "mu_erd_ipsi": -7.326941845241411,
+          "laterality_pp": 11.87931430387654,
+          "betal_erd_contra": -30.891273056803296,
+          "betah_erd_contra": -53.74204427185912,
+          "rest_mu_frac": 0.3077136869190588,
+          "time_onset_ok": false,
+          "time_trough_s": 1.9000000000000001,
+          "time_drop": 0.047548110755307904,
+          "c3c4_corr_rest": -0.7918350301183771,
+          "c3c4_corr_mi": -0.8083631618744205,
+          "corr_drop": 0.016528131756043396
+        },
+        "score": {
+          "checks": {
+            "mu_erd_contra": true,
+            "mu_erd_excellent": false,
+            "laterality": true,
+            "mu_vs_betal": false,
+            "rest_mu_frac": false,
+            "time_pattern": false
+          },
+          "passed": 2,
+          "n_core": 5,
+          "rate": 0.4,
+          "grade": "弱/不明显"
+        }
+      },
+      "mean_pass_rate": 0.2,
+      "subject_grade": "弱/不明显"
+    }
+  ]
+}

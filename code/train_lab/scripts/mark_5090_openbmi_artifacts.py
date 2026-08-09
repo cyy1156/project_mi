@@ -9,7 +9,7 @@ from pathlib import Path
 
 REPO = Path(__file__).resolve().parents[3]
 RUNS = REPO / "资料" / "模型训练" / "runs"
-SRC_OUT = REPO / "code" / "train_lab" / "out" / "baseline_openbmi_2s_hop100_accpaper"
+SRC_OUT = REPO / "code" / "train_lab" / "out" / "5060_baseline_openbmi_2s_hop100_accpaper"
 DST_OUT = REPO / "code" / "train_lab" / "out" / "5090_baseline_openbmi_2s_hop100_accpaper"
 
 DEVICE_LINE = (
@@ -31,7 +31,7 @@ def _patch_md(path: Path) -> None:
     if "RTX 5090" in text:
         return
     text = text.replace(
-        "baseline_openbmi_2s_hop100_accpaper",
+        "5060_baseline_openbmi_2s_hop100_accpaper",
         "5090_baseline_openbmi_2s_hop100_accpaper",
     )
     if DEVICE_LINE not in text:
