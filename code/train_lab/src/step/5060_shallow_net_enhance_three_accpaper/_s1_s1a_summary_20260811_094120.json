@@ -1,0 +1,30 @@
+{
+  "stage": "s1a",
+  "candidates": [
+    13,
+    25,
+    50
+  ],
+  "base_args": {
+    "s1a_best_t": null,
+    "s1b_best_f": null,
+    "s1c_best_ps": null
+  },
+  "timestamp": "20260811_094120",
+  "data": "openbmi_2s_hop100",
+  "smoke": false,
+  "total": 3,
+  "succeeded": 0,
+  "failed": [
+    "s1a_t13"
+  ],
+  "results": [
+    {
+      "stage": "s1a",
+      "value": 13,
+      "arm": "s1a_t13",
+      "exit_code": 2,
+      "timestamp": "2026-08-11T09:41:20"
+    }
+  ]
+}
