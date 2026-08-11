@@ -403,7 +403,7 @@ def main() -> None:
     p.add_argument(
         "--glob",
         default=str(
-            _REPO_ROOT / "DATA" / "openbmi" / "openbmi" / "openbmi" / "sess*_subj*_EEG_MI.mat"
+            _PREPROCESS_ROOT / "data" / "openbmi" / "sess*_subj*_EEG_MI.mat"
         ),
     )
     p.add_argument(

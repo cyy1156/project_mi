@@ -14,8 +14,12 @@
 **/*.py[cod]
 **/.venv/
 **/venv/
+**/venv-gpu/
 *.egg-info/
 .pytest_cache/
+
+# Preprocessed data (large binary, not version-controlled)
+code/preprocess_lab/data/
 
 # IDE
 **/.idea/

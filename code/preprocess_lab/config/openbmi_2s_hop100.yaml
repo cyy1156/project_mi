@@ -4,7 +4,7 @@ dataset: openbmi
 loader: load_openbmi_mat
 
 # 本机 nested 路径；相对路径亦可 DATA/openbmi/openbmi/openbmi/...
-data_glob: "D:/cyy/MI/DATA/openbmi/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+data_glob: "D:/挑战杯专属/project_mi/code/preprocess_lab/data/openbmi/sess*_subj*_EEG_MI.mat"
 source_blocks: [EEG_MI_train]
 exclude_blocks: [EEG_MI_test]
 
