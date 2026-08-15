@@ -6,7 +6,8 @@ from dataclasses import asdict, dataclass
 
 
 def _default_num_workers() -> int:
-    return 4
+    # 与 hop100_noz 一致：默认 2，避免 Windows 共享内存 1455
+    return 2
 
 
 TRAIN_DEVICE_LABEL = "NVIDIA RTX 5060 Laptop"

@@ -292,6 +292,52 @@ def _loader_kwargs(hp: SharedTrainHP) -> dict:
     )
 
 
+def _eval_loader_kwargs(hp: SharedTrainHP) -> dict:
+    """Val/Test 强制单进程：避免与 train persistent workers 叠开打满 Windows 共享内存。"""
+    return dict(
+        num_workers=0,
+        pin_memory=hp.pin_memory,
+        persistent_workers=False,
+        prefetch_factor=2,
+    )
+
+
+@torch.no_grad()
+def _eval_loss_and_preds(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    non_blocking: bool = True,
+    use_amp: bool = False,
+) -> tuple[float, np.ndarray, np.ndarray]:
+    """单遍 eval：loss + argmax，避免 DataLoader 扫两遍。"""
+    model.eval()
+    criterion = nn.CrossEntropyLoss()
+    total, n = 0.0, 0
+    ys, ps = [], []
+    amp_on = bool(use_amp) and device.type == "cuda"
+    for x, y in loader:
+        x_dev = x.to(device, non_blocking=non_blocking)
+        y_dev = y.to(device, non_blocking=non_blocking)
+        if amp_on:
+            with torch.amp.autocast("cuda", enabled=True):
+                logits = model(x_dev)
+                if logits.ndim > 2:
+                    logits = logits.reshape(logits.shape[0], -1)
+                loss = criterion(logits, y_dev)
+        else:
+            logits = model(x_dev)
+            if logits.ndim > 2:
+                logits = logits.reshape(logits.shape[0], -1)
+            loss = criterion(logits, y_dev)
+        total += loss.item() * x.size(0)
+        n += x.size(0)
+        ps.append(logits.argmax(dim=1).cpu().numpy())
+        ys.append(y.numpy())
+    return total / max(n, 1), np.concatenate(ys), np.concatenate(ps)
+
+
 def _eval_split(
     model,
     X,
@@ -318,7 +364,7 @@ def _eval_split(
             PackedArrayDataset(y_pack, x_path=packed_path),
             batch_size=hp.batch_eval,
             shuffle=False,
-            **_loader_kwargs(hp),
+            **_eval_loader_kwargs(hp),
         )
     else:
         indices = _indices_from_mask(mask)
@@ -327,19 +373,15 @@ def _eval_split(
             _make_ds(X, y, indices, input_kind, x_path=x_path),
             batch_size=hp.batch_eval,
             shuffle=False,
-            **_loader_kwargs(hp),
+            **_eval_loader_kwargs(hp),
         )
-    loss = run_epoch(
+    loss, yt, yp = _eval_loss_and_preds(
         model,
         loader,
-        nn.CrossEntropyLoss(),
-        None,
         device,
-        False,
         non_blocking=hp.non_blocking,
         use_amp=hp.use_amp,
     )
-    yt, yp = collect_preds(model, loader, device, non_blocking=hp.non_blocking)
     assert len(yt) == len(subs) == len(tids)
     trial = aggregate_windows_to_trials(yt, yp, subs, tids, n_classes=n_classes)
     if n_classes == 2:
