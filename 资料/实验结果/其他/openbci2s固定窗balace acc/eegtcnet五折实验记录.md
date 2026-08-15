@@ -1,21 +1,23 @@
-# 被试独立五折实验记录（20260806_003410 / eegtcnet）
+# 被试独立五折实验记录（20260810_000040 / eegtcnet）
 
-- 开始：`2026-08-06T00:34:10`
+- 开始：`2026-08-10T00:00:40`
 - device：`cuda`
 - data：`D:\挑战杯专属\project_mi_new\code\preprocess_lab\out\openbmi_balanced_train_2s`（prefix=`openbmi_train`）
 - model：`eegtcnet`（单脚本；无 registry）
-- 结构：EEGTCNet（braindecode 默认结构 + shared drop_prob）
-- shared hp：`{'data_tag': 'openbmi_balanced_train_2s', 'n_folds': 5, 'val_ratio': 0.2, 'seed': 42, 'max_epochs': 300, 'patience': 18, 'batch_train': 32, 'batch_eval': 64, 'lr': 0.0001, 'weight_decay': 0.0001, 'drop_prob': 0.5}`
+- 结构：EEGTCNet（braindecode 默认结构）
+- shared hp：`{'data_tag': 'openbmi_2s_hop100', 'n_folds': 5, 'val_ratio': 0.2, 'seed': 42, 'max_epochs': 300, 'patience': 20, 'batch_train': 128, 'batch_eval': 256, 'lr': 0.0001, 'weight_decay': 0.0001, 'drop_prob': 0.5, 'protocol': '2s-hop100ms-balbatch-accpaper-openbmi subject_key=openbmi:subjNN sess01+02 blocks=EEG_MI_train', 'early_stop': 'acc_paper', 'train_sampler': 'balanced_invfreq', 'n_times_expected': 500, 'no_rap': True, 'no_balbatch': False, 'openbmi_only': True, 'num_workers': 2, 'pin_memory': True, 'persistent_workers': True, 'prefetch_factor': 2, 'non_blocking': True, 'torch_num_threads': 6, 'cudnn_benchmark': True, 'deterministic': False, 'use_amp': True}`
 - weight_transfer：`False` | classifier：`native`
-- 权重：`D:\挑战杯专属\project_mi_new\code\train_lab\out\baseline\eegtcnet\openbmi_balanced_train_2s\run_20260806_003410`
+- AMP：`True` | num_workers：`2` | pin_memory：`True`
+- early_stop：`acc_paper` | train_sampler：`balanced_invfreq`
+- 权重：`D:\挑战杯专属\project_mi_new\code\train_lab\out\baseline\eegtcnet\openbmi_balanced_train_2s\run_20260810_000040`
 
 ---
 ## 最终结论
 
 ### Task（静息/任务）
-- Val Balanced Acc：`0.5723 ± 0.0503`
-- Test F1：`0.6281 ± 0.0390`
-- Test Acc：`0.5717 ± 0.0483`
+- Val acc_paper：`0.5413 ± 0.0498`
+- Test F1：`0.5185 ± 0.2520`
+- Test Acc：`0.5338 ± 0.0407`
 
 ### Task 各折明细
 
@@ -23,88 +25,88 @@
 
 #### Fold 0
 
-- 早停/结束轮次（stopped_epoch）：`19`
-- 验证最优轮次（best_epoch）：`1`
-- Val F1（最优）：`0.6678`
-- Val loss（最优时）：`0.7135`
+- 早停/结束轮次（stopped_epoch）：`22`
+- 验证最优轮次（best_epoch）：`2`
+- Val F1（最优）：`0.6677`
+- Val loss（最优时）：`0.7116`
 
 **Test（overall）**
-- Accuracy：`0.5016`
-- Recall：`0.9914`
-- Specificity：`0.0118`
-- Precision：`0.5008`
-- F1：`0.6654`
-- Balanced Acc：`0.5016`
-- 混淆矩阵：TP=`2181` TN=`26` FP=`2174` FN=`19`
+- Accuracy：`0.5002`
+- Recall：`0.9995`
+- Specificity：`0.0009`
+- Precision：`0.5001`
+- F1：`0.6667`
+- Balanced Acc：`0.5002`
+- 混淆矩阵：TP=`2199` TN=`2` FP=`2198` FN=`1`
 
 #### Fold 1
 
-- 早停/结束轮次（stopped_epoch）：`115`
-- 验证最优轮次（best_epoch）：`97`
-- Val F1（最优）：`0.6790`
-- Val loss（最优时）：`0.6477`
+- 早停/结束轮次（stopped_epoch）：`24`
+- 验证最优轮次（best_epoch）：`4`
+- Val F1（最优）：`0.0572`
+- Val loss（最优时）：`0.7096`
 
 **Test（overall）**
-- Accuracy：`0.6120`
-- Recall：`0.6823`
-- Specificity：`0.5418`
-- Precision：`0.5982`
-- F1：`0.6375`
-- Balanced Acc：`0.6120`
-- 混淆矩阵：TP=`1501` TN=`1192` FP=`1008` FN=`699`
+- Accuracy：`0.5009`
+- Recall：`0.0091`
+- Specificity：`0.9927`
+- Precision：`0.5556`
+- F1：`0.0179`
+- Balanced Acc：`0.5009`
+- 混淆矩阵：TP=`20` TN=`2184` FP=`16` FN=`2180`
 
 #### Fold 2
 
-- 早停/结束轮次（stopped_epoch）：`41`
-- 验证最优轮次（best_epoch）：`23`
-- Val F1（最优）：`0.5337`
-- Val loss（最优时）：`0.6920`
+- 早停/结束轮次（stopped_epoch）：`67`
+- 验证最优轮次（best_epoch）：`47`
+- Val F1（最优）：`0.5612`
+- Val loss（最优时）：`0.6872`
 
 **Test（overall）**
-- Accuracy：`0.5698`
-- Recall：`0.5568`
-- Specificity：`0.5827`
-- Precision：`0.5716`
-- F1：`0.5641`
-- Balanced Acc：`0.5698`
-- 混淆矩阵：TP=`1225` TN=`1282` FP=`918` FN=`975`
+- Accuracy：`0.5716`
+- Recall：`0.6105`
+- Specificity：`0.5327`
+- Precision：`0.5664`
+- F1：`0.5876`
+- Balanced Acc：`0.5716`
+- 混淆矩阵：TP=`1343` TN=`1172` FP=`1028` FN=`857`
 
 #### Fold 3
 
-- 早停/结束轮次（stopped_epoch）：`163`
-- 验证最优轮次（best_epoch）：`145`
-- Val F1（最优）：`0.6486`
-- Val loss（最优时）：`0.6337`
+- 早停/结束轮次（stopped_epoch）：`175`
+- 验证最优轮次（best_epoch）：`155`
+- Val F1（最优）：`0.6668`
+- Val loss（最优时）：`0.6350`
 
 **Test（overall）**
-- Accuracy：`0.6355`
-- Recall：`0.7318`
-- Specificity：`0.5391`
-- Precision：`0.6136`
-- F1：`0.6675`
-- Balanced Acc：`0.6355`
-- 混淆矩阵：TP=`1610` TN=`1186` FP=`1014` FN=`590`
+- Accuracy：`0.5941`
+- Recall：`0.7636`
+- Specificity：`0.4245`
+- Precision：`0.5703`
+- F1：`0.6529`
+- Balanced Acc：`0.5941`
+- 混淆矩阵：TP=`1680` TN=`934` FP=`1266` FN=`520`
 
 #### Fold 4
 
-- 早停/结束轮次（stopped_epoch）：`44`
-- 验证最优轮次（best_epoch）：`26`
-- Val F1（最优）：`0.6135`
-- Val loss（最优时）：`0.6982`
+- 早停/结束轮次（stopped_epoch）：`21`
+- 验证最优轮次（best_epoch）：`1`
+- Val F1（最优）：`0.6672`
+- Val loss（最优时）：`0.7057`
 
 **Test（overall）**
-- Accuracy：`0.5395`
-- Recall：`0.7080`
-- Specificity：`0.3710`
-- Precision：`0.5295`
-- F1：`0.6059`
-- Balanced Acc：`0.5395`
-- 混淆矩阵：TP=`1416` TN=`742` FP=`1258` FN=`584`
+- Accuracy：`0.5022`
+- Recall：`0.9985`
+- Specificity：`0.0060`
+- Precision：`0.5011`
+- F1：`0.6673`
+- Balanced Acc：`0.5022`
+- 混淆矩阵：TP=`1997` TN=`12` FP=`1988` FN=`3`
 
 ### Three（空闲/左/右，不使用Task的保存的权重，重新使用新的模型训练）
-- Val F1-macro：`0.2677 ± 0.0483`
-- Test F1-macro：`0.2663 ± 0.0433`
-- Test Acc：`0.4484 ± 0.0561`
+- Val acc_paper：`0.3708 ± 0.1104`
+- Test F1-macro：`0.2171 ± 0.0435`
+- Test Acc：`0.3666 ± 0.1125`
 
 ### Three 各折明细
 
@@ -112,34 +114,14 @@
 
 #### Fold 0
 
-- 早停/结束轮次（stopped_epoch）：`20`
-- 验证最优轮次（best_epoch）：`2`
-- Val F1-macro（最优）：`0.2315`
-- Val loss（最优时）：`1.0547`
-
-**Test（overall）**
-- Accuracy：`0.4964`
-- F1-macro：`0.2329`
-- Recall-macro：`0.3341`
-- Recall idle/left/right：`0.9832` / `0.0191` / `0.0000`
-- 混淆矩阵（行=真实, 列=预测）：
-```
-         pred0  pred1  pred2
-  true0   2163     37      0
-  true1   1079     21      0
-  true2   1083     17      0
-```
-
-#### Fold 1
-
-- 早停/结束轮次（stopped_epoch）：`19`
+- 早停/结束轮次（stopped_epoch）：`21`
 - 验证最优轮次（best_epoch）：`1`
-- Val F1-macro（最优）：`0.2223`
-- Val loss（最优时）：`1.0464`
+- Val F1-macro（最优）：`None`
+- Val loss（最优时）：`1.0595`
 
 **Test（overall）**
 - Accuracy：`0.5000`
-- F1-macro：`0.2223`
+- F1-macro：`0.2222`
 - Recall-macro：`0.3333`
 - Recall idle/left/right：`1.0000` / `0.0000` / `0.0000`
 - 混淆矩阵（行=真实, 列=预测）：
@@ -147,84 +129,120 @@
          pred0  pred1  pred2
   true0   2200      0      0
   true1   1100      0      0
-  true2   1099      1      0
+  true2   1100      0      0
+```
+
+#### Fold 1
+
+- 早停/结束轮次（stopped_epoch）：`23`
+- 验证最优轮次（best_epoch）：`3`
+- Val F1-macro（最优）：`None`
+- Val loss（最优时）：`1.0492`
+
+**Test（overall）**
+- Accuracy：`0.4995`
+- F1-macro：`0.2222`
+- Recall-macro：`0.3330`
+- Recall idle/left/right：`0.9991` / `0.0000` / `0.0000`
+- 混淆矩阵（行=真实, 列=预测）：
+```
+         pred0  pred1  pred2
+  true0   2198      2      0
+  true1   1100      0      0
+  true2   1098      2      0
 ```
 
 #### Fold 2
 
-- 早停/结束轮次（stopped_epoch）：`19`
-- 验证最优轮次（best_epoch）：`1`
-- Val F1-macro（最优）：`0.2435`
-- Val loss（最优时）：`1.0638`
+- 早停/结束轮次（stopped_epoch）：`23`
+- 验证最优轮次（best_epoch）：`3`
+- Val F1-macro（最优）：`None`
+- Val loss（最优时）：`1.0935`
 
 **Test（overall）**
-- Accuracy：`0.4811`
-- F1-macro：`0.2479`
-- Recall-macro：`0.3298`
-- Recall idle/left/right：`0.9350` / `0.0409` / `0.0136`
+- Accuracy：`0.3305`
+- F1-macro：`0.2750`
+- Recall-macro：`0.3232`
+- Recall idle/left/right：`0.3523` / `0.5718` / `0.0455`
 - 混淆矩阵（行=真实, 列=预测）：
 ```
          pred0  pred1  pred2
-  true0   2057    113     30
-  true1   1045     45     10
-  true2   1039     46     15
+  true0    775   1314    111
+  true1    417    629     54
+  true2    438    612     50
 ```
 
 #### Fold 3
 
-- 早停/结束轮次（stopped_epoch）：`22`
-- 验证最优轮次（best_epoch）：`4`
-- Val F1-macro（最优）：`0.2884`
-- Val loss（最优时）：`1.0824`
+- 早停/结束轮次（stopped_epoch）：`30`
+- 验证最优轮次（best_epoch）：`10`
+- Val F1-macro（最优）：`None`
+- Val loss（最优时）：`1.1629`
 
 **Test（overall）**
-- Accuracy：`0.4036`
-- F1-macro：`0.2880`
-- Recall-macro：`0.3380`
-- Recall idle/left/right：`0.6005` / `0.4136` / `0.0000`
+- Accuracy：`0.2486`
+- F1-macro：`0.1399`
+- Recall-macro：`0.3311`
+- Recall idle/left/right：`0.0014` / `0.9818` / `0.0100`
 - 混淆矩阵（行=真实, 列=预测）：
 ```
          pred0  pred1  pred2
-  true0   1321    879      0
-  true1    645    455      0
-  true2    679    421      0
+  true0      3   2158     39
+  true1      2   1080     18
+  true2      0   1089     11
 ```
 
 #### Fold 4
 
-- 早停/结束轮次（stopped_epoch）：`19`
-- 验证最优轮次（best_epoch）：`1`
-- Val F1-macro（最优）：`0.3529`
-- Val loss（最优时）：`1.0931`
+- 早停/结束轮次（stopped_epoch）：`22`
+- 验证最优轮次（best_epoch）：`2`
+- Val F1-macro（最优）：`None`
+- Val loss（最优时）：`1.1600`
 
 **Test（overall）**
-- Accuracy：`0.3608`
-- F1-macro：`0.3406`
-- Recall-macro：`0.3465`
-- Recall idle/left/right：`0.4035` / `0.3760` / `0.2600`
+- Accuracy：`0.2545`
+- F1-macro：`0.2261`
+- Recall-macro：`0.3393`
+- Recall idle/left/right：`0.0000` / `0.5340` / `0.4840`
 - 混淆矩阵（行=真实, 列=预测）：
 ```
          pred0  pred1  pred2
-  true0    807    679    514
-  true1    384    376    240
-  true2    403    337    260
+  true0      0   1015    985
+  true1      0    534    466
+  true2      0    516    484
 ```
 
 ### 共用超参
 ```json
 {
-  "data_tag": "openbmi_balanced_train_2s",
+  "data_tag": "openbmi_2s_hop100",
   "n_folds": 5,
   "val_ratio": 0.2,
   "seed": 42,
   "max_epochs": 300,
-  "patience": 18,
-  "batch_train": 32,
-  "batch_eval": 64,
+  "patience": 20,
+  "batch_train": 128,
+  "batch_eval": 256,
   "lr": 0.0001,
   "weight_decay": 0.0001,
-  "drop_prob": 0.5
+  "drop_prob": 0.5,
+  "protocol": "2s-hop100ms-balbatch-accpaper-openbmi subject_key=openbmi:subjNN sess01+02 blocks=EEG_MI_train",
+  "early_stop": "acc_paper",
+  "train_sampler": "balanced_invfreq",
+  "n_times_expected": 500,
+  "no_rap": true,
+  "no_balbatch": false,
+  "openbmi_only": true,
+  "num_workers": 2,
+  "pin_memory": true,
+  "persistent_workers": true,
+  "prefetch_factor": 2,
+  "non_blocking": true,
+  "torch_num_threads": 6,
+  "cudnn_benchmark": true,
+  "deterministic": false,
+  "use_amp": true
 }
 ```
 
-- 结束：`2026-08-06T00:51:36`
+- 结束：`2026-08-10T00:14:08`

@@ -7,7 +7,9 @@ from dataclasses import asdict, dataclass
 
 
 def _default_num_workers() -> int:
-    return 4
+    # 16GB 本机：4 workers + persistent + 折内 float16 pack 易触发 Windows 1455
+    # （Couldn't open shared file mapping）。训练仍可 CLI --num-workers 覆盖。
+    return 2
 
 
 TRAIN_DEVICE_LABEL = "NVIDIA RTX 5060 Laptop"

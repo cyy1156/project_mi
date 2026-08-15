@@ -292,6 +292,52 @@ def _loader_kwargs(hp: SharedTrainHP) -> dict:
     )
 
 
+def _eval_loader_kwargs(hp: SharedTrainHP) -> dict:
+    """Val/Test 强制单进程：避免与 train persistent workers 叠开打满 Windows 共享内存。"""
+    return dict(
+        num_workers=0,
+        pin_memory=hp.pin_memory,
+        persistent_workers=False,
+        prefetch_factor=2,
+    )
+
+
+@torch.no_grad()
+def _eval_loss_and_preds(
+    model: nn.Module,
+    loader: DataLoader,
+    device: torch.device,
+    *,
+    non_blocking: bool = True,
+    use_amp: bool = False,
+) -> tuple[float, np.ndarray, np.ndarray]:
+    """单遍 eval：loss + argmax，避免 DataLoader 扫两遍。"""
+    model.eval()
+    criterion = nn.CrossEntropyLoss()
+    total, n = 0.0, 0
+    ys, ps = [], []
+    amp_on = bool(use_amp) and device.type == "cuda"
+    for x, y in loader:
+        x_dev = x.to(device, non_blocking=non_blocking)
+        y_dev = y.to(device, non_blocking=non_blocking)
+        if amp_on:
+            with torch.amp.autocast("cuda", enabled=True):
+                logits = model(x_dev)
+                if logits.ndim > 2:
+                    logits = logits.reshape(logits.shape[0], -1)
+                loss = criterion(logits, y_dev)
+        else:
+            logits = model(x_dev)
+            if logits.ndim > 2:
+                logits = logits.reshape(logits.shape[0], -1)
+            loss = criterion(logits, y_dev)
+        total += loss.item() * x.size(0)
+        n += x.size(0)
+        ps.append(logits.argmax(dim=1).cpu().numpy())
+        ys.append(y.numpy())
+    return total / max(n, 1), np.concatenate(ys), np.concatenate(ps)
+
+
 def _eval_split(
     model,
     X,
@@ -318,7 +364,7 @@ def _eval_split(
             PackedArrayDataset(y_pack, x_path=packed_path),
             batch_size=hp.batch_eval,
             shuffle=False,
-            **_loader_kwargs(hp),
+            **_eval_loader_kwargs(hp),
         )
     else:
         indices = _indices_from_mask(mask)
@@ -327,19 +373,15 @@ def _eval_split(
             _make_ds(X, y, indices, input_kind, x_path=x_path),
             batch_size=hp.batch_eval,
             shuffle=False,
-            **_loader_kwargs(hp),
+            **_eval_loader_kwargs(hp),
         )
-    loss = run_epoch(
+    loss, yt, yp = _eval_loss_and_preds(
         model,
         loader,
-        nn.CrossEntropyLoss(),
-        None,
         device,
-        False,
         non_blocking=hp.non_blocking,
         use_amp=hp.use_amp,
     )
-    yt, yp = collect_preds(model, loader, device, non_blocking=hp.non_blocking)
     assert len(yt) == len(subs) == len(tids)
     trial = aggregate_windows_to_trials(yt, yp, subs, tids, n_classes=n_classes)
     if n_classes == 2:
@@ -713,6 +755,17 @@ def run_baseline_main(
     )
     p.add_argument("--skip-three", action="store_true")
     p.add_argument(
+        "--skip-task",
+        action="store_true",
+        help="跳过 Task；需同时给 --resume-dir（读其 task/summary.json）",
+    )
+    p.add_argument(
+        "--resume-dir",
+        type=str,
+        default="",
+        help="已有 run_YYYYMMDD_HHMMSS 目录；配合 --skip-task 只重跑 Three",
+    )
+    p.add_argument(
         "--max-folds",
         type=int,
         default=0,
@@ -820,16 +873,28 @@ def run_baseline_main(
         f"threads={hp.torch_num_threads}",
         flush=True,
     )
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_name = f"{model_name}_openbmi_2s_hop100_noz_balbatch_accpaper"
-    out_root = (
-        TRAIN_LAB
-        / "out"
-        / OUT_ROOT_TAG
-        / out_name
-        / data_tag
-        / f"run_{stamp}"
-    )
+    resume_dir = Path(args.resume_dir).expanduser() if args.resume_dir else None
+    if args.skip_task:
+        if resume_dir is None or not resume_dir.is_dir():
+            raise SystemExit("--skip-task 需要有效的 --resume-dir（含 task/summary.json）")
+        task_sum_path = resume_dir / "task" / "summary.json"
+        if not task_sum_path.is_file():
+            raise SystemExit(f"--skip-task 缺少 {task_sum_path}")
+        out_root = resume_dir.resolve()
+        stamp = out_root.name.replace("run_", "", 1) if out_root.name.startswith("run_") else out_root.name
+    else:
+        if resume_dir is not None:
+            raise SystemExit("--resume-dir 目前仅支持与 --skip-task 联用")
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        out_root = (
+            TRAIN_LAB
+            / "out"
+            / OUT_ROOT_TAG
+            / out_name
+            / data_tag
+            / f"run_{stamp}"
+        )
     out_root.mkdir(parents=True, exist_ok=True)
     log_path = out_root / "run.log"
     records_root = REPO_ROOT / "资料" / "模型训练"
@@ -972,20 +1037,28 @@ def run_baseline_main(
         x_path=x_path,
     )
 
-    sum_task = run_kfold_limited(
-        **common,
-        y=y_task,
-        out_dir=out_root / "task",
-        n_outputs=2,
-        ckpt_name="best_task.pt",
-        stage_tag=f"task2_{out_name}",
-        task_key="task_kfold_accpaper",
-    )
-    log_line(
-        log_path,
-        f"TASK done val_AccPaper={sum_task['val_acc_paper_mean']:.4f} "
-        f"test_AccPaper={sum_task['test_acc_paper_mean']:.4f}",
-    )
+    if args.skip_task:
+        sum_task = json.loads((out_root / "task" / "summary.json").read_text(encoding="utf-8"))
+        log_line(
+            log_path,
+            f"TASK skip resume={out_root} val_AccPaper={sum_task['val_acc_paper_mean']:.4f} "
+            f"test_AccPaper={sum_task['test_acc_paper_mean']:.4f}",
+        )
+    else:
+        sum_task = run_kfold_limited(
+            **common,
+            y=y_task,
+            out_dir=out_root / "task",
+            n_outputs=2,
+            ckpt_name="best_task.pt",
+            stage_tag=f"task2_{out_name}",
+            task_key="task_kfold_accpaper",
+        )
+        log_line(
+            log_path,
+            f"TASK done val_AccPaper={sum_task['val_acc_paper_mean']:.4f} "
+            f"test_AccPaper={sum_task['test_acc_paper_mean']:.4f}",
+        )
 
     sum_three = None
     if not args.skip_three:

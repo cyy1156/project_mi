@@ -19,17 +19,17 @@ DIR = Path(__file__).resolve().parent
 DATA_TAG = SHARED.data_tag  # openbmi_2s_hop100_noz
 
 ALL_MODELS = (
-    "shallow",
-    "deep",
+    #"shallow",
+    #"deep",
     #"conformer",
     #"eegnet",
     #"eegtcnet",
     #"gcbnet",
     #"dgcnn",
     #"dbn",
-    #"dbn_raw",
-    #"gcbnet_raw",
-    #"dgcnn_raw",
+    "dbn_raw",
+    "gcbnet_raw",
+    "dgcnn_raw",
 )
 
 
