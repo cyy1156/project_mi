@@ -124,7 +124,8 @@ class PackedArrayDataset(Dataset):
         return torch.from_numpy(x), torch.tensor(self.y[i], dtype=torch.long)
 
 
-_GATHER_CHUNK = 1024
+# 16GB 机：减小 fancy-index 临时块，降低 pack 峰值
+_GATHER_CHUNK = 256
 
 
 def _squeeze_time_windows(block: np.ndarray) -> np.ndarray:
@@ -146,13 +147,26 @@ def materialize_time_pack(
 ) -> Path:
     """
     将全局下标对应的时域窗顺序写入磁盘 memmap，返回路径（供多进程 Dataset 打开）。
+    若同路径已有形状/dtype 匹配的文件则直接复用（避免 OOM 重试时重复 pack）。
     """
+    import gc
+
     indices = np.asarray(indices, dtype=np.int64).reshape(-1)
     n = int(len(indices))
     t = int(X_src.shape[-1])
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    if out_path.exists():
-        out_path.unlink()
+    if out_path.is_file():
+        try:
+            cached = np.load(out_path, mmap_mode="r")
+            if tuple(cached.shape) == (n, 8, t) and cached.dtype == np.dtype(dtype):
+                print(f"  reuse pack {out_path.name} shape={cached.shape}", flush=True)
+                return out_path
+        except Exception:
+            pass
+        try:
+            out_path.unlink()
+        except OSError:
+            pass
     fp = np.lib.format.open_memmap(
         out_path, mode="w+", dtype=dtype, shape=(n, 8, t)
     )
@@ -161,8 +175,13 @@ def materialize_time_pack(
         idxs = indices[s:e]
         block = _squeeze_time_windows(np.array(X_src[idxs]))
         fp[s:e] = block.astype(dtype, copy=False)
+        del block
+        # 每隔约 32 块收回临时缓冲，减轻 Windows 提交内存爬升
+        if ((s // _GATHER_CHUNK) % 32) == 31:
+            gc.collect()
     fp.flush()
     del fp
+    gc.collect()
     return out_path
 
 
@@ -366,6 +385,7 @@ def train_one_fold(
     ckpt_name: str,
     stage_tag: str,
     x_path: str | None = None,
+    src_box: list | None = None,
 ) -> dict:
     fold = fold_info["fold"]
     masks = fold_info["masks"]
@@ -387,6 +407,14 @@ def train_one_fold(
             "当前若只有 1 人预处理产物，请先跑更多 subject 的 batch。"
         )
 
+    # 上一折可能已释放源；本折 pack 前按需从 x_path 再 mmap
+    if X is None:
+        if not x_path:
+            raise RuntimeError("train_one_fold: X is None and x_path is missing")
+        X = np.load(x_path, mmap_mode="r")
+        if src_box is not None and not src_box:
+            src_box.append(X)
+
     print(
         f"\n======== [{stage_tag}] [{model_name}] fold {fold} ========\n"
         f"  train={fold_info['train_subjects']}\n"
@@ -402,6 +430,7 @@ def train_one_fold(
     cache_paths: list[Path] = []
     pack_tr_path: Path | None = None
     pack_va_path: Path | None = None
+    n_times = int(X.shape[-1])
     try:
         va_idx = _indices_from_mask(masks["val"])
         if input_kind == "feat":
@@ -422,6 +451,15 @@ def train_one_fold(
                 f"  pack done train={pack_tr_path.name} val={pack_va_path.name}",
                 flush=True,
             )
+            # 折内已 pack：释放全库源引用，降低 Windows 提交内存（test 走 x_path mmap）
+            if x_path is not None:
+                X = None  # noqa: F841
+                if src_box is not None:
+                    src_box.clear()
+                import gc
+
+                gc.collect()
+                print("  released source mmap after pack", flush=True)
 
         train_loader = make_loader(
             train_ds,
@@ -438,7 +476,6 @@ def train_one_fold(
             deterministic=hp.deterministic,
         )
         # time: (N,1,8,T) → T；feat: (N,8,n_band) → n_band
-        n_times = int(X.shape[-1])
         model = build_model(8, n_times, n_outputs, hp.drop_prob).to(device)
         criterion = nn.CrossEntropyLoss()
         optimizer = torch.optim.Adam(
@@ -579,12 +616,14 @@ def train_one_fold(
         import gc
 
         gc.collect()
-        for p in cache_paths:
-            try:
-                if p.is_file():
-                    p.unlink()
-            except OSError:
-                pass
+        # 16GB / 旁路：可保留 pack 供同目录重试复用（keep_fold_packs=True）
+        if not bool(getattr(hp, "keep_fold_packs", False)):
+            for p in cache_paths:
+                try:
+                    if p.is_file():
+                        p.unlink()
+                except OSError:
+                    pass
 
 
 def run_kfold(

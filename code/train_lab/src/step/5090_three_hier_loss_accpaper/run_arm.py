@@ -1,10 +1,10 @@
-"""Scheme 16 arms: S0 / H1 / H2 / H3 on braindecode Shallow + hier loss.
+"""Scheme 16 · 5090 arms: S0 / H1 / H2 / H3 on braindecode Shallow + hier loss.
 
-Usage:
-  python run_arm.py --arm H1 --three-only     # Three fold0 (default for H*)
-  python run_arm.py --arm H1 --max-folds 0    # Three 五折
-  python run_arm.py --arm S0 --three-only
-  python run_arm.py --arm H1 --with-task      # Task(CE)+Three(H1)
+Usage (5090 · RAM 128GB / VRAM 32GB · 默认按全量友好 hparams):
+  python run_arm.py --arm S0 --max-folds 0    # Three 五折
+  python run_arm.py --arm H1 --max-folds 0
+  python run_arm.py --arm H1 --max-folds 1    # 仅 fold0 冒烟
+  python run_arm.py --arm S0 --with-task --skip-three --max-folds 0
 """
 from __future__ import annotations
 
@@ -51,12 +51,9 @@ def main() -> None:
     p.add_argument("--three-only", action="store_true", default=False)
     args, rest = p.parse_known_args()
 
+    # 5090：默认五折全量（max-folds 默认 0）；冒烟请显式 --max-folds 1
+    # workers 默认走 shared_hparams（4）；勿强制 0
     three_only = (not args.with_task) or args.three_only
-    if args.arm != "S0" and "--max-folds" not in rest:
-        rest = [*rest, "--max-folds", "1"]
-    if "--num-workers" not in rest:
-        rest = [*rest, "--num-workers", "0"]
-
     sys.argv = [sys.argv[0], *rest]
     tr.ACTIVE_ARM = args.arm
     meta = loss_meta(args.arm, HierLossHP(arm=args.arm))
@@ -93,7 +90,7 @@ def _run_three_only(
     extra_meta: dict,
     argv_rest: list[str],
 ) -> None:
-    mod = sys.modules["_hier_loss_official_task_runner"]
+    mod = sys.modules["_hier5090_official_task_runner"]
     from data_paths import resolve_data  # noqa: WPS433
     from src.common.steps.split_subjects import iter_subject_kfold
 
