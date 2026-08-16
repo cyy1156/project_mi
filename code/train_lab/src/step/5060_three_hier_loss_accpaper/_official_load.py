@@ -8,7 +8,8 @@ from pathlib import Path
 OFFICIAL = Path(__file__).resolve().parent.parent / "5060_baselines_openbmi_2s_hop100_accpaper"
 HOP100 = Path(__file__).resolve().parent.parent / "baselines_2s_hop100"
 STEP = Path(__file__).resolve().parent.parent
-PRE = Path(__file__).resolve().parents[3] / "preprocess_lab"
+# .../train_lab/src/step/<pkg>/file.py → parents[4] == code/
+PRE = Path(__file__).resolve().parents[4] / "preprocess_lab"
 
 for p in (str(STEP), str(PRE), str(HOP100), str(OFFICIAL)):
     if p not in sys.path:

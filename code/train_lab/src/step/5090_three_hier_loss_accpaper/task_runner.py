@@ -35,6 +35,7 @@ _orig_train_one_fold = _tr.train_one_fold
 
 
 def train_one_fold(*args, **kwargs):
+    """Inject hier loss; forward all kwargs (incl. src_box) to official fold loop."""
     n_outputs = int(kwargs.get("n_outputs", 3))
     arm = ACTIVE_ARM
     real_ce = nn.CrossEntropyLoss
@@ -50,4 +51,5 @@ def train_one_fold(*args, **kwargs):
 
 
 _tr.train_one_fold = train_one_fold
+train_one_fold_official = _orig_train_one_fold
 run_baseline_main = _tr.run_baseline_main

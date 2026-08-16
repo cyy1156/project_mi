@@ -5,7 +5,7 @@ T1 (focal) not in this chain until implemented.
 
 Usage:
   python chain_all.py
-  python chain_all.py --from H2
+  python chain_all.py --from H2_three
 """
 from __future__ import annotations
 
@@ -18,7 +18,8 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-PY = Path(r"D:\cyy\MI\.venv\Scripts\python.exe")
+_VENV_PY = Path(r"D:\cyy\MI\.venv\Scripts\python.exe")
+PY = _VENV_PY if _VENV_PY.is_file() else Path(sys.executable)
 STATE = HERE / "chain_state.json"
 LOG = HERE / "chain_all_stdout.log"
 
