@@ -1,0 +1,175 @@
+{
+  "task": "three_kfold_accpaper",
+  "model_name": "shallow_hier_s0_openbmi_2s_hop100_balbatch_accpaper",
+  "data_tag": "openbmi_2s_hop100",
+  "protocol": "2s-hop100ms-balbatch-accpaper-openbmi-shallow-hier-loss subject_key=openbmi:subjNN sess01+02 blocks=EEG_MI_train device=5090",
+  "no_rap": true,
+  "balbatch": true,
+  "early_stop": "acc_paper",
+  "hparams": {
+    "data_tag": "openbmi_2s_hop100",
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 1,
+    "patience": 20,
+    "batch_train": 128,
+    "batch_eval": 256,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "2s-hop100ms-balbatch-accpaper-openbmi-shallow-hier-loss subject_key=openbmi:subjNN sess01+02 blocks=EEG_MI_train device=5090",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_times_expected": 500,
+    "no_rap": true,
+    "no_balbatch": false,
+    "openbmi_only": true,
+    "keep_fold_packs": false,
+    "num_workers": 2,
+    "pin_memory": true,
+    "persistent_workers": true,
+    "prefetch_factor": 2,
+    "non_blocking": true,
+    "torch_num_threads": 8,
+    "cudnn_benchmark": true,
+    "deterministic": false,
+    "use_amp": true
+  },
+  "val_acc_paper_mean": 0.4633333333333333,
+  "val_acc_paper_std": 0.0,
+  "test_acc_paper_mean": 0.4815151515151515,
+  "test_acc_paper_std": 0.0,
+  "test_balacc_maj_mean": 0.5015151515151515,
+  "test_balacc_maj_std": 0.0,
+  "test_window_balacc_mean": 0.4856709956709957,
+  "test_window_balacc_std": 0.0,
+  "test_f1_macro_maj_mean": 0.4998278670513889,
+  "test_f1_macro_maj_std": 0.0,
+  "folds": [
+    {
+      "fold": 0,
+      "best_val_acc_paper": 0.4633333333333333,
+      "best_val_balacc_maj": 0.4862962962962963,
+      "best_val_loss": 1.0771630101901934,
+      "best_epoch": 1,
+      "stopped_epoch": 1,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 56700,
+        "acc_paper": 0.4633333333333333,
+        "acc_majority": 0.4862962962962963,
+        "balanced_accuracy": 0.4862962962962963,
+        "f1_macro": 0.48318903916641814,
+        "precision_macro": 0.4952454899683311,
+        "recall_macro": 0.4862962962962963,
+        "accuracy_sklearn": 0.4862962962962963,
+        "recall_idle": 0.5333333333333333,
+        "recall_left": 0.5544444444444444,
+        "recall_right": 0.3711111111111111,
+        "cm": [
+          [
+            480,
+            303,
+            117
+          ],
+          [
+            238,
+            499,
+            163
+          ],
+          [
+            254,
+            312,
+            334
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3300,
+        "n_windows": 69300,
+        "acc_paper": 0.4815151515151515,
+        "acc_majority": 0.5015151515151515,
+        "balanced_accuracy": 0.5015151515151515,
+        "f1_macro": 0.4998278670513889,
+        "precision_macro": 0.5031786702258372,
+        "recall_macro": 0.5015151515151515,
+        "accuracy_sklearn": 0.5015151515151515,
+        "recall_idle": 0.53,
+        "recall_left": 0.5536363636363636,
+        "recall_right": 0.4209090909090909,
+        "cm": [
+          [
+            583,
+            332,
+            185
+          ],
+          [
+            249,
+            609,
+            242
+          ],
+          [
+            342,
+            295,
+            463
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.4856709956709957,
+        "f1_macro": 0.4845697867330741,
+        "precision_macro": 0.48723701222240834,
+        "recall_macro": 0.4856709956709957,
+        "balanced_accuracy": 0.4856709956709957,
+        "recall_idle": 0.51008658008658,
+        "recall_left": 0.5267965367965368,
+        "recall_right": 0.42012987012987013,
+        "precision_idle": 0.4831870745509719,
+        "precision_left": 0.47368625924484237,
+        "precision_right": 0.5048377028714107,
+        "f1_idle": 0.4962725856041781,
+        "f1_left": 0.49883172781307644,
+        "f1_right": 0.4586050467819677,
+        "cm": [
+          [
+            11783,
+            6921,
+            4396
+          ],
+          [
+            5808,
+            12169,
+            5123
+          ],
+          [
+            6795,
+            6600,
+            9705
+          ]
+        ]
+      }
+    }
+  ],
+  "out_dir": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_three_hier_loss_accpaper\\shallow_hier_s0_openbmi_2s_hop100_balbatch_accpaper\\openbmi_2s_hop100\\run_20260816_121225\\three",
+  "max_folds": 1,
+  "three_only": true,
+  "scheme": "16",
+  "arm": "S0",
+  "loss": "S0",
+  "hier_loss": {
+    "arm": "S0",
+    "lambda_ce": 1.0,
+    "lambda_mi": 0.5,
+    "lambda_lr": 0.75,
+    "lambda_mg": 0.3,
+    "lambda_id": 0.2,
+    "lambda_tr": 0.0,
+    "margin": 1.0
+  },
+  "backbone": "braindecode.ShallowFBCSPNet",
+  "accpaper": true,
+  "bypass": true,
+  "structure_note": "S0 plain CE · shallow",
+  "prepare_X": "squeeze_raw_2s_openbmi"
+}
