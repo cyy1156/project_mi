@@ -625,8 +625,16 @@ def run_kfold(
     return summary
 
 
+def squeeze_raw_2s(X: np.ndarray) -> np.ndarray:
+    """(N,1,8,T) -> (N,8,T) for Shallow/EEGNet-style time models."""
+    X = np.asarray(X, dtype=np.float32)
+    if X.ndim == 4 and X.shape[1] == 1:
+        X = X[:, 0]
+    return X
+
+
 def load_all(data_dir: Path, prefix: str = "bci2a"):
-    X = np.load(data_dir / f"{prefix}_X.npy")
+    X = squeeze_raw_2s(np.load(data_dir / f"{prefix}_X.npy"))
     y_task = np.load(data_dir / f"{prefix}_y_task.npy")
     y_three = np.load(data_dir / f"{prefix}_y_three.npy")
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
@@ -800,6 +808,10 @@ def main() -> None:
         try:
             rel = md_records.relative_to(RECORDS_ROOT).as_posix()
             latest.write_text(
+                "# Latest experiment entry\n\n"
+                f"Record: [`{rel}`](./{rel})\n\n"
+                f"Weights: `{out_root}`\n"
+                f"Log: `{log_path}`\n",
                 encoding="utf-8",
             )
         except ValueError:
