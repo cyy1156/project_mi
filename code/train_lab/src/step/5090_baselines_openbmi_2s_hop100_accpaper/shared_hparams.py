@@ -5,7 +5,7 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass
 
 TRAIN_DEVICE_LABEL = "NVIDIA RTX 5090"
-TRAIN_DEVICE_NOTE = "32GB · sm_120 · conda cyy · PyTorch 2.11+cu128"
+TRAIN_DEVICE_NOTE = "RAM 128GB · VRAM 32GB · sm_120 · conda cyy · PyTorch 2.11+cu128"
 OUT_ROOT_TAG = "5090_baseline_openbmi_2s_hop100_accpaper"
 
 

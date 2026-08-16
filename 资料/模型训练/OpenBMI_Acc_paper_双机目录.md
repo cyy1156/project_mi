@@ -1,6 +1,6 @@
 # OpenBMI Acc_paper · 双机分类目录
 
-> 整理时间：2026-08-07  
+> 整理时间：2026-08-07 · 方案16 双机补记 2026-08-16  
 > **正式结果 = 本机 RTX 5060 · Fast 模式**；5090 仅对照。
 
 | 类别 | 5060（本机 · **正式**） | 5090（**对照 · 非正式**） |
@@ -11,6 +11,16 @@
 | 五折记录 | [`runs/5060_openbmi_accpaper/`](./runs/5060_openbmi_accpaper/) | [`runs/5090_openbmi_accpaper/`](./runs/5090_openbmi_accpaper/) |
 | 结果汇总副本 | [`../实验结果/5060/openbmi滑窗_paper_acc/`](../实验结果/5060/openbmi滑窗_paper_acc/) | [`../实验结果/5090/openbmi滑窗_paper_acc/`](../实验结果/5090/openbmi滑窗_paper_acc/) |
 | 清单 | [`5060_openbmi_accpaper_实验与权重清单.md`](./5060_openbmi_accpaper_实验与权重清单.md) **正式** | [`5090_openbmi_accpaper_实验与权重清单.md`](./5090_openbmi_accpaper_实验与权重清单.md) 对照 |
+
+### 方案 16 · Shallow Three 复合损失（旁路）
+
+| | 5060（本机 · 低内存试探） | 5090（**全量推荐**） |
+|--|---------------------------|----------------------|
+| 代码 | `code/train_lab/src/step/5060_three_hier_loss_accpaper/` | `code/train_lab/src/step/5090_three_hier_loss_accpaper/` |
+| out | `code/train_lab/out/5060_three_hier_loss_accpaper/` | `code/train_lab/out/5090_three_hier_loss_accpaper/` |
+| 文档 | [`16_5060_旁路_shallow_Three复合损失_openbmi_accpaper/`](./16_5060_旁路_shallow_Three复合损失_openbmi_accpaper/) | [`16_5090_旁路_shallow_Three复合损失_openbmi_accpaper/`](./16_5090_旁路_shallow_Three复合损失_openbmi_accpaper/) |
+| 机位 | RTX 5060 Laptop · RAM ~16GB | RTX 5090 · **RAM 128GB · VRAM 32GB** |
+| 推荐 | fold0 门控 | **`chain_all.py` 五折全链** |
 
 ### 5060 双模式
 
