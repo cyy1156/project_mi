@@ -1,9 +1,9 @@
-# BCI Competition IV 2a — Cue后 0~4s / Cue前 4s → 100ms 滑 2s → (N,1,8,500)
-# 旁路协议：不与论文 1s/40ms 对齐
+# BCI Competition IV 2a ? Cue? 0~4s / Cue? 4s ? 100ms ? 2s ? (N,1,8,500)
+# ????????? 1s/40ms ??
 dataset: bci2a
 loader: load_bci2a_mat
 
-data_glob: "D:/cyy/MI/DATA/bci2a/A0*T.mat"
+data_glob: "D:/360MoveData/Users/ckgxnn/Desktop/MI/DATA/bci2a/A0*T.mat"
 
 subject_from: stem3
 
