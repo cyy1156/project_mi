@@ -11,6 +11,9 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# 训练环会临时 monkey-patch nn.CrossEntropyLoss；此处保留真实类供 S0 / 子 CE 使用。
+_CrossEntropyLoss = nn.CrossEntropyLoss
+
 
 @dataclass(frozen=True)
 class HierLossHP:
@@ -42,7 +45,7 @@ class HierThreeLoss(nn.Module):
         self.use_lr = flags["use_lr"]
         self.use_mg = flags["use_mg"]
         self.use_id = flags["use_id"]
-        self.ce = nn.CrossEntropyLoss()
+        self.ce = _CrossEntropyLoss()
 
     def forward(self, logits: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         if logits.ndim > 2:
@@ -91,7 +94,7 @@ class HierThreeLoss(nn.Module):
 
 def build_criterion(arm: str, n_outputs: int, hp: HierLossHP | None = None) -> nn.Module:
     if n_outputs != 3 or arm == "S0":
-        return nn.CrossEntropyLoss()
+        return _CrossEntropyLoss()
     cfg = hp or HierLossHP(arm=arm)
     if arm != cfg.arm:
         cfg = HierLossHP(

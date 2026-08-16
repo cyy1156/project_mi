@@ -15,9 +15,10 @@
 ## 一键全链（5090）
 
 ```powershell
-cd D:\cyy\MI\code\train_lab\src\step\5090_three_hier_loss_accpaper
+conda activate cyy
+cd F:\Cyy\MI\code\train_lab\src\step\5090_three_hier_loss_accpaper
 python chain_all.py
-# 或双击 run_chain_detached.bat
+# 或双击 run_chain_detached.bat（需先 conda activate cyy）
 ```
 
 顺序：Three **S0→H1→H2→H3**（各五折）→ Task **T0**（五折）。

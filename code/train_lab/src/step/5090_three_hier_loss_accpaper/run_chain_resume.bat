@@ -6,7 +6,8 @@ if "%~1"=="" (
   exit /b 1
 )
 echo %DATE% %TIME% resume scheme16-5090 from %~1 >> chain_detached_launch.log
-set PY=D:\cyy\MI\.venv\Scripts\python.exe
+set "REPO=%~dp0..\..\..\..\.."
+set "PY=%REPO%\.venv\Scripts\python.exe"
 if not exist "%PY%" set PY=python
 start "scheme16_5090_resume" /MIN "%PY%" -u chain_all.py --from %~1
 echo started > chain_detached.flag

@@ -17,9 +17,13 @@ from datetime import datetime
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
-# 5090 机可用系统/conda python；优先本仓库 .venv，否则当前解释器
-_VENV_PY = Path(r"D:\cyy\MI\.venv\Scripts\python.exe")
-PY = _VENV_PY if _VENV_PY.is_file() else Path(sys.executable)
+REPO_ROOT = HERE.parents[5]
+# 优先当前解释器（conda activate cyy 后启动 chain）；其次仓库 .venv
+_VENV_PY = REPO_ROOT / ".venv" / "Scripts" / "python.exe"
+if _VENV_PY.is_file():
+    PY = _VENV_PY
+else:
+    PY = Path(sys.executable)
 STATE = HERE / "chain_state.json"
 LOG = HERE / "chain_all_stdout.log"
 
