@@ -23,9 +23,16 @@ from braindecode.models import ShallowFBCSPNet
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
-import task_runner as tr  # noqa: E402
+import task_runner as tr  # noqa: E402  # sets shared_hparams + official path
 from hier_loss import HierLossHP, loss_meta  # noqa: E402
+from perf_loader import apply_runtime_threads  # noqa: E402
+from raw_time_openbmi import squeeze_raw_2s_openbmi  # noqa: E402
 from shared_hparams import OUT_ROOT_TAG, SHARED, shared_as_dict  # noqa: E402
+from _official_load import HOP100, OFFICIAL, PRE, STEP  # noqa: E402
+
+for _p in (str(STEP), str(PRE), str(HOP100), str(OFFICIAL)):
+    if _p not in sys.path:
+        sys.path.append(_p)
 
 ARMS = {
     "S0": dict(note="S0 plain CE · shallow"),
@@ -69,8 +76,6 @@ def main() -> None:
             argv_rest=rest,
         )
     else:
-        from raw_time_openbmi import squeeze_raw_2s_openbmi  # noqa: WPS433
-
         tr.run_baseline_main(
             model_name=f"shallow_hier_{args.arm.lower()}",
             build_model=build_model,
@@ -133,8 +138,6 @@ def _run_three_only(
     if repl:
         hp = replace(hp, **repl)
 
-    from perf_loader import apply_runtime_threads  # noqa: WPS433
-
     apply_runtime_threads(hp.torch_num_threads)
     mod.seed_everything(
         hp.seed, cudnn_benchmark=hp.cudnn_benchmark, deterministic=hp.deterministic
@@ -145,8 +148,6 @@ def _run_three_only(
     x_npy = data_dir / f"{prefix}_X.npy"
     # OpenBMI 时域：先 squeeze 到磁盘 float16 (N,8,500)，再折内 pack。
     # 与正式 shallow 默认直读 float32 源不同，语义等价、显著降低 Windows 文件缓存峰值。
-    from raw_time_openbmi import squeeze_raw_2s_openbmi  # noqa: WPS433
-
     X = np.load(x_npy, mmap_mode="r")
     print(f"[load] prepare_X squeeze_raw on mmap X{tuple(X.shape)} …", flush=True)
     X = squeeze_raw_2s_openbmi(X)
