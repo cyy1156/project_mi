@@ -12,7 +12,7 @@ TRAIN_DEVICE_LABEL = "NVIDIA RTX 5090"
 TRAIN_DEVICE_NOTE = "RAM 128GB · VRAM 32GB · mask-future dual-expert full chain"
 OUT_ROOT_TAG = "5090_mask_future_dual_expert_accpaper"
 
-# A0 用旧 500pt；A1+ 用新预处理臂（见数据切片说明）
+# A0 用旧 500pt（含 Rest）；A1+ 用 pf1000 三类（Rest+L/R，protocol_version≥3）
 DATA_TAG_A0 = "openbmi_2s_hop100"
 DATA_TAG_PF = "openbmi_2s_hop100_pf1000"
 
@@ -33,15 +33,16 @@ class SharedTrainHP:
     drop_prob: float = 0.50
     protocol: str = (
         "mask-future-dual-expert Acc_paper Three-only "
-        "Tw=2s hop=100ms postMI>=1.6s subject_key=openbmi:subjNN "
-        "Adam device=5090"
+        "Tw=2s hop=100ms postMI>=1.6s "
+        "pf1000=past100+cur500+fut400 rest+LR cue_from_start "
+        "subject_key=openbmi:subjNN Adam device=5090"
     )
     early_stop: str = "acc_paper"
     train_sampler: str = "balanced_invfreq"
     n_chans: int = 8
     n_times_a0: int = 500
     n_times_pf: int = 1000
-    n_classes: int = 3  # Three: Rest 若数据无则实际为 2；开跑以 y 为准
+    n_classes: int = 3  # Rest=0 / Left=1 / Right=2（pf1000 须含空闲）
     embed_dim: int = 40  # D
     lambda_pred: float = 1.0
     lambda_sig: float = 0.05

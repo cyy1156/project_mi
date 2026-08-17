@@ -6,9 +6,11 @@
 #   powershell -File .\run_gate_chain_guarded.ps1
 #   powershell -File .\run_gate_chain_guarded.ps1 -FromArm A1
 #   powershell -File .\run_gate_chain_guarded.ps1 -FullChain
+# 每臂默认弹出可见控制台（run_with_mem_guard.ps1）；静默加 -NoConsole
 param(
   [string]$FromArm = "A0_ref",
   [switch]$FullChain,
+  [switch]$NoConsole,
   [int]$TimeoutSecPerArm = 43200,
   [double]$MinFreeGB = 3.2,
   [int]$CooldownBetweenSec = 90
@@ -118,13 +120,18 @@ foreach ($arm in $queue) {
   Save-State $state
 
   $extra = "--max-folds 1 --num-workers 0"
-  Write-Chain "RUN $arm ExtraArgs='$extra' TimeoutSec=$TimeoutSecPerArm"
+  Write-Chain "RUN $arm ExtraArgs='$extra' TimeoutSec=$TimeoutSecPerArm ShowConsole=$(-not $NoConsole)"
   $t0 = Get-Date
-  & powershell -NoProfile -ExecutionPolicy Bypass -File (Join-Path $WorkDir "run_with_mem_guard.ps1") `
-    -Arm $arm `
-    -ExtraArgs $extra `
-    -TimeoutSec $TimeoutSecPerArm `
-    -MinSysFreeGB 0.08
+  $guardArgs = @(
+    "-NoProfile", "-ExecutionPolicy", "Bypass",
+    "-File", (Join-Path $WorkDir "run_with_mem_guard.ps1"),
+    "-Arm", $arm,
+    "-ExtraArgs", $extra,
+    "-TimeoutSec", "$TimeoutSecPerArm",
+    "-MinSysFreeGB", "0.08"
+  )
+  if ($NoConsole) { $guardArgs += "-NoConsole" }
+  & powershell @guardArgs
   $code = $LASTEXITCODE
   $dt = [math]::Round(((Get-Date) - $t0).TotalHours, 2)
 

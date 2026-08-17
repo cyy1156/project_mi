@@ -1,5 +1,7 @@
 # Scheme 17 · external memory watchdog (backup for in-process mem_guard).
 # Kills the python process tree if commit/WS/sys-free explode.
+#
+# 默认弹出可见控制台窗口（Tee 同步写日志）；后台静默加 -NoConsole。
 param(
   [Parameter(Mandatory = $true)][string]$Arm,
   [string]$ExtraArgs = "--max-folds 1 --num-workers 0",
@@ -8,7 +10,8 @@ param(
   [double]$MinSysFreeGB = 0.20,
   [double]$MaxSysCommitGB = 0,  # 0 = auto
   [int]$TimeoutSec = 43200,     # 12h / arm
-  [string]$WorkDir = "D:\cyy\MI\code\train_lab\src\step\5060_mask_future_dual_expert_accpaper"
+  [string]$WorkDir = "D:\cyy\MI\code\train_lab\src\step\5060_mask_future_dual_expert_accpaper",
+  [switch]$NoConsole
 )
 
 $ErrorActionPreference = "Continue"
@@ -21,6 +24,8 @@ $out = Join-Path $logDir "${label}_${stamp}_stdout.txt"
 $err = Join-Path $logDir "${label}_${stamp}_stderr.txt"
 $mem = Join-Path $logDir "${label}_${stamp}_mem.csv"
 $summary = Join-Path $logDir "${label}_${stamp}_summary.txt"
+$exitFile = Join-Path $logDir "${label}_${stamp}_exitcode.txt"
+$runner = Join-Path $logDir "${label}_${stamp}_runner.ps1"
 
 function Kill-Tree([int]$RootPid) {
   try {
@@ -75,7 +80,7 @@ if ($free0 -lt 3.0) {
   "REFUSE: free_phys=${free0}G < 3.0G (commit_limit=${cLimit0}G)" | Tee-Object $summary
   exit 3
 }
-"INFO: commit_limit=${cLimit0}G alloc_pf=${allocMb}MB cfg_max_pf=${cfgMaxMb}MB can_grow=$canGrow caps proc<=${MaxProcVirtGB}G sys<=${MaxSysCommitGB}G" |
+"INFO: commit_limit=${cLimit0}G alloc_pf=${allocMb}MB cfg_max_pf=${cfgMaxMb}MB can_grow=$canGrow caps proc<=${MaxProcVirtGB}G sys<=${MaxSysCommitGB}G show_console=$(-not $NoConsole)" |
   Tee-Object -FilePath $summary -Append
 
 $argList = @("-u", "run_arm.py", "--arm", $Arm) + ($ExtraArgs -split '\s+' | Where-Object { $_ })
@@ -84,10 +89,48 @@ Add-Content -Path $summary -Value $launchMsg -Encoding utf8
 
 "sec,ws_gb,commit_gb,sys_free_gb,sys_commit_gb,action" | Set-Content $mem -Encoding utf8
 
-$proc = Start-Process -FilePath $py -ArgumentList $argList `
-  -WorkingDirectory $WorkDir `
-  -RedirectStandardOutput $out -RedirectStandardError $err `
-  -PassThru -WindowStyle Hidden
+$argLit = ($argList | ForEach-Object { "'" + ($_ -replace "'", "''") + "'" }) -join ", "
+$runnerBody = @"
+`$ErrorActionPreference = 'Continue'
+try { `$Host.UI.RawUI.WindowTitle = 'scheme17 · $Arm · mem-guarded' } catch {}
+Set-Location -LiteralPath '$WorkDir'
+`$outLog = '$out'
+`$errLog = '$err'
+`$exitFile = '$exitFile'
+Set-Content -LiteralPath `$outLog -Value '' -Encoding utf8
+Set-Content -LiteralPath `$errLog -Value '' -Encoding utf8
+`$pyArgs = @($argLit)
+Write-Host ('[guarded17] start ' + (Get-Date -Format o) + ' arm=$Arm') -ForegroundColor Cyan
+Write-Host ('[guarded17] ' + '$py' + ' ' + (`$pyArgs -join ' ')) -ForegroundColor DarkGray
+# 2>&1 在 PS5 会把 stderr 变成 ErrorRecord（红字 NativeCommandError）；统一转成普通行再 Tee
+& '$py' @pyArgs 2>&1 | ForEach-Object {
+  if (`$_ -is [System.Management.Automation.ErrorRecord]) {
+    `$line = `$_.ToString()
+  } else {
+    `$line = "`$_"
+  }
+  Write-Host `$line
+  Add-Content -LiteralPath `$outLog -Value `$line -Encoding utf8
+}
+`$code = 0
+if (`$null -ne `$LASTEXITCODE) { `$code = [int]`$LASTEXITCODE }
+Set-Content -LiteralPath `$exitFile -Value ([string]`$code) -Encoding ascii
+Write-Host ('[guarded17] exit=' + `$code + ' ' + (Get-Date -Format o)) -ForegroundColor Yellow
+exit `$code
+"@
+Set-Content -LiteralPath $runner -Value $runnerBody -Encoding UTF8
+
+if ($NoConsole) {
+  $proc = Start-Process -FilePath $py -ArgumentList $argList `
+    -WorkingDirectory $WorkDir `
+    -RedirectStandardOutput $out -RedirectStandardError $err `
+    -PassThru -WindowStyle Hidden
+} else {
+  $proc = Start-Process -FilePath "powershell.exe" `
+    -ArgumentList @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", $runner) `
+    -WorkingDirectory $WorkDir `
+    -PassThru -WindowStyle Normal
+}
 
 $t0 = Get-Date
 $peakWs = 0.0
@@ -183,11 +226,15 @@ while (-not $proc.HasExited) {
 Start-Sleep -Seconds 2
 try { $proc.Refresh() } catch {}
 $code = $proc.ExitCode
+if ((-not $killed) -and (Test-Path $exitFile)) {
+  $ec = 0
+  if ([int]::TryParse((Get-Content $exitFile -Raw).Trim(), [ref]$ec)) { $code = $ec }
+}
 if (-not $killed) {
   $okHint = $false
   if (Test-Path $out) {
     $tail = Get-Content $out -Tail 40 -EA SilentlyContinue
-    if ($tail -match 'test_acc_paper|mean|ALL DONE|done\b') { $okHint = $true }
+    if ($tail -match 'test_acc_paper|THREE done|mean|ALL DONE|done\b') { $okHint = $true }
   }
   if ($null -eq $code) {
     $code = if ($okHint) { 0 } else { 1 }
