@@ -21,8 +21,9 @@ class SharedTrainHP:
     seed: int = 42
     max_epochs: int = 300
     patience: int = 20
-    batch_train: int = 128
-    batch_eval: int = 256
+    # 16GB：小 batch，降低 CUDA workspace / 提交内存
+    batch_train: int = 64
+    batch_eval: int = 128
     lr: float = 1e-4
     weight_decay: float = 1e-4
     drop_prob: float = 0.50
@@ -37,7 +38,9 @@ class SharedTrainHP:
     no_rap: bool = True
     no_balbatch: bool = False
     openbmi_only: bool = True
-    # 16GB 机：折结束保留 pack，同目录重试可 reuse
+    # 与方案 14/15 相同：折内 float16 pack（实测 stream_windows 在 16GB 机上更易把物理内存打满）
+    stream_windows: bool = False
+    # pack 后保留 _cache_*.npy，OOM/重试时可 reuse
     keep_fold_packs: bool = True
     num_workers: int = 0
     # 16GB 机：关 pin，避免折内 float16 pack + 钉扎峰值 OOM
@@ -45,8 +48,9 @@ class SharedTrainHP:
     persistent_workers: bool = False
     prefetch_factor: int = 2
     non_blocking: bool = False
-    torch_num_threads: int = 4
-    cudnn_benchmark: bool = True
+    torch_num_threads: int = 2
+    # 关 benchmark：少占 CUDA 提交内存（16GB 机 Event 2004 常见）
+    cudnn_benchmark: bool = False
     deterministic: bool = False
     use_amp: bool = True
 

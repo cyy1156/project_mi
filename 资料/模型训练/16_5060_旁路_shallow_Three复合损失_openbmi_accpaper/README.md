@@ -14,3 +14,8 @@
 **骨干冻结：braindecode ShallowFBCSPNet（小参数 ~1.6e4）**。  
 目标冲刺：Task **0.75** / Three **0.60**（靠损失，不加大模型）。  
 禁止写入正式表；不与方案 15 CBAM 混跑同一 out。
+
+**内存**：默认 `stream_windows=True` + **只 mmap float16**（不再先开 5GB float32）。  
+batch 默认 64/128，`cudnn_benchmark=False`。  
+
+仍被 Event 2004 杀掉时：关 PyCharm，并把「虚拟内存」固定到 **≥32768MB**（本机 commit 上限约 43GB 时，CUDA 很容易把 python 顶到 ~33GB 被杀）。

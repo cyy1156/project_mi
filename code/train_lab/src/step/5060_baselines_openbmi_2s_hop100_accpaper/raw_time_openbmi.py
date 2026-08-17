@@ -15,15 +15,43 @@ if str(_STEP) not in sys.path:
     sys.path.insert(0, str(_STEP))
 
 
-def squeeze_raw_2s_openbmi(X: np.ndarray) -> np.ndarray:
+def openbmi_raw8_f16_path() -> Path:
+    from data_paths import resolve_data
+
+    data_dir, prefix = resolve_data("openbmi_2s_hop100")
+    return Path(data_dir) / f"{prefix}_X_raw8_f16.npy"
+
+
+def load_openbmi_raw8_f16(*, must_exist: bool = False) -> np.ndarray | None:
+    """只打开 float16 缓存；不存在则返回 None（绝不先开 5GB float32）。"""
+    out_path = openbmi_raw8_f16_path()
+    if not out_path.is_file():
+        if must_exist:
+            raise FileNotFoundError(out_path)
+        return None
+    X = np.load(out_path, mmap_mode="r")
+    print(f"[raw] mmap {out_path.name} {tuple(X.shape)} {X.dtype}", flush=True)
+    return X
+
+
+def squeeze_raw_2s_openbmi(X: np.ndarray | None = None) -> np.ndarray:
     """
     返回 (N,8,500) float16 memmap。
-    首次写入 `openbmi_X_raw8_f16.npy`，之后直接复用。
+    优先直接复用 `openbmi_X_raw8_f16.npy`（16GB 机勿先开 float32 源）。
     """
     from data_paths import resolve_data
 
     data_dir, prefix = resolve_data("openbmi_2s_hop100")
     out_path = Path(data_dir) / f"{prefix}_X_raw8_f16.npy"
+
+    # 16GB / Windows：有缓存就绝不再 np.load 5GB float32（待机缓存会吃光 Available）
+    if X is None:
+        cached = load_openbmi_raw8_f16()
+        if cached is not None:
+            return cached
+        x_npy = Path(data_dir) / f"{prefix}_X.npy"
+        print(f"[raw] no f16 cache; mmap float32 source once to build → {out_path.name}", flush=True)
+        X = np.load(x_npy, mmap_mode="r")
 
     X = np.asarray(X)
     if X.ndim == 3 and X.shape[1] == 8 and X.shape[2] == N_TIMES_2S:
