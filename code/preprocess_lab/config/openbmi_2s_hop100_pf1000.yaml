@@ -1,0 +1,34 @@
+# OpenBMI · past+cur+future 1000pt（新臂；不改 openbmi_2s_hop100）
+# Cue后 0–4s 评分区 + post-MI ≥1.6s；缺 past 裁掉；v1 无 Rest
+dataset: openbmi_pf1000
+loader: load_openbmi_mat
+
+data_glob: "D:/cyy/MI/DATA/openbmi/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+source_blocks: [EEG_MI_train]
+exclude_blocks: [EEG_MI_test]
+
+subject_from: openbmi_subj
+
+label_map:
+  left: [1, 1]
+  right: [1, 2]
+make_rest: false
+
+window_mode: pf1000_past_cur_future
+past_pts: 100
+cur_pts: 500
+future_pts: 400
+hop_ms: 100
+fs_out: 250
+post_mi_sec: 1.6
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/openbmi_2s_hop100_pf1000"
+save_full: true
+save_split: false
+blocks: [EEG_MI_train]
+protocol: openbmi_2s_hop100_pf1000

@@ -13,7 +13,7 @@
 |----|------|
 | \(T_w\) / hop | **2 s** / **100 ms** @ 250 Hz |
 | 通道 | 8（OpenBMI 预处理序） |
-| 数据 | `openbmi_2s_hop100`，sess01+02，`openbmi:subjNN`，`EEG_MI_train` |
+| 数据 | A0：旧 `openbmi_2s_hop100`；A1+：新臂见 [`数据切片与边界过滤说明.md`](../数据切片与边界过滤说明.md) |
 | post-MI 尾段 | MI 有效段后额外保留 **≥1.6 s（400 点）**，保证末窗也有真 future |
 | 训练 / Acc_paper 窗 | past+cur+future **齐全**；**同一套**；缺 past **裁掉** |
 | 冷启动 | 可见 &lt;600 → 不预测；之后均够 |
