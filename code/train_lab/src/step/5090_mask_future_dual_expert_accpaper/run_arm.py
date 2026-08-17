@@ -24,38 +24,45 @@ from train_kfold import run_pf_kfold  # noqa: E402
 
 def _run_a0_ref(argv_rest: list[str]) -> None:
     """A0-ref：官方 Acc_paper 环 + braindecode Shallow（量级参考）。"""
+    import importlib.util
     from dataclasses import replace as dc_replace
 
     import torch.nn as nn
     from braindecode.models import ShallowFBCSPNet
 
-    from _paths import OFFICIAL, load_official
+    from _paths import OFFICIAL
     from shared_hparams import OUT_ROOT_TAG
 
-    sys.path.insert(0, str(OFFICIAL))
-    import shared_hparams as base_hp  # type: ignore
+    spec = importlib.util.spec_from_file_location(
+        "_mfde5090_official_shared_hparams", OFFICIAL / "shared_hparams.py"
+    )
+    assert spec and spec.loader
+    base_hp = importlib.util.module_from_spec(spec)
+    sys.modules[spec.name] = base_hp
+    spec.loader.exec_module(base_hp)
 
     base_hp.OUT_ROOT_TAG = OUT_ROOT_TAG
+    # Windows spawn 无法 pickle 动态加载的官方 task_runner；A0_ref 默认 workers=0
+    nw = SHARED.num_workers
+    if sys.platform == "win32" and not any(
+        a in argv_rest for a in ("--num-workers", "--num_workers")
+    ):
+        nw = 0
     base_hp.SHARED = dc_replace(
         base_hp.SHARED,
         batch_train=SHARED.batch_train,
         batch_eval=SHARED.batch_eval,
         patience=SHARED.patience,
-        num_workers=SHARED.num_workers,
-        pin_memory=SHARED.pin_memory,
+        num_workers=nw,
+        pin_memory=SHARED.pin_memory and nw > 0,
+        persistent_workers=SHARED.persistent_workers and nw > 0,
         use_amp=SHARED.use_amp,
         torch_num_threads=SHARED.torch_num_threads,
-        persistent_workers=SHARED.persistent_workers,
+        cudnn_benchmark=SHARED.cudnn_benchmark,
     )
     sys.modules["shared_hparams"] = base_hp
 
-    from _paths import HOP100, PRE, STEP
-
-    for p in (str(STEP), str(PRE), str(HOP100), str(OFFICIAL)):
-        if p not in sys.path:
-            sys.path.append(p)
-
-    tr = load_official("task_runner")
+    import task_runner as tr  # noqa: WPS433 — 本地包装，含 md_fold_detail 等
 
     def build_model(n_chans, n_times, n_outputs, drop_prob) -> nn.Module:
         return ShallowFBCSPNet(
@@ -65,7 +72,6 @@ def _run_a0_ref(argv_rest: list[str]) -> None:
             drop_prob=drop_prob,
         )
 
-    # 官方环仍会跑 Task+Three；主报读 three/。方案主表 A0 用自写臂。
     sys.argv = [sys.argv[0], "--data", "openbmi_2s_hop100", *argv_rest]
     tr.run_baseline_main(
         model_name="shallow_A0_ref",
@@ -121,6 +127,12 @@ def main() -> None:
     if args.num_workers >= 0:
         repl["num_workers"] = args.num_workers
         repl["persistent_workers"] = args.num_workers > 0
+        repl["pin_memory"] = SHARED.pin_memory and args.num_workers > 0
+    elif sys.platform == "win32":
+        # memmap + spawn 无法稳定多进程；与 A0_ref 一致默认 workers=0
+        repl["num_workers"] = 0
+        repl["persistent_workers"] = False
+        repl["pin_memory"] = False
     if args.max_epochs > 0:
         repl["max_epochs"] = args.max_epochs
     if args.patience > 0:
@@ -133,7 +145,17 @@ def main() -> None:
     summary = run_pf_kfold(arm, hp=hp, max_folds=args.max_folds)
     print(
         json.dumps(
-            {k: summary[k] for k in ("arm", "mean", "std", "run_dir")},
+            {
+                k: summary[k]
+                for k in (
+                    "arm",
+                    "test_acc_paper_mean",
+                    "test_acc_paper_std",
+                    "test_balacc_maj_mean",
+                    "test_window_f1_mean",
+                    "run_dir",
+                )
+            },
             ensure_ascii=False,
         )
     )
