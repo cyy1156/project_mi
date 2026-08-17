@@ -59,7 +59,7 @@ class IndexArrayDataset(Dataset):
 
     def __init__(
         self,
-        X: np.ndarray,
+        X: np.ndarray | None,
         y: np.ndarray,
         indices: np.ndarray,
         *,
@@ -67,12 +67,14 @@ class IndexArrayDataset(Dataset):
         x_path: str | None = None,
     ):
         # Windows DataLoader spawn：优先用路径在 worker 内 mmap
+        if x_path is None and X is None:
+            raise ValueError("IndexArrayDataset needs X or x_path")
         self.x_path = x_path
         self._X = None if x_path else X
         self.y = np.asarray(y, dtype=np.int64)
         self.indices = np.asarray(indices, dtype=np.int64).reshape(-1)
         self.input_kind = input_kind
-        n = int(np.load(x_path, mmap_mode="r").shape[0]) if x_path else len(X)
+        n = int(np.load(x_path, mmap_mode="r").shape[0]) if x_path else len(X)  # type: ignore[arg-type]
         assert len(self.y) == n
         if len(self.indices):
             assert int(self.indices.min()) >= 0
@@ -407,13 +409,57 @@ def train_one_fold(
             "当前若只有 1 人预处理产物，请先跑更多 subject 的 batch。"
         )
 
-    # 上一折可能已释放源；本折 pack 前按需从 x_path 再 mmap
-    if X is None:
+    # 上一折可能已释放源；本折 pack 前按需从 x_path 再 mmap。
+    # 若折内 float16 pack 已可 reuse，则完全不要打开全库源（16GB 机关键：源 mmap 页缓存会把空闲内存打穿）。
+    g = torch.Generator()
+    g.manual_seed(hp.seed + fold)
+    tr_idx = _indices_from_mask(masks["train"])
+    va_idx = _indices_from_mask(masks["val"])
+    y_tr = y[tr_idx]
+    cache_paths: list[Path] = []
+    pack_tr_path: Path | None = None
+    pack_va_path: Path | None = None
+    stream_windows = bool(getattr(hp, "stream_windows", False)) and (
+        input_kind != "feat"
+    )
+    reuse_packs = False
+    n_times: int | None = None
+    if input_kind != "feat" and not stream_windows:
+        pack_tr_path = fold_dir / "_cache_train_X.npy"
+        pack_va_path = fold_dir / "_cache_val_X.npy"
+        if pack_tr_path.is_file() and pack_va_path.is_file():
+            try:
+                cached_tr = np.load(pack_tr_path, mmap_mode="r")
+                cached_va = np.load(pack_va_path, mmap_mode="r")
+                if (
+                    tuple(cached_tr.shape) == (len(tr_idx), 8, cached_tr.shape[-1])
+                    and tuple(cached_va.shape) == (len(va_idx), 8, cached_tr.shape[-1])
+                    and cached_tr.dtype == np.dtype(np.float16)
+                    and cached_va.dtype == np.dtype(np.float16)
+                ):
+                    reuse_packs = True
+                    n_times = int(cached_tr.shape[-1])
+                    print(
+                        f"  reuse existing packs (skip source mmap) "
+                        f"train={pack_tr_path.name} val={pack_va_path.name} "
+                        f"shape_tr={cached_tr.shape}",
+                        flush=True,
+                    )
+                del cached_tr, cached_va
+            except Exception:
+                reuse_packs = False
+
+    if X is None and not reuse_packs:
         if not x_path:
             raise RuntimeError("train_one_fold: X is None and x_path is missing")
         X = np.load(x_path, mmap_mode="r")
         if src_box is not None and not src_box:
             src_box.append(X)
+
+    if n_times is None:
+        if X is None:
+            raise RuntimeError("train_one_fold: cannot resolve n_times")
+        n_times = int(X.shape[-1])
 
     print(
         f"\n======== [{stage_tag}] [{model_name}] fold {fold} ========\n"
@@ -423,18 +469,39 @@ def train_one_fold(
         f"  n_win={n_tr}/{n_va}/{n_te}"
     )
 
-    g = torch.Generator()
-    g.manual_seed(hp.seed + fold)
-    tr_idx = _indices_from_mask(masks["train"])
-    y_tr = y[tr_idx]
-    cache_paths: list[Path] = []
-    pack_tr_path: Path | None = None
-    pack_va_path: Path | None = None
-    n_times = int(X.shape[-1])
     try:
-        va_idx = _indices_from_mask(masks["val"])
+        # stream_windows：按索引从全库 mmap 取窗，不写折内 float16 pack
+        # （16GB 机曾试过；实测比 pack 更容易打满物理内存，5060 默认已关）
         if input_kind == "feat":
             train_ds: Dataset = _make_ds(X, y, tr_idx, input_kind, x_path=x_path)
+        elif stream_windows:
+            if not x_path:
+                raise RuntimeError(
+                    "stream_windows=True 需要 x_path（全库 .npy），无法无折内 pack"
+                )
+            print(
+                f"  stream windows from mmap (no fold pack) "
+                f"n_tr={len(tr_idx)} n_va={len(va_idx)} ← {Path(x_path).name}",
+                flush=True,
+            )
+            train_ds = _make_ds(None, y, tr_idx, input_kind, x_path=x_path)
+            X = None  # noqa: F841
+            if src_box is not None:
+                src_box.clear()
+            import gc
+
+            gc.collect()
+            print("  released source handle; Dataset remmaps by x_path", flush=True)
+        elif reuse_packs:
+            assert pack_tr_path is not None and pack_va_path is not None
+            cache_paths.extend([pack_tr_path, pack_va_path])
+            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path)
+            X = None  # noqa: F841
+            if src_box is not None:
+                src_box.clear()
+            import gc
+
+            gc.collect()
         else:
             pack_tr_path = fold_dir / "_cache_train_X.npy"
             pack_va_path = fold_dir / "_cache_val_X.npy"
@@ -506,6 +573,7 @@ def train_one_fold(
                 use_amp=hp.use_amp,
                 scaler=scaler,
             )
+            use_va_pack = pack_va_path is not None and input_kind != "feat"
             val_trial, val_win, va_loss = _eval_split(
                 model,
                 X,
@@ -517,9 +585,9 @@ def train_one_fold(
                 hp,
                 input_kind=input_kind,
                 n_classes=n_classes,
-                packed_path=pack_va_path if input_kind != "feat" else None,
-                packed_indices=va_idx if input_kind != "feat" else None,
-                x_path=x_path if input_kind == "feat" else None,
+                packed_path=pack_va_path if use_va_pack else None,
+                packed_indices=va_idx if use_va_pack else None,
+                x_path=None if use_va_pack else x_path,
             )
             score = float(val_trial["acc_paper"])
             bal_maj = float(val_trial["balanced_accuracy"])
@@ -824,16 +892,45 @@ def run_baseline_main(
 
     x_npy = data_dir / f"{prefix}_X.npy"
     # OpenBMI X 较大：必须 mmap；标签/被试键可常驻内存
-    X = np.load(x_npy, mmap_mode="r")
-    y_task = np.load(data_dir / f"{prefix}_y_task.npy")
-    y_three = np.load(data_dir / f"{prefix}_y_three.npy")
-    subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
-    trial_path = data_dir / f"{prefix}_trial_id.npy"
-    if not trial_path.is_file():
-        raise FileNotFoundError(f"需要 trial_id：{trial_path}")
-    trial_ids = np.load(trial_path)
-    assert len(X) == len(y_task) == len(y_three) == len(subjects) == len(trial_ids)
-    assert int(X.shape[-1]) == hp.n_times_expected, X.shape
+    prepare_is_raw_squeeze = (
+        prepare_X is not None
+        and getattr(prepare_X, "__name__", "") == "squeeze_raw_2s_openbmi"
+    )
+    if prepare_is_raw_squeeze:
+        # 16GB：禁止先开 float32 源；有 f16 缓存则只 mmap 缓存
+        print("[load] prepare_X=squeeze_raw_f16 (prefer cache, no float32 open)", flush=True)
+        X = prepare_X(None)  # type: ignore[misc, arg-type]
+        y_task = np.load(data_dir / f"{prefix}_y_task.npy")
+        y_three = np.load(data_dir / f"{prefix}_y_three.npy")
+        subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
+        trial_path = data_dir / f"{prefix}_trial_id.npy"
+        if not trial_path.is_file():
+            raise FileNotFoundError(f"需要 trial_id：{trial_path}")
+        trial_ids = np.load(trial_path)
+        assert len(X) == len(y_task) == len(y_three) == len(subjects) == len(trial_ids)
+        assert int(X.shape[-1]) == hp.n_times_expected, X.shape
+        fn = getattr(X, "filename", None)
+        x_path = str(fn) if fn else str(data_dir / f"{prefix}_X_raw8_f16.npy")
+        print(f"[load] prepare_X done → X{tuple(X.shape)} x_path={x_path}", flush=True)
+    else:
+        X = np.load(x_npy, mmap_mode="r")
+        y_task = np.load(data_dir / f"{prefix}_y_task.npy")
+        y_three = np.load(data_dir / f"{prefix}_y_three.npy")
+        subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
+        trial_path = data_dir / f"{prefix}_trial_id.npy"
+        if not trial_path.is_file():
+            raise FileNotFoundError(f"需要 trial_id：{trial_path}")
+        trial_ids = np.load(trial_path)
+        assert len(X) == len(y_task) == len(y_three) == len(subjects) == len(trial_ids)
+        assert int(X.shape[-1]) == hp.n_times_expected, X.shape
+        x_path = str(x_npy)
+        if prepare_X is not None:
+            print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
+            X = prepare_X(X)
+            fn = getattr(X, "filename", None)
+            x_path = str(fn) if fn else None
+            print(f"[load] prepare_X done → X{tuple(X.shape)} x_path={x_path}", flush=True)
+
     n_subjects = len(set(np.asarray(subjects).tolist()))
     if n_subjects < 3:
         raise RuntimeError(
@@ -842,14 +939,6 @@ def run_baseline_main(
             "python -m src.datasets.openbmi.batch_2s_hop100"
             "（或 --subjects 01,02,... 子集后再训）。"
         )
-    x_path: str | None = str(x_npy)
-    if prepare_X is not None:
-        # bandpower → 小阵常驻；raw squeeze → float16 mmap（保留 filename 供 worker）
-        print(f"[load] prepare_X on mmap X{tuple(X.shape)} …", flush=True)
-        X = prepare_X(X)
-        fn = getattr(X, "filename", None)
-        x_path = str(fn) if fn else None
-        print(f"[load] prepare_X done → X{tuple(X.shape)} x_path={x_path}", flush=True)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     print(

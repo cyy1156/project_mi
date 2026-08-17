@@ -6,10 +6,14 @@ Task (n_outputs=2) always falls back to plain CE.
 from __future__ import annotations
 
 from dataclasses import asdict, dataclass
+from typing import Callable, Type
 
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+
+# 模块加载时固定真正的 CE，避免被 task_runner 猴子补丁后递归
+_REAL_CE: Type[nn.Module] = nn.CrossEntropyLoss
 
 
 @dataclass(frozen=True)
@@ -34,7 +38,9 @@ _ARM_FLAGS = {
 
 
 class HierThreeLoss(nn.Module):
-    def __init__(self, hp: HierLossHP):
+    def __init__(
+        self, hp: HierLossHP, *, real_ce: Callable[..., nn.Module] | None = None
+    ):
         super().__init__()
         self.hp = hp
         flags = _ARM_FLAGS.get(hp.arm, _ARM_FLAGS["H1"])
@@ -42,7 +48,8 @@ class HierThreeLoss(nn.Module):
         self.use_lr = flags["use_lr"]
         self.use_mg = flags["use_mg"]
         self.use_id = flags["use_id"]
-        self.ce = nn.CrossEntropyLoss()
+        ce_cls = real_ce or _REAL_CE
+        self.ce = ce_cls()
 
     def forward(self, logits: torch.Tensor, y: torch.Tensor) -> torch.Tensor:
         if logits.ndim > 2:
@@ -89,9 +96,16 @@ class HierThreeLoss(nn.Module):
         return loss
 
 
-def build_criterion(arm: str, n_outputs: int, hp: HierLossHP | None = None) -> nn.Module:
+def build_criterion(
+    arm: str,
+    n_outputs: int,
+    hp: HierLossHP | None = None,
+    *,
+    real_ce: Callable[..., nn.Module] | None = None,
+) -> nn.Module:
+    ce_cls = real_ce or _REAL_CE
     if n_outputs != 3 or arm == "S0":
-        return nn.CrossEntropyLoss()
+        return ce_cls()
     cfg = hp or HierLossHP(arm=arm)
     if arm != cfg.arm:
         cfg = HierLossHP(
@@ -104,7 +118,7 @@ def build_criterion(arm: str, n_outputs: int, hp: HierLossHP | None = None) -> n
             lambda_tr=cfg.lambda_tr,
             margin=cfg.margin,
         )
-    return HierThreeLoss(cfg)
+    return HierThreeLoss(cfg, real_ce=ce_cls)
 
 
 def loss_meta(arm: str, hp: HierLossHP | None = None) -> dict:

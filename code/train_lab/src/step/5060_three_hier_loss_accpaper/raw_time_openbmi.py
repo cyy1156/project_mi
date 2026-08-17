@@ -15,5 +15,7 @@ _mod = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(_mod)
 
 squeeze_raw_2s_openbmi = _mod.squeeze_raw_2s_openbmi
+load_openbmi_raw8_f16 = getattr(_mod, "load_openbmi_raw8_f16", None)
+openbmi_raw8_f16_path = getattr(_mod, "openbmi_raw8_f16_path", None)
 
-__all__ = ["squeeze_raw_2s_openbmi"]
+__all__ = ["squeeze_raw_2s_openbmi", "load_openbmi_raw8_f16", "openbmi_raw8_f16_path"]

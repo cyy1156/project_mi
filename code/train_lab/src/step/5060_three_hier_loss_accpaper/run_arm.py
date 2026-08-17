@@ -5,6 +5,13 @@ Usage:
   python run_arm.py --arm H1 --max-folds 0    # Three 五折
   python run_arm.py --arm S0 --three-only
   python run_arm.py --arm H1 --with-task      # Task(CE)+Three(H1)
+
+  cd D:/cyy/MI/code/train_lab/src/step/5060_three_hier_loss_accpaper
+  python run_arm.py --arm S0 --max-folds 1
+  python run_arm.py --arm H1 --max-folds 1
+
+  # 带外部看门狗（推荐 16GB 机）:
+  powershell -File run_with_mem_guard.ps1 -Arm S0 -ExtraArgs "--three-only --max-folds 1 --num-workers 0"
 """
 from __future__ import annotations
 
@@ -25,6 +32,7 @@ sys.path.insert(0, str(HERE))
 
 import task_runner as tr  # noqa: E402  # sets shared_hparams + official path
 from hier_loss import HierLossHP, loss_meta  # noqa: E402
+from mem_guard import MemGuardLimits, start_mem_guard  # noqa: E402
 from perf_loader import apply_runtime_threads  # noqa: E402
 from raw_time_openbmi import squeeze_raw_2s_openbmi  # noqa: E402
 from shared_hparams import OUT_ROOT_TAG, SHARED, shared_as_dict  # noqa: E402
@@ -51,7 +59,53 @@ def build_model(n_chans, n_times, n_outputs, drop_prob) -> nn.Module:
     )
 
 
+def _win_mem_gb() -> tuple[float, float, float]:
+    """(free_phys_GB, free_virt_GB, total_virt_GB) via Win32."""
+    import ctypes
+
+    class MEMSTAT(ctypes.Structure):
+        _fields_ = [
+            ("dwLength", ctypes.c_uint32),
+            ("dwMemoryLoad", ctypes.c_uint32),
+            ("ullTotalPhys", ctypes.c_uint64),
+            ("ullAvailPhys", ctypes.c_uint64),
+            ("ullTotalPageFile", ctypes.c_uint64),
+            ("ullAvailPageFile", ctypes.c_uint64),
+            ("ullTotalVirtual", ctypes.c_uint64),
+            ("ullAvailVirtual", ctypes.c_uint64),
+            ("ullAvailExtendedVirtual", ctypes.c_uint64),
+        ]
+
+    m = MEMSTAT()
+    m.dwLength = ctypes.sizeof(MEMSTAT)
+    ctypes.windll.kernel32.GlobalMemoryStatusEx(ctypes.byref(m))
+    return (
+        m.ullAvailPhys / (1024**3),
+        m.ullAvailPageFile / (1024**3),
+        m.ullTotalPageFile / (1024**3),
+    )
+
+
 def main() -> None:
+    # pagefile 初始可能仍是 4G、最大 48G：允许增长；用进程绝对上限防 Event2004
+    _fp, _fc, commit_limit = _win_mem_gb()
+    start_mem_guard(
+        MemGuardLimits(
+            max_process_virt_gb=40.0,
+            max_process_ws_gb=14.0,
+            min_sys_free_phys_gb=0.12,
+            max_sys_commit_used_gb=60.0,
+            max_sys_commit_ratio=0.98,
+            allow_pagefile_grow=True,
+            poll_sec=1.0,
+        )
+    )
+    print(
+        f"[mem_guard] commit_limit_now={commit_limit:.2f}G "
+        f"(growable pagefile OK; hard caps proc<=40G / sys<=60G / ratio)",
+        flush=True,
+    )
+
     p = argparse.ArgumentParser(description="16 shallow hier-loss arm")
     p.add_argument("--arm", required=True, choices=sorted(ARMS.keys()))
     p.add_argument("--with-task", action="store_true", help="Also run Task (CE)")
@@ -142,22 +196,39 @@ def _run_three_only(
         hp = replace(hp, **repl)
 
     apply_runtime_threads(hp.torch_num_threads)
+    free_phys, free_virt, total_virt = _win_mem_gb()
+    print(
+        f"[mem] avail_phys={free_phys:.2f}G avail_commit={free_virt:.2f}G "
+        f"commit_limit={total_virt:.2f}G "
+        f"(16GB机建议 commit_limit≥48G；请关 PyCharm/多余)",
+        flush=True,
+    )
+    # 冒烟（max_epochs<=2）略放宽启动门闸；正式跑仍要求更多物理空闲。
+    # 硬保护仍由 mem_guard / run_with_mem_guard.ps1 负责熔断。
+    smoke = int(getattr(hp, "max_epochs", 300)) <= 2
+    min_free = 3.0 if smoke else 4.5
+    # commit 空闲至少留 ~2G 给系统；pagefile 仍只有 ~4G 时总 limit≈19G，冒烟可试
+    min_commit_free = 2.0 if smoke else max(8.0, total_virt * 0.35)
+    if free_phys < min_free or free_virt < min_commit_free:
+        raise SystemExit(
+            f"内存不足：avail_phys={free_phys:.2f}G avail_commit={free_virt:.2f}G "
+            f"(need phys>={min_free}G commit_free>={min_commit_free:.1f}G；"
+            f"commit_limit={total_virt:.2f}G)。"
+            "请关闭多余程序；并把 D: pagefile 初始=最大=49152MB 后重启。"
+        )
     mod.seed_everything(
         hp.seed, cudnn_benchmark=hp.cudnn_benchmark, deterministic=hp.deterministic
     )
 
     data_tag = args.data
     data_dir, prefix = resolve_data(data_tag)
-    x_npy = data_dir / f"{prefix}_X.npy"
-    # OpenBMI 时域：先 squeeze 到磁盘 float16 (N,8,500)，再折内 pack。
-    # 与正式 shallow 默认直读 float32 源不同，语义等价、显著降低 Windows 文件缓存峰值。
-    X = np.load(x_npy, mmap_mode="r")
-    print(f"[load] prepare_X squeeze_raw on mmap X{tuple(X.shape)} …", flush=True)
-    X = squeeze_raw_2s_openbmi(X)
-    fn = getattr(X, "filename", None)
-    x_path = str(fn) if fn else str(x_npy)
-    x_shape = tuple(X.shape)
-    print(f"[load] prepare_X done → X{x_shape} dtype={X.dtype} x_path={x_path}", flush=True)
+    x_path = str(data_dir / f"{prefix}_X_raw8_f16.npy")
+    if not Path(x_path).is_file():
+        # 回落：由 squeeze 生成/定位
+        _tmp = squeeze_raw_2s_openbmi(None)
+        fn = getattr(_tmp, "filename", None)
+        x_path = str(fn) if fn else x_path
+        del _tmp
 
     y_three = np.load(data_dir / f"{prefix}_y_three.npy")
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
@@ -177,12 +248,40 @@ def _run_three_only(
     out_root.mkdir(parents=True, exist_ok=True)
     log_path = out_root / "run.log"
 
+    # 若 fold0 pack 已齐：跳过全库 mmap，避免页缓存把 16GB 机打满
+    pack0_tr = out_root / "three" / "fold0" / "_cache_train_X.npy"
+    pack0_va = out_root / "three" / "fold0" / "_cache_val_X.npy"
+    skip_src = (
+        (not bool(getattr(hp, "stream_windows", False)))
+        and pack0_tr.is_file()
+        and pack0_va.is_file()
+        and int(args.max_folds) == 1
+    )
+    if skip_src:
+        print(
+            f"[load] skip source mmap; reuse packs {pack0_tr.name} + {pack0_va.name}",
+            flush=True,
+        )
+        X = None
+        x_shape = ("reuse_pack",)
+        x_dtype = "float16"
+    else:
+        print("[load] prepare_X=squeeze_raw_f16 (prefer cache, no float32 open)", flush=True)
+        X = squeeze_raw_2s_openbmi(None)
+        fn = getattr(X, "filename", None)
+        x_path = str(fn) if fn else x_path
+        x_shape = tuple(X.shape)
+        x_dtype = str(X.dtype)
+        print(f"[load] prepare_X done → X{x_shape} dtype={x_dtype} x_path={x_path}", flush=True)
+
     mod.log_line(
         log_path,
         f"start mode=fast model={out_name} data={data_tag} device={device} "
         f"arm={tr.ACTIVE_ARM} three_only=1 prepare_X=squeeze_raw_f16 "
-        f"X={x_shape}/{X.dtype} resume={int(bool(args.resume_dir))} "
-        f"keep_packs={int(bool(getattr(hp, 'keep_fold_packs', False)))}",
+        f"X={x_shape}/{x_dtype} resume={int(bool(args.resume_dir))} "
+        f"keep_packs={int(bool(getattr(hp, 'keep_fold_packs', False)))} "
+        f"stream_windows={int(bool(getattr(hp, 'stream_windows', False)))} "
+        f"skip_src={int(skip_src)}",
     )
     print(
         f"[perf] device={device} arm={tr.ACTIVE_ARM} three_only workers={hp.num_workers}",
@@ -206,18 +305,20 @@ def _run_three_only(
     folds = []
     import gc
 
-    # 仅通过 src_box 持有全库 mmap；pack 后由 train_one_fold 清空
-    src_box: list = [X]
-    X = None  # type: ignore[assignment]
-    gc.collect()
+    # 仅通过 src_box 持有全库 mmap；pack/reuse 后由 train_one_fold 清空
+    src_box: list = []
+    if X is not None:
+        src_box.append(X)
+        X = None  # type: ignore[assignment]
+        gc.collect()
 
     for info in _iter_folds():
-        if not src_box:
+        if (not skip_src) and (not src_box):
             src_box.append(np.load(x_path, mmap_mode="r"))
         folds.append(
             tr.train_one_fold(
                 info,
-                src_box[0],
+                src_box[0] if src_box else None,
                 y_three,
                 subjects,
                 trial_ids,

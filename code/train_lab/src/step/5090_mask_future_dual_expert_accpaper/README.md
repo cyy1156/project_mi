@@ -8,6 +8,7 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 | 方案文档 | `资料/模型方案/掩码未来表征预测_双专家门控_在线MI/`（姊妹：`资料/Lejepa_shallow模型方案/...`） |
 | 数据切片说明 | 同目录 `数据切片与边界过滤说明.md` |
 | 本包 | `code/train_lab/src/step/5090_mask_future_dual_expert_accpaper/` |
+| **5060 低内存姊妹包** | `../5060_mask_future_dual_expert_accpaper/` |
 | 权重 out | `code/train_lab/out/5090_mask_future_dual_expert_accpaper/` |
 | A0 数据 | `preprocess_lab/out/openbmi_2s_hop100/`（旧 500pt） |
 | A1+ 数据 | `preprocess_lab/out/openbmi_2s_hop100_pf1000/`（**新预处理臂，未改旧代码**） |

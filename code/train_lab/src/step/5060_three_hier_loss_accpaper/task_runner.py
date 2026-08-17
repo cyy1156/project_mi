@@ -32,22 +32,26 @@ _tr = load_official("task_runner")
 ACTIVE_ARM = "S0"
 
 _orig_train_one_fold = _tr.train_one_fold
+# 必须在 patch 前保存真正的 CE 类，否则 build_criterion / S0 会递归炸内存
+_REAL_CE = nn.CrossEntropyLoss
 
 
 def train_one_fold(*args, **kwargs):
     """Inject hier loss; forward all kwargs (incl. src_box) to official fold loop."""
     n_outputs = int(kwargs.get("n_outputs", 3))
     arm = ACTIVE_ARM
-    real_ce = nn.CrossEntropyLoss
 
     def _factory(*_a, **_k):
-        return build_criterion(arm, n_outputs)
+        # 绝不能在此处再调用已 patch 的 nn.CrossEntropyLoss
+        if n_outputs != 3 or arm == "S0":
+            return _REAL_CE()
+        return build_criterion(arm, n_outputs, real_ce=_REAL_CE)
 
     nn.CrossEntropyLoss = _factory  # type: ignore[misc, assignment]
     try:
         return _orig_train_one_fold(*args, **kwargs)
     finally:
-        nn.CrossEntropyLoss = real_ce
+        nn.CrossEntropyLoss = _REAL_CE
 
 
 _tr.train_one_fold = train_one_fold
