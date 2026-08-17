@@ -152,8 +152,8 @@ def merge_shards(out_dir: Path) -> None:
     tid_offset = 0
     for fid in fids:
         root = shard_dir(out_dir) / fid
-        xf = np.load(root / "X_full.npy")
-        xm = np.load(root / "X_mask.npy")
+        xf = np.load(root / "X_full.npy", mmap_mode="r")
+        xm = np.load(root / "X_mask.npy", mmap_mode="r")
         yt = np.load(root / "y_task.npy")
         y3 = np.load(root / "y_three.npy")
         sid = np.load(root / "subjects.npy", allow_pickle=True)
@@ -178,15 +178,21 @@ def merge_shards(out_dir: Path) -> None:
         if hasattr(a, "flush"):
             a.flush()
     np.save(paths["subjects"], subjects)
+    del mm
+    gc.collect()
 
     # 兼容训练侧：另存一份 openbmi_X.npy = X_full（硬链/复制，避免整表进内存）
     x_alias = out_dir / "openbmi_X.npy"
-    if x_alias.exists():
-        x_alias.unlink()
-    try:
-        x_alias.hardlink_to(paths["X_full"])
-    except OSError:
-        shutil.copyfile(paths["X_full"], x_alias)
+    if x_alias.exists() and x_alias.resolve() != paths["X_full"].resolve():
+        try:
+            x_alias.unlink()
+        except OSError:
+            pass
+    if not x_alias.exists():
+        try:
+            x_alias.hardlink_to(paths["X_full"])
+        except OSError:
+            shutil.copyfile(paths["X_full"], x_alias)
 
     meta = {
         "protocol": PROTOCOL,
@@ -364,7 +370,11 @@ def main() -> None:
     p.add_argument(
         "--glob",
         default=str(
-            Path("D:/cyy/MI/DATA/openbmi/openbmi/openbmi") / "sess*_subj*_EEG_MI.mat"
+            _PREPROCESS_ROOT.parent.parent
+            / "DATA"
+            / "openbmi"
+            / "openbmi"
+            / "sess*_subj*_EEG_MI.mat"
         ),
     )
     p.add_argument(

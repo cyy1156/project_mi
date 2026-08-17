@@ -6,7 +6,17 @@
 
 ## 设备
 
-NVIDIA RTX 5090 · RAM 128GB · VRAM 32GB（与方案 16 旁路同机）
+NVIDIA RTX 5090 · RAM 128GB · VRAM 32GB（与方案 16 旁路同机 · `F:\Cyy\MI` · conda `cyy`）
+
+### 本机适配要点
+
+| 项 | 状态 |
+|----|------|
+| A0 / 自写臂（500pt） | ✅ 需已有 `out/openbmi_2s_hop100` |
+| A0_ref（braindecode） | ✅ Windows 默认 `num_workers=0`（可显式 `--num-workers 2` 试跑） |
+| A1+（1000pt pf1000） | ⚠️ 需先跑 pf1000 预处理（见下） |
+| 原始 `.mat` | 本机路径 `F:\Cyy\MI\DATA\openbmi\openbmi\sess*_subj*_EEG_MI.mat`（**两层** openbmi，非三层） |
+| 与其他 GPU 任务并存 | 建议 `--batch-train 128 --num-workers 2` |
 
 ## 一键启动
 
@@ -16,13 +26,16 @@ python chain_all.py
 # 或 run_chain_detached.bat
 ```
 
-A1+ 前置数据（本机有 mat 时）：
+A1+ 前置数据（本机已跑通）：
 
 ```powershell
-cd code/preprocess_lab
+cd F:\Cyy\MI\code\preprocess_lab
 python -m src.datasets.openbmi_pf1000.batch
-# 输出 out/openbmi_2s_hop100_pf1000/
+# 输出 out/openbmi_2s_hop100_pf1000/ · N=183600 · (1,8,1000)
+# 若 shard 已齐仅缺合并：python -m src.datasets.openbmi_pf1000.batch --merge-only
 ```
+
+原始 `.mat` 路径：`F:\Cyy\MI\DATA\openbmi\openbmi\sess*_subj*_EEG_MI.mat`（**两层** openbmi，不是三层 `openbmi/openbmi/openbmi`）。
 
 臂顺序：`A0_ref`（braindecode 参考）→ `A0`（自写主表）→ `A1` → … → `P2`。
 
