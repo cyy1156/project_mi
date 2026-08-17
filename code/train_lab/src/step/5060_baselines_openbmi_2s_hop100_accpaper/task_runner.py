@@ -820,6 +820,16 @@ def run_baseline_main(
     )
     p.add_argument("--skip-three", action="store_true")
     p.add_argument(
+        "--three-only",
+        action="store_true",
+        help="仅跑 Three（跳过 Task）；方案17 A0-ref 等旁路用",
+    )
+    p.add_argument(
+        "--skip-task",
+        action="store_true",
+        help="同 --three-only",
+    )
+    p.add_argument(
         "--max-folds",
         type=int,
         default=0,
@@ -1100,20 +1110,28 @@ def run_baseline_main(
         x_path=x_path,
     )
 
-    sum_task = run_kfold_limited(
-        **common,
-        y=y_task,
-        out_dir=out_root / "task",
-        n_outputs=2,
-        ckpt_name="best_task.pt",
-        stage_tag=f"task2_{out_name}",
-        task_key="task_kfold_accpaper",
-    )
-    log_line(
-        log_path,
-        f"TASK done val_AccPaper={sum_task['val_acc_paper_mean']:.4f} "
-        f"test_AccPaper={sum_task['test_acc_paper_mean']:.4f}",
-    )
+    three_only = bool(args.three_only or args.skip_task)
+    if three_only and args.skip_three:
+        raise SystemExit("不能同时 --three-only/--skip-task 与 --skip-three")
+
+    sum_task = None
+    if not three_only:
+        sum_task = run_kfold_limited(
+            **common,
+            y=y_task,
+            out_dir=out_root / "task",
+            n_outputs=2,
+            ckpt_name="best_task.pt",
+            stage_tag=f"task2_{out_name}",
+            task_key="task_kfold_accpaper",
+        )
+        log_line(
+            log_path,
+            f"TASK done val_AccPaper={sum_task['val_acc_paper_mean']:.4f} "
+            f"test_AccPaper={sum_task['test_acc_paper_mean']:.4f}",
+        )
+    else:
+        log_line(log_path, "TASK skipped (--three-only)")
 
     sum_three = None
     if not args.skip_three:
@@ -1135,14 +1153,21 @@ def run_baseline_main(
     md_tail = [
         "## 最终结论（主报 Acc_paper）",
         "",
-        "### Task",
-        f"- Val Acc_paper：`{sum_task['val_acc_paper_mean']:.4f} ± {sum_task['val_acc_paper_std']:.4f}`",
-        f"- Test Acc_paper：`{sum_task['test_acc_paper_mean']:.4f} ± {sum_task['test_acc_paper_std']:.4f}`",
-        f"- Test BalAcc_maj：`{sum_task['test_balacc_maj_mean']:.4f} ± {sum_task['test_balacc_maj_std']:.4f}`",
-        f"- Test 窗级 BalAcc（附报）：`{sum_task['test_window_balacc_mean']:.4f} ± {sum_task['test_window_balacc_std']:.4f}`",
-        "",
-        *task_fold_md_lines(sum_task["folds"]),
     ]
+    if sum_task is not None:
+        md_tail.extend(
+            [
+                "### Task",
+                f"- Val Acc_paper：`{sum_task['val_acc_paper_mean']:.4f} ± {sum_task['val_acc_paper_std']:.4f}`",
+                f"- Test Acc_paper：`{sum_task['test_acc_paper_mean']:.4f} ± {sum_task['test_acc_paper_std']:.4f}`",
+                f"- Test BalAcc_maj：`{sum_task['test_balacc_maj_mean']:.4f} ± {sum_task['test_balacc_maj_std']:.4f}`",
+                f"- Test 窗级 BalAcc（附报）：`{sum_task['test_window_balacc_mean']:.4f} ± {sum_task['test_window_balacc_std']:.4f}`",
+                "",
+                *task_fold_md_lines(sum_task["folds"]),
+            ]
+        )
+    else:
+        md_tail.extend(["### Task", "- （本次跳过 · three-only）", ""])
     if sum_three is not None:
         md_tail.extend(
             [

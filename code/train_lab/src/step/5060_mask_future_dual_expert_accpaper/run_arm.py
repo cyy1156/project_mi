@@ -140,13 +140,16 @@ def _run_a0_ref(argv_rest: list[str]) -> None:
             drop_prob=drop_prob,
         )
 
+    # 方案17 定稿：仅 Three（不做 Task 五折）
+    if "--three-only" not in argv_rest and "--skip-task" not in argv_rest:
+        argv_rest = ["--three-only", *argv_rest]
     sys.argv = [sys.argv[0], "--data", "openbmi_2s_hop100", *argv_rest]
     tr.run_baseline_main(
         model_name="shallow_A0_ref",
         build_model=build_model,
         input_kind="time",
-        structure_note="A0-ref braindecode Shallow · 500pt · Acc_paper（量级参考 · 5060）",
-        extra_meta={"arm": "A0_ref", "package": OUT_ROOT_TAG, "heads": "task+three"},
+        structure_note="A0-ref braindecode Shallow · 500pt · Three-only · Acc_paper（量级参考 · 5060）",
+        extra_meta={"arm": "A0_ref", "package": OUT_ROOT_TAG, "heads": "three-only"},
     )
 
 

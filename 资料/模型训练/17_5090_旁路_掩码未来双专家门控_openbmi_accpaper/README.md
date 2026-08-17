@@ -14,7 +14,7 @@ NVIDIA RTX 5090 · RAM 128GB · VRAM 32GB（与方案 16 旁路同机 · `F:\Cyy
 |----|------|
 | A0 / 自写臂（500pt） | ✅ 需已有 `out/openbmi_2s_hop100` |
 | A0_ref（braindecode） | ✅ Windows 默认 `num_workers=0`（可显式 `--num-workers 2` 试跑） |
-| A1+（1000pt pf1000） | ⚠️ 需先跑 pf1000 预处理（见下） |
+| A1+（1000pt pf1000） | ⚠️ 需三类数据（Rest+L/R，`protocol_version≥3`）；旧 no_rest 需 `--reset` 重跑 |
 | 原始 `.mat` | 本机路径 `F:\Cyy\MI\DATA\openbmi\openbmi\sess*_subj*_EEG_MI.mat`（**两层** openbmi，非三层） |
 | 与其他 GPU 任务并存 | 建议 `--batch-train 128 --num-workers 2` |
 
@@ -26,12 +26,13 @@ python chain_all.py
 # 或 run_chain_detached.bat
 ```
 
-A1+ 前置数据（本机已跑通）：
+A1+ 前置数据：
 
 ```powershell
-cd F:\Cyy\MI\code\preprocess_lab
-python -m src.datasets.openbmi_pf1000.batch
-# 输出 out/openbmi_2s_hop100_pf1000/ · N=183600 · (1,8,1000)
+cd F:\Cyy\MI\code\preprocess_lab   # 或 D:\cyy\MI\code\preprocess_lab
+python -m src.datasets.openbmi_pf1000.batch --reset
+# 输出 out/openbmi_2s_hop100_pf1000/ · 三类 y_three∈{0,1,2}
+# Left/Right：从 cue 起切；Rest：Cue 前满 5.6s 同几何
 # 若 shard 已齐仅缺合并：python -m src.datasets.openbmi_pf1000.batch --merge-only
 ```
 

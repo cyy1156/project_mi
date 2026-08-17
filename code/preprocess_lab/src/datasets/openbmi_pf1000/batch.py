@@ -21,7 +21,9 @@ import numpy as np
 
 from src.datasets.openbmi.load_mat import parse_sess_subj
 from src.datasets.openbmi_pf1000.pipeline import (
+    CUT_SPEC,
     PROTOCOL,
+    PROTOCOL_VERSION,
     preprocess_file_pf1000,
     sanity_check_pf1000,
 )
@@ -152,8 +154,8 @@ def merge_shards(out_dir: Path) -> None:
     tid_offset = 0
     for fid in fids:
         root = shard_dir(out_dir) / fid
-        xf = np.load(root / "X_full.npy", mmap_mode="r")
-        xm = np.load(root / "X_mask.npy", mmap_mode="r")
+        xf = np.load(root / "X_full.npy")
+        xm = np.load(root / "X_mask.npy")
         yt = np.load(root / "y_task.npy")
         y3 = np.load(root / "y_three.npy")
         sid = np.load(root / "subjects.npy", allow_pickle=True)
@@ -178,34 +180,35 @@ def merge_shards(out_dir: Path) -> None:
         if hasattr(a, "flush"):
             a.flush()
     np.save(paths["subjects"], subjects)
-    del mm
-    gc.collect()
 
     # 兼容训练侧：另存一份 openbmi_X.npy = X_full（硬链/复制，避免整表进内存）
     x_alias = out_dir / "openbmi_X.npy"
-    if x_alias.exists() and x_alias.resolve() != paths["X_full"].resolve():
-        try:
-            x_alias.unlink()
-        except OSError:
-            pass
-    if not x_alias.exists():
-        try:
-            x_alias.hardlink_to(paths["X_full"])
-        except OSError:
-            shutil.copyfile(paths["X_full"], x_alias)
+    if x_alias.exists():
+        x_alias.unlink()
+    try:
+        x_alias.hardlink_to(paths["X_full"])
+    except OSError:
+        shutil.copyfile(paths["X_full"], x_alias)
 
+    y3 = np.load(paths["y_three"], mmap_mode="r")
+    y3_counts = np.bincount(np.asarray(y3), minlength=3).tolist()
     meta = {
         "protocol": PROTOCOL,
+        "protocol_version": PROTOCOL_VERSION,
         "n_windows": int(n_total),
         "X_full_shape": [n_total, *list(x_tail)],
         "fs_out": 250,
         "geometry": "past100+cur500+future400",
         "post_mi_sec": 1.6,
-        "no_rest": True,
-        "task": "cue_0_to_4s_plus_post1.6s",
+        "no_rest": False,
+        "add_rest": True,
+        "rest": "cue_before_full_5.6s_same_geometry",
+        "task": "cue_0_to_5.6s_no_pre_cue",
         "source_blocks": ["EEG_MI_train"],
         "excluded_blocks": ["EEG_MI_test"],
-        "label_map": {"left": 1, "right": 2},
+        "label_map": {"rest": 0, "left": 1, "right": 2},
+        "y_three_counts": y3_counts,
+        "cut_spec": CUT_SPEC,
         "wrote_at": _utc_now(),
     }
     (out_dir / "preprocess_meta.json").write_text(
@@ -241,6 +244,7 @@ def run_batch(
 
     manifest = load_manifest(manifest_path)
     manifest["protocol"] = PROTOCOL
+    manifest["protocol_version"] = PROTOCOL_VERSION
     files = [Path(p) for p in glob.glob(data_glob)]
     if subjects is not None:
         allow = {f"{int(s):02d}" for s in subjects}
@@ -284,6 +288,7 @@ def run_batch(
             prev
             and prev.get("status") == "ok"
             and prev.get("fingerprint") == fp
+            and prev.get("protocol_version") == PROTOCOL_VERSION
             and shard_ok
         ):
             print(f"  skip {fpath.name}")
@@ -291,7 +296,7 @@ def run_batch(
             continue
         try:
             Xf, Xm, yt, y3, sid, tid, t0, stats = preprocess_file_pf1000(
-                fpath, zscore=zscore
+                fpath, zscore=zscore, add_rest=True
             )
         except Exception as e:
             print(f"  FAIL {fpath.name}: {type(e).__name__}: {e}")
@@ -318,7 +323,7 @@ def run_batch(
             continue
 
         try:
-            sanity_check_pf1000(Xf, Xm, y3)
+            sanity_check_pf1000(Xf, Xm, y3, y_task=yt)
         except AssertionError as e:
             print(f"  FAIL sanity {fpath.name}: {e}")
             manifest["files"][fid] = {
@@ -347,14 +352,17 @@ def run_batch(
         manifest["files"][fid] = {
             "status": "ok",
             "fingerprint": fp,
+            "protocol_version": PROTOCOL_VERSION,
             "n_windows": int(len(yt)),
             "stats": stats,
             "time": _utc_now(),
         }
         n_ok += 1
+        y3c = stats.get("y_three", [])
         print(
             f"  ok {fpath.name} N={len(yt)} trials={stats.get('n_trials_kept')} "
-            f"drop={stats.get('n_trials_dropped')}"
+            f"rest={stats.get('n_rest_trials_kept')} drop={stats.get('n_trials_dropped')} "
+            f"y3={y3c}"
         )
         save_manifest(manifest_path, manifest)
         del Xf, Xm, yt, y3, sid, tid, t0
@@ -370,11 +378,7 @@ def main() -> None:
     p.add_argument(
         "--glob",
         default=str(
-            _PREPROCESS_ROOT.parent.parent
-            / "DATA"
-            / "openbmi"
-            / "openbmi"
-            / "sess*_subj*_EEG_MI.mat"
+            Path("D:/cyy/MI/DATA/openbmi/openbmi/openbmi") / "sess*_subj*_EEG_MI.mat"
         ),
     )
     p.add_argument(

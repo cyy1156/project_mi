@@ -9,6 +9,8 @@ Usage:
   python chain_all.py --full-chain
   python chain_all.py --max-folds 0
   python chain_all.py --dry-run
+  cd D:\cyy\MI\code\train_lab\src\step\5060_mask_future_dual_expert_accpaper
+  D:\cyy\MI\.venv\Scripts\python.exe -u chain_all.py --full-chain --max-folds 0
 """
 from __future__ import annotations
 
@@ -76,7 +78,7 @@ def main() -> None:
     p.add_argument(
         "--max-folds",
         type=int,
-        default=1,
+        default=0,
         help="传给每臂；默认 1=fold0；0=五折（本机慎用）",
     )
     p.add_argument("--num-workers", type=int, default=-1)

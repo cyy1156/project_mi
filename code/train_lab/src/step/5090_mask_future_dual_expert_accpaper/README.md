@@ -10,8 +10,18 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 | 本包 | `code/train_lab/src/step/5090_mask_future_dual_expert_accpaper/` |
 | **5060 低内存姊妹包** | `../5060_mask_future_dual_expert_accpaper/` |
 | 权重 out | `code/train_lab/out/5090_mask_future_dual_expert_accpaper/` |
-| A0 数据 | `preprocess_lab/out/openbmi_2s_hop100/`（旧 500pt） |
-| A1+ 数据 | `preprocess_lab/out/openbmi_2s_hop100_pf1000/`（**新预处理臂，未改旧代码**） |
+| A0 数据 | `preprocess_lab/out/openbmi_2s_hop100/`（旧 500pt · 含 Rest） |
+| A1+ 数据 | `preprocess_lab/out/openbmi_2s_hop100_pf1000/`（**三类** past+cur+future；`protocol_version≥3`） |
+
+### A1+ 数据切割（冻结）
+
+| 状态 | 切段 | 标签 |
+|------|------|------|
+| Left/Right | 从 **cue 起** `[cue, cue+5.6s)`（不读 cue 前；段首 0.5s 仅基线均值） | 1 / 2 |
+| Rest（空闲） | Cue 前满 5.6s 同几何（评分 4s + post 1.6s），整段在 Cue 前 | 0 |
+| 窗 | past100+cur500+future400；合法 t0∈{0.4…2.0} hop0.1 | — |
+
+旧版 `no_rest` / `protocol_version<3` 的 npy **会被 `data_io` 拒绝**，需 `--reset` 重跑预处理。
 
 框架对齐姊妹包：`5090_three_hier_loss_accpaper`（`shared_hparams` / `chain_all` / `run_arm` / detached bat）。
 
@@ -60,8 +70,10 @@ python run_arm.py --arm P2 --max-folds 0
 
 ## 前置条件
 
-1. A0：已有 `openbmi_2s_hop100` npy  
-2. A1+：在 `code/preprocess_lab` 跑 `python -m src.datasets.openbmi_pf1000.batch`（写出 `out/openbmi_2s_hop100_pf1000/`；**禁止改旧 preprocess 文件**）  
+1. A0：已有 `openbmi_2s_hop100` npy（含 Rest）  
+2. A1+：在 `code/preprocess_lab` 跑  
+   `python -m src.datasets.openbmi_pf1000.batch --reset`  
+   （写出三类 `out/openbmi_2s_hop100_pf1000/`；**禁止改旧** `openbmi_2s_hop100` 源文件）  
 3. `conda activate cyy`（或仓库 `.venv`）
 
 ## 同步

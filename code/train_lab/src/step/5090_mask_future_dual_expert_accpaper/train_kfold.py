@@ -13,7 +13,7 @@ from torch.utils.data import DataLoader, Dataset, WeightedRandomSampler
 
 from _paths import OUT_ROOT, PRE
 from arms_registry import ArmSpec
-from data_io import load_arrays, to_bct
+from data_io import load_arrays, summarize_labels, to_bct
 from feat_index import assert_default_map, assert_future_perturbation
 from losses import compute_losses
 from md_fold_detail import three_fold_md_lines
@@ -295,7 +295,7 @@ def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
     y = np.asarray(raw["y_three"], dtype=np.int64)
     subjects = np.asarray(raw["subjects"])
     trial_id = np.asarray(raw["trial_id"], dtype=np.int64)
-    return x_full, x_mask, y, subjects, trial_id, n_times
+    return x_full, x_mask, y, subjects, trial_id, n_times, raw.get("meta") or {}
 
 
 def run_pf_kfold(
@@ -307,16 +307,28 @@ def run_pf_kfold(
 ) -> dict:
     assert_default_map()
     hp = _loader_hp(hp or SHARED)
-    x_full, x_mask, y, subjects, trial_id, n_times = _load_xy(arm, hp)
-    n_outputs = int(y.max() + 1)
-    n_classes = n_outputs if n_outputs >= 3 else 2
+    x_full, x_mask, y, subjects, trial_id, n_times, data_meta = _load_xy(arm, hp)
+    # Three 协议固定 3 类头（0/1/2）；与 Acc_paper baselines three 一致
+    n_outputs = max(3, int(y.max()) + 1)
+    n_classes = 3
+    y_counts = summarize_labels(y)
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     run_dir = (out_root or (OUT_ROOT / OUT_ROOT_TAG)) / f"{stamp}_{arm.arm_id}"
     run_dir.mkdir(parents=True, exist_ok=True)
     log_path = run_dir / "run.log"
-    _log_line(log_path, f"start arm={arm.arm_id} device={device} n_classes={n_classes}")
+    _log_line(
+        log_path,
+        f"start arm={arm.arm_id} device={device} n_classes={n_classes} "
+        f"y_counts={y_counts} pf_protocol_version={data_meta.get('protocol_version')} "
+        f"no_rest={data_meta.get('no_rest')}",
+    )
+    print(
+        f"[{arm.arm_id}] labels y_three={y_counts} "
+        f"meta_ver={data_meta.get('protocol_version')} no_rest={data_meta.get('no_rest')}",
+        flush=True,
+    )
 
     if n_times >= 1000 and not arm.a1_600:
         probe = build_model_for_arm(arm, hp, n_times, n_outputs)
