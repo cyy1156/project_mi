@@ -42,14 +42,17 @@ python -m src.datasets.openbmi_pf1000.batch --reset
 
 ## 结果登记
 
-| 臂 | Test Acc_paper mean±std | run 路径 | 备注 |
-|----|-------------------------|----------|------|
-| A0 | | | |
-| A1 | | | |
-| P0 | | | |
-| A2 | | | |
-| P1 | | | |
-| P2（主） | | | |
-| … | | | B/C 见各 summary.json |
+主链五折已于 **2026-08-19** 跑完（22 臂）。详见 [`结果登记表.md`](结果登记表.md) 与 `code/train_lab/out/5090_mask_future_dual_expert_accpaper/_scheme17_summary_table.json`。
 
-权重根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`
+| 臂 | Test Acc_paper mean±std | 备注 |
+|----|-------------------------|------|
+| A0_ref/Task | 0.6909±0.038 | braindecode 参考 |
+| A0_ref/Three | 0.5425±0.031 | braindecode 参考 |
+| A1 | 0.5754±0.021 | pf1000 单专家基线 |
+| P2（主） | 0.5703±0.022 | 定稿主结果 |
+| B9 | 0.5788±0.019 | leak oracle 上界 |
+| C2a | 0.5758±0.020 | 最佳 C* |
+
+U 系列附报：`python chain_u_all.py`（见代码包 README）。
+
+权重与 metrics 根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`

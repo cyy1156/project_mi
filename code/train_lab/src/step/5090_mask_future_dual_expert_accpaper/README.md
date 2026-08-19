@@ -72,15 +72,33 @@ python run_arm.py --arm P2 --max-folds 0
 python run_arm.py --arm U13 --max-folds 0
 ```
 
-U 组合附报链（路径相对本包；5090 请 `conda activate cyy`，勿用 5060 的 `D:\cyy\MI` 脚本）：
+## U 系列全量链（5090 · 无内存守护）
+
+顺序：**U1 → U3 → U2 → U13 → U12 → U123**（`shared_hparams` 默认 batch 256/512、patience 20、max_epochs 300；不传 `--batch-train` 即走方案十七原参）。
 
 ```powershell
 conda activate cyy
 cd code/train_lab/src/step/5090_mask_future_dual_expert_accpaper
-python run_arm.py --arm U13 --max-folds 0
-# 或
-powershell -File .\run_u_combo_chain_guarded.ps1 -FromArm U13 -MaxFolds 0 -NoConsole
+python chain_u_all.py
+# 或双击 run_u_chain_detached.bat
 ```
+
+断点续跑：
+
+```powershell
+python chain_u_all.py --from U3
+# 或 run_u_chain_resume.bat U13
+```
+
+仅必做 U1/U3/U2（跳过组合）：
+
+```powershell
+python chain_u_all.py --skip-combo
+```
+
+状态与日志：`u_chain_state.json`、`u_chain_all_stdout.log`。
+
+5060 低内存附报链（batch 128 + mem guard）仍用 `run_u_combo_chain_guarded.ps1`；**5090 全量请用 `chain_u_all.py`**。
 
 ## 前置条件
 
