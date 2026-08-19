@@ -95,6 +95,10 @@ def main() -> None:
 
     arm = ARMS[args.arm]
     print(f"[arm] {arm.arm_id}: {arm.note}", flush=True)
+    if arm.arm_id.startswith("U"):
+        from arms_registry import assert_u_arm_flags
+
+        assert_u_arm_flags()
     if args.dry_run:
         d = {k: getattr(arm, k) for k in arm.__dataclass_fields__}
         print(json.dumps(d, ensure_ascii=False, indent=2, default=str))

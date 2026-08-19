@@ -28,7 +28,7 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 
 ## 臂一览
 
-与 5090 相同：`A0_ref` / `A0` / `A1` / `P0` / `A2` / `P1` / `B*` / **`P2`** / `C*` / `L1`。
+与 5090 相同：`A0_ref` / `A0` / `A1` / `P0` / `A2` / `P1` / `B*` / **`P2`** / `C*` / `U*` / `L1`。
 
 ## 推荐启动（5060）
 
@@ -50,6 +50,13 @@ python chain_all.py
 powershell -File .\run_gate_chain_guarded.ps1
 # 完整消融（含 B/C，仍 fold0）
 powershell -File .\run_gate_chain_guarded.ps1 -FullChain
+
+# U 单改五折（U1→U3→U2，已跑完可复现）
+powershell -File .\run_u_chain_guarded.ps1 -FromArm U1 -MaxFolds 0 -NoConsole
+
+# U 组合附报五折（U13→U12→U123；可 -SkipU123 只跑前两臂）
+powershell -File .\run_u_combo_chain_guarded.ps1 -FromArm U13 -MaxFolds 0 -NoConsole
+python run_arm.py --arm U13 --max-folds 0 --num-workers 0
 
 # 无看门狗的完整消融链
 python chain_all.py --full-chain

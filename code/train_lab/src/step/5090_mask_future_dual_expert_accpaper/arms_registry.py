@@ -17,6 +17,9 @@ class ArmSpec:
     use_gate: bool = False
     use_sigreg: bool = False
     use_decoder: bool = False
+    predictor_temporal: bool = False  # U1
+    use_spectral_decoder: bool = False  # U2
+    gate_entropy: bool = False  # U3
     lambda_pred: float | None = None  # None → SHARED
     lambda_sig: float | None = None
     lambda_dec: float | None = None
@@ -253,6 +256,83 @@ ARMS: dict[str, ArmSpec] = {
         use_decoder=True,
         skip_in_auto_chain=True,
     ),
+    # ---- U 系列（相对 P2；默认不进自动 chain）----
+    "U1": _a(
+        "U1",
+        "时间维 Predictor（相对 P2）",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        predictor_temporal=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "U2": _a(
+        "U2",
+        "Spectral Decoder μ/β（相对 P2）",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=False,
+        use_spectral_decoder=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "U3": _a(
+        "U3",
+        "Gate + 专家熵（相对 P2）",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        gate_entropy=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "U12": _a(
+        "U12",
+        "U1+U2 附报组合",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=False,
+        predictor_temporal=True,
+        use_spectral_decoder=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "U13": _a(
+        "U13",
+        "U1+U3 附报组合",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        predictor_temporal=True,
+        gate_entropy=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "U123": _a(
+        "U123",
+        "U1+U2+U3 附报组合",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=False,
+        predictor_temporal=True,
+        use_spectral_decoder=True,
+        gate_entropy=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
 }
 
 
@@ -281,6 +361,29 @@ CHAIN_ORDER: list[str] = [
     "C2b",
     "C2c",
 ]
+
+
+# U 单改 / 组合（不进 CHAIN_ORDER；手动或 run_u_*_guarded.ps1）
+U_SERIES_ORDER: list[str] = ["U1", "U3", "U2"]
+# 组合顺序对齐实验方案 U组合_U12_U13_U123.md
+U_COMBO_ORDER: list[str] = ["U13", "U12", "U123"]
+
+
+def assert_u_arm_flags() -> None:
+    """启动期自检：组合臂开关与方案/互斥约定一致。"""
+    u12, u13, u123 = ARMS["U12"], ARMS["U13"], ARMS["U123"]
+    assert u12.predictor_temporal and u12.use_spectral_decoder and not u12.gate_entropy
+    assert not u12.use_decoder
+    assert u13.predictor_temporal and u13.gate_entropy and not u13.use_spectral_decoder
+    assert u13.use_decoder
+    assert (
+        u123.predictor_temporal
+        and u123.use_spectral_decoder
+        and u123.gate_entropy
+        and not u123.use_decoder
+    )
+    for aid in U_SERIES_ORDER + U_COMBO_ORDER:
+        assert aid in ARMS and ARMS[aid].skip_in_auto_chain
 
 
 def chain_steps(*, include_skipped: bool = False) -> list[str]:

@@ -162,7 +162,7 @@ def _loop(limits: MemGuardLimits) -> None:
     # 进程 commit/WS 超限立即杀（防 Event 2004）。
     # pagefile 仍可增长时：不因短暂顶满当前 commit_limit 而误杀。
     free_strikes = 0
-    free_strike_need = 4  # poll_sec≈1 → ~4s
+    free_strike_need = 8  # poll_sec≈1 → ~8s（折间谷底更宽松）
     free_strike_need_grow = 50  # ~50s：允许 pagefile 扩容 / 换页，避免一触即杀
     ratio_strikes = 0
     ratio_strike_need = 8  # ~8s；给 pagefile 扩容时间

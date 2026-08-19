@@ -55,7 +55,8 @@ def _ensure_mem_guard() -> None:
         MemGuardLimits(
             max_process_virt_gb=40.0,
             max_process_ws_gb=14.0,
-            min_sys_free_phys_gb=0.12,
+            # 与外部看门狗对齐；折间页缓存谷底允许略低于 0.08
+            min_sys_free_phys_gb=0.05,
             max_sys_commit_used_gb=60.0,
             max_sys_commit_ratio=0.98,
             allow_pagefile_grow=True,
@@ -169,10 +170,19 @@ def main() -> None:
     p.add_argument("--batch-train", type=int, default=0)
     p.add_argument("--dry-run", action="store_true")
     p.add_argument("--no-mem-guard", action="store_true", help="关闭进程内内存看门狗")
+    p.add_argument(
+        "--resume-dir",
+        default="",
+        help="已有 run 目录：跳过已有 fold*/metrics.json，续跑剩余折并写 summary.json",
+    )
     args, rest = p.parse_known_args()
 
     arm = ARMS[args.arm]
     print(f"[arm] {arm.arm_id}: {arm.note}", flush=True)
+    if arm.arm_id.startswith("U"):
+        from arms_registry import assert_u_arm_flags
+
+        assert_u_arm_flags()
     if args.dry_run:
         d = {k: getattr(arm, k) for k in arm.__dataclass_fields__}
         print(json.dumps(d, ensure_ascii=False, indent=2, default=str))
@@ -220,7 +230,10 @@ def main() -> None:
     if repl:
         hp = replace(hp, **repl)
 
-    summary = run_pf_kfold(arm, hp=hp, max_folds=args.max_folds)
+    resume = Path(args.resume_dir) if args.resume_dir else None
+    summary = run_pf_kfold(
+        arm, hp=hp, max_folds=args.max_folds, resume_dir=resume
+    )
     print(
         json.dumps(
             {k: summary[k] for k in ("arm", "mean", "std", "run_dir")},
