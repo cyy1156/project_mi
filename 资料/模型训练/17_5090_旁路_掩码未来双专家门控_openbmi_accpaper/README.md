@@ -53,6 +53,6 @@ python -m src.datasets.openbmi_pf1000.batch --reset
 | B9 | 0.5788±0.019 | leak oracle 上界 |
 | C2a | 0.5758±0.020 | 最佳 C* |
 
-U 系列附报：`python chain_u_all.py`（见代码包 README）。
+U 系列附报已于 **2026-08-19** 全量完成；最佳 **U13 = 0.5753±0.022**（≈ A1）。详见 [`结果登记表.md`](结果登记表.md) § U 系列。
 
 权重与 metrics 根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`
