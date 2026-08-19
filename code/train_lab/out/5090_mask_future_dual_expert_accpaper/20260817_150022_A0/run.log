@@ -1,0 +1,4 @@
+start arm=A0 device=cuda n_classes=3
+fold0 ep 001  tr=0.9788  val_AccPaper=0.4767  val_BalAccMaj=0.4885  win_BalAcc=0.4755  win_f1_macro=0.4748
+fold0 ep 002  tr=0.8939  val_AccPaper=0.4993  val_BalAccMaj=0.5100  win_BalAcc=0.4934  win_f1_macro=0.4916
+[A0] done val_AccPaper=0.4993 test_AccPaper=0.5052 test_BalAcc=0.5203 test_win_F1=0.5059

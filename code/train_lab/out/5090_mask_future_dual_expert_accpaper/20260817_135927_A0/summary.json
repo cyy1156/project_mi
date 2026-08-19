@@ -1,0 +1,85 @@
+{
+  "arm": "A0",
+  "note": "A0-main · 自写 shallow + Expert_cur（500pt · 仅 Three · 主表）",
+  "device": "cuda",
+  "mean": 0.5293333333333334,
+  "std": 0.029079795857073557,
+  "folds": [
+    {
+      "fold": 0,
+      "val_acc_paper_best": 0.5159259259259259,
+      "test_acc_paper": 0.5272727272727272,
+      "n_test_trials": 3300,
+      "epochs_ran": 35
+    },
+    {
+      "fold": 1,
+      "val_acc_paper_best": 0.5281481481481481,
+      "test_acc_paper": 0.5503030303030303,
+      "n_test_trials": 3300,
+      "epochs_ran": 28
+    },
+    {
+      "fold": 2,
+      "val_acc_paper_best": 0.49925925925925924,
+      "test_acc_paper": 0.4818181818181818,
+      "n_test_trials": 3300,
+      "epochs_ran": 27
+    },
+    {
+      "fold": 3,
+      "val_acc_paper_best": 0.5588888888888889,
+      "test_acc_paper": 0.5672727272727273,
+      "n_test_trials": 3300,
+      "epochs_ran": 28
+    },
+    {
+      "fold": 4,
+      "val_acc_paper_best": 0.4559259259259259,
+      "test_acc_paper": 0.52,
+      "n_test_trials": 3000,
+      "epochs_ran": 26
+    }
+  ],
+  "hp": {
+    "data_tag_a0": "openbmi_2s_hop100",
+    "data_tag_pf": "openbmi_2s_hop100_pf1000",
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 256,
+    "batch_eval": 512,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "mask-future-dual-expert Acc_paper Three-only Tw=2s hop=100ms postMI>=1.6s subject_key=openbmi:subjNN Adam device=5090",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_chans": 8,
+    "n_times_a0": 500,
+    "n_times_pf": 1000,
+    "n_classes": 3,
+    "embed_dim": 40,
+    "lambda_pred": 1.0,
+    "lambda_sig": 0.05,
+    "lambda_dec": 0.2,
+    "lambda_cls": 1.0,
+    "sigreg_slices": 1024,
+    "pred_dropout": 0.3,
+    "openbmi_only": true,
+    "keep_fold_packs": false,
+    "num_workers": 4,
+    "pin_memory": true,
+    "persistent_workers": true,
+    "prefetch_factor": 2,
+    "non_blocking": true,
+    "torch_num_threads": 8,
+    "cudnn_benchmark": true,
+    "deterministic": false,
+    "use_amp": true,
+    "ema_momentum": 0.996
+  },
+  "run_dir": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_mask_future_dual_expert_accpaper\\20260817_135927_A0"
+}
