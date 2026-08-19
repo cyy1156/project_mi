@@ -39,6 +39,7 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 | C1–C2c | 相对 P2 消融 |
 | U1 / U2 / U3 | 相对 P2 结构升级（时间 Predictor / Spectral Decoder / Gate 熵）；默认不进 chain |
 | U12 / U13 / U123 | U 组合附报；默认不进 chain；计划顺序 **U13→U12→U123** |
+| **T1 / T1_aux / T1_128** | v2 Token + Phase Query Predictor（相对 P2）；`run_t_chain_guarded.ps1` |
 | L1 / A1_600 | 默认不进自动 chain |
 
 ## 一键全链（5090）
@@ -99,6 +100,22 @@ python chain_u_all.py --skip-combo
 状态与日志：`u_chain_state.json`、`u_chain_all_stdout.log`。
 
 5060 低内存附报链（batch 128 + mem guard）仍用 `run_u_combo_chain_guarded.ps1`；**5090 全量请用 `chain_u_all.py`**。
+
+## T 系列 v2（5090 · Token + Phase Query Predictor）
+
+顺序：**T1 → T1_aux → T1_128**（相对 P2；须 pf1000 含 `t0_sec`）。
+
+```powershell
+python _smoke_local.py   # 含 T1/T1_aux/T1_128
+python run_arm.py --arm T1 --dry-run
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 1          # fold0 冒烟
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -NoConsole # 正式五折
+powershell -File .\run_t_chain_guarded.ps1 -FromArm T1_aux -SkipT1_128
+```
+
+状态与日志：`t_chain_guarded_state.json`、`t_chain_guarded.log`。
+
+实验方案：`资料/Lejepa_shallow模型方案/.../实验方案/T系列_Token_PhasePredictor.md`
 
 ## 前置条件
 

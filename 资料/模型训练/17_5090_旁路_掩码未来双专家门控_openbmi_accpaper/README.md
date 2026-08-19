@@ -42,17 +42,18 @@ python -m src.datasets.openbmi_pf1000.batch --reset
 
 ## 结果登记
 
-主链五折已于 **2026-08-19** 跑完（22 臂）。详见 [`结果登记表.md`](结果登记表.md) 与 `code/train_lab/out/5090_mask_future_dual_expert_accpaper/_scheme17_summary_table.json`。
+主链五折（A/P/B/C）与 U 系列附报均已于 **2026-08-19** 完成。详见 [`结果登记表.md`](结果登记表.md)（含完整 B1–B10、C1–C2c、U1–U123）。
 
 | 臂 | Test Acc_paper mean±std | 备注 |
 |----|-------------------------|------|
 | A0_ref/Task | 0.6909±0.038 | braindecode 参考 |
 | A0_ref/Three | 0.5425±0.031 | braindecode 参考 |
-| A1 | 0.5754±0.021 | pf1000 单专家基线 |
-| P2（主） | 0.5703±0.022 | 定稿主结果 |
+| **A1** | **0.5754±0.021** | pf1000 单专家基线 |
+| P1 | 0.5735±0.022 | 双专家 · ≈A1 |
+| **P2（主）** | **0.5703±0.022** | 定稿主结果 |
 | B9 | 0.5788±0.019 | leak oracle 上界 |
-| C2a | 0.5758±0.020 | 最佳 C* |
+| **C2a** | **0.5758±0.020** | 去 PSD · 全非 oracle 最高 |
+| **U13** | **0.5753±0.022** | U* 最佳 · ≈A1 |
 
-U 系列附报已于 **2026-08-19** 全量完成；最佳 **U13 = 0.5753±0.022**（≈ A1）。详见 [`结果登记表.md`](结果登记表.md) § U 系列。
-
-权重与 metrics 根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`
+权重与 metrics 根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`  
+主链汇总 JSON：`_scheme17_summary_table.json` · U 链：`u_chain_state.json`

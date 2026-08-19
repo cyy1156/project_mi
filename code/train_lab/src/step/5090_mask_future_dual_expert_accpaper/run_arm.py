@@ -99,6 +99,10 @@ def main() -> None:
         from arms_registry import assert_u_arm_flags
 
         assert_u_arm_flags()
+    if arm.arm_id.startswith("T"):
+        from arms_registry import assert_t_arm_flags
+
+        assert_t_arm_flags()
     if args.dry_run:
         d = {k: getattr(arm, k) for k in arm.__dataclass_fields__}
         print(json.dumps(d, ensure_ascii=False, indent=2, default=str))
@@ -143,6 +147,9 @@ def main() -> None:
         repl["patience"] = args.patience
     if args.batch_train > 0:
         repl["batch_train"] = args.batch_train
+    bt_arm = int(arm.extra.get("batch_train", 0))
+    if bt_arm > 0 and args.batch_train <= 0:
+        repl["batch_train"] = bt_arm
     if repl:
         hp = replace(hp, **repl)
 

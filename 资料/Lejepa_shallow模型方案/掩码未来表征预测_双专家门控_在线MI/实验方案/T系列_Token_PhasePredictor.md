@@ -131,6 +131,29 @@ powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -SkipT1_128 -NoConsole
 | 链状态 | `t_chain_guarded_state.json` |
 | 登记 | `资料/模型训练/17_5060_.../`（跑后填） |
 
+### 4.4 5090 / 5070 跑法
+
+三机包 **代码同构**（`T1` / `T1_aux` / `T1_128` + `run_t_chain_guarded.ps1`）；仅 batch / workers / out 前缀不同。
+
+| 机位 | 包路径 | 默认 batch | 链脚本 |
+|------|--------|------------|--------|
+| **5090** | `5090_mask_future_dual_expert_accpaper/` | 256/512 | `run_t_chain_guarded.ps1 -MaxFolds 0` |
+| **5070** | `5070_mask_future_dual_expert_accpaper/` | 128/256 | 同左（本机正式） |
+| 5060 | `5060_mask_future_dual_expert_accpaper/` | 128/256 | 同左（历史锚点） |
+
+```powershell
+# 5090 示例
+cd code/train_lab/src/step/5090_mask_future_dual_expert_accpaper
+python _smoke_local.py
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 1
+
+# 5070 示例（路径相对仓库根）
+cd code/train_lab/src/step/5070_mask_future_dual_expert_accpaper
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -NoConsole
+```
+
+5090/5070 权重分别落 `out/5090_mask_future_dual_expert_accpaper/`、`out/5070_mask_future_dual_expert_accpaper/`。
+
 ---
 
 ## 5. 执行顺序（5060 推荐）
