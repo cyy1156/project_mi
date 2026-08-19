@@ -1,40 +1,33 @@
-# Scheme 17 · 5060 全量主线管道（带双层内存看门狗）
-# 默认 GATE：A0_ref → A0 → A1 → P0 → A2 → P1 → P2
-# 完整消融：-FullChain（含 B/C）
+# Scheme 17 · U 系列五折（相对 P2 · 必做臂）
+# 顺序：U1 → U3 → U2（对齐实验方案；组合臂 U12/U13/U123 另开）
 #
 # 用法：
-#   powershell -File .\run_gate_chain_guarded.ps1
-#   powershell -File .\run_gate_chain_guarded.ps1 -FromArm A1
-#   powershell -File .\run_gate_chain_guarded.ps1 -FromArm A1 -MaxFolds 0   # 五折
-#   powershell -File .\run_gate_chain_guarded.ps1 -FullChain
-# 每臂默认弹出可见控制台（run_with_mem_guard.ps1）；静默加 -NoConsole
+#   powershell -File .\run_u_chain_guarded.ps1
+#   powershell -File .\run_u_chain_guarded.ps1 -FromArm U3
+#   powershell -File .\run_u_chain_guarded.ps1 -NoConsole
 param(
-  [string]$FromArm = "A0_ref",
-  [switch]$FullChain,
+  [string]$FromArm = "U1",
   [switch]$NoConsole,
-  [int]$MaxFolds = 1,            # 1=fold0；0=五折
-  [int]$TimeoutSecPerArm = 86400, # 五折更久：默认 24h/臂
+  [int]$MaxFolds = 0,                 # 0=五折
+  [int]$TimeoutSecPerArm = 86400,     # 24h / 臂
   [double]$MinFreeGB = 3.2,
-  [int]$CooldownBetweenSec = 120
+  [int]$CooldownBetweenSec = 180,
+  [switch]$IncludeCombos              # 追加 U12/U13/U123
 )
 
 $ErrorActionPreference = "Continue"
 $WorkDir = "D:\cyy\MI\code\train_lab\src\step\5060_mask_future_dual_expert_accpaper"
-$LogDir = "D:\cyy\MI\code\train_lab\out\_ab_mem"
-$State = Join-Path $WorkDir "gate_chain_guarded_state.json"
-$ChainLog = Join-Path $WorkDir "gate_chain_guarded.log"
-New-Item -ItemType Directory -Force -Path $LogDir | Out-Null
+$State = Join-Path $WorkDir "u_chain_guarded_state.json"
+$ChainLog = Join-Path $WorkDir "u_chain_guarded.log"
+$PidFile = Join-Path $WorkDir "u_chain_guarded.pid"
 
-$GateOrder = @("A0_ref", "A0", "A1", "P0", "A2", "P1", "P2")
-$FullOrder = @(
-  "A0_ref", "A0", "A1", "P0", "A2", "P1",
-  "B1", "B2", "B3", "B4", "B5a", "B5b", "B6", "B7", "B8", "B9", "B10",
-  "P2", "C1", "C2a", "C2b", "C2c"
-)
-$Arms = if ($FullChain) { $FullOrder } else { $GateOrder }
+$MustOrder = @("U1", "U3", "U2")
+# 组合顺序对齐实验方案：U13 → U12 → U123
+$ComboOrder = @("U13", "U12", "U123")
+$Arms = if ($IncludeCombos) { $MustOrder + $ComboOrder } else { $MustOrder }
 
 $start = [array]::IndexOf($Arms, $FromArm)
-if ($start -lt 0) { throw "bad FromArm=$FromArm (not in queue)" }
+if ($start -lt 0) { throw "bad FromArm=$FromArm (not in queue: $($Arms -join ','))" }
 $queue = $Arms[$start..($Arms.Count - 1)]
 
 function Write-Chain([string]$msg) {
@@ -57,7 +50,8 @@ function Save-State($obj) {
   }
 }
 
-# Refuse competing trains (scheme16 / scheme17)
+[System.IO.File]::WriteAllText($PidFile, "$PID", [System.Text.UTF8Encoding]::new($false))
+
 $busy = @(Get-CimInstance Win32_Process -Filter "Name='python.exe'" -EA SilentlyContinue |
   Where-Object {
     $_.CommandLine -and (
@@ -72,17 +66,16 @@ if ($busy.Count -gt 0) {
 
 $os0 = Get-CimInstance Win32_OperatingSystem
 $cLimit = [math]::Round($os0.TotalVirtualMemorySize / 1MB, 2)
-$mode = if ($FullChain) { "FULL_CHAIN" } else { "GATE" }
 $foldLabel = if ($MaxFolds -le 0) { "5fold" } else { "fold0..$($MaxFolds-1)" }
-Write-Chain "START scheme17 $mode queue=$($queue -join ',') folds=$foldLabel max_folds=$MaxFolds commit_limit=${cLimit}G free=$(Get-FreePhysGB)G timeout=${TimeoutSecPerArm}s batch=128/256 sigreg=1024"
+Write-Chain "START U-series queue=$($queue -join ',') folds=$foldLabel max_folds=$MaxFolds free=$(Get-FreePhysGB)G commit_limit=${cLimit}G"
 if ($cLimit -lt 40) {
-  Write-Chain "REFUSE: commit_limit=${cLimit}G < 40G (need D: pagefile ~48G)"
+  Write-Chain "REFUSE: commit_limit=${cLimit}G < 40G"
   exit 3
 }
 
 $state = [ordered]@{
   package         = "5060_mask_future_dual_expert_accpaper"
-  mode            = $mode
+  mode            = "U_SERIES"
   started         = (Get-Date -Format o)
   queue           = $queue
   done            = @()
@@ -104,7 +97,7 @@ foreach ($arm in $queue) {
   $free = Get-FreePhysGB
   Write-Chain "before $arm free_phys=${free}G"
   $waited = 0
-  while ($free -lt $MinFreeGB -and $waited -lt 600) {
+  while ($free -lt $MinFreeGB -and $waited -lt 900) {
     Write-Chain "low RAM ${free}G < ${MinFreeGB}G — sleep 30s (waited=${waited}s)"
     Start-Sleep -Seconds 30
     $waited += 30
@@ -131,7 +124,8 @@ foreach ($arm in $queue) {
     "-Arm", $arm,
     "-ExtraArgs", $extra,
     "-TimeoutSec", "$TimeoutSecPerArm",
-    "-MinSysFreeGB", "0.08"
+    # 16GB 机训练谷底常 <0.1G；过严会误杀。进程内 mem_guard 已有 0.05G 底线。
+    "-MinSysFreeGB", "0.02"
   )
   if ($NoConsole) { $guardArgs += "-NoConsole" }
   & powershell @guardArgs
@@ -161,6 +155,6 @@ foreach ($arm in $queue) {
 if ($failCode -eq 0) {
   $state.finished = (Get-Date -Format o)
   Save-State $state
-  Write-Chain "ALL DONE scheme17 $mode"
+  Write-Chain "ALL DONE U-series"
 }
 exit $failCode

@@ -71,6 +71,28 @@ def compute_losses(
 
     if (
         lambda_dec > 0
+        and "band_hat" in out
+        and x_full is not None
+        and x_full.size(-1) >= 1000
+    ):
+        # U2：直接约束 μ/β（对未来 400pt 通道均值波形估真值）
+        x_fut = x_full[..., -400:]
+        fut_m = x_fut.mean(dim=1).float()
+        freqs = torch.fft.rfftfreq(400, d=1.0 / 250.0).to(fut_m.device)
+        psd = torch.fft.rfft(fut_m, dim=-1).abs()
+
+        def _band(lo: float, hi: float) -> torch.Tensor:
+            m = (freqs >= lo) & (freqs < hi)
+            # (B,)
+            return psd[..., m].mean(dim=-1).clamp_min(1e-8).log()
+
+        tgt = torch.stack([_band(8.0, 13.0), _band(13.0, 30.0)], dim=-1)  # (B,2)
+        l_spec = F.mse_loss(out["band_hat"].float(), tgt.detach())
+        parts.append(lambda_dec * l_spec)
+        meta["l_dec"] = float(l_spec.detach())
+        meta["l_spec"] = float(l_spec.detach())
+    elif (
+        lambda_dec > 0
         and "x_hat_future" in out
         and x_full is not None
         and x_full.size(-1) >= 1000
@@ -84,21 +106,28 @@ def compute_losses(
         if not dec_no_time:
             l_dec = l_dec + 0.1 * F.mse_loss(hat_m, fut_m)
         if not dec_no_psd:
-            # 简易 rfft PSD L1
-            psd_h = torch.fft.rfft(hat_m, dim=-1).abs()
-            psd_f = torch.fft.rfft(fut_m, dim=-1).abs()
-            l_dec = l_dec + (psd_h - psd_f).abs().mean()
+            # 简易 rfft PSD L1（AMP/half 下 cuFFT 要求长度 2^n，故强制 float32）
+            hat32 = hat_m.float()
+            fut32 = fut_m.float()
+            psd_h = torch.fft.rfft(hat32, dim=-1).abs()
+            psd_f = torch.fft.rfft(fut32, dim=-1).abs()
+            l_dec = l_dec + (psd_h - psd_f).abs().mean().to(dtype=l_dec.dtype)
         if not dec_no_mubeta:
             # 粗频带能量：用 rfft bin 近似 μ/β（fs=250）
             # μ 8–13, β 13–30 → 略
             freqs = torch.fft.rfftfreq(400, d=1.0 / 250.0).to(hat_m.device)
+
             def band_e(x, lo, hi):
-                p = torch.fft.rfft(x, dim=-1).abs()
+                p = torch.fft.rfft(x.float(), dim=-1).abs()
                 m = (freqs >= lo) & (freqs < hi)
                 return p[..., m].mean()
 
-            l_dec = l_dec + (band_e(hat_m, 8, 13) - band_e(fut_m, 8, 13)).abs()
-            l_dec = l_dec + (band_e(hat_m, 13, 30) - band_e(fut_m, 13, 30)).abs()
+            l_dec = l_dec + (band_e(hat_m, 8, 13) - band_e(fut_m, 8, 13)).abs().to(
+                dtype=l_dec.dtype
+            )
+            l_dec = l_dec + (band_e(hat_m, 13, 30) - band_e(fut_m, 13, 30)).abs().to(
+                dtype=l_dec.dtype
+            )
         parts.append(lambda_dec * l_dec)
         meta["l_dec"] = float(l_dec.detach())
 

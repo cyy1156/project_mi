@@ -1,7 +1,14 @@
-"""掩码未来 + 双专家门控模型（自写 Shallow encoder）。"""
+"""掩码未来 + 双专家门控模型（自写 Shallow encoder）。
+
+U 系列开关（相对 P2，默认关）：
+  - predictor_temporal：Z_vis 序列 → Temporal Attention + TCN → z_pre
+  - use_spectral_decoder：z_pre → μ/β（无 8×400 波形重建）
+  - gate_entropy：Gate([z_vis, z_pre, H(p_cur), H(p_future)])
+"""
 from __future__ import annotations
 
 import copy
+import math
 import sys
 
 import torch
@@ -35,6 +42,66 @@ class MLP(nn.Module):
         return self.net(x)
 
 
+class TemporalPredictor(nn.Module):
+    """U1：可见段时间序列 → 未来表征向量 (B, D)。
+
+    结构：1×1 Conv → MultiheadAttention → Dilated TCN → mean pool → Linear。
+    """
+
+    def __init__(self, dim: int, dropout: float = 0.3, n_heads: int = 4):
+        super().__init__()
+        self.dim = int(dim)
+        heads = n_heads
+        while heads > 1 and self.dim % heads != 0:
+            heads -= 1
+        self.proj = nn.Conv1d(self.dim, self.dim, kernel_size=1)
+        self.attn = nn.MultiheadAttention(
+            self.dim, heads, dropout=dropout, batch_first=True
+        )
+        self.attn_norm = nn.LayerNorm(self.dim)
+        self.tcn = nn.Sequential(
+            nn.Conv1d(self.dim, self.dim, kernel_size=3, padding=1, dilation=1),
+            nn.GELU(),
+            nn.Dropout(dropout),
+            nn.Conv1d(self.dim, self.dim, kernel_size=3, padding=2, dilation=2),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
+        self.out = nn.Linear(self.dim, self.dim)
+
+    def forward(self, z_seq: torch.Tensor) -> torch.Tensor:
+        # z_seq: (B, D, T_vis)
+        x = self.proj(z_seq)  # (B, D, T)
+        tok = x.transpose(1, 2)  # (B, T, D)
+        attn_out, _ = self.attn(tok, tok, tok, need_weights=False)
+        tok = self.attn_norm(tok + attn_out)
+        y = self.tcn(tok.transpose(1, 2))  # (B, D, T)
+        pooled = y.mean(dim=-1)
+        return self.out(pooled)
+
+
+class SpectralDecoder(nn.Module):
+    """U2：z_pre → (μ, β) 对数能量（相对未来段真值约束）。"""
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.net = nn.Sequential(
+            nn.Linear(dim, max(32, dim)),
+            nn.GELU(),
+            nn.Linear(max(32, dim), 2),
+        )
+
+    def forward(self, z: torch.Tensor) -> torch.Tensor:
+        return self.net(z)  # (B, 2) → [mu, beta]
+
+
+def _entropy_from_prob(p: torch.Tensor) -> torch.Tensor:
+    """p: (B, C) → H: (B, 1)，自然对数；归一化到约 [0,1]（除 log C）。"""
+    logp = torch.log(p.clamp_min(1e-8))
+    h = -(p * logp).sum(dim=-1, keepdim=True)
+    return h / math.log(float(p.size(-1)))
+
+
 class MaskFutureDualExpert(nn.Module):
     """
     输入 X: (B, 8, T)  T=500(A0) 或 1000(pf)。
@@ -54,6 +121,9 @@ class MaskFutureDualExpert(nn.Module):
         use_expert_future: bool = False,
         use_gate: bool = False,
         use_decoder: bool = False,
+        predictor_temporal: bool = False,
+        use_spectral_decoder: bool = False,
+        gate_entropy: bool = False,
         mask_learnable: bool = False,
         fixed_alpha: float | None = None,
         ema_momentum: float = 0.996,
@@ -65,6 +135,9 @@ class MaskFutureDualExpert(nn.Module):
         self.use_expert_future = use_expert_future
         self.use_gate = use_gate
         self.use_decoder = use_decoder
+        self.predictor_temporal = bool(predictor_temporal)
+        self.use_spectral_decoder = bool(use_spectral_decoder)
+        self.gate_entropy = bool(gate_entropy)
         self.fixed_alpha = fixed_alpha
         self.ema_momentum = float(ema_momentum)
         self.ema_encoder: nn.Module | None = None
@@ -99,22 +172,32 @@ class MaskFutureDualExpert(nn.Module):
 
         d = embed_dim
         self.expert_cur = MLP([d, 64, n_outputs], dropout=0.0)
-        self.predictor = (
-            MLP([d, 2 * d, d], dropout=pred_dropout, end_act=False)
-            if use_predictor
-            else None
-        )
+        if use_predictor:
+            if self.predictor_temporal:
+                self.predictor = TemporalPredictor(d, dropout=pred_dropout)
+            else:
+                self.predictor = MLP([d, 2 * d, d], dropout=pred_dropout, end_act=False)
+        else:
+            self.predictor = None
         self.expert_future = (
             MLP([d, 64, n_outputs], dropout=0.0) if use_expert_future else None
         )
-        self.gate = (
-            nn.Sequential(nn.Linear(2 * d, 64), nn.GELU(), nn.Linear(64, 1))
-            if use_gate
-            else None
-        )
-        self.decoder = (
-            nn.Linear(d, n_chans * 400) if use_decoder else None
-        )
+        if use_gate:
+            gate_in = 2 * d + (2 if self.gate_entropy else 0)
+            self.gate = nn.Sequential(
+                nn.Linear(gate_in, 64), nn.GELU(), nn.Linear(64, 1)
+            )
+        else:
+            self.gate = None
+        # 波形 Decoder（P2）与 Spectral Decoder（U2）互斥优先：spectral 开则不用波形
+        if use_spectral_decoder:
+            self.decoder = None
+            self.spectral_decoder = SpectralDecoder(d)
+        else:
+            self.spectral_decoder = None
+            self.decoder = (
+                nn.Linear(d, n_chans * 400) if use_decoder else None
+            )
         self.mask_token = (
             nn.Parameter(torch.zeros(1, n_chans, 400)) if mask_learnable else None
         )
@@ -138,15 +221,23 @@ class MaskFutureDualExpert(nn.Module):
         for bs, bt in zip(self.encoder.buffers(), self.ema_encoder.buffers()):
             bt.copy_(bs)
 
-    def _pool_segments(self, feat: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
-        # feat: (B, D, T', 1) → (B, D, T')
+    def _feat_bt(self, feat: torch.Tensor) -> torch.Tensor:
         if feat.ndim == 4:
             feat = feat.squeeze(-1)
+        return feat
+
+    def _pool_segments(self, feat: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor | None]:
+        # feat: (B, D, T', 1) → (B, D, T')
+        feat = self._feat_bt(feat)
         z_vis = feat[:, :, self.i_vis].mean(dim=-1)
         z_fut = None
         if self.i_fut:
             z_fut = feat[:, :, self.i_fut].mean(dim=-1)
         return z_vis, z_fut
+
+    def _vis_sequence(self, feat: torch.Tensor) -> torch.Tensor:
+        feat = self._feat_bt(feat)
+        return feat[:, :, self.i_vis]  # (B, D, T_vis)
 
     def make_mask(self, x_full: torch.Tensor) -> torch.Tensor:
         x = x_full.clone()
@@ -178,7 +269,10 @@ class MaskFutureDualExpert(nn.Module):
 
         z_pre = None
         if self.predictor is not None:
-            z_pre = self.predictor(z_vis)
+            if self.predictor_temporal:
+                z_pre = self.predictor(self._vis_sequence(feat_m))
+            else:
+                z_pre = self.predictor(z_vis)
             out["z_pre_future"] = z_pre
 
         if (
@@ -226,7 +320,15 @@ class MaskFutureDualExpert(nn.Module):
             else:
                 out["p_final"] = alpha * p_cur + (1.0 - alpha) * p_future
         elif self.gate is not None and z_pre is not None and p_future is not None:
-            alpha = torch.sigmoid(self.gate(torch.cat([z_vis, z_pre], dim=-1)))
+            if self.gate_entropy:
+                h_cur = _entropy_from_prob(p_cur)
+                h_fut = _entropy_from_prob(p_future)
+                g_in = torch.cat([z_vis, z_pre, h_cur, h_fut], dim=-1)
+                out["H_cur"] = h_cur
+                out["H_future"] = h_fut
+            else:
+                g_in = torch.cat([z_vis, z_pre], dim=-1)
+            alpha = torch.sigmoid(self.gate(g_in))
             out["alpha"] = alpha
             out["p_final"] = alpha * p_cur + (1.0 - alpha) * p_future
         else:
@@ -235,5 +337,7 @@ class MaskFutureDualExpert(nn.Module):
         if self.decoder is not None and z_pre is not None:
             x_hat = self.decoder(z_pre).view(x_mask.size(0), -1, 400)
             out["x_hat_future"] = x_hat
+        if self.spectral_decoder is not None and z_pre is not None:
+            out["band_hat"] = self.spectral_decoder(z_pre)  # (B, 2)
 
         return out

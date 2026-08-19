@@ -37,6 +37,8 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 | B1–B10 | 相对 P1 消融（B5→B5a/B5b） |
 | **P2** | **主结果**（+Decoder，对齐训练图） |
 | C1–C2c | 相对 P2 消融 |
+| U1 / U2 / U3 | 相对 P2 结构升级（时间 Predictor / Spectral Decoder / Gate 熵）；默认不进 chain |
+| U12 / U13 / U123 | U 组合附报；默认不进 chain；计划顺序 **U13→U12→U123** |
 | L1 / A1_600 | 默认不进自动 chain |
 
 ## 一键全链（5090）
@@ -59,6 +61,7 @@ python chain_all.py --from P1
 ```powershell
 python chain_all.py --max-folds 1
 python run_arm.py --arm P1 --dry-run
+python _smoke_local.py   # 含 U1–U3 与 U12/U13/U123
 ```
 
 单臂：
@@ -66,6 +69,13 @@ python run_arm.py --arm P1 --dry-run
 ```powershell
 python run_arm.py --arm A0 --max-folds 0
 python run_arm.py --arm P2 --max-folds 0
+python run_arm.py --arm U13 --max-folds 0
+```
+
+U 组合附报链（需本机有 `run_with_mem_guard.ps1` 时可改用 5060 姊妹脚本；5090 亦提供 `run_u_combo_chain_guarded.ps1`）：
+
+```powershell
+powershell -File .\run_u_combo_chain_guarded.ps1 -FromArm U13 -MaxFolds 0 -NoConsole
 ```
 
 ## 前置条件

@@ -51,13 +51,16 @@ from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
 
 
 class WinDS(Dataset):
-    def __init__(self, x_full, x_mask, y, trial_id, subjects, idx):
+    """x_mask 可为 None：则从 x_full 现场零填 future400（省一份 ~5.6GB mmap 页缓存）。"""
+
+    def __init__(self, x_full, x_mask, y, trial_id, subjects, idx, *, mask_future_pts: int = 0):
         self.xf = x_full
         self.xm = x_mask
         self.y = y
         self.tid = trial_id
         self.subjects = subjects
         self.idx = np.asarray(idx, dtype=np.int64)
+        self.mask_future_pts = int(mask_future_pts)
 
     def __len__(self):
         return len(self.idx)
@@ -66,7 +69,12 @@ class WinDS(Dataset):
         j = int(self.idx[i])
         # copy=True：mmap/只读视图 → 可写缓冲，避免 non-writable tensor 警告
         xf = torch.from_numpy(np.array(self.xf[j], dtype=np.float32, copy=True))
-        xm = torch.from_numpy(np.array(self.xm[j], dtype=np.float32, copy=True))
+        if self.xm is None:
+            xm = xf.clone()
+            if self.mask_future_pts > 0:
+                xm[..., -self.mask_future_pts :] = 0
+        else:
+            xm = torch.from_numpy(np.array(self.xm[j], dtype=np.float32, copy=True))
         if xf.ndim == 2 and xf.shape[0] in (500, 600, 1000):
             # (T,C) → (C,T)
             xf = xf.T.contiguous()
@@ -180,6 +188,9 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
         use_expert_future=arm.use_expert_future,
         use_gate=arm.use_gate,
         use_decoder=arm.use_decoder,
+        predictor_temporal=arm.predictor_temporal,
+        use_spectral_decoder=arm.use_spectral_decoder,
+        gate_entropy=arm.gate_entropy,
         mask_learnable=arm.mask_learnable,
         fixed_alpha=arm.fixed_alpha,
         ema_momentum=hp.ema_momentum,
@@ -187,13 +198,18 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
 
 
 def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
+    """返回 (x_full, x_mask|None, y, subjects, trial_id, n_times, mask_future_pts)。
+
+    pf 臂只 mmap 一份 X_full；X_mask 在 Dataset 里现场零填，避免双路页缓存打满 16GB。
+    """
+    mask_future_pts = 0
     if arm.data == "a0":
         raw = load_arrays(hp.data_tag_a0)
         if "X_full" in raw:
             x_full = to_bct(raw["X_full"])
         else:
             x_full = to_bct(raw["X"])
-        x_mask = x_full  # A0 无 future mask
+        x_mask = x_full  # A0 无 future mask（同引用，不复制）
         n_times = int(x_full.shape[-1])
         if n_times != hp.n_times_a0:
             raise RuntimeError(f"A0 期望 T={hp.n_times_a0}，得到 {x_full.shape}")
@@ -201,26 +217,23 @@ def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
         raw = load_arrays(hp.data_tag_pf)
         if "X_full" in raw:
             x_full = to_bct(raw["X_full"])
-            if "X_mask" in raw:
-                x_mask = to_bct(raw["X_mask"])
-            else:
-                x_mask = x_full.copy()
-                x_mask[..., -400:] = 0
-        else:
+        elif "X" in raw:
             x_full = to_bct(raw["X"])
-            if x_full.shape[-1] != 1000 and not arm.a1_600:
-                raise RuntimeError(
-                    f"pf 数据末维应为 1000，得到 {x_full.shape}；请先跑新预处理臂"
-                )
-            x_mask = x_full.copy()
-            if x_full.shape[-1] >= 1000:
-                x_mask[..., -400:] = 0
+        else:
+            raise RuntimeError(f"pf 数据缺少 X_full/X: {raw.get('dir')}")
+        # 故意不加载 X_mask mmap（~5.6GB）；训练时现场零填 future
+        x_mask = None
+        mask_future_pts = 400
         n_times = 600 if arm.a1_600 else int(x_full.shape[-1])
+        if n_times != 1000 and not arm.a1_600:
+            raise RuntimeError(
+                f"pf 数据末维应为 1000，得到 {x_full.shape}；请先跑新预处理臂"
+            )
 
     y = np.asarray(raw["y_three"], dtype=np.int64)
     subjects = np.asarray(raw["subjects"])
     trial_id = np.asarray(raw["trial_id"], dtype=np.int64)
-    return x_full, x_mask, y, subjects, trial_id, n_times
+    return x_full, x_mask, y, subjects, trial_id, n_times, mask_future_pts
 
 
 def run_pf_kfold(
@@ -229,18 +242,31 @@ def run_pf_kfold(
     hp: SharedTrainHP | None = None,
     max_folds: int = 0,
     out_root: Path | None = None,
+    resume_dir: Path | None = None,
 ) -> dict:
     assert_default_map()
     hp = hp or SHARED
-    x_full, x_mask, y, subjects, trial_id, n_times = _load_xy(arm, hp)
+    x_full, x_mask, y, subjects, trial_id, n_times, mask_future_pts = _load_xy(arm, hp)
     # Three 协议固定 3 类标签空间（0/1/2）；与 baselines three 头一致
     n_outputs = max(3, int(y.max()) + 1)
     n_classes = 3 if n_outputs >= 3 else 2
 
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
-    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    run_dir = (out_root or (OUT_ROOT / OUT_ROOT_TAG)) / f"{stamp}_{arm.arm_id}"
-    run_dir.mkdir(parents=True, exist_ok=True)
+    if resume_dir is not None:
+        run_dir = Path(resume_dir)
+        if not run_dir.is_dir():
+            raise FileNotFoundError(f"resume_dir 不存在: {run_dir}")
+        print(f"[{arm.arm_id}] resume {run_dir}", flush=True)
+    else:
+        stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+        run_dir = (out_root or (OUT_ROOT / OUT_ROOT_TAG)) / f"{stamp}_{arm.arm_id}"
+        run_dir.mkdir(parents=True, exist_ok=True)
+    print(
+        f"[{arm.arm_id}] load n={len(y)} T={n_times} "
+        f"mask={'onfly' if x_mask is None else 'array'} "
+        f"future_pts={mask_future_pts} device={device}",
+        flush=True,
+    )
 
     # §3.2.1 future 扰动（仅 1000pt 臂；失败停训）
     if n_times >= 1000 and not arm.a1_600:
@@ -264,14 +290,25 @@ def run_pf_kfold(
         fold_i = int(info["fold"])
         if fold_i >= max_folds_n:
             break
+        prev = run_dir / f"fold{fold_i}" / "metrics.json"
+        if prev.is_file():
+            row = json.loads(prev.read_text(encoding="utf-8"))
+            fold_rows.append(row)
+            print(
+                f"[{arm.arm_id}] fold{fold_i} skip (resume) "
+                f"test_AccPaper={float(row.get('test_acc_paper', float('nan'))):.4f}",
+                flush=True,
+            )
+            continue
         tr_idx = np.where(info["masks"]["train"])[0]
         va_idx = np.where(info["masks"]["val"])[0]
         te_idx = np.where(info["masks"]["test"])[0]
 
         y_tr = y[tr_idx]
-        ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx)
-        ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx)
-        ds_te = WinDS(x_full, x_mask, y, trial_id, subjects, te_idx)
+        ds_kw = dict(mask_future_pts=mask_future_pts)
+        ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx, **ds_kw)
+        ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx, **ds_kw)
+        ds_te = WinDS(x_full, x_mask, y, trial_id, subjects, te_idx, **ds_kw)
         dl_kw = dict(
             num_workers=hp.num_workers,
             pin_memory=hp.pin_memory,

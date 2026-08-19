@@ -122,10 +122,8 @@ def load_arrays(tag: str, *, require_three: bool = True) -> dict:
     xf = data_dir / f"{prefix}_X_full.npy"
     x0 = data_dir / f"{prefix}_X.npy"
     if xf.is_file():
+        # 只 mmap X_full；X_mask 由训练环现场零填 future，避免双路页缓存打满 16GB
         out["X_full"] = np.load(xf, mmap_mode="r")
-        xm = data_dir / f"{prefix}_X_mask.npy"
-        if xm.is_file():
-            out["X_mask"] = np.load(xm, mmap_mode="r")
     elif x0.is_file():
         out["X"] = np.load(x0, mmap_mode="r")
     else:

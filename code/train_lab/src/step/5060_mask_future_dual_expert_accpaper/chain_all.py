@@ -78,7 +78,7 @@ def main() -> None:
     p.add_argument(
         "--max-folds",
         type=int,
-        default=0,
+        default=1,
         help="传给每臂；默认 1=fold0；0=五折（本机慎用）",
     )
     p.add_argument("--num-workers", type=int, default=-1)
