@@ -28,7 +28,7 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 
 ## 臂一览
 
-与 5090 相同：`A0_ref` / `A0` / `A1` / `P0` / `A2` / `P1` / `B*` / **`P2`** / `C*` / `U*` / `L1`。
+与 5090 相同：`A0_ref` / `A0` / `A1` / `P0` / `A2` / `P1` / `B*` / **`P2`** / `C*` / `U*` / **`T1`/`T1_aux`/`T1_128`** / `L1`。
 
 ## 推荐启动（5060）
 
@@ -56,7 +56,12 @@ powershell -File .\run_u_chain_guarded.ps1 -FromArm U1 -MaxFolds 0 -NoConsole
 
 # U 组合附报五折（U13→U12→U123；可 -SkipU123 只跑前两臂）
 powershell -File .\run_u_combo_chain_guarded.ps1 -FromArm U13 -MaxFolds 0 -NoConsole
-python run_arm.py --arm U13 --max-folds 0 --num-workers 0
+
+# T 系列 v2（T1→T1_aux→T1_128 · 默认 fold0 冒烟）
+python _smoke_local.py
+python run_arm.py --arm T1 --dry-run
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 1
+powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -NoConsole   # 正式五折
 
 # 无看门狗的完整消融链
 python chain_all.py --full-chain

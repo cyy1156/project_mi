@@ -4,6 +4,13 @@ U 系列开关（相对 P2，默认关）：
   - predictor_temporal：Z_vis 序列 → Temporal Attention + TCN → z_pre
   - use_spectral_decoder：z_pre → μ/β（无 8×400 波形重建）
   - gate_entropy：Gate([z_vis, z_pre, H(p_cur), H(p_future)])
+
+T 系列开关（相对 P2，默认关）：
+  - predictor_query：Future Query + Cross-Attn → Z_pre (B,L_fut,D)
+  - pred_token_seq：L_pred 对齐 token 序列（非 mean 向量）
+  - phase_conditioning：Query += E_phase(metadata 查表)
+  - phase_aux：Future token phase 辅助 CE（T1-aux）
+  - expert_attn_pool：Expert 用 AttentionPool 而非 mean
 """
 from __future__ import annotations
 
@@ -17,6 +24,7 @@ import torch.nn.functional as F
 
 from _paths import SELF_MODEL
 from feat_index import segment_indices
+from phase_lookup import N_PHASE, future_phase_ids_fast
 
 if str(SELF_MODEL) not in sys.path:
     sys.path.insert(0, str(SELF_MODEL))
@@ -80,6 +88,67 @@ class TemporalPredictor(nn.Module):
         return self.out(pooled)
 
 
+class AttentionPool(nn.Module):
+    """(B, L, D) → (B, D) 可学习 query 加权池化。"""
+
+    def __init__(self, dim: int):
+        super().__init__()
+        self.q = nn.Parameter(torch.zeros(1, 1, int(dim)))
+        nn.init.normal_(self.q, std=0.02)
+
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        # x: (B, L, D)
+        logits = (x * self.q).sum(dim=-1)  # (B, L)
+        w = torch.softmax(logits, dim=-1)
+        return (x * w.unsqueeze(-1)).sum(dim=1)
+
+
+class QueryFuturePredictor(nn.Module):
+    """T1：Q_future = E_pos (+ E_phase) → CrossAttn(H_vis) → Z_pre (B, L_fut, D)。"""
+
+    def __init__(
+        self,
+        dim: int,
+        n_fut: int,
+        *,
+        use_phase: bool = True,
+        n_phase: int = N_PHASE,
+        dropout: float = 0.3,
+        n_heads: int = 4,
+    ):
+        super().__init__()
+        self.dim = int(dim)
+        self.n_fut = int(n_fut)
+        heads = n_heads
+        while heads > 1 and self.dim % heads != 0:
+            heads -= 1
+        self.pos_emb = nn.Embedding(self.n_fut, self.dim)
+        self.phase_emb = (
+            nn.Embedding(int(n_phase), self.dim) if use_phase else None
+        )
+        self.cross = nn.MultiheadAttention(
+            self.dim, heads, dropout=dropout, batch_first=True
+        )
+        self.norm = nn.LayerNorm(self.dim)
+        self.out = nn.Linear(self.dim, self.dim)
+
+    def forward(
+        self,
+        h_vis: torch.Tensor,
+        phase_ids: torch.Tensor | None = None,
+    ) -> torch.Tensor:
+        # h_vis: (B, L_vis, D)
+        b = h_vis.size(0)
+        device = h_vis.device
+        pos = torch.arange(self.n_fut, device=device).unsqueeze(0).expand(b, -1)
+        q = self.pos_emb(pos)
+        if self.phase_emb is not None and phase_ids is not None:
+            q = q + self.phase_emb(phase_ids)
+        attn_out, _ = self.cross(q, h_vis, h_vis, need_weights=False)
+        tok = self.norm(attn_out + q)
+        return self.out(tok)
+
+
 class SpectralDecoder(nn.Module):
     """U2：z_pre → (μ, β) 对数能量（相对未来段真值约束）。"""
 
@@ -124,6 +193,11 @@ class MaskFutureDualExpert(nn.Module):
         predictor_temporal: bool = False,
         use_spectral_decoder: bool = False,
         gate_entropy: bool = False,
+        predictor_query: bool = False,
+        pred_token_seq: bool = False,
+        phase_conditioning: bool = False,
+        phase_aux: bool = False,
+        expert_attn_pool: bool = False,
         mask_learnable: bool = False,
         fixed_alpha: float | None = None,
         ema_momentum: float = 0.996,
@@ -138,6 +212,11 @@ class MaskFutureDualExpert(nn.Module):
         self.predictor_temporal = bool(predictor_temporal)
         self.use_spectral_decoder = bool(use_spectral_decoder)
         self.gate_entropy = bool(gate_entropy)
+        self.predictor_query = bool(predictor_query)
+        self.pred_token_seq = bool(pred_token_seq)
+        self.phase_conditioning = bool(phase_conditioning)
+        self.phase_aux = bool(phase_aux)
+        self.expert_attn_pool = bool(expert_attn_pool)
         self.fixed_alpha = fixed_alpha
         self.ema_momentum = float(ema_momentum)
         self.ema_encoder: nn.Module | None = None
@@ -171,14 +250,27 @@ class MaskFutureDualExpert(nn.Module):
             self.i_vis, self.i_fut = list(range(self.t_prime)), []
 
         d = embed_dim
+        n_fut = len(self.i_fut) if self.i_fut else 1
+        self.attn_pool_vis = AttentionPool(d) if expert_attn_pool else None
+        self.attn_pool_pre = AttentionPool(d) if expert_attn_pool else None
         self.expert_cur = MLP([d, 64, n_outputs], dropout=0.0)
         if use_predictor:
-            if self.predictor_temporal:
+            if self.predictor_query:
+                self.predictor = QueryFuturePredictor(
+                    d,
+                    n_fut,
+                    use_phase=phase_conditioning,
+                    dropout=pred_dropout,
+                )
+            elif self.predictor_temporal:
                 self.predictor = TemporalPredictor(d, dropout=pred_dropout)
             else:
                 self.predictor = MLP([d, 2 * d, d], dropout=pred_dropout, end_act=False)
         else:
             self.predictor = None
+        self.phase_head = (
+            nn.Linear(d, N_PHASE) if (phase_aux and use_predictor) else None
+        )
         self.expert_future = (
             MLP([d, 64, n_outputs], dropout=0.0) if use_expert_future else None
         )
@@ -239,6 +331,27 @@ class MaskFutureDualExpert(nn.Module):
         feat = self._feat_bt(feat)
         return feat[:, :, self.i_vis]  # (B, D, T_vis)
 
+    def _fut_sequence(self, feat: torch.Tensor) -> torch.Tensor | None:
+        if not self.i_fut:
+            return None
+        feat = self._feat_bt(feat)
+        return feat[:, :, self.i_fut]  # (B, D, T_fut)
+
+    def _seq_to_tokens(self, z_seq: torch.Tensor) -> torch.Tensor:
+        """(B, D, L) → (B, L, D)。"""
+        return z_seq.transpose(1, 2).contiguous()
+
+    def _read_vis(self, feat: torch.Tensor) -> torch.Tensor:
+        h = self._seq_to_tokens(self._vis_sequence(feat))
+        if self.attn_pool_vis is not None:
+            return self.attn_pool_vis(h)
+        return h.mean(dim=1)
+
+    def _read_pre(self, z_pre_seq: torch.Tensor) -> torch.Tensor:
+        if self.attn_pool_pre is not None:
+            return self.attn_pool_pre(z_pre_seq)
+        return z_pre_seq.mean(dim=1)
+
     def make_mask(self, x_full: torch.Tensor) -> torch.Tensor:
         x = x_full.clone()
         if self.n_times < 1000:
@@ -254,13 +367,18 @@ class MaskFutureDualExpert(nn.Module):
         x_mask: torch.Tensor,
         x_full: torch.Tensor | None = None,
         *,
+        t0_sec: torch.Tensor | None = None,
+        y: torch.Tensor | None = None,
         no_grad_target: bool = True,
         ema_target: bool = False,
         train_mode: bool = True,
     ) -> dict[str, torch.Tensor]:
         out: dict[str, torch.Tensor] = {}
         feat_m = self.encoder.forward_features(x_mask)
-        z_vis, _ = self._pool_segments(feat_m)
+        if self.predictor_query or self.expert_attn_pool:
+            z_vis = self._read_vis(feat_m)
+        else:
+            z_vis, _ = self._pool_segments(feat_m)
         out["z_mask_vis"] = z_vis
         logits_cur = self.expert_cur(z_vis)
         out["logits_cur"] = logits_cur
@@ -268,12 +386,35 @@ class MaskFutureDualExpert(nn.Module):
         out["p_cur"] = p_cur
 
         z_pre = None
+        z_pre_seq = None
+        phase_ids = None
         if self.predictor is not None:
-            if self.predictor_temporal:
+            if self.predictor_query:
+                h_vis = self._seq_to_tokens(self._vis_sequence(feat_m))
+                if (
+                    self.phase_conditioning
+                    and t0_sec is not None
+                    and y is not None
+                    and self.i_fut
+                ):
+                    phase_ids = future_phase_ids_fast(
+                        t0_sec.float(),
+                        y,
+                        self.i_fut,
+                        n_times=self.n_times,
+                        t_prime=self.t_prime,
+                    )
+                    out["phase_ids"] = phase_ids
+                z_pre_seq = self.predictor(h_vis, phase_ids)
+                out["z_pre_future_seq"] = z_pre_seq
+                z_pre = self._read_pre(z_pre_seq)
+            elif self.predictor_temporal:
                 z_pre = self.predictor(self._vis_sequence(feat_m))
             else:
                 z_pre = self.predictor(z_vis)
             out["z_pre_future"] = z_pre
+            if self.phase_head is not None and z_pre_seq is not None and phase_ids is not None:
+                out["phase_logits"] = self.phase_head(z_pre_seq)
 
         if (
             train_mode
@@ -284,20 +425,26 @@ class MaskFutureDualExpert(nn.Module):
             if ema_target:
                 if self.ema_encoder is None:
                     raise RuntimeError("ema_target=True 但未 init_ema_encoder()")
-                with torch.no_grad():
-                    feat_f = self.ema_encoder.forward_features(x_full)
-                    _, z_tgt = self._pool_segments(feat_f)
-                out["target_detached"] = True
+                enc_f = self.ema_encoder
+                detached = True
             elif no_grad_target:
-                with torch.no_grad():
-                    feat_f = self.encoder.forward_features(x_full)
-                    _, z_tgt = self._pool_segments(feat_f)
-                out["target_detached"] = True
+                enc_f = self.encoder
+                detached = True
             else:
-                # B2：target 路可回传（losses 侧不再强制 detach）
-                feat_f = self.encoder.forward_features(x_full)
+                enc_f = self.encoder
+                detached = False
+            out["target_detached"] = detached
+            if detached:
+                with torch.no_grad():
+                    feat_f = enc_f.forward_features(x_full)
+            else:
+                feat_f = enc_f.forward_features(x_full)
+            if self.pred_token_seq and self.i_fut:
+                z_tgt_seq = self._seq_to_tokens(self._fut_sequence(feat_f))
+                out["z_target_future_seq"] = z_tgt_seq
+                z_tgt = z_tgt_seq.mean(dim=1)
+            else:
                 _, z_tgt = self._pool_segments(feat_f)
-                out["target_detached"] = False
             if z_tgt is not None:
                 out["z_target_future"] = z_tgt
 

@@ -30,6 +30,7 @@ def compute_losses(
     dec_no_psd: bool = False,
     dec_no_mubeta: bool = False,
     dec_no_time: bool = False,
+    lambda_phase: float = 0.0,
 ) -> tuple[torch.Tensor, dict[str, float]]:
     parts: list[torch.Tensor] = []
     meta: dict[str, float] = {}
@@ -53,6 +54,18 @@ def compute_losses(
 
     if (
         lambda_pred > 0
+        and "z_pre_future_seq" in out
+        and "z_target_future_seq" in out
+    ):
+        z_tgt = out["z_target_future_seq"]
+        if out.get("target_detached", True):
+            z_tgt = z_tgt.detach()
+        l_pred = F.mse_loss(out["z_pre_future_seq"], z_tgt)
+        parts.append(lambda_pred * l_pred)
+        meta["l_pred"] = float(l_pred.detach())
+        meta["l_pred_token"] = float(l_pred.detach())
+    elif (
+        lambda_pred > 0
         and "z_pre_future" in out
         and "z_target_future" in out
     ):
@@ -63,6 +76,21 @@ def compute_losses(
         l_pred = F.mse_loss(out["z_pre_future"], z_tgt)
         parts.append(lambda_pred * l_pred)
         meta["l_pred"] = float(l_pred.detach())
+
+    if (
+        lambda_phase > 0
+        and "phase_logits" in out
+        and "phase_ids" in out
+    ):
+        # (B, L, C) vs (B, L)
+        logits = out["phase_logits"]
+        tgt = out["phase_ids"]
+        l_ph = F.cross_entropy(
+            logits.reshape(-1, logits.size(-1)),
+            tgt.reshape(-1),
+        )
+        parts.append(lambda_phase * l_ph)
+        meta["l_phase"] = float(l_ph.detach())
 
     if use_sigreg and lambda_sig > 0 and sigreg is not None and "z_mask_vis" in out:
         l_sig = sigreg(out["z_mask_vis"])
