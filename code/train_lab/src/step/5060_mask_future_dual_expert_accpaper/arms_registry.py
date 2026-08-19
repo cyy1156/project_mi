@@ -20,6 +20,11 @@ class ArmSpec:
     predictor_temporal: bool = False  # U1
     use_spectral_decoder: bool = False  # U2
     gate_entropy: bool = False  # U3
+    predictor_query: bool = False  # T1
+    pred_token_seq: bool = False  # T1
+    phase_conditioning: bool = False  # T1
+    phase_aux: bool = False  # T1-aux
+    expert_attn_pool: bool = False  # T1
     lambda_pred: float | None = None  # None → SHARED
     lambda_sig: float | None = None
     lambda_dec: float | None = None
@@ -333,6 +338,54 @@ ARMS: dict[str, ArmSpec] = {
         lambda_dec=0.2,
         skip_in_auto_chain=True,
     ),
+    # ---- T 系列（v2 · Token + Phase Query Predictor · 相对 P2）----
+    "T1": _a(
+        "T1",
+        "Future Query + Phase(查表) + token L_pred + AttnPool · D=40",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        predictor_query=True,
+        pred_token_seq=True,
+        phase_conditioning=True,
+        expert_attn_pool=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
+    "T1_128": _a(
+        "T1_128",
+        "T1 + embed_dim=128",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        predictor_query=True,
+        pred_token_seq=True,
+        phase_conditioning=True,
+        expert_attn_pool=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+        extra={"embed_dim": 128, "batch_train": 64},
+    ),
+    "T1_aux": _a(
+        "T1_aux",
+        "T1 + phase 辅助 CE",
+        use_predictor=True,
+        use_expert_future=True,
+        use_gate=True,
+        use_sigreg=True,
+        use_decoder=True,
+        predictor_query=True,
+        pred_token_seq=True,
+        phase_conditioning=True,
+        phase_aux=True,
+        expert_attn_pool=True,
+        lambda_dec=0.2,
+        skip_in_auto_chain=True,
+    ),
 }
 
 
@@ -368,6 +421,9 @@ U_SERIES_ORDER: list[str] = ["U1", "U3", "U2"]
 # 组合顺序对齐实验方案 U组合_U12_U13_U123.md
 U_COMBO_ORDER: list[str] = ["U13", "U12", "U123"]
 
+# T 系列 v2（不进 CHAIN_ORDER；run_t_chain_guarded.ps1）
+T_SERIES_ORDER: list[str] = ["T1", "T1_aux", "T1_128"]
+
 
 def assert_u_arm_flags() -> None:
     """启动期自检：组合臂开关与方案/互斥约定一致。"""
@@ -383,6 +439,25 @@ def assert_u_arm_flags() -> None:
         and not u123.use_decoder
     )
     for aid in U_SERIES_ORDER + U_COMBO_ORDER:
+        assert aid in ARMS and ARMS[aid].skip_in_auto_chain
+
+
+def assert_t_arm_flags() -> None:
+    """T 系列开关自检。"""
+    t1 = ARMS["T1"]
+    assert (
+        t1.predictor_query
+        and t1.pred_token_seq
+        and t1.phase_conditioning
+        and t1.expert_attn_pool
+        and not t1.phase_aux
+        and not t1.predictor_temporal
+    )
+    t1a = ARMS["T1_aux"]
+    assert t1a.phase_aux and t1a.predictor_query
+    t128 = ARMS["T1_128"]
+    assert int(t128.extra.get("embed_dim", 0)) == 128
+    for aid in T_SERIES_ORDER:
         assert aid in ARMS and ARMS[aid].skip_in_auto_chain
 
 

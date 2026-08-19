@@ -213,6 +213,80 @@ def main() -> None:
     _smoke_arm("U13", expect_band=False, expect_wave=True, expect_H=True)
     _smoke_arm("U123", expect_band=True, expect_wave=False, expect_H=True)
 
+    # ---- T 系列：Query + Phase + token L_pred + AttnPool ----
+    from arms_registry import assert_t_arm_flags
+
+    assert_t_arm_flags()
+    print("T arm flag assert OK")
+
+    t0 = torch.tensor([0.4, 1.2], dtype=torch.float32)
+    y_mi = torch.tensor([1, 0], dtype=torch.long)  # Left + Rest
+
+    def _smoke_t(arm_id: str, *, expect_phase_aux: bool, embed: int = 40):
+        arm = ARMS[arm_id]
+        m = MaskFutureDualExpert(
+            n_times=1000,
+            n_outputs=3,
+            embed_dim=int(arm.extra.get("embed_dim", embed)),
+            use_predictor=arm.use_predictor,
+            use_expert_future=arm.use_expert_future,
+            use_gate=arm.use_gate,
+            use_decoder=arm.use_decoder,
+            predictor_query=arm.predictor_query,
+            pred_token_seq=arm.pred_token_seq,
+            phase_conditioning=arm.phase_conditioning,
+            phase_aux=arm.phase_aux,
+            expert_attn_pool=arm.expert_attn_pool,
+        )
+        assert m.predictor_query and m.pred_token_seq and m.expert_attn_pool
+        n_fut = len(m.i_fut)
+        o = m(
+            m.make_mask(x),
+            x_full=x,
+            t0_sec=t0,
+            y=y_mi,
+            train_mode=True,
+        )
+        assert "z_pre_future_seq" in o
+        assert o["z_pre_future_seq"].shape == (2, n_fut, m.embed_dim)
+        assert o["z_pre_future"].shape == (2, m.embed_dim)
+        assert "z_target_future_seq" in o
+        assert o["z_target_future_seq"].shape == (2, n_fut, m.embed_dim)
+        assert "phase_ids" in o and o["phase_ids"].shape == (2, n_fut)
+        assert int(o["phase_ids"][1, 0].item()) == 3  # Rest → phase 3
+        assert ("phase_logits" in o) is expect_phase_aux
+        assert "x_hat_future" in o and o["x_hat_future"].shape == (2, 8, 400)
+        loss, meta = compute_losses(
+            o,
+            y_mi,
+            x,
+            lambda_cls=1,
+            lambda_pred=1,
+            lambda_sig=0.05,
+            lambda_dec=0.2,
+            cls_cur=True,
+            cls_final=True,
+            cls_future=False,
+            use_sigreg=True,
+            sigreg=SIGReg(),
+            lambda_phase=0.2 if expect_phase_aux else 0.0,
+        )
+        assert "l_pred_token" in meta
+        if expect_phase_aux:
+            assert "l_phase" in meta
+        loss.backward()
+        print(
+            f"{arm_id} OK",
+            f"D={m.embed_dim}",
+            f"L_fut={n_fut}",
+            f"phase_aux={expect_phase_aux}",
+            f"l_pred={meta.get('l_pred'):.4f}",
+        )
+
+    _smoke_t("T1", expect_phase_aux=False)
+    _smoke_t("T1_aux", expect_phase_aux=True)
+    _smoke_t("T1_128", expect_phase_aux=False, embed=128)
+
     print("forward OK", {k: tuple(v.shape) for k, v in out.items() if hasattr(v, "shape")})
     print("t_prime", m.t_prime, "i_vis", m.i_vis[0], "..", m.i_vis[-1], "i_fut", m.i_fut[0])
 

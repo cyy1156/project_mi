@@ -53,7 +53,18 @@ from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
 class WinDS(Dataset):
     """x_mask 可为 None：则从 x_full 现场零填 future400（省一份 ~5.6GB mmap 页缓存）。"""
 
-    def __init__(self, x_full, x_mask, y, trial_id, subjects, idx, *, mask_future_pts: int = 0):
+    def __init__(
+        self,
+        x_full,
+        x_mask,
+        y,
+        trial_id,
+        subjects,
+        idx,
+        *,
+        mask_future_pts: int = 0,
+        t0_sec=None,
+    ):
         self.xf = x_full
         self.xm = x_mask
         self.y = y
@@ -61,6 +72,7 @@ class WinDS(Dataset):
         self.subjects = subjects
         self.idx = np.asarray(idx, dtype=np.int64)
         self.mask_future_pts = int(mask_future_pts)
+        self.t0_sec = t0_sec
 
     def __len__(self):
         return len(self.idx)
@@ -82,7 +94,8 @@ class WinDS(Dataset):
         y = int(self.y[j])
         tid = int(self.tid[j])
         subj = str(self.subjects[j])
-        return xf, xm, y, tid, subj
+        t0 = float(self.t0_sec[j]) if self.t0_sec is not None else 0.0
+        return xf, xm, y, tid, subj, t0
 
 
 def _collate_win(batch):
@@ -92,7 +105,8 @@ def _collate_win(batch):
     y = torch.tensor([b[2] for b in batch], dtype=torch.long)
     tid = torch.tensor([b[3] for b in batch], dtype=torch.long)
     subj = [b[4] for b in batch]
-    return xf, xm, y, tid, subj
+    t0 = torch.tensor([b[5] for b in batch], dtype=torch.float32)
+    return xf, xm, y, tid, subj, t0
 
 
 def _balanced_sampler(y: np.ndarray) -> WeightedRandomSampler:
@@ -144,14 +158,22 @@ def _eval_split(
     sub_all: list[str] = []
     tid_all: list[int] = []
     for batch in loader:
-        xf, xm, y, tid, subj = batch
+        xf, xm, y, tid, subj, t0 = batch
         xf = xf.to(device, non_blocking=True)
         xm = xm.to(device, non_blocking=True)
+        t0 = t0.to(device, non_blocking=True)
+        y = y.to(device, non_blocking=True)
         if arm.a1_600:
             xf = xf[..., :600]
             xm = xm[..., :600]
         x_in = _resolve_mask_input(model, xf, xm, arm)
-        out = model(x_in, x_full=None, train_mode=False)
+        out = model(
+            x_in,
+            x_full=None,
+            t0_sec=t0,
+            y=y,
+            train_mode=False,
+        )
         pred = out["p_final"].argmax(dim=-1).cpu().numpy().astype(int)
         yt = y.cpu().numpy().astype(int)
         tids = tid.cpu().numpy().astype(np.int64)
@@ -177,11 +199,12 @@ def _eval_split(
 
 
 def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs: int):
+    embed_dim = int(arm.extra.get("embed_dim", hp.embed_dim))
     return MaskFutureDualExpert(
         n_chans=hp.n_chans,
         n_times=n_times,
         n_outputs=n_outputs,
-        embed_dim=hp.embed_dim,
+        embed_dim=embed_dim,
         drop_prob=hp.drop_prob,
         pred_dropout=hp.pred_dropout,
         use_predictor=arm.use_predictor,
@@ -191,6 +214,11 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
         predictor_temporal=arm.predictor_temporal,
         use_spectral_decoder=arm.use_spectral_decoder,
         gate_entropy=arm.gate_entropy,
+        predictor_query=arm.predictor_query,
+        pred_token_seq=arm.pred_token_seq,
+        phase_conditioning=arm.phase_conditioning,
+        phase_aux=arm.phase_aux,
+        expert_attn_pool=arm.expert_attn_pool,
         mask_learnable=arm.mask_learnable,
         fixed_alpha=arm.fixed_alpha,
         ema_momentum=hp.ema_momentum,
@@ -198,7 +226,7 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
 
 
 def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
-    """返回 (x_full, x_mask|None, y, subjects, trial_id, n_times, mask_future_pts)。
+    """返回 (x_full, x_mask|None, y, subjects, trial_id, t0_sec|None, n_times, mask_future_pts)。
 
     pf 臂只 mmap 一份 X_full；X_mask 在 Dataset 里现场零填，避免双路页缓存打满 16GB。
     """
@@ -233,7 +261,10 @@ def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
     y = np.asarray(raw["y_three"], dtype=np.int64)
     subjects = np.asarray(raw["subjects"])
     trial_id = np.asarray(raw["trial_id"], dtype=np.int64)
-    return x_full, x_mask, y, subjects, trial_id, n_times, mask_future_pts
+    t0_sec = raw.get("t0_sec")
+    if t0_sec is not None:
+        t0_sec = np.asarray(t0_sec, dtype=np.float32)
+    return x_full, x_mask, y, subjects, trial_id, t0_sec, n_times, mask_future_pts
 
 
 def run_pf_kfold(
@@ -246,7 +277,13 @@ def run_pf_kfold(
 ) -> dict:
     assert_default_map()
     hp = hp or SHARED
-    x_full, x_mask, y, subjects, trial_id, n_times, mask_future_pts = _load_xy(arm, hp)
+    x_full, x_mask, y, subjects, trial_id, t0_sec, n_times, mask_future_pts = _load_xy(
+        arm, hp
+    )
+    if arm.predictor_query and t0_sec is None:
+        raise RuntimeError(
+            f"[{arm.arm_id}] T 系列需要 pf1000 的 openbmi_t0_sec.npy；请重跑 preprocess"
+        )
     # Three 协议固定 3 类标签空间（0/1/2）；与 baselines three 头一致
     n_outputs = max(3, int(y.max()) + 1)
     n_classes = 3 if n_outputs >= 3 else 2
@@ -305,7 +342,7 @@ def run_pf_kfold(
         te_idx = np.where(info["masks"]["test"])[0]
 
         y_tr = y[tr_idx]
-        ds_kw = dict(mask_future_pts=mask_future_pts)
+        ds_kw = dict(mask_future_pts=mask_future_pts, t0_sec=t0_sec)
         ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx, **ds_kw)
         ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx, **ds_kw)
         ds_te = WinDS(x_full, x_mask, y, trial_id, subjects, te_idx, **ds_kw)
@@ -356,6 +393,7 @@ def run_pf_kfold(
         lam_pred = hp.lambda_pred if arm.lambda_pred is None else float(arm.lambda_pred)
         lam_sig = hp.lambda_sig if arm.lambda_sig is None else float(arm.lambda_sig)
         lam_dec = hp.lambda_dec if arm.lambda_dec is None else float(arm.lambda_dec)
+        lam_phase = float(arm.extra.get("lambda_phase", 0.2 if arm.phase_aux else 0.0))
 
         best_score = -1.0
         best_val_bal_maj = -1.0
@@ -366,9 +404,10 @@ def run_pf_kfold(
         ep = -1
         for ep in range(hp.max_epochs):
             model.train()
-            for xf, xm, yy, _tid, _subj in dl_tr:
+            for xf, xm, yy, _tid, _subj, t0 in dl_tr:
                 xf = xf.to(device, non_blocking=True)
                 xm = xm.to(device, non_blocking=True)
+                t0 = t0.to(device, non_blocking=True)
                 if arm.a1_600:
                     xf = xf[..., :600]
                     xm = xm[..., :600]
@@ -379,6 +418,8 @@ def run_pf_kfold(
                     out = model(
                         x_in,
                         x_full=None if arm.data == "a0" else xf,
+                        t0_sec=t0,
+                        y=yy,
                         no_grad_target=arm.no_grad_target,
                         ema_target=arm.ema_target,
                         train_mode=True,
@@ -399,6 +440,7 @@ def run_pf_kfold(
                         dec_no_psd=bool(arm.extra.get("dec_no_psd")),
                         dec_no_mubeta=bool(arm.extra.get("dec_no_mubeta")),
                         dec_no_time=bool(arm.extra.get("dec_no_time")),
+                        lambda_phase=lam_phase,
                     )
                 scaler.scale(loss).backward()
                 scaler.step(opt)

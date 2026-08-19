@@ -183,6 +183,10 @@ def main() -> None:
         from arms_registry import assert_u_arm_flags
 
         assert_u_arm_flags()
+    if arm.arm_id.startswith("T"):
+        from arms_registry import assert_t_arm_flags
+
+        assert_t_arm_flags()
     if args.dry_run:
         d = {k: getattr(arm, k) for k in arm.__dataclass_fields__}
         print(json.dumps(d, ensure_ascii=False, indent=2, default=str))
@@ -227,6 +231,10 @@ def main() -> None:
         repl["patience"] = args.patience
     if args.batch_train > 0:
         repl["batch_train"] = args.batch_train
+    if "embed_dim" in arm.extra:
+        repl["embed_dim"] = int(arm.extra["embed_dim"])
+    if "batch_train" in arm.extra and args.batch_train <= 0:
+        repl["batch_train"] = int(arm.extra["batch_train"])
     if repl:
         hp = replace(hp, **repl)
 
