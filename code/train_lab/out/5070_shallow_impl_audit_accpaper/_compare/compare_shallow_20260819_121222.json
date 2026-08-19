@@ -1,0 +1,109 @@
+{
+  "stamp": "20260819_121222",
+  "config": {
+    "n_chans": 8,
+    "n_times": 500,
+    "n_outputs": 3,
+    "drop_prob": 0.5,
+    "self_attn": null
+  },
+  "A_static": {
+    "lib_params": 17163,
+    "self_params": 17163,
+    "params_equal": true,
+    "lib_state_keys": [
+      "conv_time_spat.conv_time.weight",
+      "conv_time_spat.conv_time.bias",
+      "conv_time_spat.conv_spat.weight",
+      "bnorm.weight",
+      "bnorm.bias",
+      "bnorm.running_mean",
+      "bnorm.running_var",
+      "bnorm.num_batches_tracked",
+      "final_layer.conv_classifier.weight",
+      "final_layer.conv_classifier.bias"
+    ],
+    "self_state_keys": [
+      "conv_time.conv.weight",
+      "conv_time.conv.bias",
+      "conv_spat.conv.weight",
+      "bnorm.weight",
+      "bnorm.bias",
+      "bnorm.running_mean",
+      "bnorm.running_var",
+      "bnorm.num_batches_tracked",
+      "final_layer.conv_classifier.weight",
+      "final_layer.conv_classifier.bias"
+    ],
+    "key_map": {
+      "conv_time_spat.conv_time.weight": "conv_time.conv.weight",
+      "conv_time_spat.conv_time.bias": "conv_time.conv.bias",
+      "conv_time_spat.conv_spat.weight": "conv_spat.conv.weight",
+      "bnorm.weight": "bnorm.weight",
+      "bnorm.bias": "bnorm.bias",
+      "bnorm.running_mean": "bnorm.running_mean",
+      "bnorm.running_var": "bnorm.running_var",
+      "bnorm.num_batches_tracked": "bnorm.num_batches_tracked",
+      "final_layer.conv_classifier.weight": "final_layer.conv_classifier.weight",
+      "final_layer.conv_classifier.bias": "final_layer.conv_classifier.bias"
+    }
+  },
+  "B1_independent_random": {
+    "logit_max_abs": 9.85136604309082,
+    "logit_mean_abs": 6.276641845703125,
+    "prob_max_abs": 0.8533426523208618,
+    "prob_mean_abs": 0.5297083258628845,
+    "shape_lib": [
+      4,
+      3
+    ],
+    "shape_self": [
+      4,
+      3
+    ]
+  },
+  "B2_weight_copied": {
+    "copy_missing": [],
+    "forward": {
+      "logit_max_abs": 1.430511474609375e-06,
+      "logit_mean_abs": 6.668269634246826e-07,
+      "prob_max_abs": 2.384185791015625e-07,
+      "prob_mean_abs": 1.0368724900899906e-07,
+      "shape_lib": [
+        4,
+        3
+      ],
+      "shape_self": [
+        4,
+        3
+      ]
+    },
+    "feature_shapes": {
+      "lib_after_conv_block": [
+        4,
+        40,
+        476,
+        1
+      ],
+      "self_after_conv_spat": [
+        4,
+        40,
+        476,
+        1
+      ]
+    }
+  },
+  "B3_grad_smoke": {
+    "lib_grad_norm": 7.018814865184608,
+    "self_grad_norm": 6.68445612992947,
+    "ratio_self_over_lib": 0.9523625082471321,
+    "loss_lib": 1.2433223724365234,
+    "loss_self": 1.1797949075698853
+  },
+  "verdict": {
+    "A_params_match": true,
+    "B2_numerically_equivalent": true,
+    "B2_logit_max_abs": 1.430511474609375e-06,
+    "recommendation": "等价：可用手写 S0 替换 braindecode L0（训练环一致前提下）"
+  }
+}
