@@ -34,13 +34,26 @@ from src.common.steps.split_subjects import iter_subject_kfold  # noqa: E402
 
 
 class WinDS(Dataset):
-    def __init__(self, x_full, x_mask, y, trial_id, subjects, idx):
+    def __init__(
+        self,
+        x_full,
+        x_mask,
+        y,
+        trial_id,
+        subjects,
+        idx,
+        *,
+        mask_future_pts: int = 0,
+        t0_sec=None,
+    ):
         self.xf = x_full
         self.xm = x_mask
         self.y = y
         self.tid = trial_id
         self.subjects = subjects
         self.idx = np.asarray(idx, dtype=np.int64)
+        self.mask_future_pts = int(mask_future_pts)
+        self.t0_sec = t0_sec
 
     def __len__(self):
         return len(self.idx)
@@ -48,17 +61,27 @@ class WinDS(Dataset):
     def __getitem__(self, i):
         j = int(self.idx[i])
         xf = torch.from_numpy(np.asarray(self.xf[j], dtype=np.float32))
-        xm = torch.from_numpy(np.asarray(self.xm[j], dtype=np.float32))
+        if self.xm is None:
+            xm = xf.clone()
+            if self.mask_future_pts > 0:
+                xm[..., -self.mask_future_pts :] = 0
+        else:
+            xm = torch.from_numpy(np.asarray(self.xm[j], dtype=np.float32))
         if xf.ndim == 2 and xf.shape[0] in (500, 600, 1000):
             xf = xf.T.contiguous()
             xm = xm.T.contiguous()
-        return (
-            xf,
-            xm,
-            int(self.y[j]),
-            int(self.tid[j]),
-            str(self.subjects[j]),
-        )
+        t0 = float(self.t0_sec[j]) if self.t0_sec is not None else 0.0
+        return xf, xm, int(self.y[j]), int(self.tid[j]), str(self.subjects[j]), t0
+
+
+def _collate_win(batch):
+    xf = torch.stack([b[0] for b in batch], dim=0)
+    xm = torch.stack([b[1] for b in batch], dim=0)
+    y = torch.tensor([b[2] for b in batch], dtype=torch.long)
+    tid = torch.tensor([b[3] for b in batch], dtype=torch.long)
+    subj = [b[4] for b in batch]
+    t0 = torch.tensor([b[5] for b in batch], dtype=torch.float32)
+    return xf, xm, y, tid, subj, t0
 
 
 def _loader_hp(hp: SharedTrainHP) -> SharedTrainHP:
@@ -128,14 +151,21 @@ def _eval_split(
     """返回 (trial_metrics, window_metrics)。"""
     model.eval()
     ys, ps, subs, tids = [], [], [], []
-    for xf, xm, y, tid, subj in loader:
+    for xf, xm, y, tid, subj, t0 in loader:
         xf = xf.to(device, non_blocking=True)
         xm = xm.to(device, non_blocking=True)
+        t0 = t0.to(device, non_blocking=True)
         if arm.a1_600:
             xf = xf[..., :600]
             xm = xm[..., :600]
         x_in = _resolve_mask_input(model, xf, xm, arm)
-        out = model(x_in, x_full=None, train_mode=False)
+        out = model(
+            x_in,
+            x_full=None,
+            t0_sec=t0,
+            y=y.to(device),
+            train_mode=False,
+        )
         pred = out["p_final"].argmax(dim=-1).cpu().numpy()
         ys.append(y.numpy())
         ps.append(pred)
@@ -169,12 +199,14 @@ def _run_train_epoch(
     lam_pred: float,
     lam_sig: float,
     lam_dec: float,
+    lam_phase: float = 0.0,
 ) -> float:
     model.train()
     total, n = 0.0, 0
-    for xf, xm, yy, _tid, _subj in loader:
+    for xf, xm, yy, _tid, _subj, t0 in loader:
         xf = xf.to(device, non_blocking=True)
         xm = xm.to(device, non_blocking=True)
+        t0 = t0.to(device, non_blocking=True)
         if arm.a1_600:
             xf = xf[..., :600]
             xm = xm[..., :600]
@@ -185,6 +217,8 @@ def _run_train_epoch(
             out = model(
                 x_in,
                 x_full=None if arm.data == "a0" else xf,
+                t0_sec=t0,
+                y=yy,
                 no_grad_target=arm.no_grad_target,
                 ema_target=arm.ema_target,
                 train_mode=True,
@@ -205,6 +239,7 @@ def _run_train_epoch(
                 dec_no_psd=bool(arm.extra.get("dec_no_psd")),
                 dec_no_mubeta=bool(arm.extra.get("dec_no_mubeta")),
                 dec_no_time=bool(arm.extra.get("dec_no_time")),
+                lambda_phase=lam_phase,
             )
         scaler.scale(loss).backward()
         scaler.step(opt)
@@ -244,11 +279,12 @@ def _log_line(log_path: Path, msg: str) -> None:
 
 
 def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs: int):
+    embed_dim = int(arm.extra.get("embed_dim", hp.embed_dim))
     return MaskFutureDualExpert(
         n_chans=hp.n_chans,
         n_times=n_times,
         n_outputs=n_outputs,
-        embed_dim=hp.embed_dim,
+        embed_dim=embed_dim,
         drop_prob=hp.drop_prob,
         pred_dropout=hp.pred_dropout,
         use_predictor=arm.use_predictor,
@@ -258,6 +294,11 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
         predictor_temporal=arm.predictor_temporal,
         use_spectral_decoder=arm.use_spectral_decoder,
         gate_entropy=arm.gate_entropy,
+        predictor_query=arm.predictor_query,
+        pred_token_seq=arm.pred_token_seq,
+        phase_conditioning=arm.phase_conditioning,
+        phase_aux=arm.phase_aux,
+        expert_attn_pool=arm.expert_attn_pool,
         mask_learnable=arm.mask_learnable,
         fixed_alpha=arm.fixed_alpha,
         ema_momentum=hp.ema_momentum,
@@ -298,7 +339,11 @@ def _load_xy(arm: ArmSpec, hp: SharedTrainHP):
     y = np.asarray(raw["y_three"], dtype=np.int64)
     subjects = np.asarray(raw["subjects"])
     trial_id = np.asarray(raw["trial_id"], dtype=np.int64)
-    return x_full, x_mask, y, subjects, trial_id, n_times, raw.get("meta") or {}
+    t0_sec = raw.get("t0_sec")
+    if t0_sec is not None:
+        t0_sec = np.asarray(t0_sec, dtype=np.float32)
+    mask_future_pts = 400 if arm.data == "pf" and not arm.a1_600 else 0
+    return x_full, x_mask, y, subjects, trial_id, t0_sec, n_times, mask_future_pts, raw.get("meta") or {}
 
 
 def run_pf_kfold(
@@ -310,7 +355,11 @@ def run_pf_kfold(
 ) -> dict:
     assert_default_map()
     hp = _loader_hp(hp or SHARED)
-    x_full, x_mask, y, subjects, trial_id, n_times, data_meta = _load_xy(arm, hp)
+    x_full, x_mask, y, subjects, trial_id, t0_sec, n_times, mask_future_pts, data_meta = _load_xy(arm, hp)
+    if arm.predictor_query and t0_sec is None:
+        raise RuntimeError(
+            f"[{arm.arm_id}] T 系列需要 pf1000 的 openbmi_t0_sec.npy；请重跑 preprocess"
+        )
     # Three 协议固定 3 类头（0/1/2）；与 Acc_paper baselines three 一致
     n_outputs = max(3, int(y.max()) + 1)
     n_classes = 3
@@ -370,19 +419,21 @@ def run_pf_kfold(
         )
 
         y_tr = y[tr_idx]
-        ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx)
-        ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx)
-        ds_te = WinDS(x_full, x_mask, y, trial_id, subjects, te_idx)
+        ds_kw = dict(mask_future_pts=mask_future_pts, t0_sec=t0_sec)
+        ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx, **ds_kw)
+        ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx, **ds_kw)
+        ds_te = WinDS(x_full, x_mask, y, trial_id, subjects, te_idx, **ds_kw)
         dl_kw = dict(
             num_workers=hp.num_workers,
             pin_memory=hp.pin_memory,
             persistent_workers=hp.num_workers > 0,
+            collate_fn=_collate_win,
         )
         if hp.num_workers > 0:
             dl_kw["prefetch_factor"] = hp.prefetch_factor
         dl_tr = DataLoader(
             ds_tr,
-            batch_size=hp.batch_train,
+            batch_size=batch_train,
             sampler=_balanced_sampler(y_tr),
             **dl_kw,
         )
@@ -406,6 +457,8 @@ def run_pf_kfold(
         lam_pred = hp.lambda_pred if arm.lambda_pred is None else float(arm.lambda_pred)
         lam_sig = hp.lambda_sig if arm.lambda_sig is None else float(arm.lambda_sig)
         lam_dec = hp.lambda_dec if arm.lambda_dec is None else float(arm.lambda_dec)
+        lam_phase = float(arm.extra.get("lambda_phase", 0.2 if arm.phase_aux else 0.0))
+        batch_train = int(arm.extra.get("batch_train", hp.batch_train))
 
         best_score = -1.0
         best_state = None
@@ -430,6 +483,7 @@ def run_pf_kfold(
                 lam_pred=lam_pred,
                 lam_sig=lam_sig,
                 lam_dec=lam_dec,
+                lam_phase=lam_phase,
             )
             val_trial, val_win = _eval_split(
                 model, dl_va, device, arm, n_classes=n_classes
