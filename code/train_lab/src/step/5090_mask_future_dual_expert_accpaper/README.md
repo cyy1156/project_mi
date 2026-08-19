@@ -72,9 +72,13 @@ python run_arm.py --arm P2 --max-folds 0
 python run_arm.py --arm U13 --max-folds 0
 ```
 
-U 组合附报链（需本机有 `run_with_mem_guard.ps1` 时可改用 5060 姊妹脚本；5090 亦提供 `run_u_combo_chain_guarded.ps1`）：
+U 组合附报链（路径相对本包；5090 请 `conda activate cyy`，勿用 5060 的 `D:\cyy\MI` 脚本）：
 
 ```powershell
+conda activate cyy
+cd code/train_lab/src/step/5090_mask_future_dual_expert_accpaper
+python run_arm.py --arm U13 --max-folds 0
+# 或
 powershell -File .\run_u_combo_chain_guarded.ps1 -FromArm U13 -MaxFolds 0 -NoConsole
 ```
 
