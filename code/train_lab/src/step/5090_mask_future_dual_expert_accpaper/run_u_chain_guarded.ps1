@@ -16,7 +16,8 @@ param(
 )
 
 $ErrorActionPreference = "Continue"
-$WorkDir = "D:\cyy\MI\code\train_lab\src\step\5090_mask_future_dual_expert_accpaper"
+# 禁止写死 D:\cyy\MI：5090 机为 F:\Cyy\MI，一律相对本脚本
+$WorkDir = $PSScriptRoot
 $State = Join-Path $WorkDir "u_chain_guarded_state.json"
 $ChainLog = Join-Path $WorkDir "u_chain_guarded.log"
 $PidFile = Join-Path $WorkDir "u_chain_guarded.pid"

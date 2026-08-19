@@ -4,19 +4,31 @@
 # 默认弹出可见控制台窗口（Tee 同步写日志）；后台静默加 -NoConsole。
 param(
   [Parameter(Mandatory = $true)][string]$Arm,
-  [string]$ExtraArgs = "--max-folds 1 --num-workers 0",
-  [double]$MaxProcVirtGB = 0,   # 0 = auto
-  [double]$MaxProcWsGB = 0,     # 0 = auto
+  [string]$ExtraArgs = "--max-folds 0 --num-workers 0",
+  [double]$MaxProcVirtGB = 0,   # 0 = auto（5090 默认高档，勿用 5060 的 40G）
+  [double]$MaxProcWsGB = 0,     # 0 = auto（5090 勿用 5060 的 14G）
   [double]$MinSysFreeGB = 0.20,
   [double]$MaxSysCommitGB = 0,  # 0 = auto
   [int]$TimeoutSec = 43200,     # 12h / arm
-  [string]$WorkDir = "D:\cyy\MI\code\train_lab\src\step\5090_mask_future_dual_expert_accpaper",
+  [string]$WorkDir = "",
   [switch]$NoConsole
 )
 
 $ErrorActionPreference = "Continue"
-$py = "D:\cyy\MI\.venv\Scripts\python.exe"
-$logDir = "D:\cyy\MI\code\train_lab\out\_ab_mem"
+if ([string]::IsNullOrWhiteSpace($WorkDir)) { $WorkDir = $PSScriptRoot }
+
+# 仓库根 = .../step/pkg → 上 5 级到 MI（与 run_chain_detached.bat 一致）
+$RepoRoot = (Resolve-Path (Join-Path $WorkDir "..\..\..\..\..")).Path
+$TrainLab = (Resolve-Path (Join-Path $WorkDir "..\..\..")).Path
+# 5090：优先 PATH 上的 python（conda activate cyy），再回退仓库 .venv
+$py = $null
+$cmdPy = Get-Command python -EA SilentlyContinue
+if ($cmdPy -and $cmdPy.Source) { $py = $cmdPy.Source }
+$venvPy = Join-Path $RepoRoot ".venv\Scripts\python.exe"
+if (-not $py -and (Test-Path $venvPy)) { $py = $venvPy }
+if (-not $py) { $py = "python" }
+
+$logDir = Join-Path $TrainLab "out\_ab_mem"
 New-Item -ItemType Directory -Force -Path $logDir | Out-Null
 $stamp = Get-Date -Format "yyyyMMdd_HHmmss"
 $label = "guarded17_$Arm"
@@ -73,11 +85,11 @@ if ($MaxSysCommitGB -le 0) {
     $MaxSysCommitGB = [math]::Max(10.0, $cLimit0 - 1.2)
   }
 }
-if ($MaxProcVirtGB -le 0) { $MaxProcVirtGB = 40.0 }
-if ($MaxProcWsGB -le 0) { $MaxProcWsGB = 14.0 }
+if ($MaxProcVirtGB -le 0) { $MaxProcVirtGB = 96.0 }
+if ($MaxProcWsGB -le 0) { $MaxProcWsGB = 64.0 }
 $canGrow = ($cfgMaxMb -gt 0) -and (($allocMb + 512) -lt $cfgMaxMb)
-if ($free0 -lt 3.0) {
-  "REFUSE: free_phys=${free0}G < 3.0G (commit_limit=${cLimit0}G)" | Tee-Object $summary
+if ($free0 -lt 1.0) {
+  "REFUSE: free_phys=${free0}G < 1.0G (commit_limit=${cLimit0}G)" | Tee-Object $summary
   exit 3
 }
 "INFO: commit_limit=${cLimit0}G alloc_pf=${allocMb}MB cfg_max_pf=${cfgMaxMb}MB can_grow=$canGrow caps proc<=${MaxProcVirtGB}G sys<=${MaxSysCommitGB}G show_console=$(-not $NoConsole)" |

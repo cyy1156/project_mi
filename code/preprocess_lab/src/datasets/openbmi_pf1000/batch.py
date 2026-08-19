@@ -29,6 +29,7 @@ from src.datasets.openbmi_pf1000.pipeline import (
 )
 
 _PREPROCESS_ROOT = Path(__file__).resolve().parents[3]
+_REPO_ROOT = _PREPROCESS_ROOT.parent.parent  # .../code/preprocess_lab → MI
 FULL_KEYS = (
     "X_full",
     "X_mask",
@@ -373,13 +374,23 @@ def run_batch(
         merge_shards(out_dir)
 
 
+def _default_mat_glob() -> str:
+    """相对仓库 DATA/，兼容 5090 两层与 5060 三层；禁止写死 D:\\cyy\\MI。"""
+    pattern = "sess*_subj*_EEG_MI.mat"
+    two = _REPO_ROOT / "DATA" / "openbmi" / "openbmi" / pattern
+    three = _REPO_ROOT / "DATA" / "openbmi" / "openbmi" / "openbmi" / pattern
+    if glob.glob(str(two)):
+        return str(two)
+    if glob.glob(str(three)):
+        return str(three)
+    return str(two)
+
+
 def main() -> None:
     p = argparse.ArgumentParser(description="OpenBMI pf1000 shard 预处理")
     p.add_argument(
         "--glob",
-        default=str(
-            Path("D:/cyy/MI/DATA/openbmi/openbmi/openbmi") / "sess*_subj*_EEG_MI.mat"
-        ),
+        default=_default_mat_glob(),
     )
     p.add_argument(
         "--out",

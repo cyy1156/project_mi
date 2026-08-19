@@ -30,7 +30,11 @@ THREE_LABELS = {0, 1, 2}
 
 
 def resolve_data_dir(tag: str) -> tuple[Path, str]:
-    """返回 (dir, npy_prefix)。"""
+    """返回 (dir, npy_prefix)。
+
+    路径相对本仓库 `code/preprocess_lab/out/<tag>/`（`_paths.PRE` 由 __file__ 推导）。
+    5090 机即 `F:\\Cyy\\MI\\code\\preprocess_lab\\out\\...`，勿写死 `D:\\cyy\\MI`。
+    """
     tag = tag.strip().lower()
     if tag == DATA_TAG_A0:
         return PRE / "out" / DATA_TAG_A0, "openbmi"
