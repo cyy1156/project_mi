@@ -419,6 +419,7 @@ def run_pf_kfold(
         )
 
         y_tr = y[tr_idx]
+        batch_train = int(arm.extra.get("batch_train", hp.batch_train))
         ds_kw = dict(mask_future_pts=mask_future_pts, t0_sec=t0_sec)
         ds_tr = WinDS(x_full, x_mask, y, trial_id, subjects, tr_idx, **ds_kw)
         ds_va = WinDS(x_full, x_mask, y, trial_id, subjects, va_idx, **ds_kw)
@@ -458,7 +459,6 @@ def run_pf_kfold(
         lam_sig = hp.lambda_sig if arm.lambda_sig is None else float(arm.lambda_sig)
         lam_dec = hp.lambda_dec if arm.lambda_dec is None else float(arm.lambda_dec)
         lam_phase = float(arm.extra.get("lambda_phase", 0.2 if arm.phase_aux else 0.0))
-        batch_train = int(arm.extra.get("batch_train", hp.batch_train))
 
         best_score = -1.0
         best_state = None
