@@ -24,7 +24,7 @@ def main() -> None:
     p = argparse.ArgumentParser(description="T-series chain (v2 Token+Phase Predictor)")
     p.add_argument("--from", dest="from_arm", default="", help="断点续跑，如 T1_aux")
     p.add_argument("--max-folds", type=int, default=0, help="0=五折；1=fold0")
-    p.add_argument("--num-workers", type=int, default=0)
+    p.add_argument("--num-workers", type=int, default=2)
     p.add_argument("--skip-t1-128", action="store_true")
     args = p.parse_args()
 
