@@ -253,7 +253,16 @@ def main() -> None:
         assert "z_target_future_seq" in o
         assert o["z_target_future_seq"].shape == (2, n_fut, m.embed_dim)
         assert "phase_ids" in o and o["phase_ids"].shape == (2, n_fut)
-        assert int(o["phase_ids"][1, 0].item()) == 3  # Rest → phase 3
+        # 同 t0、不同 y → phase 必须一致（无 Rest 标签侧信道）
+        o2 = m(
+            m.make_mask(x),
+            x_full=x,
+            t0_sec=t0,
+            y=torch.tensor([2, 2], dtype=torch.long),
+            train_mode=True,
+        )
+        assert torch.equal(o["phase_ids"], o2["phase_ids"])
+        assert int(o["phase_ids"].max().item()) <= 2  # N_PHASE=3
         assert ("phase_logits" in o) is expect_phase_aux
         assert "x_hat_future" in o and o["x_hat_future"].shape == (2, 8, 400)
         loss, meta = compute_losses(
