@@ -391,15 +391,10 @@ class MaskFutureDualExpert(nn.Module):
         if self.predictor is not None:
             if self.predictor_query:
                 h_vis = self._seq_to_tokens(self._vis_sequence(feat_m))
-                if (
-                    self.phase_conditioning
-                    and t0_sec is not None
-                    and y is not None
-                    and self.i_fut
-                ):
+                if self.phase_conditioning and t0_sec is not None and self.i_fut:
+                    # Phase 仅时间几何；不得传入 y（Rest 标签侧信道）
                     phase_ids = future_phase_ids_fast(
                         t0_sec.float(),
-                        y,
                         self.i_fut,
                         n_times=self.n_times,
                         t_prime=self.t_prime,

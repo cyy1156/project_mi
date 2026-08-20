@@ -1,8 +1,8 @@
 # 基于掩码未来表征预测与双专家门控融合的在线 MI-EEG 分类定稿方案
 
-> 版本：v1.11（v1.10 方法冻结 + **5090 B/C 实证回填** + v2 迭代方向）  
+> 版本：v1.13（v1.12 U 回填 + **T 系列 Phase 反泄漏契约**）  
 > 日期：2026-08-20  
-> 定位：面向在线流式推理的窗级运动想象分类；训练可访问未来真值，推理严格无未来泄漏。  
+> 定位：面向在线流式推理的窗级运动想象分类；训练可访问未来真值，推理严格无未来泄漏、**无类别标签侧信道**。  
 > **主数据：OpenBMI**（`openbmi_2s_hop100`，sess01+02；250 Hz / 8 导 / 当前窗 2 s / hop 100 ms），在此基础上扩展 past/future 切片。  
 > 排版说明：独立公式一律使用双美元定界符；行内符号尽量用代码记号（如 `X_mask`）。  
 > **配置立场**：方法默认已冻结（见 §3 / §10）；对照、消融、扫描**全部必做**，见 `实验方案/`；选模口径见 [`协议_滑窗投票与Acc_paper.md`](./实验方案/协议_滑窗投票与Acc_paper.md)。
@@ -50,12 +50,22 @@
 
 | 项目 | 训练 | 在线推理 |
 |------|------|----------|
-| `X_mask` | ✅ | ✅（唯一输入） |
+| `X_mask` | ✅ | ✅（唯一 EEG 输入） |
 | `X_full` | ✅（仅 target 支路） | ❌ |
 | Decoder / `L_dec` | ✅ **仅 P2** | ❌ |
 | 全部损失 / SIGReg 损失 | ✅（按方案开关） | ❌ |
 | Predictor / 双专家 / Gate | ✅（P1/P2；P0/A2 无双专家） | ✅（同左，无损失） |
 | 未来真实波形 | 可读 | 不可读 |
+| **类别标签 `y_three`** | ✅（仅 CE 监督） | ❌（**不得**进 Encoder / Predictor / Gate / Phase） |
+| **Phase 条件（T 系列）** | ✅ 仅允许 **时间几何**（见 §17.4.1） | ✅ **同左**；禁止用 `y` 查表 |
+
+**反泄漏补充（v1.13）**：
+
+1. **Future 波形泄漏**：禁止从 Future EEG 估计任何条件（含 Phase）。  
+2. **标签侧信道**：禁止把真实 `y_three`（含 Rest=0）写入 Phase / Query / Gate 输入。  
+   - 旧实现若 `y==0 → phase_id=3（rest 专用桶）`，等于把「是否 Rest」提前喂给网络，**三分类 Acc_paper 不可信**。  
+   - Left/Right 共用 onset/sustain/offset 时虽不泄左右，但 Rest 专用桶仍泄 **Rest vs Task**。  
+3. 允许的元数据：`t0_sec`、窗几何、相对 cue 的采样时刻（范式时钟，不依赖类别答案）。
 
 ---
 
@@ -604,6 +614,7 @@ $$
 | v1.10 | 2026-08-16 | **训练仅 past+cur+future 齐全窗**（保证有真 future）；Acc_paper 可含无 future 尾窗 |
 | v1.11 | 2026-08-20 | **5090 B/C 全消融回填**（§16）；跨机 5060/5090 对照；**v2 迭代采纳清单**（§17）；C2a 附报；λ_pred 扫描升优先级 |
 | v1.12 | 2026-08-20 | **5090 U 系列全量回填**（§16.1/16.4）；结果登记表补全 B/C/U；U13≈A1 附报 |
+| v1.13 | 2026-08-20 | **T 系列 Phase 反泄漏**：§1.3 / §17 禁止 `y→phase`（尤其 Rest 专用桶）；Phase 仅时间几何；修订 T1/T1_aux 验收与代码契约 |
 
 ---
 
@@ -791,7 +802,7 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 4. P2 波形 Decoder 对 Test 均值贡献有限（C1≈P2）；5060 上主要贡献是跨折稳定性；时域 MSE 是 Decoder 关键子项（C2c）。
 5. 5090 附报：去 PSD 的 C2a（0.5758）略优于 P2；Oracle B9 提示表征头上限约 +0.5 pp。
 6. U 系列：5090 最佳 U13≈A1（0.5753），5060 组合为负；均未突破 A1 天花板，不替换主表。
-7. 下一步见 §17 v2（λ_pred / C2a-5060 / T1 Token+Phase）。
+7. 下一步见 §17 v2（λ_pred / C2a-5060 / **无标签侧信道的** T1 Token+Phase）。
 ```
 
 ---
@@ -799,6 +810,7 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 ## 17. v2 迭代方向（基于 v1.10 + 5090/5060 实证修订）
 
 > **原则**：保留 v1.x 在线契约与 P2 训练图骨架；**不**用 Multi-Scale TCN+Transformer 替换 Shallow 主线；**不**再堆 U 组合（U12/U13/U123 5060 已负）。  
+> **v1.13 追加**：T 系列 Phase **不得**依赖 `y_three`（见 §1.3、§17.4.1）；旧 `y→rest 桶` 实现视为泄漏，结果不得进主表。  
 > 详细机制分析见 [`分析_为何U系列模块未提升.md`](./分析_为何U系列模块未提升.md)。
 
 ### 17.1 实证支持的保留项（v2 不动）
@@ -824,6 +836,7 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 | learnable mask token | B8 略负 | **维持全零 mask** |
 | EMA target | B10 无增益 | **维持 no_grad** |
 | 换 TCN+Transformer 骨干 | 未实证；A1 已封顶浅骨干 | **远期 L1 对照，非 v2 主线** |
+| **`y→phase`（含 Rest 专用桶）** | **标签侧信道**（§1.3） | **禁止**；已跑结果降为污染对照 |
 
 ### 17.3 v2 优先实验臂（按 ROI 排序）
 
@@ -832,21 +845,36 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 | **P0** | **L1-λ** | `λ_pred ∈ {0.25,0.5,1,2}` | B1 证 L_pred 必要；5060 P0/A2 val 被压 → **当前 λ=1 可能过强** | Val/Test Acc_paper ≥ A1；std ≤ P2 |
 | **P0** | **C2a-5060** | P2 去 PSD 项 | 5090 C2a=0.5758 最高非 oracle | 两机 C2a 一致则附报/候选 v2 默认 |
 | **P1** | **L1-D128** | `Linear(40→128)` 投影后再 Expert/Predictor | D=40 读出封顶（5060 分析 §3.3） | mean ≥ A1 且 std ≤ P2 |
-| **P1** | **T1** | Token 序列 Predictor + Future Query + Phase conditioning；`L_pred` 对齐 **token 序列**（非单向量）；Expert 改 **AttnPool** 读 future tokens | U1 失败因 mean-pool 截断时间信息；B9 头上限 +0.5 pp → 需改 **表征读出** 而非堆 Gate | mean **稳定** &gt; A1；fold1 不崩 |
-| **P2** | **T1-aux** | Phase token 辅助分类（cue 相位 / trial 内相对位置） | 类条件辅助，减轻 fold1 多任务抢梯度 | fold1 Δ vs T1 改善 |
+| **P1** | **T1** | Token 序列 Predictor + Future Query + **时间几何 Phase**（**不用 `y`**）；`L_pred` 对齐 token 序列；Expert **AttnPool** | U1 失败因 mean-pool 截断时间信息；B9 头上限 +0.5 pp → 改读出而非堆 Gate | mean **稳定** &gt; A1；fold1 不崩；**Phase 无 `y` 依赖** |
+| **P2** | **T1_aux** | 对 **时间几何 phase_id** 做辅助 CE（**目标不是类别**） | 稳定相位读出，减轻 fold1 抢梯度 | fold1 Δ vs T1 改善；目标分布 **不得** 由 `y` 决定 |
 | **P3** | L1 Gate z+p | Gate 输入加概率 | 原 L1 必做；B5b 后降为附报 | 附报 |
 | **P3** | EEGNet/Deep4 骨干 | L1 对照 | 公平性 | 附报 |
 
 ### 17.4 T1 结构要点（相对 v1.x 的最小可行升级）
 
-在 **不破坏在线契约** 前提下，T1 相对 P2 仅改 **读出与 Predictor 接口**：
+在 **不破坏在线契约（含反标签侧信道）** 前提下，T1 相对 P2 仅改 **读出与 Predictor 接口**：
 
 1. **Encoder 输出**：`Z_mask ∈ R^{B×D×T'}` 经 §3.2.1 切分后，**可见段保留 token 序列** `H_vis ∈ R^{B×L_vis×D}`（不再先 mean-pool 再 Predictor）。
-2. **Future Query Predictor**：`Q_future ∈ R^{B×L_fut×D}`（可学习 query 或均匀相位编码）+ 轻量 Cross-Attn：`H_pre = Attn(Q_future, H_vis)`。
+2. **Future Query Predictor**：`Q_future ∈ R^{B×L_fut×D}`（可学习 query + **时间几何**相位编码）+ 轻量 Cross-Attn：`H_pre = Attn(Q_future, H_vis)`。
 3. **L_pred**：`‖H_pre − sg(H_target)‖`（token 级 MSE 或 cosine），**替代** 单向量 MSE。
 4. **Expert_future**：`AttnPool(H_pre) → p_future`；**Expert_cur** 仍可读 `mean(H_vis)` 或 AttnPool(H_vis)。
-5. **Phase conditioning**（T1-aux）：trial 内相对时间 / cue 相位嵌入加至 `H_vis` 或 Query；辅助 CE 仅训练期。
-6. **损失**：仍 **CE(cur)+CE(final)**（B7）；Decoder 仍接 `pool(H_pre)` 或 last-token 取向量；**λ_pred 用 L1-λ 选定值**。
+5. **Phase conditioning（合法）**：仅用 `t0_sec` + 窗几何得到每个 future token 相对 cue 的时间，映射为 onset/sustain/offset（或更细时间桶）；**Rest 与 MI 共用同一套时间规则**，**不得** `y==0 → 专用 rest 桶`。
+6. **损失**：仍 **CE(cur)+CE(final)**（B7）；Decoder 仍接 `pool(H_pre)` 或 last-token；**λ_pred 用 L1-λ 选定值**。T1_aux 的 phase CE 目标 = 上述 **时间几何 id**，不是 `y_three`。
+
+#### 17.4.1 Phase 查表：合法 vs 泄漏
+
+| 规则 | 合法？ | 说明 |
+|------|--------|------|
+| `t_rel_cue = t0_sec + (sample_idx − 100)/250` → onset/sustain/offset | ✅ | 仅范式时钟 + 窗几何 |
+| Rest / Left / Right **共用**上述时间相位表 | ✅ | 不注入类别 |
+| `y==0 → phase=rest(3)`，MI → 0/1/2 | ❌ | **Rest vs Task 标签侧信道** |
+| 在线推理喂真实 `y_three` 查 Phase | ❌ | 与三分类任务冲突 |
+| 从 Future EEG 估 Phase | ❌ | Future 波形泄漏 |
+| 仅在「已知 trial 类型」子系统报 Left/Right | ⚠️ | 须在文中显式降级为条件指标，不得冒充端到端三分类 |
+
+**旧代码对照**：`phase_lookup.py` 中 `_phase_scalar(y==0→3)` 属 ❌ 行；v2 正式跑数前须改为 **与 `y` 无关** 的时间几何查表（`phase_lookup` 签名去掉 `y`，或忽略 `y`）。
+
+**泄漏机制（答辩可用一句话）**：三分类本应只从 EEG 推断 Rest/Left/Right；若用真实 `y` 选出 Rest 专用 `E_phase` 再喂 Predictor，等于把「是否 Rest」提前写入输入，Acc_paper 含侧信道，不可作主结果。
 
 ### 17.5 v2 论文叙述边界
 
@@ -856,11 +884,12 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 
 **v2 达标后才可写**：
 
-- Token/Phase Predictor「带来提升」；C2a 替代 P2 为默认；D=128 回填主表。
+- Token + **无标签侧信道的** Phase Predictor「带来提升」；C2a 替代 P2 为默认；D=128 回填主表。
 
 **仍不可写**：
 
-- U 系列组合、Gate 熵、Spectral-only Decoder、第三项 CE(p_future) 为有效增益。
+- U 系列组合、Gate 熵、Spectral-only Decoder、第三项 CE(p_future) 为有效增益。  
+- 任何依赖 `y→phase`（含 Rest 专用桶）的 T 臂「证明了模块有效」。
 
 ### 17.6 v2 执行顺序（建议）
 
@@ -868,13 +897,14 @@ A0 → A1 → P0/A2 → P1 → B1–B10 → L1 → P2 → C1–C2
 L1-λ（P0/A2 或 P2 上扫 λ_pred）
   → C2a-5060 复现
   → L1-D128
-  → T1（+ 可选 T1-aux）
+  → 修复 phase_lookup（去 y）后跑 T1
+  → 可选 T1_aux（phase 目标=时间几何 id）
   → 若 T1 未超 A1：停止堆模块，转数据/协议或异步 BCI 侧实验
 ```
 
-**T 系列实验方案（5060 可跑）**：[`实验方案/T系列_Token_PhasePredictor.md`](./实验方案/T系列_Token_PhasePredictor.md)  
-代码臂：`T1` / `T1_aux` / `T1_128` · `run_t_chain_guarded.ps1` · `chain_t_all.py`
+**T 系列实验方案**：[`实验方案/T系列_Token_PhasePredictor.md`](./实验方案/T系列_Token_PhasePredictor.md)（须与 §17.4.1 一致）  
+代码臂：`T1` / `T1_aux` / `T1_128` · `run_t_chain_guarded.ps1` · `chain_t_all.py` · 包路径 `5060`/`5070`/`5090_mask_future_dual_expert_accpaper`
 
 ---
 
-> 方法默认见 §3/§10；**v1.x 实验必做**见 `实验方案/` 与 §13；**实证回填**见 §16；**v2 迭代**见 §17；选模口径以 Acc_paper 协议为准。
+> 方法默认见 §3/§10；**v1.x 实验必做**见 `实验方案/` 与 §13；**实证回填**见 §16；**v2 迭代 / Phase 反泄漏**见 §17；选模口径以 Acc_paper 协议为准。
