@@ -1,0 +1,265 @@
+{
+  "scheme": 19,
+  "arm": "V2_cat",
+  "device": "cuda",
+  "device_label": "NVIDIA GeForce RTX 5070 Laptop",
+  "hp": {
+    "data_tag_mu": "openbmi_2s_hop100_mu813",
+    "data_tag_beta": "openbmi_2s_hop100_beta1330",
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 256,
+    "batch_eval": 512,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "2s-hop100ms-balbatch-accpaper-openbmi-dual-band-shallow subject_key=openbmi:subjNN sess01+02 blocks=EEG_MI_train device=5070",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_times_expected": 500,
+    "no_rap": true,
+    "no_balbatch": false,
+    "openbmi_only": true,
+    "num_workers": 2,
+    "pin_memory": true,
+    "persistent_workers": true,
+    "prefetch_factor": 2,
+    "non_blocking": true,
+    "torch_num_threads": 6,
+    "cudnn_benchmark": true,
+    "deterministic": false,
+    "use_amp": true,
+    "n_filters_branch": 20,
+    "lambda_aux": 0.5,
+    "fuse": "concat"
+  },
+  "v1_ref": {
+    "arm": "V1(=S0)",
+    "source": "18_旁路_手写vs库_ShallowFBCSP",
+    "three_acc_paper": "0.5427±0.0243",
+    "task_acc_paper": "0.6979±0.0356",
+    "run": "run_20260819_162152"
+  },
+  "n_windows": 340200,
+  "data_mu": "D:/MI/code/preprocess_lab/out/openbmi_2s_hop100_mu813",
+  "data_beta": "D:/MI/code/preprocess_lab/out/openbmi_2s_hop100_beta1330",
+  "started": "2026-08-21T18:28:50",
+  "finished": "2026-08-21T19:56:47",
+  "results": {
+    "three": {
+      "arm": "V2_cat",
+      "fuse": "concat",
+      "lambda_aux": 0.5,
+      "n_outputs": 3,
+      "folds": [
+        {
+          "fold": 0,
+          "val_acc_paper": 0.5296296296296297,
+          "test_acc_paper": 0.5245454545454545,
+          "test_loss": 1.554056882335338,
+          "n_params": 10889,
+          "metrics": {
+            "n_trials": 3300,
+            "n_windows": 69300,
+            "acc_paper": 0.5245454545454545,
+            "acc_majority": 0.5403030303030303,
+            "balanced_accuracy": 0.5403030303030304,
+            "f1_macro": 0.5401477563945231,
+            "precision_macro": 0.540416148187682,
+            "recall_macro": 0.5403030303030304,
+            "accuracy_sklearn": 0.5403030303030303,
+            "recall_idle": 0.56,
+            "recall_left": 0.5463636363636364,
+            "recall_right": 0.5145454545454545,
+            "cm": [
+              [
+                616,
+                271,
+                213
+              ],
+              [
+                231,
+                601,
+                268
+              ],
+              [
+                307,
+                227,
+                566
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_dual_band_shallow_accpaper\\20260821_182850_V2_cat\\three\\fold0_best.pt"
+        },
+        {
+          "fold": 1,
+          "val_acc_paper": 0.5348148148148149,
+          "test_acc_paper": 0.5612121212121212,
+          "test_loss": 1.4222806012716471,
+          "n_params": 10889,
+          "metrics": {
+            "n_trials": 3300,
+            "n_windows": 69300,
+            "acc_paper": 0.5612121212121212,
+            "acc_majority": 0.573030303030303,
+            "balanced_accuracy": 0.5730303030303031,
+            "f1_macro": 0.5715570009787974,
+            "precision_macro": 0.5827781986584312,
+            "recall_macro": 0.5730303030303031,
+            "accuracy_sklearn": 0.573030303030303,
+            "recall_idle": 0.5154545454545455,
+            "recall_left": 0.6845454545454546,
+            "recall_right": 0.519090909090909,
+            "cm": [
+              [
+                567,
+                319,
+                214
+              ],
+              [
+                117,
+                753,
+                230
+              ],
+              [
+                181,
+                348,
+                571
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_dual_band_shallow_accpaper\\20260821_182850_V2_cat\\three\\fold1_best.pt"
+        },
+        {
+          "fold": 2,
+          "val_acc_paper": 0.5085185185185185,
+          "test_acc_paper": 0.4984848484848485,
+          "test_loss": 1.5471172570494174,
+          "n_params": 10889,
+          "metrics": {
+            "n_trials": 3300,
+            "n_windows": 69300,
+            "acc_paper": 0.4984848484848485,
+            "acc_majority": 0.5115151515151515,
+            "balanced_accuracy": 0.5115151515151516,
+            "f1_macro": 0.5101415887194927,
+            "precision_macro": 0.5178896291997007,
+            "recall_macro": 0.5115151515151516,
+            "accuracy_sklearn": 0.5115151515151515,
+            "recall_idle": 0.5627272727272727,
+            "recall_left": 0.5445454545454546,
+            "recall_right": 0.42727272727272725,
+            "cm": [
+              [
+                619,
+                283,
+                198
+              ],
+              [
+                340,
+                599,
+                161
+              ],
+              [
+                325,
+                305,
+                470
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_dual_band_shallow_accpaper\\20260821_182850_V2_cat\\three\\fold2_best.pt"
+        },
+        {
+          "fold": 3,
+          "val_acc_paper": 0.5674074074074074,
+          "test_acc_paper": 0.5615151515151515,
+          "test_loss": 1.4475012652629726,
+          "n_params": 10889,
+          "metrics": {
+            "n_trials": 3300,
+            "n_windows": 69300,
+            "acc_paper": 0.5615151515151515,
+            "acc_majority": 0.5790909090909091,
+            "balanced_accuracy": 0.5790909090909091,
+            "f1_macro": 0.5783104759077116,
+            "precision_macro": 0.5863428179405775,
+            "recall_macro": 0.5790909090909091,
+            "accuracy_sklearn": 0.5790909090909091,
+            "recall_idle": 0.51,
+            "recall_left": 0.5718181818181818,
+            "recall_right": 0.6554545454545454,
+            "cm": [
+              [
+                561,
+                264,
+                275
+              ],
+              [
+                166,
+                629,
+                305
+              ],
+              [
+                132,
+                247,
+                721
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_dual_band_shallow_accpaper\\20260821_182850_V2_cat\\three\\fold3_best.pt"
+        },
+        {
+          "fold": 4,
+          "val_acc_paper": 0.4537037037037037,
+          "test_acc_paper": 0.5296666666666666,
+          "test_loss": 1.5263462300906105,
+          "n_params": 10889,
+          "metrics": {
+            "n_trials": 3000,
+            "n_windows": 63000,
+            "acc_paper": 0.5296666666666666,
+            "acc_majority": 0.542,
+            "balanced_accuracy": 0.5419999999999999,
+            "f1_macro": 0.5416513199334411,
+            "precision_macro": 0.542476185344488,
+            "recall_macro": 0.5419999999999999,
+            "accuracy_sklearn": 0.542,
+            "recall_idle": 0.538,
+            "recall_left": 0.579,
+            "recall_right": 0.509,
+            "cm": [
+              [
+                538,
+                239,
+                223
+              ],
+              [
+                235,
+                579,
+                186
+              ],
+              [
+                231,
+                260,
+                509
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_dual_band_shallow_accpaper\\20260821_182850_V2_cat\\three\\fold4_best.pt"
+        }
+      ],
+      "test_acc_paper_mean": 0.5350848484848484,
+      "test_acc_paper_std": 0.023921500025138657,
+      "v1_ref": {
+        "arm": "V1(=S0)",
+        "source": "18_旁路_手写vs库_ShallowFBCSP",
+        "three_acc_paper": "0.5427±0.0243",
+        "task_acc_paper": "0.6979±0.0356",
+        "run": "run_20260819_162152"
+      }
+    }
+  }
+}
