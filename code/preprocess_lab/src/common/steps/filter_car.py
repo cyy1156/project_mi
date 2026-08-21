@@ -47,12 +47,21 @@ def _adaptive_bandpass_kwargs(n_times: int, fs: float) -> dict:
     return {"filter_length": _odd_fir_len_cap(n_times)}
 
 
-def notch_and_bandpass(x: np.ndarray, fs: float) -> np.ndarray:
+def notch_and_bandpass(
+    x: np.ndarray,
+    fs: float,
+    *,
+    l_freq: float = 8.0,
+    h_freq: float = 30.0,
+) -> np.ndarray:
     """
-    Notch 50 Hz + Bandpass 8–30 Hz。
+    Notch 50 Hz + Bandpass（默认 8–30 Hz；方案19 可用 8–13 / 13–30）。
     mne.filter 期望 (n_ch, n_times)，注意转置。
     短试次按信号自适应 FIR 长度（并加宽 notch 过渡带），消除过长警告。
     """
+    lo, hi = float(l_freq), float(h_freq)
+    if not (lo < hi):
+        raise ValueError(f"bandpass requires l_freq < h_freq, got {lo}–{hi}")
     data = x.T  # (n_ch, n_times)
     n_times = int(data.shape[-1])
     notch_kw = _adaptive_notch_kwargs(n_times, fs)
@@ -63,8 +72,8 @@ def notch_and_bandpass(x: np.ndarray, fs: float) -> np.ndarray:
     data = mne.filter.filter_data(
         data,
         sfreq=fs,
-        l_freq=8.0,
-        h_freq=30.0,
+        l_freq=lo,
+        h_freq=hi,
         verbose=False,
         **bp_kw,
     )

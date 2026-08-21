@@ -46,11 +46,13 @@ def preprocess_run_2s_hop100(
     max_rest: int | None = None,
     *,
     zscore: bool = True,
+    l_freq: float = 8.0,
+    h_freq: float = 30.0,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray]:
     """单段连续流 → X (N,1,8,500), y_task, y_three, trial_id（段内从 0 起）。"""
     x = select_channels(eeg.x, eeg.ch_names)
     x = car_reference(x)
-    x = notch_and_bandpass(x, eeg.fs)
+    x = notch_and_bandpass(x, eeg.fs, l_freq=l_freq, h_freq=h_freq)
 
     kept = filter_left_right_events(eeg.events, eeg.artifacts)
 
@@ -126,24 +128,33 @@ def preprocess_file_2s_hop100(
     *,
     add_rest: bool = True,
     zscore: bool = True,
+    l_freq: float = 8.0,
+    h_freq: float = 30.0,
+    protocol: str | None = None,
 ) -> tuple[np.ndarray, np.ndarray, np.ndarray, np.ndarray, np.ndarray, dict]:
     """单 mat（仅 EEG_MI_train 块）→ 切窗；subjects 全为 openbmi:subjNN。"""
     mat_path = Path(mat_path)
     runs = load_openbmi_mat(mat_path)  # 默认 blocks=("EEG_MI_train",)
     xs, yts, y3s, tids, sids = [], [], [], [], []
     tid_offset = 0
-    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+    if protocol is None:
+        protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
     stats = {
         "n_runs": len(runs),
         "n_windows": 0,
         "subject": runs[0].subject if runs else "",
         "protocol": protocol,
         "zscore": bool(zscore),
+        "bandpass_hz": [float(l_freq), float(h_freq)],
         "blocks": ["EEG_MI_train"],
     }
     for eeg in runs:
         X, yt, y3, tid = preprocess_run_2s_hop100(
-            eeg, add_rest=add_rest, zscore=zscore
+            eeg,
+            add_rest=add_rest,
+            zscore=zscore,
+            l_freq=l_freq,
+            h_freq=h_freq,
         )
         if len(yt) == 0:
             continue
