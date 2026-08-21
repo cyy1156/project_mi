@@ -385,6 +385,84 @@ ARMS: dict[str, ArmSpec] = {
         lambda_dec=0.2,
         skip_in_auto_chain=True,
     ),
+    # ---- 21 系列 · LeJEPA 对齐（推理仅 p_cur）----
+    "F_mi_a": _a(
+        "F_mi_a",
+        "21 · MI 内锚点 t0≤1.0 · Predictor 同 A2",
+        use_predictor=True,
+        use_sigreg=True,
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={"scheme21": True, "eval_p_cur": True, "t0_max": 1.0},
+    ),
+    "F_mi_080": _a(
+        "F_mi_080",
+        "21 · pf800_mi080 · future=0.8s · t0≤1.2",
+        use_predictor=True,
+        use_sigreg=True,
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={
+            "scheme21": True,
+            "eval_p_cur": True,
+            "t0_max": 1.2,
+            "pf_mi080": True,
+            "n_times": 800,
+        },
+    ),
+    "A1_800": _a(
+        "A1_800",
+        "21 · pf800 对照 · 无 Predictor",
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={
+            "scheme21": True,
+            "eval_p_cur": True,
+            "t0_max": 1.2,
+            "pf_mi080": True,
+            "n_times": 800,
+        },
+    ),
+    "A2_pt": _a(
+        "A2_pt",
+        "21 · 两阶段 L_pred 预训练 → CE 微调",
+        use_predictor=True,
+        use_sigreg=True,
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={"scheme21": True, "eval_p_cur": True, "two_stage": True},
+    ),
+    "J1_tok": _a(
+        "J1_tok",
+        "21 · 同窗块掩码 JEPA · token L_pred",
+        use_predictor=True,
+        use_sigreg=True,
+        predictor_pos_token=True,
+        pred_token_seq=True,
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={
+            "scheme21": True,
+            "eval_p_cur": True,
+            "inwin_jepa": True,
+            "n_inwin_blocks": 4,
+        },
+    ),
+    "J1_mlp": _a(
+        "J1_mlp",
+        "21 · 同窗 JEPA · MLP 单向量 L_pred",
+        use_predictor=True,
+        use_sigreg=True,
+        cls_final=False,
+        skip_in_auto_chain=True,
+        extra={
+            "scheme21": True,
+            "eval_p_cur": True,
+            "inwin_jepa": True,
+            "n_inwin_blocks": 4,
+            "j1_mlp": True,
+        },
+    ),
 }
 
 
@@ -423,6 +501,10 @@ U_COMBO_ORDER: list[str] = ["U13", "U12", "U123"]
 # T 系列 v3（不进 CHAIN_ORDER；chain_t_all.py / run_t_chain_guarded.ps1）
 T_SERIES_ORDER: list[str] = ["T1", "T1_128"]
 
+# 21 系列（chain_21_all.py / run_21_chain_guarded.ps1）
+SERIES_21_ORDER: list[str] = ["F_mi_a", "F_mi_080", "A2_pt", "J1_tok"]
+SERIES_21_OPTIONAL: list[str] = ["A1_800", "J1_mlp"]
+
 
 def assert_u_arm_flags() -> None:
     """启动期自检：组合臂开关与方案/互斥约定一致。"""
@@ -457,6 +539,24 @@ def assert_t_arm_flags() -> None:
     assert t128.predictor_pos_token and int(t128.extra.get("embed_dim", 0)) == 128
     for aid in T_SERIES_ORDER:
         assert aid in ARMS and ARMS[aid].skip_in_auto_chain
+
+
+def assert_21_arm_flags() -> None:
+    """方案 21：推理仅 p_cur · 无双专家/Decoder。"""
+    for aid in SERIES_21_ORDER + SERIES_21_OPTIONAL:
+        a = ARMS[aid]
+        assert a.extra.get("scheme21")
+        assert not a.use_expert_future and not a.use_gate and not a.use_decoder
+        if aid != "A1_800":
+            assert (
+                a.use_predictor
+                or a.extra.get("inwin_jepa")
+                or a.extra.get("two_stage")
+            )
+    a2 = ARMS["A2_pt"]
+    assert a2.extra.get("two_stage") and a2.use_sigreg
+    j1 = ARMS["J1_tok"]
+    assert j1.extra.get("inwin_jepa") and j1.predictor_pos_token
 
 
 def chain_steps(*, include_skipped: bool = False) -> list[str]:

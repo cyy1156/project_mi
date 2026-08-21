@@ -31,6 +31,7 @@ def assert_future_perturbation(
     i_fut: list[int],
     n_chans: int = 8,
     n_times: int = 1000,
+    future_pts: int | None = None,
     ratio_min: float = 3.0,
     noise_std: float = 1.0,
     seed: int = 0,
@@ -41,11 +42,13 @@ def assert_future_perturbation(
     """
     if not i_fut:
         raise AssertionError("i_fut 为空，无法做 future 扰动检验")
+    if future_pts is None:
+        future_pts = 200 if n_times == 800 else 400
     g = torch.Generator().manual_seed(int(seed))
     x0 = torch.randn(2, n_chans, n_times, generator=g)
     x1 = x0.clone()
-    x1[..., -400:] = x1[..., -400:] + noise_std * torch.randn(
-        2, n_chans, 400, generator=g
+    x1[..., -future_pts:] = x1[..., -future_pts:] + noise_std * torch.randn(
+        2, n_chans, future_pts, generator=g
     )
 
     def _pool(feat: torch.Tensor, idx: list[int]) -> torch.Tensor:

@@ -167,6 +167,6 @@ def to_bct(x: np.ndarray) -> np.ndarray:
             a = a[..., 0]
     if a.ndim != 3:
         raise ValueError(f"expect 3D after squeeze, got {a.shape}")
-    if a.shape[1] in (500, 600, 1000) and a.shape[2] == 8:
+    if a.shape[1] in (500, 600, 800, 1000) and a.shape[2] == 8:
         a = np.transpose(a, (0, 2, 1))
     return a

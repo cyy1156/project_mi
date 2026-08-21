@@ -40,6 +40,8 @@ OpenBMI · Acc_paper · **掩码未来表征预测 + 双专家门控**（定稿�
 | U1 / U2 / U3 | 相对 P2 结构升级（时间 Predictor / Spectral Decoder / Gate 熵）；默认不进 chain |
 | U12 / U13 / U123 | U 组合附报；默认不进 chain；计划顺序 **U13→U12→U123** |
 | **T1 / T1_aux / T1_128** | v2 Token + Phase Query Predictor（相对 P2）；`run_t_chain_guarded.ps1` |
+| **F_mi_a / F_mi_080 / A2_pt / J1_tok** | 方案 21 · LeJEPA 对齐（推理仅 `p_cur`）；`run_21_chain_guarded.ps1` |
+| **A1_800 / J1_mlp** | 方案 21 附报对照 |
 | L1 / A1_600 | 默认不进自动 chain |
 
 ## 一键全链（5090）
@@ -117,6 +119,35 @@ python chain_t_all.py --max-folds 0
 
 实验方案：`资料/Lejepa_shallow模型方案/.../实验方案/T系列_Token_PhasePredictor.md`（v3 在线契约见 README 与登记表 §7）
 
+## 方案 21 · LeJEPA 对齐（5090 · 推理仅 p_cur）
+
+顺序：**F_mi_a → F_mi_080 → A2_pt → J1_tok**（附报 **A1_800** / **J1_mlp**）。
+
+| 臂 | 改什么 |
+|----|--------|
+| F_mi_a | t0≤1.0 s 重滤 · Predictor 同 A2 |
+| F_mi_080 | pf800（future=0.8s）· n_times=800 |
+| A2_pt | 阶段1 L_pred+SIGReg → 阶段2 仅 CE |
+| J1_tok | past+cur 内块掩码 JEPA · token L_pred |
+
+```powershell
+conda activate cyy
+cd code/train_lab/src/step/5090_mask_future_dual_expert_accpaper
+python _smoke_local.py          # 含方案 21 结构冒烟
+python run_arm.py --arm F_mi_a --dry-run
+python chain_21_all.py --max-folds 1                    # fold0 探测
+powershell -File .\run_21_chain_guarded.ps1 -MaxFolds 1
+powershell -File .\run_21_chain_guarded.ps1 -MaxFolds 0 -NoConsole   # 正式五折
+python chain_21_all.py --from A2_pt --max-folds 0       # 断点续跑
+```
+
+不算力：`python chain_21_all.py --max-folds 1 --skip-fmi080 --skip-j1` 后单独 `A2_pt`。
+
+**前置**：pf1000 v3 须含 `openbmi_t0_sec.npy`（F_mi_a / F_mi_080 过滤依赖 t0）。
+
+实验方案：`资料/Lejepa_shallow模型方案/.../实验方案/21系列_LeJEPA对齐_表征预测修正.md`  
+结果登记：`资料/模型训练/21_5090_旁路_LeJEPA对齐_表征预测修正_openbmi_accpaper/`
+
 ## 前置条件
 
 1. A0：已有 `openbmi_2s_hop100` npy（含 Rest）  
@@ -128,5 +159,6 @@ python chain_t_all.py --max-folds 0
 ## 同步
 
 1. `git pull --rebase`  
-2. 本包结果登记到 `资料/模型训练/17_5090_旁路_掩码未来双专家门控_openbmi_accpaper/`  
-3. `git push`
+2. 方案 17 结果登记到 `资料/模型训练/17_5090_旁路_掩码未来双专家门控_openbmi_accpaper/`  
+3. 方案 21 结果登记到 `资料/模型训练/21_5090_旁路_LeJEPA对齐_表征预测修正_openbmi_accpaper/`  
+4. `git push`
