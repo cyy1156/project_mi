@@ -1,0 +1,106 @@
+{
+  "fold": 4,
+  "best_val_acc_paper": 0.5166666666666667,
+  "best_val_balacc_maj": 0.52,
+  "best_epoch": 24,
+  "stopped_epoch": 44,
+  "best_val_trial_metrics": {
+    "n_trials": 2700,
+    "n_windows": 45900,
+    "acc_paper": 0.5166666666666667,
+    "acc_majority": 0.52,
+    "balanced_accuracy": 0.52,
+    "f1_macro": 0.5171272281252118,
+    "precision_macro": 0.5190971229870326,
+    "recall_macro": 0.52,
+    "accuracy_sklearn": 0.52,
+    "recall_idle": 0.5822222222222222,
+    "recall_left": 0.4122222222222222,
+    "recall_right": 0.5655555555555556,
+    "cm": [
+      [
+        524,
+        185,
+        191
+      ],
+      [
+        232,
+        371,
+        297
+      ],
+      [
+        217,
+        174,
+        509
+      ]
+    ]
+  },
+  "test_trial_metrics": {
+    "n_trials": 3000,
+    "n_windows": 51000,
+    "acc_paper": 0.5636666666666666,
+    "acc_majority": 0.5693333333333334,
+    "balanced_accuracy": 0.5693333333333334,
+    "f1_macro": 0.5667562250198636,
+    "precision_macro": 0.5726667971634202,
+    "recall_macro": 0.5693333333333334,
+    "accuracy_sklearn": 0.5693333333333334,
+    "recall_idle": 0.681,
+    "recall_left": 0.534,
+    "recall_right": 0.493,
+    "cm": [
+      [
+        681,
+        161,
+        158
+      ],
+      [
+        284,
+        534,
+        182
+      ],
+      [
+        280,
+        227,
+        493
+      ]
+    ]
+  },
+  "test_window_metrics": {
+    "accuracy": 0.564843137254902,
+    "f1_macro": 0.5626019857878599,
+    "precision_macro": 0.5687830860359082,
+    "recall_macro": 0.564843137254902,
+    "balanced_accuracy": 0.564843137254902,
+    "recall_idle": 0.6708823529411765,
+    "recall_left": 0.5307647058823529,
+    "recall_right": 0.4928823529411765,
+    "precision_idle": 0.537565987933635,
+    "precision_left": 0.5815662262326781,
+    "precision_right": 0.5872170439414115,
+    "f1_idle": 0.5968704207661713,
+    "f1_left": 0.555005382131324,
+    "f1_right": 0.5359301544660846,
+    "cm": [
+      [
+        11405,
+        2802,
+        2793
+      ],
+      [
+        4880,
+        9023,
+        3097
+      ],
+      [
+        4931,
+        3690,
+        8379
+      ]
+    ]
+  },
+  "val_acc_paper_best": 0.5166666666666667,
+  "test_acc_paper": 0.5636666666666666,
+  "n_test_trials": 3000,
+  "epochs_ran": 45
+}

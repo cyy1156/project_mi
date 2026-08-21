@@ -1,0 +1,106 @@
+{
+  "fold": 2,
+  "best_val_acc_paper": 0.5448148148148149,
+  "best_val_balacc_maj": 0.5525925925925926,
+  "best_epoch": 1,
+  "stopped_epoch": 21,
+  "best_val_trial_metrics": {
+    "n_trials": 2700,
+    "n_windows": 45900,
+    "acc_paper": 0.5448148148148149,
+    "acc_majority": 0.5525925925925926,
+    "balanced_accuracy": 0.5525925925925926,
+    "f1_macro": 0.5516852928547523,
+    "precision_macro": 0.5519974332400631,
+    "recall_macro": 0.5525925925925926,
+    "accuracy_sklearn": 0.5525925925925926,
+    "recall_idle": 0.6177777777777778,
+    "recall_left": 0.5155555555555555,
+    "recall_right": 0.5244444444444445,
+    "cm": [
+      [
+        556,
+        196,
+        148
+      ],
+      [
+        195,
+        464,
+        241
+      ],
+      [
+        234,
+        194,
+        472
+      ]
+    ]
+  },
+  "test_trial_metrics": {
+    "n_trials": 3300,
+    "n_windows": 56100,
+    "acc_paper": 0.5430303030303031,
+    "acc_majority": 0.5457575757575758,
+    "balanced_accuracy": 0.5457575757575758,
+    "f1_macro": 0.5443049851530911,
+    "precision_macro": 0.549291035824853,
+    "recall_macro": 0.5457575757575758,
+    "accuracy_sklearn": 0.5457575757575758,
+    "recall_idle": 0.6036363636363636,
+    "recall_left": 0.57,
+    "recall_right": 0.4636363636363636,
+    "cm": [
+      [
+        664,
+        230,
+        206
+      ],
+      [
+        316,
+        627,
+        157
+      ],
+      [
+        244,
+        346,
+        510
+      ]
+    ]
+  },
+  "test_window_metrics": {
+    "accuracy": 0.5361853832442067,
+    "f1_macro": 0.5348988982799682,
+    "precision_macro": 0.5394387446124621,
+    "recall_macro": 0.5361853832442068,
+    "balanced_accuracy": 0.5361853832442068,
+    "recall_idle": 0.5872192513368985,
+    "recall_left": 0.5629946524064171,
+    "recall_right": 0.4583422459893048,
+    "precision_idle": 0.5346153846153846,
+    "precision_left": 0.5116143454174361,
+    "precision_right": 0.5720865038045655,
+    "f1_idle": 0.559683995922528,
+    "f1_left": 0.5360761749579918,
+    "f1_right": 0.5089365239593848,
+    "cm": [
+      [
+        10981,
+        4115,
+        3604
+      ],
+      [
+        5365,
+        10528,
+        2807
+      ],
+      [
+        4194,
+        5935,
+        8571
+      ]
+    ]
+  },
+  "val_acc_paper_best": 0.5448148148148149,
+  "test_acc_paper": 0.5430303030303031,
+  "n_test_trials": 3300,
+  "epochs_ran": 22
+}
