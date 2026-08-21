@@ -26,6 +26,7 @@ DATA_TAGS: dict[str, tuple[str, str]] = {
     "stieger_4s": ("stieger_4s", "stieger"),
     "stieger_1s": ("stieger_1s", "stieger"),
     "stieger_2s_hop100": ("stieger_2s_hop100", "stieger"),
+    "stieger_3s_hop100": ("stieger_3s_hop100", "stieger"),
 }
 
 

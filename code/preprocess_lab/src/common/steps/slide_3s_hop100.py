@@ -7,6 +7,7 @@ from __future__ import annotations
 
 from src.common.steps.slide_1s import (  # noqa: F401
     FS_OUT,
+    extract_segment_baseline,
     n_windows_for_duration,
     segment_to_windows,
 )
