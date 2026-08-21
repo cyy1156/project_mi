@@ -57,3 +57,9 @@ python -m src.datasets.openbmi_pf1000.batch --reset
 
 权重与 metrics 根目录：`code/train_lab/out/5090_mask_future_dual_expert_accpaper/`  
 主链汇总 JSON：`_scheme17_summary_table.json` · U 链：`u_chain_state.json`
+
+## T 系列 v3（附报 · E_pos token · 无 Cross-Attn / 无 Phase）
+
+实验方案：[`T系列_Token_PhasePredictor.md`](../../Lejepa_shallow模型方案/掩码未来表征预测_双专家门控_在线MI/实验方案/T系列_Token_PhasePredictor.md)  
+链顺序：**T1 → T1_128**（不跑 T1_aux；v2 ~0.79 结果作废）。  
+代码包 README：`5090_mask_future_dual_expert_accpaper/README.md` §T 系列 v3。

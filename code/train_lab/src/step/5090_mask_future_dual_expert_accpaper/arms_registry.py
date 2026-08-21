@@ -20,10 +20,11 @@ class ArmSpec:
     predictor_temporal: bool = False  # U1
     use_spectral_decoder: bool = False  # U2
     gate_entropy: bool = False  # U3
-    predictor_query: bool = False  # T1
+    predictor_query: bool = False  # T 旧：Cross-Attn Query（已弃用于 T1）
+    predictor_pos_token: bool = False  # T1：E_pos + vis 上下文，无 Cross-Attn
     pred_token_seq: bool = False  # T1
-    phase_conditioning: bool = False  # T1
-    phase_aux: bool = False  # T1-aux
+    phase_conditioning: bool = False  # 旧 T：语义 Phase（泄漏，T1 禁用）
+    phase_aux: bool = False  # T1-aux（链上不再跑）
     expert_attn_pool: bool = False  # T1
     lambda_pred: float | None = None  # None → SHARED
     lambda_sig: float | None = None
@@ -338,18 +339,17 @@ ARMS: dict[str, ArmSpec] = {
         lambda_dec=0.2,
         skip_in_auto_chain=True,
     ),
-    # ---- T 系列（v2 · Token + Phase Query Predictor · 相对 P2）----
+    # ---- T 系列（v3 · E_pos token 预测器 · 无 Cross-Attn / 无 Phase · 相对 P2）----
     "T1": _a(
         "T1",
-        "Future Query + Phase(查表) + token L_pred + AttnPool · D=40",
+        "E_pos future token + vis 上下文 + token L_pred + AttnPool · D=40",
         use_predictor=True,
         use_expert_future=True,
         use_gate=True,
         use_sigreg=True,
         use_decoder=True,
-        predictor_query=True,
+        predictor_pos_token=True,
         pred_token_seq=True,
-        phase_conditioning=True,
         expert_attn_pool=True,
         lambda_dec=0.2,
         skip_in_auto_chain=True,
@@ -362,9 +362,8 @@ ARMS: dict[str, ArmSpec] = {
         use_gate=True,
         use_sigreg=True,
         use_decoder=True,
-        predictor_query=True,
+        predictor_pos_token=True,
         pred_token_seq=True,
-        phase_conditioning=True,
         expert_attn_pool=True,
         lambda_dec=0.2,
         skip_in_auto_chain=True,
@@ -372,7 +371,7 @@ ARMS: dict[str, ArmSpec] = {
     ),
     "T1_aux": _a(
         "T1_aux",
-        "T1 + phase 辅助 CE",
+        "【已弃用·泄漏】旧 Cross-Attn + 语义 Phase aux；链上不再跑",
         use_predictor=True,
         use_expert_future=True,
         use_gate=True,
@@ -421,8 +420,8 @@ U_SERIES_ORDER: list[str] = ["U1", "U3", "U2"]
 # 组合顺序对齐实验方案 U组合_U12_U13_U123.md
 U_COMBO_ORDER: list[str] = ["U13", "U12", "U123"]
 
-# T 系列 v2（不进 CHAIN_ORDER；run_t_chain_guarded.ps1）
-T_SERIES_ORDER: list[str] = ["T1", "T1_aux", "T1_128"]
+# T 系列 v3（不进 CHAIN_ORDER；chain_t_all.py / run_t_chain_guarded.ps1）
+T_SERIES_ORDER: list[str] = ["T1", "T1_128"]
 
 
 def assert_u_arm_flags() -> None:
@@ -443,20 +442,19 @@ def assert_u_arm_flags() -> None:
 
 
 def assert_t_arm_flags() -> None:
-    """T 系列开关自检。"""
+    """T 系列开关自检（v3：pos-token，无 cross-attn / 无 phase）。"""
     t1 = ARMS["T1"]
     assert (
-        t1.predictor_query
+        t1.predictor_pos_token
         and t1.pred_token_seq
-        and t1.phase_conditioning
         and t1.expert_attn_pool
+        and not t1.predictor_query
+        and not t1.phase_conditioning
         and not t1.phase_aux
         and not t1.predictor_temporal
     )
-    t1a = ARMS["T1_aux"]
-    assert t1a.phase_aux and t1a.predictor_query
     t128 = ARMS["T1_128"]
-    assert int(t128.extra.get("embed_dim", 0)) == 128
+    assert t128.predictor_pos_token and int(t128.extra.get("embed_dim", 0)) == 128
     for aid in T_SERIES_ORDER:
         assert aid in ARMS and ARMS[aid].skip_in_auto_chain
 

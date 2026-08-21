@@ -6,10 +6,10 @@ U 系列开关（相对 P2，默认关）：
   - gate_entropy：Gate([z_vis, z_pre, H(p_cur), H(p_future)])
 
 T 系列开关（相对 P2，默认关）：
-  - predictor_query：Future Query + Cross-Attn → Z_pre (B,L_fut,D)
+  - predictor_pos_token：E_pos + 可见段上下文 → Z_pre (B,L_fut,D)；无 Cross-Attn / 无 Phase
+  - predictor_query：【旧】Cross-Attn Query + 可选 E_phase（T1_aux 遗留）
   - pred_token_seq：L_pred 对齐 token 序列（非 mean 向量）
-  - phase_conditioning：Query += E_phase(metadata 查表)
-  - phase_aux：Future token phase 辅助 CE（T1-aux）
+  - phase_conditioning / phase_aux：【旧】语义 Phase（泄漏，T1 禁用）
   - expert_attn_pool：Expert 用 AttentionPool 而非 mean
 """
 from __future__ import annotations
@@ -103,6 +103,34 @@ class AttentionPool(nn.Module):
         return (x * w.unsqueeze(-1)).sum(dim=1)
 
 
+class PosTokenFuturePredictor(nn.Module):
+    """T1 v3：E_pos(j) + pool(H_vis) → Z_pre token；无 Cross-Attn、不用 y/t0/Phase。"""
+
+    def __init__(self, dim: int, n_fut: int, *, dropout: float = 0.3):
+        super().__init__()
+        self.dim = int(dim)
+        self.n_fut = int(n_fut)
+        self.pos_emb = nn.Embedding(self.n_fut, self.dim)
+        self.ctx = nn.Sequential(
+            nn.Linear(self.dim, self.dim),
+            nn.GELU(),
+            nn.Dropout(dropout),
+        )
+        self.out = nn.Sequential(
+            nn.LayerNorm(self.dim),
+            nn.Linear(self.dim, self.dim),
+        )
+
+    def forward(self, h_vis: torch.Tensor) -> torch.Tensor:
+        # h_vis: (B, L_vis, D)
+        ctx = self.ctx(h_vis.mean(dim=1))  # (B, D)
+        b = h_vis.size(0)
+        device = h_vis.device
+        pos = torch.arange(self.n_fut, device=device).unsqueeze(0).expand(b, -1)
+        tok = self.pos_emb(pos) + ctx.unsqueeze(1)
+        return self.out(tok)
+
+
 class QueryFuturePredictor(nn.Module):
     """T1：Q_future = E_pos (+ E_phase) → CrossAttn(H_vis) → Z_pre (B, L_fut, D)。"""
 
@@ -194,6 +222,7 @@ class MaskFutureDualExpert(nn.Module):
         use_spectral_decoder: bool = False,
         gate_entropy: bool = False,
         predictor_query: bool = False,
+        predictor_pos_token: bool = False,
         pred_token_seq: bool = False,
         phase_conditioning: bool = False,
         phase_aux: bool = False,
@@ -213,6 +242,7 @@ class MaskFutureDualExpert(nn.Module):
         self.use_spectral_decoder = bool(use_spectral_decoder)
         self.gate_entropy = bool(gate_entropy)
         self.predictor_query = bool(predictor_query)
+        self.predictor_pos_token = bool(predictor_pos_token)
         self.pred_token_seq = bool(pred_token_seq)
         self.phase_conditioning = bool(phase_conditioning)
         self.phase_aux = bool(phase_aux)
@@ -255,7 +285,11 @@ class MaskFutureDualExpert(nn.Module):
         self.attn_pool_pre = AttentionPool(d) if expert_attn_pool else None
         self.expert_cur = MLP([d, 64, n_outputs], dropout=0.0)
         if use_predictor:
-            if self.predictor_query:
+            if self.predictor_pos_token:
+                self.predictor = PosTokenFuturePredictor(
+                    d, n_fut, dropout=pred_dropout
+                )
+            elif self.predictor_query:
                 self.predictor = QueryFuturePredictor(
                     d,
                     n_fut,
@@ -375,7 +409,7 @@ class MaskFutureDualExpert(nn.Module):
     ) -> dict[str, torch.Tensor]:
         out: dict[str, torch.Tensor] = {}
         feat_m = self.encoder.forward_features(x_mask)
-        if self.predictor_query or self.expert_attn_pool:
+        if self.predictor_query or self.predictor_pos_token or self.expert_attn_pool:
             z_vis = self._read_vis(feat_m)
         else:
             z_vis, _ = self._pool_segments(feat_m)
@@ -389,7 +423,12 @@ class MaskFutureDualExpert(nn.Module):
         z_pre_seq = None
         phase_ids = None
         if self.predictor is not None:
-            if self.predictor_query:
+            if self.predictor_pos_token:
+                h_vis = self._seq_to_tokens(self._vis_sequence(feat_m))
+                z_pre_seq = self.predictor(h_vis)
+                out["z_pre_future_seq"] = z_pre_seq
+                z_pre = self._read_pre(z_pre_seq)
+            elif self.predictor_query:
                 h_vis = self._seq_to_tokens(self._vis_sequence(feat_m))
                 if self.phase_conditioning and t0_sec is not None and self.i_fut:
                     # Phase 仅时间几何；不得传入 y（Rest 标签侧信道）

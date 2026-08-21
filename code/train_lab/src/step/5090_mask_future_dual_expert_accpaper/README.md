@@ -101,21 +101,21 @@ python chain_u_all.py --skip-combo
 
 5060 低内存附报链（batch 128 + mem guard）仍用 `run_u_combo_chain_guarded.ps1`；**5090 全量请用 `chain_u_all.py`**。
 
-## T 系列 v2（5090 · Token + Phase Query Predictor）
+## T 系列 v3（5090 · E_pos token · 无 Cross-Attn / 无 Phase）
 
-顺序：**T1 → T1_aux → T1_128**（相对 P2；须 pf1000 含 `t0_sec`）。
+顺序：**T1 → T1_128**（相对 P2；**不跑 T1_aux**；**不需要 t0_sec**）。
 
 ```powershell
-python _smoke_local.py   # 含 T1/T1_aux/T1_128
+python _smoke_local.py   # 含 T1 / T1_128
 python run_arm.py --arm T1 --dry-run
 powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 1          # fold0 冒烟
 powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -NoConsole # 正式五折
-powershell -File .\run_t_chain_guarded.ps1 -FromArm T1_aux -SkipT1_128
+python chain_t_all.py --max-folds 0
 ```
 
 状态与日志：`t_chain_guarded_state.json`、`t_chain_guarded.log`。
 
-实验方案：`资料/Lejepa_shallow模型方案/.../实验方案/T系列_Token_PhasePredictor.md`
+实验方案：`资料/Lejepa_shallow模型方案/.../实验方案/T系列_Token_PhasePredictor.md`（v3 在线契约见 README 与登记表 §7）
 
 ## 前置条件
 
