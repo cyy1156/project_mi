@@ -1,5 +1,5 @@
-import { WsClient } from "./ws_client.js?v=20260723k";
-import { HomeDeskScene } from "./scene.js?v=20260723k";
+import { WsClient } from "./ws_client.js?v=20260821a";
+import { HomeDeskScene } from "./scene.js?v=20260821a";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
@@ -250,8 +250,35 @@ document.addEventListener("visibilitychange", () => {
 
 client.connect();
 
-function loop() {
+/* 渲染质量遥测：每 5s 上报 fps / 最大帧间隔，供后端写入 events.jsonl。
+   画面掉帧会影响诱导稳定性，事后可按 trial 时间段追溯。 */
+const STATS_INTERVAL_MS = 5000;
+let statsFrames = 0;
+let statsMaxGap = 0;
+let statsLast = performance.now();
+
+function reportStats() {
+  const fps = (statsFrames * 1000) / STATS_INTERVAL_MS;
+  client.send({
+    type: "client_stats",
+    fps: Math.round(fps * 10) / 10,
+    max_gap_ms: Math.round(statsMaxGap),
+  });
+  statsFrames = 0;
+  statsMaxGap = 0;
+}
+
+function loop(now) {
   requestAnimationFrame(loop);
+  if (now - statsLast > 0) {
+    statsMaxGap = Math.max(statsMaxGap, now - statsLast);
+  }
+  statsFrames += 1;
+  statsLast = now;
+  if (now >= (loop._nextReport || 0)) {
+    loop._nextReport = now + STATS_INTERVAL_MS;
+    if (statsFrames > 0) reportStats();
+  }
   scene.update();
 }
-loop();
+loop(performance.now());

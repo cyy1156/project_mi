@@ -35,6 +35,20 @@ body,
   z-index: 0;
 }
 
+/* 静态暗角：模拟镜头成像，纯 CSS 不参与动画（MI/Rest 段零运动） */
+#vignette {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  pointer-events: none;
+  background: radial-gradient(
+    ellipse at center,
+    rgba(0, 0, 0, 0) 55%,
+    rgba(0, 0, 0, 0.18) 78%,
+    rgba(0, 0, 0, 0.38) 100%
+  );
+}
+
 #opbar {
   position: absolute;
   top: 0;

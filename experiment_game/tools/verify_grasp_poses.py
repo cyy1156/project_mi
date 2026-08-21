@@ -2,7 +2,8 @@ import math
 import re
 from pathlib import Path
 
-src = Path(r"d:\cyy\MI\experiment_game\web\js\scene.js").read_text(encoding="utf-8")
+_ROOT = Path(__file__).resolve().parents[1]
+src = (_ROOT / "web" / "js" / "scene.js").read_text(encoding="utf-8")
 for name in [
     "_poseReach",
     "_poseLift",
