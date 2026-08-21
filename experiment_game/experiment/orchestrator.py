@@ -156,6 +156,8 @@ class OperatorService:
             self._save_defaults(msg.get("run_config") or {})
         elif mtype == "run_phase4":
             self._handle_run_phase4(str(msg.get("path") or ""))
+        elif mtype == "client_stats":
+            self._handle_client_stats(msg)
         elif mtype == "operator_hello":
             file_defaults, warn = load_operator_defaults(
                 defaults_path(repo_pkg=_PKG_ROOT),
@@ -174,6 +176,20 @@ class OperatorService:
                     "serial_ports": list_serial_ports(),
                 }
             )
+
+    def _handle_client_stats(self, msg: Dict[str, Any]) -> None:
+        """诱导页渲染遥测：写入当前会话 events.jsonl（无会话时丢弃）。"""
+        events = self._events
+        if events is None:
+            return
+        try:
+            events.emit(
+                "client_stats",
+                fps=msg.get("fps"),
+                max_gap_ms=msg.get("max_gap_ms"),
+            )
+        except Exception:  # noqa: BLE001
+            pass
 
     def _handle_session_start(self, raw: Dict[str, Any]) -> None:
         with self._lock:
