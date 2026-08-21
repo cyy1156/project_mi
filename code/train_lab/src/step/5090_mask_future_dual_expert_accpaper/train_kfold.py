@@ -302,7 +302,8 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
         expert_attn_pool=arm.expert_attn_pool,
         mask_learnable=arm.mask_learnable,
         fixed_alpha=arm.fixed_alpha,
-        ema_momentum=hp.ema_momentum,
+        inwin_jepa=bool(arm.extra.get("inwin_jepa")),
+        n_inwin_blocks=int(arm.extra.get("n_inwin_blocks", 4)),
     )
 
 

@@ -103,6 +103,10 @@ def main() -> None:
         from arms_registry import assert_t_arm_flags
 
         assert_t_arm_flags()
+    if arm.extra.get("scheme21"):
+        from arms_registry import assert_21_arm_flags
+
+        assert_21_arm_flags()
     if args.dry_run:
         d = {k: getattr(arm, k) for k in arm.__dataclass_fields__}
         print(json.dumps(d, ensure_ascii=False, indent=2, default=str))
@@ -153,11 +157,16 @@ def main() -> None:
     if repl:
         hp = replace(hp, **repl)
 
-    summary = run_pf_kfold(arm, hp=hp, max_folds=args.max_folds)
+    if arm.extra.get("scheme21"):
+        from train_21_kfold import run_21_kfold
+
+        summary = run_21_kfold(arm, hp=hp, max_folds=args.max_folds)
+    else:
+        summary = run_pf_kfold(arm, hp=hp, max_folds=args.max_folds)
     print(
         json.dumps(
             {
-                k: summary[k]
+                k: summary.get(k)
                 for k in (
                     "arm",
                     "test_acc_paper_mean",

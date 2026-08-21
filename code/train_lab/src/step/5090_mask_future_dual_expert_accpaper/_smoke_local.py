@@ -271,6 +271,131 @@ def main() -> None:
     _smoke_t("T1")
     _smoke_t("T1_128", embed=128)
 
+    # ---- 方案 21：F_mi / pf800 / A2_pt 结构 / J1 in-window JEPA ----
+    from arms_registry import ARMS, assert_21_arm_flags
+    from inwin_jepa import sample_block_starts
+    from scheme21_data import crop_pf_mi080, filter_indices_by_t0
+
+    assert_21_arm_flags()
+    print("21 arm flag assert OK")
+
+    t0 = __import__("numpy").array([0.4, 1.0, 1.5, 2.0], dtype=__import__("numpy").float32)
+    idx = __import__("numpy").arange(4)
+    fidx = filter_indices_by_t0(idx, t0, t0_max=1.0)
+    assert fidx.tolist() == [0, 1], f"F_mi_a filter got {fidx.tolist()}"
+    print("scheme21 t0 filter OK", fidx.tolist())
+
+    x1k = torch.randn(2, 8, 1000)
+    x800 = crop_pf_mi080(x1k.numpy())
+    assert x800.shape == (2, 8, 800)
+    print("pf800 crop OK", x800.shape)
+
+    def _smoke_21_predictor(*, n_times: int = 1000, pf080: bool = False):
+        arm = ARMS["F_mi_a"] if not pf080 else ARMS["F_mi_080"]
+        m21 = MaskFutureDualExpert(
+            n_times=n_times,
+            n_outputs=3,
+            use_predictor=True,
+        )
+        xf = torch.randn(2, 8, n_times)
+        xm = m21.make_mask(xf)
+        o21 = m21(xm, x_full=xf, train_mode=True)
+        assert o21["p_cur"].shape == (2, 3)
+        assert "p_final" not in o21 or o21.get("p_final") is o21["p_cur"]
+        loss21, meta21 = compute_losses(
+            o21,
+            y,
+            xf,
+            lambda_cls=1,
+            lambda_pred=1,
+            lambda_sig=0.05,
+            lambda_dec=0,
+            cls_cur=True,
+            cls_final=False,
+            cls_future=False,
+            use_sigreg=True,
+            sigreg=SIGReg(),
+        )
+        loss21.backward()
+        print(
+            f"21 predictor n_times={n_times} OK",
+            f"l_pred={meta21.get('l_pred', 0):.4f}",
+        )
+
+    _smoke_21_predictor(n_times=1000)
+    _smoke_21_predictor(n_times=800, pf080=True)
+
+    # J1_tok：同窗块掩码 + token L_pred
+    arm_j1 = ARMS["J1_tok"]
+    mj1 = MaskFutureDualExpert(
+        n_times=1000,
+        n_outputs=3,
+        use_predictor=True,
+        predictor_pos_token=arm_j1.predictor_pos_token,
+        inwin_jepa=True,
+        n_inwin_blocks=int(arm_j1.extra.get("n_inwin_blocks", 4)),
+    )
+    bs = sample_block_starts(2, device=x.device)
+    oj1 = mj1(
+        mj1.make_mask(x),
+        x_full=x,
+        train_mode=True,
+        inwin_block_starts=bs,
+    )
+    assert oj1["z_pre_future_seq"].shape == (2, 4, 40)
+    assert oj1["z_target_future_seq"].shape == (2, 4, 40)
+    lj1, mj1meta = compute_losses(
+        oj1,
+        y,
+        x,
+        lambda_cls=1,
+        lambda_pred=1,
+        lambda_sig=0.05,
+        lambda_dec=0,
+        cls_cur=True,
+        cls_final=False,
+        cls_future=False,
+        use_sigreg=True,
+        sigreg=SIGReg(),
+    )
+    lj1.backward()
+    print("J1_tok inwin OK", f"l_pred={mj1meta.get('l_pred'):.4f}")
+
+    # J1_mlp：MLP 单向量 L_pred（附报）
+    mj1m = MaskFutureDualExpert(
+        n_times=1000,
+        n_outputs=3,
+        use_predictor=True,
+        inwin_jepa=True,
+        n_inwin_blocks=4,
+    )
+    oj1m = mj1m(
+        mj1m.make_mask(x),
+        x_full=x,
+        train_mode=True,
+        inwin_block_starts=bs,
+    )
+    assert oj1m["z_pre_future"].shape == (2, 40)
+    assert oj1m["z_target_future"].shape == (2, 40)
+    print("J1_mlp inwin OK")
+
+    # A1_800：无 Predictor
+    ma1 = MaskFutureDualExpert(n_times=800, n_outputs=3, use_predictor=False)
+    xa = torch.randn(2, 8, 800)
+    oa = ma1(ma1.make_mask(xa), train_mode=False)
+    assert oa["p_cur"].shape == (2, 3)
+    print("A1_800 OK")
+
+    m800 = MaskFutureDualExpert(n_times=800, use_predictor=True)
+    ratio800 = assert_future_perturbation(
+        m800.encoder,
+        i_vis=m800.i_vis,
+        i_fut=m800.i_fut,
+        n_times=800,
+        future_pts=200,
+    )
+    print(f"pf800 future-perturb OK ratio={ratio800:.3f}")
+
     print("forward OK", {k: tuple(v.shape) for k, v in out.items() if hasattr(v, "shape")})
     print("t_prime", m.t_prime, "i_vis", m.i_vis[0], "..", m.i_vis[-1], "i_fut", m.i_fut[0])
 

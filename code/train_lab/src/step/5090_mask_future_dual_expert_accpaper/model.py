@@ -230,6 +230,8 @@ class MaskFutureDualExpert(nn.Module):
         mask_learnable: bool = False,
         fixed_alpha: float | None = None,
         ema_momentum: float = 0.996,
+        inwin_jepa: bool = False,
+        n_inwin_blocks: int = 4,
     ):
         super().__init__()
         self.n_times = int(n_times)
@@ -247,6 +249,8 @@ class MaskFutureDualExpert(nn.Module):
         self.phase_conditioning = bool(phase_conditioning)
         self.phase_aux = bool(phase_aux)
         self.expert_attn_pool = bool(expert_attn_pool)
+        self.inwin_jepa = bool(inwin_jepa)
+        self.n_inwin_blocks = int(n_inwin_blocks)
         self.fixed_alpha = fixed_alpha
         self.ema_momentum = float(ema_momentum)
         self.ema_encoder: nn.Module | None = None
@@ -267,25 +271,28 @@ class MaskFutureDualExpert(nn.Module):
                 self.t_prime = int(z.shape[2])
             else:
                 self.t_prime = int(z.shape[-1])
+        from feat_index import feat_index as _fi
+
         if n_times == 1000:
             self.i_vis, self.i_fut = segment_indices(n_times, self.t_prime)
-            # 若 T' 非 61，仍按 feat_index(600) 切，并记录
             if self.t_prime != 61:
-                from feat_index import feat_index
-
-                i_split = feat_index(600, n_times, self.t_prime)
+                i_split = _fi(600, n_times, self.t_prime)
                 self.i_vis = list(range(0, i_split))
                 self.i_fut = list(range(i_split, self.t_prime))
+        elif n_times == 800:
+            i_split = _fi(600, n_times, self.t_prime)
+            self.i_vis = list(range(0, i_split))
+            self.i_fut = list(range(i_split, self.t_prime))
         else:
             self.i_vis, self.i_fut = list(range(self.t_prime)), []
 
         d = embed_dim
-        n_fut = len(self.i_fut) if self.i_fut else 1
+        n_fut = self.n_inwin_blocks if self.inwin_jepa else (len(self.i_fut) if self.i_fut else 1)
         self.attn_pool_vis = AttentionPool(d) if expert_attn_pool else None
         self.attn_pool_pre = AttentionPool(d) if expert_attn_pool else None
         self.expert_cur = MLP([d, 64, n_outputs], dropout=0.0)
         if use_predictor:
-            if self.predictor_pos_token:
+            if self.predictor_pos_token or self.inwin_jepa:
                 self.predictor = PosTokenFuturePredictor(
                     d, n_fut, dropout=pred_dropout
                 )
@@ -388,12 +395,13 @@ class MaskFutureDualExpert(nn.Module):
 
     def make_mask(self, x_full: torch.Tensor) -> torch.Tensor:
         x = x_full.clone()
-        if self.n_times < 1000:
+        fut_pts = 200 if self.n_times == 800 else (400 if self.n_times >= 1000 else 0)
+        if fut_pts <= 0:
             return x
-        if self.mask_token is not None:
+        if self.mask_token is not None and self.n_times >= 1000:
             x[..., -400:] = self.mask_token.expand(x.size(0), -1, -1)
         else:
-            x[..., -400:] = 0
+            x[..., -fut_pts:] = 0
         return x
 
     def forward(
@@ -406,9 +414,15 @@ class MaskFutureDualExpert(nn.Module):
         no_grad_target: bool = True,
         ema_target: bool = False,
         train_mode: bool = True,
+        inwin_block_starts: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         out: dict[str, torch.Tensor] = {}
-        feat_m = self.encoder.forward_features(x_mask)
+        x_enc = x_mask
+        if self.inwin_jepa and inwin_block_starts is not None:
+            from inwin_jepa import apply_raw_block_mask
+
+            x_enc = apply_raw_block_mask(x_mask, inwin_block_starts, block_pts=50)
+        feat_m = self.encoder.forward_features(x_enc)
         if self.predictor_query or self.predictor_pos_token or self.expert_attn_pool:
             z_vis = self._read_vis(feat_m)
         else:
@@ -423,7 +437,7 @@ class MaskFutureDualExpert(nn.Module):
         z_pre_seq = None
         phase_ids = None
         if self.predictor is not None:
-            if self.predictor_pos_token:
+            if self.predictor_pos_token or self.inwin_jepa:
                 h_vis = self._seq_to_tokens(self._vis_sequence(feat_m))
                 z_pre_seq = self.predictor(h_vis)
                 out["z_pre_future_seq"] = z_pre_seq
@@ -454,7 +468,7 @@ class MaskFutureDualExpert(nn.Module):
             train_mode
             and x_full is not None
             and self.predictor is not None
-            and self.n_times >= 1000
+            and (self.n_times >= 800 or self.inwin_jepa)
         ):
             if ema_target:
                 if self.ema_encoder is None:
@@ -473,7 +487,18 @@ class MaskFutureDualExpert(nn.Module):
                     feat_f = enc_f.forward_features(x_full)
             else:
                 feat_f = enc_f.forward_features(x_full)
-            if self.pred_token_seq and self.i_fut:
+            if self.inwin_jepa and inwin_block_starts is not None:
+                from inwin_jepa import pool_block_targets
+
+                z_tgt_seq = pool_block_targets(
+                    feat_f,
+                    inwin_block_starts,
+                    n_times=self.n_times,
+                    t_prime=self.t_prime,
+                )
+                out["z_target_future_seq"] = z_tgt_seq
+                z_tgt = z_tgt_seq.mean(dim=1)
+            elif self.pred_token_seq and self.i_fut:
                 z_tgt_seq = self._seq_to_tokens(self._fut_sequence(feat_f))
                 out["z_target_future_seq"] = z_tgt_seq
                 z_tgt = z_tgt_seq.mean(dim=1)
