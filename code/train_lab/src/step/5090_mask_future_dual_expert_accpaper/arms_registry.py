@@ -356,7 +356,7 @@ ARMS: dict[str, ArmSpec] = {
     ),
     "T1_128": _a(
         "T1_128",
-        "T1 + embed_dim=128",
+        "T1 + embed_dim=128（batch 同 T1=256）",
         use_predictor=True,
         use_expert_future=True,
         use_gate=True,
@@ -367,7 +367,7 @@ ARMS: dict[str, ArmSpec] = {
         expert_attn_pool=True,
         lambda_dec=0.2,
         skip_in_auto_chain=True,
-        extra={"embed_dim": 128, "batch_train": 64},
+        extra={"embed_dim": 128},
     ),
     "T1_aux": _a(
         "T1_aux",

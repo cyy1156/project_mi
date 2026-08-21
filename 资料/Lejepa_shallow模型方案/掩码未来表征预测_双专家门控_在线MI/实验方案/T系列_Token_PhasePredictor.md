@@ -83,7 +83,7 @@ Z_pre[j] = LayerNorm( E_pos[j] + ctx )   # j=0..L_fut-1
 |----|-----|
 | arm_id | `T1_128` |
 | embed_dim | **128** |
-| batch_train | **64**（OOM 降档，meta 记录） |
+| batch_train | **256**（与 T1 同；5090 正式 run `20260821_152002_T1_128`） |
 
 ### T1_aux · 【作废 · 链上不跑】
 
