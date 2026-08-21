@@ -295,6 +295,7 @@ def build_model_for_arm(arm: ArmSpec, hp: SharedTrainHP, n_times: int, n_outputs
         use_spectral_decoder=arm.use_spectral_decoder,
         gate_entropy=arm.gate_entropy,
         predictor_query=arm.predictor_query,
+        predictor_pos_token=arm.predictor_pos_token,
         pred_token_seq=arm.pred_token_seq,
         phase_conditioning=arm.phase_conditioning,
         phase_aux=arm.phase_aux,
@@ -356,9 +357,9 @@ def run_pf_kfold(
     assert_default_map()
     hp = _loader_hp(hp or SHARED)
     x_full, x_mask, y, subjects, trial_id, t0_sec, n_times, mask_future_pts, data_meta = _load_xy(arm, hp)
-    if arm.predictor_query and t0_sec is None:
+    if arm.phase_conditioning and t0_sec is None:
         raise RuntimeError(
-            f"[{arm.arm_id}] T 系列需要 pf1000 的 openbmi_t0_sec.npy；请重跑 preprocess"
+            f"[{arm.arm_id}] 语义 Phase 需要 pf1000 的 openbmi_t0_sec.npy；T1 v3 请用 predictor_pos_token"
         )
     # Three 协议固定 3 类头（0/1/2）；与 Acc_paper baselines three 一致
     n_outputs = max(3, int(y.max()) + 1)

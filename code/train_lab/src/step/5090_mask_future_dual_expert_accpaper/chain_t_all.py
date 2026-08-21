@@ -1,10 +1,10 @@
-"""T 系列 v2 链：T1 → T1_aux → T1_128（5060/5090 同序）。
+"""T 系列 v3 链：T1 → T1_128（无 T1_aux · 无 Cross-Attn / 无 Phase）。
 
 用法：
   python chain_t_all.py
-  python chain_t_all.py --from T1_aux
+  python chain_t_all.py --from T1_128
   python chain_t_all.py --max-folds 1          # fold0 冒烟
-  python chain_t_all.py --skip-t1-128          # 仅 T1 + T1_aux
+  python chain_t_all.py --skip-t1-128          # 仅 T1
 """
 from __future__ import annotations
 
@@ -21,10 +21,10 @@ from arms_registry import T_SERIES_ORDER, assert_t_arm_flags  # noqa: E402
 
 def main() -> None:
     assert_t_arm_flags()
-    p = argparse.ArgumentParser(description="T-series chain (v2 Token+Phase Predictor)")
-    p.add_argument("--from", dest="from_arm", default="", help="断点续跑，如 T1_aux")
+    p = argparse.ArgumentParser(description="T-series chain (v3 E_pos token predictor)")
+    p.add_argument("--from", dest="from_arm", default="", help="断点续跑，如 T1_128")
     p.add_argument("--max-folds", type=int, default=0, help="0=五折；1=fold0")
-    p.add_argument("--num-workers", type=int, default=2)
+    p.add_argument("--num-workers", type=int, default=0)
     p.add_argument("--skip-t1-128", action="store_true")
     args = p.parse_args()
 

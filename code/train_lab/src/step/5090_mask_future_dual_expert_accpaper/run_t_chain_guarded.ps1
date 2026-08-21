@@ -1,10 +1,10 @@
-# Scheme 17 · T 系列 v2 五折（5090 · Token + Phase Query Predictor）
-# 顺序：T1 → T1_aux → T1_128
+# Scheme 17 · T 系列 v3 五折（5090 · E_pos token · 无 Cross-Attn / 无 Phase）
+# 顺序：T1 → T1_128（不跑 T1_aux）
 #
 # 用法：
 #   powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 1          # fold0 冒烟
 #   powershell -File .\run_t_chain_guarded.ps1 -MaxFolds 0 -NoConsole  # 正式五折
-#   powershell -File .\run_t_chain_guarded.ps1 -FromArm T1_aux -SkipT1_128
+#   powershell -File .\run_t_chain_guarded.ps1 -FromArm T1_128
 param(
   [string]$FromArm = "T1",
   [switch]$NoConsole,
@@ -21,7 +21,7 @@ $State = Join-Path $WorkDir "t_chain_guarded_state.json"
 $ChainLog = Join-Path $WorkDir "t_chain_guarded.log"
 $PidFile = Join-Path $WorkDir "t_chain_guarded.pid"
 
-$Arms = @("T1", "T1_aux")
+$Arms = @("T1")
 if (-not $SkipT1_128) { $Arms += "T1_128" }
 
 $start = [array]::IndexOf($Arms, $FromArm)
