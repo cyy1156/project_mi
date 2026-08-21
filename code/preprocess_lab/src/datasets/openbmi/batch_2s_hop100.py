@@ -111,6 +111,7 @@ def merge_shards(
     seed: int = 42,
     protocol: str = "openbmi_2s_hop100",
     zscore: bool = True,
+    bandpass_hz: tuple[float, float] = (8.0, 30.0),
 ) -> None:
     """内存友好合并：先统计 N，再写入 memmap，避免一次性装入全部 shard。"""
     out_dir = Path(out_dir)
@@ -235,6 +236,7 @@ def merge_shards(
     meta = {
         "protocol": protocol,
         "zscore": bool(zscore),
+        "bandpass_hz": [float(bandpass_hz[0]), float(bandpass_hz[1])],
         "blocks": ["EEG_MI_train"],
         "blocks_note": "train-only；不含官方 EEG_MI_test",
         "subject_key": "openbmi:subjNN (sess01+sess02 same person)",
@@ -269,11 +271,16 @@ def run_batch(
     subjects: list[str] | None = None,
     sessions: list[str] | None = None,
     zscore: bool = True,
+    l_freq: float = 8.0,
+    h_freq: float = 30.0,
+    protocol: str | None = None,
 ) -> None:
     out_dir = Path(out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = out_dir / "manifest.json"
-    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+    if protocol is None:
+        protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+    bandpass_hz = (float(l_freq), float(h_freq))
 
     if reset:
         sd = out_dir / "shards"
@@ -291,6 +298,7 @@ def run_batch(
 
     manifest = load_manifest(manifest_path, protocol=protocol)
     manifest["protocol"] = protocol
+    manifest["bandpass_hz"] = [bandpass_hz[0], bandpass_hz[1]]
     files = [Path(p) for p in glob.glob(data_glob)]
     if subjects is not None:
         allow = {f"{int(s):02d}" for s in subjects}
@@ -320,7 +328,10 @@ def run_batch(
         raise FileNotFoundError(f"没有匹配到数据文件: {data_glob}")
     if limit is not None:
         files = files[: int(limit)]
-    print(f"[{protocol}] 候选 {len(files)} 个文件 → {out_dir} zscore={zscore}")
+    print(
+        f"[{protocol}] bp={bandpass_hz[0]}–{bandpass_hz[1]} Hz "
+        f"候选 {len(files)} 个文件 → {out_dir} zscore={zscore}"
+    )
 
     n_ok = n_skip = n_empty = n_fail = 0
     for fpath in files:
@@ -335,7 +346,11 @@ def run_batch(
 
         try:
             X, yt, y3, sid, tid, stats = preprocess_file_2s_hop100(
-                fpath, zscore=zscore
+                fpath,
+                zscore=zscore,
+                l_freq=bandpass_hz[0],
+                h_freq=bandpass_hz[1],
+                protocol=protocol,
             )
         except Exception as e:
             print(f"  FAIL {fpath.name}: {type(e).__name__}: {e}")
@@ -392,16 +407,20 @@ def run_batch(
 
     print(f"shard 阶段完成 ok={n_ok} skip={n_skip} empty={n_empty} fail={n_fail}")
     if merge and (n_ok + n_skip) > 0:
-        merge_shards(out_dir, protocol=protocol, zscore=zscore)
+        merge_shards(
+            out_dir,
+            protocol=protocol,
+            zscore=zscore,
+            bandpass_hz=bandpass_hz,
+        )
 
 
 def main() -> None:
     p = argparse.ArgumentParser(description="OpenBMI 2s/hop100 shard 预处理")
     p.add_argument(
         "--glob",
-        default=str(
-            _REPO_ROOT / "DATA" / "openbmi" / "openbmi" / "openbmi" / "sess*_subj*_EEG_MI.mat"
-        ),
+        default=str(_REPO_ROOT / "DATA" / "openbmi" / "sess*_subj*_EEG_MI.mat"),
+        help="默认 D:/MI/DATA/openbmi/sess*_subj*_EEG_MI.mat",
     )
     p.add_argument("--out", default=str(_PREPROCESS_ROOT / "out" / "openbmi_2s_hop100"))
     p.add_argument("--limit", type=int, default=None)
@@ -423,15 +442,47 @@ def main() -> None:
         default="all",
         help="逗号分隔 01,02 或 sess01；all=两场",
     )
+    p.add_argument("--l-freq", type=float, default=8.0, help="带通下限 Hz（方案19：μ=8 / β=13）")
+    p.add_argument("--h-freq", type=float, default=30.0, help="带通上限 Hz（方案19：μ=13 / β=30）")
+    p.add_argument(
+        "--band",
+        choices=("full", "mu813", "beta1330"),
+        default=None,
+        help="快捷：full=8–30；mu813=8–13→out/..._mu813；beta1330=13–30→..._beta1330",
+    )
     args = p.parse_args()
     zscore = not bool(args.no_zscore)
-    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+    l_freq, h_freq = float(args.l_freq), float(args.h_freq)
     out = Path(args.out)
-    if args.no_zscore and out.name == "openbmi_2s_hop100":
+    protocol = "openbmi_2s_hop100" if zscore else "openbmi_2s_hop100_noz"
+
+    if args.band == "mu813":
+        l_freq, h_freq = 8.0, 13.0
+        protocol = "openbmi_2s_hop100_mu813" if zscore else "openbmi_2s_hop100_mu813_noz"
+        if out.name in {"openbmi_2s_hop100", "openbmi_2s_hop100_noz"}:
+            out = _PREPROCESS_ROOT / "out" / protocol
+    elif args.band == "beta1330":
+        l_freq, h_freq = 13.0, 30.0
+        protocol = "openbmi_2s_hop100_beta1330" if zscore else "openbmi_2s_hop100_beta1330_noz"
+        if out.name in {"openbmi_2s_hop100", "openbmi_2s_hop100_noz"}:
+            out = _PREPROCESS_ROOT / "out" / protocol
+    elif args.no_zscore and out.name == "openbmi_2s_hop100":
         out = _PREPROCESS_ROOT / "out" / "openbmi_2s_hop100_noz"
+        protocol = "openbmi_2s_hop100_noz"
+    elif (l_freq, h_freq) == (8.0, 13.0) and out.name == "openbmi_2s_hop100":
+        protocol = "openbmi_2s_hop100_mu813"
+        out = _PREPROCESS_ROOT / "out" / protocol
+    elif (l_freq, h_freq) == (13.0, 30.0) and out.name == "openbmi_2s_hop100":
+        protocol = "openbmi_2s_hop100_beta1330"
+        out = _PREPROCESS_ROOT / "out" / protocol
 
     if args.merge_only:
-        merge_shards(out, protocol=protocol, zscore=zscore)
+        merge_shards(
+            out,
+            protocol=protocol,
+            zscore=zscore,
+            bandpass_hz=(l_freq, h_freq),
+        )
         return
 
     subj_arg = str(args.subjects).strip().lower()
@@ -452,6 +503,9 @@ def main() -> None:
         subjects=subjects,
         sessions=sessions,
         zscore=zscore,
+        l_freq=l_freq,
+        h_freq=h_freq,
+        protocol=protocol,
     )
 
 

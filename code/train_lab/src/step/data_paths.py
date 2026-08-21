@@ -17,6 +17,8 @@ DATA_TAGS: dict[str, tuple[str, str]] = {
     "bci2a_2s_hop100": ("bci2a_2s_hop100", "bci2a"),
     "openbmi_2s_hop100": ("openbmi_2s_hop100", "openbmi"),
     "openbmi_2s_hop100_noz": ("openbmi_2s_hop100_noz", "openbmi"),
+    "openbmi_2s_hop100_mu813": ("openbmi_2s_hop100_mu813", "openbmi"),
+    "openbmi_2s_hop100_beta1330": ("openbmi_2s_hop100_beta1330", "openbmi"),
     "openbmi_2s_hop100_pf1000": ("openbmi_2s_hop100_pf1000", "openbmi"),
     "openbmi_2s_fixed_cue2to4_noz": ("openbmi_2s_fixed_cue2to4_noz", "openbmi"),
     "stieger_2s": ("stieger_2s", "stieger"),
