@@ -1,7 +1,7 @@
 # Phase 4：采一轮 → 切窗 → 训练检查清单
 
-> **版本**：v0.1  
-> **日期**：2026-07-23  
+> **版本**：v0.2  
+> **日期**：2026-08-22  
 > **配套**：`marker_spec.md`、`offline/`、`preprocess_lab`、`train_lab`
 
 ---
@@ -18,6 +18,19 @@
 
 切窗锚点：**`mi_start` / `rest_start`**（不用 `cue`）。在线范式可仍呈现 4 s MI/Rest；**离线只取起点起连续 2 s**（MI 等价 Cue+2~Cue+4）。  
 默认只保留 **`phase == acquire`**，并丢弃 `trial_reject` 的 trial。
+
+### 1.1 切窗模式（v0.2：固定窗 / 滑动窗）
+
+| 参数 | 默认 | 说明 |
+|------|------|------|
+| `window_mode` | `fixed` | `fixed`=每阶段起点 1 窗；`slide`=阶段区间内滑切 |
+| `win_sec` | 2.0 | 窗长（秒）→ `win_sec×250` 点；固定窗改窗长也用它 |
+| `hop_ms` | 100 | 滑窗步长（毫秒），仅 slide 用 |
+
+- **滑窗范围 = `[mi_start, mi_end)` / `[rest_start, rest_end)`**，窗必须完整落在阶段内——不会把保持段/过渡段切进训练窗；窗长超过阶段时长时该 trial 记 `window_exceeds_stage` 跳过。
+- 参数入口：操作台 Setup「保存数据」组的切窗参数（自动切窗与 Summary 手动切窗的默认值）、Summary 页「一键 Phase4 切窗」旁的行内控件、CLI `--window-mode/--win-sec/--hop-ms`。
+- 非默认参数输出到带后缀目录防覆盖：`<会话名>_slide_w2s_h100ms`；`meta.json` 记录 `window_mode/win_sec/hop_ms/baseline_s/n_times`。
+- **训练注意**：滑窗样本之间高度相关，验证集必须**按 trial 划分**，不能按窗口随机划分（否则信息泄漏虚高）。`save_bundle` 的 train/val 是窗口级随机的，仅供快速冒烟；正式实验请按 `trial_ids.npy` 自行分组或用五折脚本。
 
 ---
 

@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from experiment_game.acquisition.service import DEFAULT_CHANNEL_LABELS
+from experiment_game.experiment.timing import timing_from_dict, validate_timing_dict
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]+$")
 
@@ -42,6 +43,22 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
         "seed": None,
         "open_subject_page": True,
         "ready_timeout_s": 90,
+        "timing": {
+            "fixation_s": 2.0,
+            "cue_s": 2.0,
+            "mi_s": 4.0,
+            "post_mi_hold_s": 1.0,
+            "rest_s": 4.0,
+            "transition_s": 3.0,
+        },
+        "phase4": {
+            "window_mode": "fixed",
+            "win_sec": 2.0,
+            "hop_ms": 100.0,
+        },
+        "split": {
+            "settle_s": 15.0,
+        },
     },
     "storage": {
         "save_root": "experiment_game/data/sessions",
@@ -211,6 +228,54 @@ def validate_run_config(
         exp["ready_timeout_s"] = float(exp.get("ready_timeout_s", 90))
     except (TypeError, ValueError):
         exp["ready_timeout_s"] = 90.0
+
+    # 试次时序：校验原值，再规范化为补全默认的 timing dict
+    errors.extend(validate_timing_dict(exp.get("timing")))
+    timing = timing_from_dict(exp.get("timing"))
+    exp["timing"] = timing.to_dict()
+
+    # Phase4 切窗参数（自动切窗与手动按钮共用默认）
+    p4 = exp.get("phase4") if isinstance(exp.get("phase4"), dict) else {}
+    mode = str(p4.get("window_mode") or "fixed").lower()
+    if mode not in ("fixed", "slide"):
+        errors.append("phase4.window_mode 须为 fixed 或 slide")
+        mode = "fixed"
+    try:
+        p4_win = float(p4.get("win_sec", 2.0))
+    except (TypeError, ValueError):
+        p4_win = 2.0
+        errors.append("phase4.win_sec 须为数字")
+    try:
+        p4_hop = float(p4.get("hop_ms", 100.0))
+    except (TypeError, ValueError):
+        p4_hop = 100.0
+        errors.append("phase4.hop_ms 须为数字")
+    if p4_win < 0.5 or p4_win > 10.0:
+        errors.append("phase4.win_sec 须在 0.5–10s")
+    if p4_hop < 20 or p4_hop > 2000:
+        errors.append("phase4.hop_ms 须在 20–2000ms")
+    # 窗必须完整落在 MI 与静息阶段内（防止把保持/过渡切进训练窗）
+    if mode == "slide" and p4_win > min(timing.mi_s, timing.rest_s):
+        errors.append(
+            f"滑窗窗长 {p4_win:g}s 超过 MI({timing.mi_s:g}s)/静息({timing.rest_s:g}s) 阶段时长"
+        )
+    exp["phase4"] = {
+        "window_mode": mode,
+        "win_sec": p4_win,
+        "hop_ms": p4_hop,
+    }
+
+    # 换场继续段开场静坐缓冲
+    split = exp.get("split") if isinstance(exp.get("split"), dict) else {}
+    try:
+        settle_s = float(split.get("settle_s", 15.0))
+    except (TypeError, ValueError):
+        settle_s = 15.0
+        errors.append("split.settle_s 须为数字")
+    if settle_s < 5 or settle_s > 120:
+        errors.append("split.settle_s 须在 5–120s")
+        settle_s = 15.0
+    exp["split"] = {"settle_s": settle_s}
 
     ui = cfg["ui"]
     ui["remember_last_config"] = bool(ui.get("remember_last_config", True))

@@ -12,8 +12,21 @@ _PKG_ROOT = Path(__file__).resolve().parents[1]
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 
 
-def default_epochs_out(session_root: Path) -> Path:
-    return _PKG_ROOT / "data" / "epochs" / session_root.name
+def default_epochs_out(
+    session_root: Path,
+    *,
+    window_mode: str = "fixed",
+    win_sec: float = 2.0,
+    hop_ms: float = 100.0,
+) -> Path:
+    """固定默认参数 → data/epochs/<会话名>；非默认参数加后缀防覆盖。"""
+    base = _PKG_ROOT / "data" / "epochs" / session_root.name
+    if window_mode == "fixed" and abs(win_sec - 2.0) < 1e-9:
+        return base
+    w = f"{win_sec:g}".replace(".", "p")
+    h = f"{hop_ms:g}".replace(".", "p")
+    suffix = "_w" + w + "s" if window_mode == "fixed" else f"_slide_w{w}s_h{h}ms"
+    return Path(str(base) + suffix)
 
 
 def session_eeg_path(session_root: Path) -> str:
@@ -67,9 +80,14 @@ def run_phase4_for_session(
     val_ratio: float = 0.2,
     seed: int = 42,
     repo_root: Optional[Path] = None,
+    window_mode: str = "fixed",
+    win_sec: float = 2.0,
+    hop_ms: float = 100.0,
+    baseline_s: float = 0.5,
 ) -> Dict[str, Any]:
     """
     默认只切 phase=acquire，并排除 trial_reject（由 collect_window_specs 保证）。
+    window_mode="slide" 时按 win_sec + hop_ms 在阶段区间内滑窗。
     成功后写 99_summary/phase4_pointer.json。
     """
     root = Path(session_root)
@@ -79,7 +97,12 @@ def run_phase4_for_session(
     if not root.is_dir():
         return {"ok": False, "message": f"会话目录不存在: {root}", "summary": {}}
 
-    out = Path(out_dir) if out_dir else default_epochs_out(root)
+    if out_dir is not None:
+        out = Path(out_dir)
+    else:
+        out = default_epochs_out(
+            root, window_mode=window_mode, win_sec=win_sec, hop_ms=hop_ms
+        )
     if not out.is_absolute():
         base = Path(repo_root) if repo_root else _REPO_ROOT
         out = (base / out).resolve()
@@ -89,6 +112,10 @@ def run_phase4_for_session(
             root,
             phases=list(phases) if phases is not None else None,
             apply_filter=apply_filter,
+            window_mode=window_mode,
+            win_sec=win_sec,
+            hop_ms=hop_ms,
+            baseline_s=baseline_s,
         )
         save_bundle(
             bundle,
@@ -105,6 +132,12 @@ def run_phase4_for_session(
         summary["phases"] = list(phases) if phases else None
         summary["exclude_rejected"] = True
         summary["train_eligible_node"] = "06_acquire"
+        summary["window"] = {
+            "mode": window_mode,
+            "win_sec": float(win_sec),
+            "hop_ms": float(hop_ms),
+            "baseline_s": float(baseline_s),
+        }
 
         ok = int(summary.get("n") or 0) > 0
         msg = "PHASE4_OK" if ok else "未切出任何窗（检查 acquire 事件与 EEG 覆盖）"

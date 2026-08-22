@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>操作台 · 采集控制</title>
-    <link rel="stylesheet" href="css/operator.css" />
+    <link rel="stylesheet" href="css/operator.css?v=20260822b" />
   </head>
   <body>
     <div id="app">
@@ -84,6 +84,29 @@
           </fieldset>
 
           <fieldset>
+            <legend>试次时序（单 trial 各阶段秒数）</legend>
+            <div class="row">
+              <label>注视 <input name="t_fixation_s" type="number" step="0.1" min="0.2" max="30" value="2" /> s</label>
+              <label>提示 <input name="t_cue_s" type="number" step="0.1" min="0.2" max="30" value="2" /> s</label>
+              <label>MI <input name="t_mi_s" type="number" step="0.1" min="1" max="30" value="4" /> s</label>
+            </div>
+            <div class="row">
+              <label>保持 <input name="t_post_mi_hold_s" type="number" step="0.1" min="0" max="30" value="1" /> s</label>
+              <label>静息 <input name="t_rest_s" type="number" step="0.1" min="4" max="60" value="4" /> s</label>
+              <label>过渡 <input name="t_transition_s" type="number" step="0.1" min="0.5" max="60" value="3" /> s</label>
+            </div>
+            <div class="row tl-presets">
+              <span class="hint">预设：</span>
+              <button type="button" data-timing-preset="standard">标准 MI 4s</button>
+              <button type="button" data-timing-preset="mi6">MI 6s</button>
+              <button type="button" data-timing-preset="mi8">MI 8s</button>
+            </div>
+            <div id="setup-timeline" class="timeline" aria-label="单 trial 时间轴预览"></div>
+            <p id="timing-hint" class="hint"></p>
+            <p class="hint">MI 与静息是训练窗来源：静息至少 4s（Phase4 切 4s 窗）；改时序会写入 session.meta.json 备查。</p>
+          </fieldset>
+
+          <fieldset>
             <legend>保存数据</legend>
             <label class="full">会话根目录
               <input name="save_root" value="experiment_game/data/sessions" />
@@ -97,6 +120,17 @@
             <label class="check"><input type="checkbox" name="save_events" checked disabled /> 保存 events（必开）</label>
             <label class="check"><input type="checkbox" name="save_session_meta" checked disabled /> 保存 session.meta（必开）</label>
             <label class="check"><input type="checkbox" name="auto_phase4" /> 结束后自动 Phase4 切窗（仅 acquire + 未 reject）</label>
+            <div class="row">
+              <label>切窗模式
+                <select name="p4_window_mode">
+                  <option value="fixed" selected>固定窗（每阶段 1 窗）</option>
+                  <option value="slide">滑动窗（阶段内滑切）</option>
+                </select>
+              </label>
+              <label>窗长 <input name="p4_win_sec" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
+              <label>步长 <input name="p4_hop_ms" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
+            </div>
+            <p id="p4-hint" class="hint">滑动窗在各阶段区间内滑切，不跨阶段；窗长不得超过 MI/静息时长。这些参数同时用于「自动切窗」和结束后 Summary 页手动切窗的默认值。</p>
             <p id="save-hint" class="hint">默认 phase_folders：continuous/ + by_phase/ + alignment/</p>
           </fieldset>
 
@@ -149,6 +183,11 @@
       <section id="view-run" class="view hidden">
         <h1>运行监控</h1>
         <div id="run-summary" class="summary-bar"></div>
+        <div class="tl-block">
+          <div class="tl-caption">本场单 trial 时序构成（锁定）</div>
+          <div id="run-timeline" class="timeline"></div>
+          <p id="run-timing-hint" class="hint"></p>
+        </div>
         <div id="run-lock" class="lock-bar">实验进行中：设备与保存路径已锁定；需改请先中止。</div>
         <div id="popup-warn" class="warn hidden">若诱导页未出现：请允许弹窗，或点下方「重新打开诱导页」。</div>
 
@@ -172,6 +211,8 @@
         </div>
 
         <div class="actions run-actions">
+          <button type="button" id="btn-split" title="B">中场换场</button>
+          <button type="button" id="btn-questionnaire" title="Q">问卷</button>
           <button type="button" id="btn-pause">暂停</button>
           <button type="button" id="btn-continue">代确认</button>
           <button type="button" id="btn-gate">准入</button>
@@ -179,7 +220,8 @@
           <button type="button" id="btn-reopen" class="primary">重新打开诱导页</button>
           <button type="button" id="btn-abort" class="danger">中止</button>
         </div>
-        <p class="hint">快捷键：P 暂停 · N 代确认 · G 准入 · R Reject · Esc 中止</p>
+        <p id="q-status-run" class="hint"></p>
+        <p class="hint">快捷键：B 换场 · Q 问卷 · P 暂停 · N 代确认 · G 准入 · R Reject · Esc 中止</p>
       </section>
 
       <!-- Summary -->
@@ -187,16 +229,29 @@
         <h1>结束与保存 <span id="verify-badge" class="na">—</span></h1>
         <p id="summary-msg" class="lead"></p>
         <p id="phase4-msg" class="hint"></p>
+        <div class="row p4-run-row">
+          <span class="hint">切窗参数：</span>
+          <label>模式
+            <select id="p4-run-mode">
+              <option value="fixed">固定窗</option>
+              <option value="slide">滑动窗</option>
+            </select>
+          </label>
+          <label>窗长 <input id="p4-run-win" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
+          <label>步长 <input id="p4-run-hop" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
+        </div>
         <p><span class="k">会话目录</span> <code id="summary-root">—</code></p>
         <ul id="summary-files" class="file-list"></ul>
         <div class="actions">
           <button type="button" id="btn-open-folder" class="primary">打开会话文件夹</button>
           <button type="button" id="btn-phase4">一键 Phase4 切窗</button>
+          <button type="button" id="btn-summary-questionnaire">问卷</button>
           <button type="button" id="btn-copy-path">复制路径</button>
           <button type="button" id="btn-again">再开一场</button>
         </div>
+        <p id="q-status" class="hint"></p>
       </section>
     </div>
-    <script type="module" src="js/operator.js"></script>
+    <script type="module" src="js/operator.js?v=20260822a"></script>
   </body>
 </html>

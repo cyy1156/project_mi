@@ -7,6 +7,8 @@ from pathlib import Path
 
 from config import ADABN_VERSION, PROTOCOL_VERSION, RESULTS_ROOT
 
+EXPECTED_N_SUBJECTS = 24
+
 
 def load_paired_summary(
     anchor_arm: str,
@@ -60,3 +62,42 @@ def subject_acc(paired: dict | None, subject_id: str) -> float | None:
         return None
     by = paired.get("by_subject") or {}
     return by.get(subject_id)
+
+
+def paired_subject_count(paired: dict | None) -> int:
+    if not paired:
+        return 0
+    by = paired.get("by_subject") or {}
+    return len(by)
+
+
+def require_paired_summaries(
+    anchor_arms: tuple[str, ...] = ("A0", "B3"),
+    *,
+    min_subjects: int = EXPECTED_N_SUBJECTS,
+    head: str = "three",
+    results_root: Path | None = None,
+) -> dict[str, dict]:
+    """C1 前校验：锚点臂须为 v1.2 全量 run，且覆盖足够被试。"""
+    missing: list[str] = []
+    partial: list[str] = []
+    out: dict[str, dict] = {}
+    for arm in anchor_arms:
+        paired = load_paired_summary(arm, head=head, results_root=results_root)
+        if not paired:
+            missing.append(arm)
+            continue
+        n = paired_subject_count(paired)
+        if n < min_subjects:
+            partial.append(f"{arm}({n}/{min_subjects})")
+            continue
+        out[arm] = paired
+    if missing or partial:
+        lines = ["C1 需要同链 v1.2 全量锚点 summary，请先跑 eval_ab："]
+        if missing:
+            lines.append(f"  缺失: {', '.join(missing)}")
+        if partial:
+            lines.append(f"  被试不足: {', '.join(partial)}")
+        lines.append("  冒烟仅: eval_c1.py --smoke --subjects S1")
+        raise RuntimeError("\n".join(lines))
+    return out

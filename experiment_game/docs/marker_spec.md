@@ -1,8 +1,8 @@
 # Marker / 事件规格（冻结）
 
-> **版本**：v0.1  
-> **日期**：2026-07-22  
-> **状态**：Phase 1 冻结  
+> **版本**：v0.2  
+> **日期**：2026-08-22  
+> **状态**：Phase 1 冻结（时序数值升级为「可配置 + 落盘快照」，见 §1.1）  
 > **配套**：`游戏内容规格.md`、`项目计划.md` §5
 
 权威时钟：`pylsl.local_clock()`（下称 `t_lsl`）。  
@@ -10,7 +10,7 @@
 
 ---
 
-## 1. 单 Trial 时间轴（已冻结）
+## 1. 单 Trial 时间轴（默认值，可配置）
 
 墙钟合计 **17 s**（含 Transition）。相对 `trial_start`：
 
@@ -29,6 +29,14 @@
 - Rest 窗：[`rest_start`, `rest_end`)，时长 4.0 s；**不含** Transition。
 - **离线 Phase4 训练切窗**：只取 `mi_start`/`rest_start` 起连续 **2.0 s → 500@250Hz**（与 BCI2a/Stieger 统一）；在线仍按上表 4.0 s 呈现与校验。
 - 若下游习惯「cue 后 0–4 s」语义，本系统提供显式 `mi_*`；适配器应优先用 `mi_start`/`mi_end`，避免把 Cue 展示段误切进训练窗。
+
+### 1.1 时序可配置（v0.2）
+
+上表时长为**默认值**。操作台 Setup 页「试次时序」可逐段修改（含 MI 4/6/8s 预设），校验规则：
+
+- 各段 0.2–30s；**MI ≥ 1s**；**Rest ≥ 4s**（Phase4 切 4s 静息窗的下限）；Transition ≥ 0.5s。
+- 会话开始时把 `experiment.timing` 快照写入 `run_config.json` 与 `session.meta.json`（`timing` + `trial_total_s` 字段），事后可追溯当场的范式时长。
+- 事件名与打标逻辑不变；`mi_end`/`rest_end` 始终跟随时长闭合，切窗适配器无需感知配置。
 
 ---
 

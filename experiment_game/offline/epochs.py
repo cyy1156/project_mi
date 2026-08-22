@@ -1,7 +1,8 @@
-"""按 mi_start / rest_start 切 2 s 窗，并做基线校正。
+"""按 mi_start / rest_start 切窗，并做基线校正。
 
-在线范式仍可呈现 4 s MI/Rest；离线训练只取窗起点起连续 2 s
-（MI：等价 Cue+2~Cue+4，与 BCI2a 正式切窗对齐）→ 500@250Hz。
+支持两种模式（与 preprocess_lab 对齐）：
+- fixed：每阶段起点取 1 个固定窗（默认 2s → 500@250Hz）；
+- slide：在阶段区间 [start, end) 内按窗长 + 步长滑动切多个窗。
 """
 
 from __future__ import annotations
@@ -22,6 +23,8 @@ from experiment_game.offline.load_session import (
 WIN_SEC = 2.0
 FS_OUT = 250.0
 N_TIMES = int(WIN_SEC * FS_OUT)  # 500
+HOP_MS = 100.0
+BASELINE_S = 0.5
 
 
 @dataclass
@@ -31,6 +34,9 @@ class WindowSpec:
     label: int  # 0/1/2 for y_three source
     t_start: float
     sample: int
+    # 阶段闭合事件（mi_end / rest_end），滑窗范围上界；缺失为 None
+    t_end: Optional[float] = None
+    sample_end: Optional[int] = None
 
 
 def collect_window_specs(
@@ -39,13 +45,23 @@ def collect_window_specs(
     phases: Optional[Sequence[str]] = ("acquire",),
 ) -> List[WindowSpec]:
     """
-    从 events 收集训练窗起点。
+    从 events 收集训练窗锚点（mi_start / rest_start），并配对闭合事件。
     默认只要 phase∈acquire；排除 trial_reject。
     """
     reject = rejected_trial_ids(session.events)
     phase_set = set(phases) if phases is not None else None
-    specs: List[WindowSpec] = []
+    # 先收 mi_end / rest_end，按 (event, trial_id) 索引
+    ends: dict[tuple[str, int], dict] = {}
+    for e in session.events:
+        ev = e.get("event")
+        if ev not in ("mi_end", "rest_end"):
+            continue
+        tid = e.get("trial_id")
+        if tid is None:
+            continue
+        ends[(str(ev), int(tid))] = e
 
+    specs: List[WindowSpec] = []
     for e in session.events:
         ev = e.get("event")
         if ev not in ("mi_start", "rest_start"):
@@ -69,6 +85,16 @@ def collect_window_specs(
             continue
         t0 = float(e["t_lsl"])
         sample = time_to_sample(session.lsl_time, t0)
+        t_end: Optional[float] = None
+        sample_end: Optional[int] = None
+        end_ev = ends.get(("mi_end" if ev == "mi_start" else "rest_end", tid_i))
+        if end_ev is not None:
+            t_end = float(end_ev["t_lsl"])
+            # 录制未覆盖阶段结束（如会话末尾提前停录）时，
+            # time_to_sample 会钳位到末样本、虚假压缩跨度；此时放弃跨度，
+            # 退回单窗语义，由切窗环节以 window_oob 如实记录。
+            if len(session.lsl_time) and t_end <= float(session.lsl_time[-1]) + 0.05:
+                sample_end = time_to_sample(session.lsl_time, t_end)
         specs.append(
             WindowSpec(
                 kind="mi" if ev == "mi_start" else "rest",
@@ -76,9 +102,29 @@ def collect_window_specs(
                 label=lab,
                 t_start=t0,
                 sample=sample,
+                t_end=t_end,
+                sample_end=sample_end,
             )
         )
     return specs
+
+
+def slide_offsets(
+    span_samples: Optional[int],
+    win_samples: int,
+    hop_samples: int,
+) -> List[int]:
+    """
+    滑窗起点偏移（相对阶段锚点）。span 未知时退化为单窗 [0]。
+    窗必须完整落在阶段区间内，不越界进入下一阶段。
+    """
+    if span_samples is None:
+        return [0]
+    if win_samples > span_samples:
+        return []
+    hop = max(1, int(hop_samples))
+    last = span_samples - win_samples
+    return list(range(0, last + 1, hop))
 
 
 def cut_window_with_baseline(

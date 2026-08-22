@@ -30,6 +30,7 @@ class WsBridge:
             "continue": threading.Event(),
             "abort": threading.Event(),
             "gate_ok": threading.Event(),
+            "split_request": threading.Event(),
         }
         self._on_message: Optional[Callable[[dict], None]] = None
         self._server = None
@@ -55,9 +56,21 @@ class WsBridge:
             if mtype == "prompt":
                 self._pending = [m for m in self._pending if m.get("type") != "prompt"]
                 self._pending.append(dict(message))
+            elif mtype == "questionnaire":
+                # 只保留最后一份未提交问卷；提交后由 clear_pending_questionnaire 清除
+                self._pending = [
+                    m for m in self._pending if m.get("type") != "questionnaire"
+                ]
+                self._pending.append(dict(message))
             elif mtype in ("stage", "hud", "session", "operator_state"):
                 self._pending = [m for m in self._pending if m.get("type") != mtype]
                 self._pending.append(dict(message))
+
+    def clear_pending_questionnaire(self) -> None:
+        with self._lock:
+            self._pending = [
+                m for m in self._pending if m.get("type") != "questionnaire"
+            ]
 
     def clear_pending_prompt(self) -> None:
         with self._lock:
@@ -112,7 +125,14 @@ class WsBridge:
         self._clients.clear()
 
     def broadcast(self, message: dict[str, Any]) -> None:
-        if message.get("type") in ("prompt", "stage", "hud", "session", "operator_state"):
+        if message.get("type") in (
+            "prompt",
+            "questionnaire",
+            "stage",
+            "hud",
+            "session",
+            "operator_state",
+        ):
             self.set_pending(message)
         loop = self._loop
         if loop is None or not loop.is_running():
@@ -126,6 +146,12 @@ class WsBridge:
         ev = self._client_events.get(name)
         if ev is not None:
             ev.clear()
+
+    def set_event(self, name: str) -> None:
+        """供编排器主动触发客户端事件（如换场等待中的第二次 B）。"""
+        ev = self._client_events.get(name)
+        if ev is not None:
+            ev.set()
 
     def wait_client_event(self, name: str, timeout: Optional[float] = None) -> bool:
         ev = self._client_events.get(name)

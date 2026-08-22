@@ -10,11 +10,15 @@ from typing import Any, Dict, List, Optional, Sequence
 import numpy as np
 
 from experiment_game.offline.epochs import (
+    FS_OUT,
     N_TIMES,
+    BASELINE_S,
+    WIN_SEC,
     collect_window_specs,
     cut_window_with_baseline,
     labels_from_spec,
     resample_to_1000,
+    slide_offsets,
     to_model_tensor,
     trial_zscore,
 )
@@ -50,10 +54,10 @@ class EpochBundle:
         }
 
 
-def sanity_check(bundle: EpochBundle) -> None:
+def sanity_check(bundle: EpochBundle, n_times: int = N_TIMES) -> None:
     X, yt, y3 = bundle.X, bundle.y_task, bundle.y_three
-    if X.ndim != 4 or X.shape[1:] != (1, 8, N_TIMES):
-        raise AssertionError(f"X shape 期望 (N,1,8,{N_TIMES})，得到 {X.shape}")
+    if X.ndim != 4 or X.shape[1:] != (1, 8, n_times):
+        raise AssertionError(f"X shape 期望 (N,1,8,{n_times})，得到 {X.shape}")
     if yt.shape != (X.shape[0],) or y3.shape != (X.shape[0],):
         raise AssertionError("标签长度与 N 不一致")
     if not np.isfinite(X).all():
@@ -73,21 +77,32 @@ def preprocess_session(
     *,
     phases: Optional[Sequence[str]] = ("acquire",),
     apply_filter: bool = True,
+    window_mode: str = "fixed",
+    win_sec: float = WIN_SEC,
+    hop_ms: float = 100.0,
+    baseline_s: float = BASELINE_S,
 ) -> EpochBundle:
     """
-    默认：phase==acquire 的 mi_start/rest_start → 取起点起 2s 窗。
-    输出与 preprocess_lab 一致：(N,1,8,500) + y_task + y_three。
+    默认（fixed）：phase==acquire 的 mi_start/rest_start → 取起点起 2s 窗。
+    window_mode="slide"：在各阶段 [start, end) 区间内按 win_sec + hop_ms 滑动切窗；
+    窗必须完整落在阶段内（不把保持/过渡段切进训练窗）。
+    输出与 preprocess_lab 一致：(N,1,8,win_sec*250) + y_task + y_three。
     """
     if isinstance(session_dir, SessionEEG):
         session = session_dir
     else:
         session = load_session(session_dir)
 
+    if window_mode not in ("fixed", "slide"):
+        raise ValueError(f"window_mode 须为 fixed 或 slide，得到 {window_mode!r}")
+
     x = session.x
     if apply_filter:
         x = car_then_filter(x, session.fs)
 
     specs = collect_window_specs(session, phases=phases)
+    n_out = int(round(win_sec * FS_OUT))
+    hop_samples = int(round(hop_ms / 1000.0 * session.fs))
     xs: List[np.ndarray] = []
     y_task: List[int] = []
     y_three: List[int] = []
@@ -96,37 +111,71 @@ def preprocess_session(
     skipped: List[Dict[str, Any]] = []
 
     for spec in specs:
-        win = cut_window_with_baseline(x, spec.sample, session.fs)
-        if win is None:
-            skipped.append(
-                {
-                    "trial_id": spec.trial_id,
-                    "kind": spec.kind,
-                    "reason": "window_oob",
-                    "sample": spec.sample,
-                }
+        if window_mode == "slide":
+            span = (
+                spec.sample_end - spec.sample
+                if spec.sample_end is not None
+                else None
             )
-            continue
-        win = resample_to_1000(win, session.fs)
-        if win.shape != (N_TIMES, 8):
-            skipped.append(
-                {
-                    "trial_id": spec.trial_id,
-                    "kind": spec.kind,
-                    "reason": f"bad_shape_{win.shape}",
-                }
-            )
-            continue
-        win = trial_zscore(win)
+            offsets = slide_offsets(span, n_out, hop_samples)
+            if not offsets:
+                skipped.append(
+                    {
+                        "trial_id": spec.trial_id,
+                        "kind": spec.kind,
+                        "reason": "window_exceeds_stage",
+                        "span_samples": span,
+                        "win_samples": n_out,
+                    }
+                )
+                continue
+        else:
+            offsets = [0]
+
         lab_t, lab_3 = labels_from_spec(spec)
-        xs.append(win)
-        y_task.append(lab_t)
-        y_three.append(lab_3)
-        trial_ids.append(spec.trial_id)
-        kinds.append(spec.kind)
+        for off in offsets:
+            win = cut_window_with_baseline(
+                x, spec.sample + off, session.fs,
+                dur_s=win_sec, baseline_s=baseline_s,
+            )
+            if win is None:
+                skipped.append(
+                    {
+                        "trial_id": spec.trial_id,
+                        "kind": spec.kind,
+                        "reason": "window_oob",
+                        "sample": spec.sample + off,
+                        "offset": off,
+                    }
+                )
+                continue
+            win = resample_to_1000(win, session.fs, fs_out=FS_OUT, win_sec=win_sec)
+            if win.shape != (n_out, 8):
+                skipped.append(
+                    {
+                        "trial_id": spec.trial_id,
+                        "kind": spec.kind,
+                        "reason": f"bad_shape_{win.shape}",
+                    }
+                )
+                continue
+            win = trial_zscore(win)
+            xs.append(win)
+            y_task.append(lab_t)
+            y_three.append(lab_3)
+            trial_ids.append(spec.trial_id)
+            kinds.append(spec.kind)
+
+    cut_meta = {
+        "window_mode": window_mode,
+        "win_sec": float(win_sec),
+        "hop_ms": float(hop_ms),
+        "baseline_s": float(baseline_s),
+        "n_times": n_out,
+    }
 
     if not xs:
-        X = np.zeros((0, 1, 8, N_TIMES), np.float32)
+        X = np.zeros((0, 1, 8, n_out), np.float32)
         empty = np.zeros((0,), np.int64)
         bundle = EpochBundle(
             X=X,
@@ -141,6 +190,7 @@ def preprocess_session(
                 "_eeg_path": session.meta.get("_eeg_path"),
                 "_events_path": session.meta.get("_events_path"),
                 "exclude_rejected": True,
+                **cut_meta,
             },
         )
         return bundle
@@ -163,9 +213,10 @@ def preprocess_session(
             "_eeg_path": session.meta.get("_eeg_path"),
             "_events_path": session.meta.get("_events_path"),
             "exclude_rejected": True,
+            **cut_meta,
         },
     )
-    sanity_check(bundle)
+    sanity_check(bundle, n_times=n_out)
     return bundle
 
 

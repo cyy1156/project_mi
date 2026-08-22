@@ -16,6 +16,11 @@ const el = {
   promptBody: document.getElementById("prompt-body"),
   promptBtn: document.getElementById("prompt-btn"),
   promptHint: document.getElementById("prompt-hint"),
+  qWrap: document.getElementById("questionnaire"),
+  qTitle: document.getElementById("q-title"),
+  qBody: document.getElementById("q-body"),
+  qSubmit: document.getElementById("q-submit"),
+  qHint: document.getElementById("q-hint"),
   offline: document.getElementById("offline"),
   opbar: document.getElementById("opbar"),
   opState: document.getElementById("op-state"),
@@ -133,6 +138,118 @@ function updateOpState(msg) {
   setStatus((el.status && el.status.textContent) || "已连接");
 }
 
+/* ---------------- 采集结束问卷（操作者 Q 推送） ---------------- */
+
+let qOpen = false;
+
+function showQuestionnaire(msg) {
+  if (!el.qWrap || sessionDone) return;
+  el.qTitle.textContent = msg.title || "问卷";
+  el.qBody.innerHTML = "";
+  el.qHint.textContent = "";
+  let lastGroup = "";
+  for (const q of msg.questions || []) {
+    if (q.group && q.group !== lastGroup) {
+      lastGroup = q.group;
+      const g = document.createElement("div");
+      g.className = "q-group";
+      g.textContent = lastGroup;
+      el.qBody.appendChild(g);
+    }
+    const item = document.createElement("div");
+    item.className = "q-item";
+    const p = document.createElement("p");
+    p.textContent = q.text || q.id;
+    item.appendChild(p);
+    const opts = document.createElement("div");
+    opts.className = "q-options";
+    if (q.kind === "scale5") {
+      for (let v = 1; v <= 5; v++) {
+        const lab = document.createElement("label");
+        const rb = document.createElement("input");
+        rb.type = "radio";
+        rb.name = `q_${q.id}`;
+        rb.value = String(v);
+        rb.dataset.qid = q.id;
+        lab.appendChild(rb);
+        lab.appendChild(document.createTextNode(`${v}分`));
+        opts.appendChild(lab);
+      }
+      const anchors = document.createElement("div");
+      anchors.className = "q-anchors";
+      const [lo, hi] = q.anchors || ["1 = 低", "5 = 高"];
+      anchors.textContent = `${lo} · ${hi}`;
+      item.appendChild(opts);
+      item.appendChild(anchors);
+    } else if (q.kind === "choice") {
+      for (const opt of q.options || []) {
+        const lab = document.createElement("label");
+        const rb = document.createElement("input");
+        rb.type = "radio";
+        rb.name = `q_${q.id}`;
+        rb.value = opt;
+        rb.dataset.qid = q.id;
+        lab.appendChild(rb);
+        lab.appendChild(document.createTextNode(opt));
+        opts.appendChild(lab);
+      }
+      item.appendChild(opts);
+    } else {
+      const ta = document.createElement("textarea");
+      ta.rows = 2;
+      ta.style.width = "100%";
+      ta.dataset.qid = q.id;
+      ta.dataset.kind = "text";
+      item.appendChild(ta);
+    }
+    el.qBody.appendChild(item);
+  }
+  el.qWrap.classList.remove("hidden");
+  el.qWrap.setAttribute("aria-hidden", "false");
+  qOpen = true;
+  setHelpTip("请完成后点击「提交问卷」");
+}
+
+function hideQuestionnaire() {
+  if (!el.qWrap) return;
+  el.qWrap.classList.add("hidden");
+  el.qWrap.setAttribute("aria-hidden", "true");
+  qOpen = false;
+}
+
+function submitQuestionnaire() {
+  const answers = {};
+  const missing = [];
+  document.querySelectorAll("#q-body input[type=radio]:checked").forEach((rb) => {
+    answers[rb.dataset.qid] = rb.value;
+  });
+  document.querySelectorAll("#q-body textarea").forEach((ta) => {
+    if (ta.value.trim()) answers[ta.dataset.qid] = ta.value.trim();
+  });
+  // 漏填检查：每个单选组必须有选中
+  const groups = new Set(
+    [...document.querySelectorAll("#q-body input[type=radio]")].map(
+      (rb) => rb.name
+    )
+  );
+  for (const name of groups) {
+    if (!document.querySelector(`#q-body input[name="${CSS.escape(name)}"]:checked`)) {
+      missing.push(name.replace("q_", ""));
+    }
+  }
+  if (missing.length) {
+    if (el.qHint) el.qHint.textContent = `还有未作答的题目：${missing.join("、")}`;
+    return;
+  }
+  client.send({ type: "questionnaire_result", form: "post", answers });
+  if (el.qHint) el.qHint.textContent = "已提交，感谢配合";
+  setTimeout(hideQuestionnaire, 800);
+}
+
+if (el.qSubmit) {
+  el.qSubmit.addEventListener("click", submitQuestionnaire);
+}
+
 const client = new WsClient(
   wsUrl,
   (msg) => {
@@ -150,6 +267,12 @@ const client = new WsClient(
         el.phase.textContent = `${msg.phase}${step}`;
       }
       scene.applyStage(msg);
+    } else if (msg.type === "questionnaire") {
+      showQuestionnaire(msg);
+    } else if (msg.type === "questionnaire_ack") {
+      if (!msg.ok && msg.errors && msg.errors.length) {
+        if (el.qHint) el.qHint.textContent = `提交未通过：${msg.errors.join("；")}`;
+      }
     } else if (msg.type === "prompt") {
       showPrompt(msg);
     } else if (msg.type === "operator_state") {
