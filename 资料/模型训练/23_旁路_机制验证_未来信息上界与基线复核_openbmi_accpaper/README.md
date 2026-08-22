@@ -9,9 +9,9 @@
 | 审计对象 | 2 s / pf1000 v3 上的 A1–P2–B/C/U/T/21 系列（解释它们的失败机制，非夺主表） |
 | 核心问题 | ① 未来信息上界是否真的只有 ~+0.5 pp、且随当前窗缩短而增大；② λ_pred=1 是否过强（从未扫过）；③ 双专家是否=同特征双头集成；④ A1 主线基线是否被「仅 future 齐全窗」训练集低估；⑤ A1 增益里是否混有零填 padding 效应 |
 | 数据 | `openbmi_2s_hop100_pf1000` v3（本机待生成：`python -m src.datasets.openbmi_pf1000.batch --reset`） |
-| 代码包 | `code/train_lab/src/step/5070_mech_verify_accpaper/`（由 `5070_mask_future_dual_expert_accpaper` 浅拷贝改造） |
-| 设备 | RTX 5070 Laptop · batch 128/256 · AMP · mem_guard（单臂五折 ≈ 1 h） |
-| 状态 | 方案落地 · 待阶段 0（数据生成 + A1 机位校准） |
+| 代码包 | **5090**：[`5090_mech_verify_accpaper/`](../../../code/train_lab/src/step/5090_mech_verify_accpaper/) · 5070：[`5070_mech_verify_accpaper/`](../../../code/train_lab/src/step/5070_mech_verify_accpaper/) |
+| 设备 | **5090**（本机）：batch 256/512 · **5070 Laptop**：batch 128/256 |
+| 状态 | **5090/5070 代码就绪 · 待阶段 0 开跑** |
 
 ## 一句话读法
 

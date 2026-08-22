@@ -1,0 +1,802 @@
+{
+  "task": "scheme23_three_kfold_accpaper",
+  "arm": "O2s_m",
+  "note": "23 · G2s 掩码 · A1 机位校准",
+  "scheme23": true,
+  "geom_id": "G2s",
+  "oracle": false,
+  "test_acc_paper_mean": 0.5763030303030303,
+  "test_acc_paper_std": 0.024672250131232625,
+  "mean": 0.5763030303030303,
+  "std": 0.024672250131232625,
+  "folds": [
+    {
+      "fold": 0,
+      "best_val_acc_paper": 0.5788888888888889,
+      "best_val_balacc_maj": 0.5862962962962963,
+      "best_epoch": 13,
+      "stopped_epoch": 33,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 45900,
+        "acc_paper": 0.5788888888888889,
+        "acc_majority": 0.5862962962962963,
+        "balanced_accuracy": 0.5862962962962963,
+        "f1_macro": 0.5860292236552059,
+        "precision_macro": 0.5889488825616159,
+        "recall_macro": 0.5862962962962963,
+        "accuracy_sklearn": 0.5862962962962963,
+        "recall_idle": 0.6188888888888889,
+        "recall_left": 0.6155555555555555,
+        "recall_right": 0.5244444444444445,
+        "cm": [
+          [
+            557,
+            210,
+            133
+          ],
+          [
+            162,
+            554,
+            184
+          ],
+          [
+            170,
+            258,
+            472
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3300,
+        "n_windows": 56100,
+        "acc_paper": 0.5593939393939394,
+        "acc_majority": 0.5657575757575758,
+        "balanced_accuracy": 0.5657575757575758,
+        "f1_macro": 0.5664968171967207,
+        "precision_macro": 0.5686343346276974,
+        "recall_macro": 0.5657575757575758,
+        "accuracy_sklearn": 0.5657575757575758,
+        "recall_idle": 0.5836363636363636,
+        "recall_left": 0.54,
+        "recall_right": 0.5736363636363636,
+        "cm": [
+          [
+            642,
+            235,
+            223
+          ],
+          [
+            157,
+            594,
+            349
+          ],
+          [
+            217,
+            252,
+            631
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.5543137254901961,
+        "f1_macro": 0.5549466424643072,
+        "precision_macro": 0.5572540366624258,
+        "recall_macro": 0.5543137254901961,
+        "balanced_accuracy": 0.5543137254901961,
+        "recall_idle": 0.5596256684491978,
+        "recall_left": 0.5327807486631017,
+        "recall_right": 0.5705347593582888,
+        "precision_idle": 0.6158418172188548,
+        "precision_left": 0.5357603785760379,
+        "precision_right": 0.5201599141923846,
+        "f1_idle": 0.5863894881349284,
+        "f1_left": 0.5342664092664092,
+        "f1_right": 0.544184029991584,
+        "cm": [
+          [
+            10465,
+            4213,
+            4022
+          ],
+          [
+            2917,
+            9963,
+            5820
+          ],
+          [
+            3611,
+            4420,
+            10669
+          ]
+        ]
+      },
+      "test_acc_paper": 0.5593939393939394,
+      "per_subject_test_acc_paper": {
+        "openbmi:subj06": 0.6066666666666667,
+        "openbmi:subj08": 0.44666666666666666,
+        "openbmi:subj18": 0.7433333333333333,
+        "openbmi:subj24": 0.5433333333333333,
+        "openbmi:subj28": 0.7566666666666667,
+        "openbmi:subj35": 0.4033333333333333,
+        "openbmi:subj38": 0.7366666666666667,
+        "openbmi:subj41": 0.4066666666666667,
+        "openbmi:subj42": 0.47333333333333333,
+        "openbmi:subj52": 0.5933333333333334,
+        "openbmi:subj54": 0.44333333333333336
+      },
+      "n_train_windows": 173400
+    },
+    {
+      "fold": 1,
+      "best_val_acc_paper": 0.5937037037037037,
+      "best_val_balacc_maj": 0.601111111111111,
+      "best_epoch": 22,
+      "stopped_epoch": 42,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 45900,
+        "acc_paper": 0.5937037037037037,
+        "acc_majority": 0.6011111111111112,
+        "balanced_accuracy": 0.601111111111111,
+        "f1_macro": 0.5982972891394679,
+        "precision_macro": 0.6005076716621115,
+        "recall_macro": 0.601111111111111,
+        "accuracy_sklearn": 0.6011111111111112,
+        "recall_idle": 0.6744444444444444,
+        "recall_left": 0.48777777777777775,
+        "recall_right": 0.6411111111111111,
+        "cm": [
+          [
+            607,
+            165,
+            128
+          ],
+          [
+            188,
+            439,
+            273
+          ],
+          [
+            188,
+            135,
+            577
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3300,
+        "n_windows": 56100,
+        "acc_paper": 0.6042424242424242,
+        "acc_majority": 0.6084848484848485,
+        "balanced_accuracy": 0.6084848484848485,
+        "f1_macro": 0.6083475267345252,
+        "precision_macro": 0.6145988380341013,
+        "recall_macro": 0.6084848484848485,
+        "accuracy_sklearn": 0.6084848484848485,
+        "recall_idle": 0.6136363636363636,
+        "recall_left": 0.6772727272727272,
+        "recall_right": 0.5345454545454545,
+        "cm": [
+          [
+            675,
+            251,
+            174
+          ],
+          [
+            129,
+            745,
+            226
+          ],
+          [
+            174,
+            338,
+            588
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.6027807486631016,
+        "f1_macro": 0.6026426021806781,
+        "precision_macro": 0.6080018069560837,
+        "recall_macro": 0.6027807486631016,
+        "balanced_accuracy": 0.6027807486631016,
+        "recall_idle": 0.6097326203208556,
+        "recall_left": 0.666096256684492,
+        "recall_right": 0.5325133689839572,
+        "precision_idle": 0.6784885450758703,
+        "precision_left": 0.5559721478307446,
+        "precision_right": 0.5895447279616364,
+        "f1_idle": 0.6422757358118575,
+        "f1_left": 0.6060724017127287,
+        "f1_right": 0.5595796690174483,
+        "cm": [
+          [
+            11402,
+            4210,
+            3088
+          ],
+          [
+            2399,
+            12456,
+            3845
+          ],
+          [
+            3004,
+            5738,
+            9958
+          ]
+        ]
+      },
+      "test_acc_paper": 0.6042424242424242,
+      "per_subject_test_acc_paper": {
+        "openbmi:subj05": 0.6933333333333334,
+        "openbmi:subj19": 0.68,
+        "openbmi:subj21": 0.8666666666666667,
+        "openbmi:subj25": 0.48333333333333334,
+        "openbmi:subj26": 0.55,
+        "openbmi:subj27": 0.5433333333333333,
+        "openbmi:subj30": 0.4533333333333333,
+        "openbmi:subj32": 0.7766666666666666,
+        "openbmi:subj40": 0.5933333333333334,
+        "openbmi:subj46": 0.5466666666666666,
+        "openbmi:subj49": 0.46
+      },
+      "n_train_windows": 173400
+    },
+    {
+      "fold": 2,
+      "best_val_acc_paper": 0.5455555555555556,
+      "best_val_balacc_maj": 0.5496296296296296,
+      "best_epoch": 3,
+      "stopped_epoch": 23,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 45900,
+        "acc_paper": 0.5455555555555556,
+        "acc_majority": 0.5496296296296296,
+        "balanced_accuracy": 0.5496296296296296,
+        "f1_macro": 0.5476499155114914,
+        "precision_macro": 0.5491337303049874,
+        "recall_macro": 0.5496296296296296,
+        "accuracy_sklearn": 0.5496296296296296,
+        "recall_idle": 0.6477777777777778,
+        "recall_left": 0.5044444444444445,
+        "recall_right": 0.49666666666666665,
+        "cm": [
+          [
+            583,
+            192,
+            125
+          ],
+          [
+            222,
+            454,
+            224
+          ],
+          [
+            232,
+            221,
+            447
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3300,
+        "n_windows": 56100,
+        "acc_paper": 0.5384848484848485,
+        "acc_majority": 0.546060606060606,
+        "balanced_accuracy": 0.546060606060606,
+        "f1_macro": 0.5420896135021637,
+        "precision_macro": 0.5560712551760354,
+        "recall_macro": 0.546060606060606,
+        "accuracy_sklearn": 0.546060606060606,
+        "recall_idle": 0.6190909090909091,
+        "recall_left": 0.6081818181818182,
+        "recall_right": 0.4109090909090909,
+        "cm": [
+          [
+            681,
+            259,
+            160
+          ],
+          [
+            307,
+            669,
+            124
+          ],
+          [
+            259,
+            389,
+            452
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.5372014260249555,
+        "f1_macro": 0.5339795376009974,
+        "precision_macro": 0.5461231480531273,
+        "recall_macro": 0.5372014260249555,
+        "balanced_accuracy": 0.5372014260249555,
+        "recall_idle": 0.5954010695187166,
+        "recall_left": 0.6014438502673797,
+        "recall_right": 0.41475935828877003,
+        "precision_idle": 0.536449048422067,
+        "precision_left": 0.5014713750668807,
+        "precision_right": 0.6004490206704343,
+        "f1_idle": 0.5643898111772906,
+        "f1_left": 0.5469266679634313,
+        "f1_right": 0.4906221336622703,
+        "cm": [
+          [
+            11134,
+            4590,
+            2976
+          ],
+          [
+            5268,
+            11247,
+            2185
+          ],
+          [
+            4353,
+            6591,
+            7756
+          ]
+        ]
+      },
+      "test_acc_paper": 0.5384848484848485,
+      "per_subject_test_acc_paper": {
+        "openbmi:subj04": 0.5666666666666667,
+        "openbmi:subj10": 0.54,
+        "openbmi:subj16": 0.4033333333333333,
+        "openbmi:subj17": 0.5033333333333333,
+        "openbmi:subj22": 0.48333333333333334,
+        "openbmi:subj29": 0.51,
+        "openbmi:subj33": 0.76,
+        "openbmi:subj45": 0.6733333333333333,
+        "openbmi:subj47": 0.5633333333333334,
+        "openbmi:subj50": 0.38,
+        "openbmi:subj51": 0.54
+      },
+      "n_train_windows": 173400
+    },
+    {
+      "fold": 3,
+      "best_val_acc_paper": 0.6151851851851852,
+      "best_val_balacc_maj": 0.6214814814814814,
+      "best_epoch": 13,
+      "stopped_epoch": 33,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 45900,
+        "acc_paper": 0.6151851851851852,
+        "acc_majority": 0.6214814814814815,
+        "balanced_accuracy": 0.6214814814814814,
+        "f1_macro": 0.6204822925119564,
+        "precision_macro": 0.6212140354830794,
+        "recall_macro": 0.6214814814814814,
+        "accuracy_sklearn": 0.6214814814814815,
+        "recall_idle": 0.6966666666666667,
+        "recall_left": 0.58,
+        "recall_right": 0.5877777777777777,
+        "cm": [
+          [
+            627,
+            120,
+            153
+          ],
+          [
+            174,
+            522,
+            204
+          ],
+          [
+            187,
+            184,
+            529
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3300,
+        "n_windows": 56100,
+        "acc_paper": 0.5993939393939394,
+        "acc_majority": 0.6045454545454545,
+        "balanced_accuracy": 0.6045454545454545,
+        "f1_macro": 0.6044336361467166,
+        "precision_macro": 0.6066701573201411,
+        "recall_macro": 0.6045454545454545,
+        "accuracy_sklearn": 0.6045454545454545,
+        "recall_idle": 0.59,
+        "recall_left": 0.5672727272727273,
+        "recall_right": 0.6563636363636364,
+        "cm": [
+          [
+            649,
+            242,
+            209
+          ],
+          [
+            183,
+            624,
+            293
+          ],
+          [
+            158,
+            220,
+            722
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.5942245989304813,
+        "f1_macro": 0.5940998460090158,
+        "precision_macro": 0.5959713309283287,
+        "recall_macro": 0.5942245989304813,
+        "balanced_accuracy": 0.5942245989304813,
+        "recall_idle": 0.5826737967914438,
+        "recall_left": 0.5567914438502674,
+        "recall_right": 0.6432085561497326,
+        "precision_idle": 0.6413561716404732,
+        "precision_left": 0.565101763907734,
+        "precision_right": 0.5814560572367785,
+        "f1_idle": 0.6106083106839643,
+        "f1_left": 0.5609158249158249,
+        "f1_right": 0.6107754024272584,
+        "cm": [
+          [
+            10896,
+            4124,
+            3680
+          ],
+          [
+            3310,
+            10412,
+            4978
+          ],
+          [
+            2783,
+            3889,
+            12028
+          ]
+        ]
+      },
+      "test_acc_paper": 0.5993939393939394,
+      "per_subject_test_acc_paper": {
+        "openbmi:subj01": 0.53,
+        "openbmi:subj07": 0.55,
+        "openbmi:subj11": 0.6366666666666667,
+        "openbmi:subj12": 0.48333333333333334,
+        "openbmi:subj20": 0.5033333333333333,
+        "openbmi:subj23": 0.5766666666666667,
+        "openbmi:subj31": 0.6066666666666667,
+        "openbmi:subj36": 0.8033333333333333,
+        "openbmi:subj39": 0.6,
+        "openbmi:subj43": 0.7933333333333333,
+        "openbmi:subj48": 0.51
+      },
+      "n_train_windows": 173400
+    },
+    {
+      "fold": 4,
+      "best_val_acc_paper": 0.53,
+      "best_val_balacc_maj": 0.5344444444444445,
+      "best_epoch": 41,
+      "stopped_epoch": 61,
+      "best_val_trial_metrics": {
+        "n_trials": 2700,
+        "n_windows": 45900,
+        "acc_paper": 0.53,
+        "acc_majority": 0.5344444444444445,
+        "balanced_accuracy": 0.5344444444444445,
+        "f1_macro": 0.5328727445394112,
+        "precision_macro": 0.5324512435140455,
+        "recall_macro": 0.5344444444444445,
+        "accuracy_sklearn": 0.5344444444444445,
+        "recall_idle": 0.6233333333333333,
+        "recall_left": 0.4622222222222222,
+        "recall_right": 0.5177777777777778,
+        "cm": [
+          [
+            561,
+            181,
+            158
+          ],
+          [
+            208,
+            416,
+            276
+          ],
+          [
+            203,
+            231,
+            466
+          ]
+        ]
+      },
+      "test_trial_metrics": {
+        "n_trials": 3000,
+        "n_windows": 51000,
+        "acc_paper": 0.58,
+        "acc_majority": 0.585,
+        "balanced_accuracy": 0.585,
+        "f1_macro": 0.5819209743580797,
+        "precision_macro": 0.5922835538124409,
+        "recall_macro": 0.585,
+        "accuracy_sklearn": 0.585,
+        "recall_idle": 0.714,
+        "recall_left": 0.552,
+        "recall_right": 0.489,
+        "cm": [
+          [
+            714,
+            137,
+            149
+          ],
+          [
+            282,
+            552,
+            166
+          ],
+          [
+            316,
+            195,
+            489
+          ]
+        ]
+      },
+      "test_window_metrics": {
+        "accuracy": 0.5749803921568627,
+        "f1_macro": 0.5724186104745113,
+        "precision_macro": 0.582458431393195,
+        "recall_macro": 0.5749803921568628,
+        "balanced_accuracy": 0.5749803921568628,
+        "recall_idle": 0.6958235294117647,
+        "recall_left": 0.5388823529411765,
+        "recall_right": 0.49023529411764705,
+        "precision_idle": 0.5328858455716732,
+        "precision_left": 0.6117120726495726,
+        "precision_right": 0.6027773759583394,
+        "f1_idle": 0.603551201591918,
+        "f1_left": 0.5729922441831373,
+        "f1_right": 0.5407123856484786,
+        "cm": [
+          [
+            11829,
+            2504,
+            2667
+          ],
+          [
+            5014,
+            9161,
+            2825
+          ],
+          [
+            5355,
+            3311,
+            8334
+          ]
+        ]
+      },
+      "test_acc_paper": 0.58,
+      "per_subject_test_acc_paper": {
+        "openbmi:subj02": 0.5466666666666666,
+        "openbmi:subj03": 0.6366666666666667,
+        "openbmi:subj09": 0.6033333333333334,
+        "openbmi:subj13": 0.4866666666666667,
+        "openbmi:subj14": 0.5466666666666666,
+        "openbmi:subj15": 0.46,
+        "openbmi:subj34": 0.36,
+        "openbmi:subj37": 0.7433333333333333,
+        "openbmi:subj44": 0.8466666666666667,
+        "openbmi:subj53": 0.57
+      },
+      "n_train_windows": 178500
+    }
+  ],
+  "run_dir": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_mech_verify_accpaper\\20260822_152136_O2s_m",
+  "per_subject_test_acc_paper": {
+    "openbmi:subj06": 0.6066666666666667,
+    "openbmi:subj08": 0.44666666666666666,
+    "openbmi:subj18": 0.7433333333333333,
+    "openbmi:subj24": 0.5433333333333333,
+    "openbmi:subj28": 0.7566666666666667,
+    "openbmi:subj35": 0.4033333333333333,
+    "openbmi:subj38": 0.7366666666666667,
+    "openbmi:subj41": 0.4066666666666667,
+    "openbmi:subj42": 0.47333333333333333,
+    "openbmi:subj52": 0.5933333333333334,
+    "openbmi:subj54": 0.44333333333333336,
+    "openbmi:subj05": 0.6933333333333334,
+    "openbmi:subj19": 0.68,
+    "openbmi:subj21": 0.8666666666666667,
+    "openbmi:subj25": 0.48333333333333334,
+    "openbmi:subj26": 0.55,
+    "openbmi:subj27": 0.5433333333333333,
+    "openbmi:subj30": 0.4533333333333333,
+    "openbmi:subj32": 0.7766666666666666,
+    "openbmi:subj40": 0.5933333333333334,
+    "openbmi:subj46": 0.5466666666666666,
+    "openbmi:subj49": 0.46,
+    "openbmi:subj04": 0.5666666666666667,
+    "openbmi:subj10": 0.54,
+    "openbmi:subj16": 0.4033333333333333,
+    "openbmi:subj17": 0.5033333333333333,
+    "openbmi:subj22": 0.48333333333333334,
+    "openbmi:subj29": 0.51,
+    "openbmi:subj33": 0.76,
+    "openbmi:subj45": 0.6733333333333333,
+    "openbmi:subj47": 0.5633333333333334,
+    "openbmi:subj50": 0.38,
+    "openbmi:subj51": 0.54,
+    "openbmi:subj01": 0.53,
+    "openbmi:subj07": 0.55,
+    "openbmi:subj11": 0.6366666666666667,
+    "openbmi:subj12": 0.48333333333333334,
+    "openbmi:subj20": 0.5033333333333333,
+    "openbmi:subj23": 0.5766666666666667,
+    "openbmi:subj31": 0.6066666666666667,
+    "openbmi:subj36": 0.8033333333333333,
+    "openbmi:subj39": 0.6,
+    "openbmi:subj43": 0.7933333333333333,
+    "openbmi:subj48": 0.51,
+    "openbmi:subj02": 0.5466666666666666,
+    "openbmi:subj03": 0.6366666666666667,
+    "openbmi:subj09": 0.6033333333333334,
+    "openbmi:subj13": 0.4866666666666667,
+    "openbmi:subj14": 0.5466666666666666,
+    "openbmi:subj15": 0.46,
+    "openbmi:subj34": 0.36,
+    "openbmi:subj37": 0.7433333333333333,
+    "openbmi:subj44": 0.8466666666666667,
+    "openbmi:subj53": 0.57
+  },
+  "data_meta": {
+    "protocol": "openbmi_2s_hop100_pf1000",
+    "protocol_version": 3,
+    "n_windows": 275400,
+    "X_full_shape": [
+      275400,
+      1,
+      8,
+      1000
+    ],
+    "fs_out": 250,
+    "geometry": "past100+cur500+future400",
+    "post_mi_sec": 1.6,
+    "no_rest": false,
+    "add_rest": true,
+    "rest": "cue_before_full_5.6s_same_geometry",
+    "task": "cue_0_to_5.6s_no_pre_cue",
+    "source_blocks": [
+      "EEG_MI_train"
+    ],
+    "excluded_blocks": [
+      "EEG_MI_test"
+    ],
+    "label_map": {
+      "rest": 0,
+      "left": 1,
+      "right": 2
+    },
+    "y_three_counts": [
+      91800,
+      91800,
+      91800
+    ],
+    "cut_spec": {
+      "fs_out": 250.0,
+      "geometry": {
+        "past_pts": 100,
+        "cur_pts": 500,
+        "future_pts": 400,
+        "total_pts": 1000,
+        "hop_pts": 25,
+        "score_sec": 4.0,
+        "post_sec": 1.6,
+        "seg_sec": 5.6,
+        "baseline_sec": 0.5,
+        "legal_t0_sec": [
+          0.4,
+          0.5,
+          0.6,
+          0.7,
+          0.8,
+          0.9,
+          1.0,
+          1.1,
+          1.2,
+          1.3,
+          1.4,
+          1.5,
+          1.6,
+          1.7,
+          1.8,
+          1.9,
+          2.0
+        ]
+      },
+      "label_map": {
+        "rest": 0,
+        "left": 1,
+        "right": 2
+      },
+      "task": {
+        "name": "left_right",
+        "seg_rel_cue_sec": [
+          0.0,
+          5.6
+        ],
+        "score_rel_cue_sec": [
+          0.0,
+          4.0
+        ],
+        "post_rel_cue_sec": [
+          4.0,
+          5.6
+        ],
+        "baseline": "in_segment_first_0.5s_mean_subtract_keep_all",
+        "note": "从 cue 起切 [0, 5.6)；不读 cue 前；段首 0.5s 仅作基线均值"
+      },
+      "rest": {
+        "name": "idle",
+        "source": "cue_before_full_5.6s",
+        "seg_rel_cue_sec": [
+          -6.1,
+          0.0
+        ],
+        "score_rel_origin_sec": [
+          0.0,
+          4.0
+        ],
+        "post_rel_origin_sec": [
+          4.0,
+          5.6
+        ],
+        "rest_origin": "cue - 5.6s",
+        "balance": "max_rest = min(n_left_cues, n_right_cues)",
+        "note": "整段在 Cue 前；评分+post 同 Task 几何；future 不进入 MI"
+      }
+    },
+    "wrote_at": "2026-08-17T09:11:10Z"
+  },
+  "hparams": {
+    "data_tag_a0": "openbmi_2s_hop100",
+    "data_tag_pf": "openbmi_2s_hop100_pf1000",
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 256,
+    "batch_eval": 512,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "scheme23-mech-verify Acc_paper Three-only pf1000 v3 subject_key=openbmi:subjNN Adam device=5090 batch=256/512",
+    "early_stop": "acc_paper",
+    "train_sampler": "balanced_invfreq",
+    "n_chans": 8,
+    "n_times_pf": 1000,
+    "n_classes": 3,
+    "embed_dim": 40,
+    "lambda_pred": 1.0,
+    "lambda_sig": 0.05,
+    "lambda_dec": 0.2,
+    "lambda_cls": 1.0,
+    "sigreg_slices": 1024,
+    "pred_dropout": 0.3,
+    "openbmi_only": true,
+    "keep_fold_packs": false,
+    "num_workers": 0,
+    "pin_memory": false,
+    "persistent_workers": false,
+    "prefetch_factor": 2,
+    "non_blocking": true,
+    "torch_num_threads": 8,
+    "cudnn_benchmark": true,
+    "deterministic": false,
+    "use_amp": true
+  }
+}
