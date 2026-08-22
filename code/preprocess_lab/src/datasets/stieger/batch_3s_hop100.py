@@ -14,7 +14,6 @@ from pathlib import Path
 import numpy as np
 
 from src.datasets.stieger.pipeline_3s_hop100 import preprocess_session_3s_hop100, sanity_check_outputs
-from src.common.steps.split_subjects import split_all_trials
 
 _PREPROCESS_ROOT = Path(__file__).resolve().parents[3]
 _REPO_ROOT = Path(__file__).resolve().parents[5]
@@ -130,6 +129,8 @@ def load_shard(out_dir: Path, fid: str) -> dict[str, np.ndarray] | None:
 
 
 def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> None:
+    """内存友好合并：先统计 N，再 memmap 逐 shard 写入，避免一次性 np.concatenate。"""
+    del val_ratio, seed  # 伪在线 07 不用 train_/val_ 离线划分
     out_dir = Path(out_dir)
     man = load_manifest(out_dir / "manifest.json")
     fids = sorted(
@@ -140,62 +141,126 @@ def merge_shards(out_dir: Path, *, val_ratio: float = 0.2, seed: int = 42) -> No
     if not fids:
         raise RuntimeError("没有可合并的 ok shard")
 
-    print(f"合并 {len(fids)} 个 shard → {out_dir}")
-    chunks = {k: [] for k in FULL_KEYS}
+    print(f"合并 {len(fids)} 个 shard → {out_dir}（memmap）")
+
+    n_total = 0
+    x_shape_tail: tuple[int, ...] | None = None
+    for fid in fids:
+        xp = shard_dir(out_dir) / fid / "X.npy"
+        Xh = np.load(xp, mmap_mode="r")
+        shape = tuple(int(s) for s in Xh.shape)
+        n = int(shape[0])
+        n_total += n
+        if x_shape_tail is None:
+            x_shape_tail = shape[1:]
+        elif shape[1:] != x_shape_tail:
+            raise RuntimeError(f"{fid} X shape 不一致: {shape} vs {(n,)+x_shape_tail}")
+        del Xh
+    assert x_shape_tail is not None
+    print(f"  预计全量 N={n_total} X=({n_total}, {', '.join(map(str, x_shape_tail))})")
+
+    paths = {k: out_dir / f"stieger_{k}.npy" for k in FULL_KEYS}
+    for p in paths.values():
+        p.unlink(missing_ok=True)
+
+    X_mm = np.lib.format.open_memmap(
+        paths["X"], mode="w+", dtype=np.float32, shape=(n_total, *x_shape_tail)
+    )
+    X_noz_mm = np.lib.format.open_memmap(
+        paths["X_noz"], mode="w+", dtype=np.float32, shape=(n_total, *x_shape_tail)
+    )
+    yt_mm = np.lib.format.open_memmap(
+        paths["y_task"], mode="w+", dtype=np.int64, shape=(n_total,)
+    )
+    y3_mm = np.lib.format.open_memmap(
+        paths["y_three"], mode="w+", dtype=np.int64, shape=(n_total,)
+    )
+    tid_mm = np.lib.format.open_memmap(
+        paths["trial_id"], mode="w+", dtype=np.int64, shape=(n_total,)
+    )
+    subjects_chunks: list[np.ndarray] = []
+
+    cursor = 0
     tid_offset = 0
     missing_noz = 0
-    for fid in fids:
-        sh = load_shard(out_dir, fid)
-        assert sh is not None
-        tid = sh["trial_id"] + tid_offset
-        tid_offset = int(tid.max()) + 1 if len(tid) else tid_offset
-        chunks["X"].append(sh["X"])
-        if sh["X_noz"] is None:
-            missing_noz += 1
-            chunks["X_noz"].append(np.full_like(sh["X"], np.nan))
+    for i, fid in enumerate(fids):
+        root = shard_dir(out_dir) / fid
+        X = np.load(root / "X.npy", mmap_mode="r")
+        noz_path = root / "X_noz.npy"
+        if noz_path.exists():
+            X_noz = np.load(noz_path, mmap_mode="r")
         else:
-            chunks["X_noz"].append(sh["X_noz"])
-        chunks["y_task"].append(sh["y_task"])
-        chunks["y_three"].append(sh["y_three"])
-        chunks["subjects"].append(sh["subjects"])
-        chunks["trial_id"].append(tid)
-        del sh
+            missing_noz += 1
+            X_noz = None
+        yt = np.load(root / "y_task.npy")
+        y3 = np.load(root / "y_three.npy")
+        sid = np.load(root / "subjects.npy", allow_pickle=True)
+        tid = np.load(root / "trial_id.npy")
+        n = int(X.shape[0])
+        X_mm[cursor : cursor + n] = X
+        if X_noz is not None:
+            X_noz_mm[cursor : cursor + n] = X_noz
+        else:
+            X_noz_mm[cursor : cursor + n] = np.nan
+        yt_mm[cursor : cursor + n] = yt
+        y3_mm[cursor : cursor + n] = y3
+        tid_mm[cursor : cursor + n] = tid.astype(np.int64) + tid_offset
+        subjects_chunks.append(np.asarray(sid, dtype=object))
+        tid_offset = int(tid_mm[cursor + n - 1]) + 1 if n else tid_offset
+        cursor += n
+        if (i + 1) % 10 == 0 or (i + 1) == len(fids):
+            print(f"  wrote {i + 1}/{len(fids)} shards  cursor={cursor}/{n_total}")
+            X_mm.flush()
+            X_noz_mm.flush()
+            yt_mm.flush()
+            y3_mm.flush()
+            tid_mm.flush()
+        del X, X_noz, yt, y3, sid, tid
         gc.collect()
 
     if missing_noz:
         print(f"WARN: {missing_noz} shard 缺 X_noz（门控不可用，需重跑预处理）")
 
-    merged = {k: np.concatenate(chunks[k], axis=0) for k in FULL_KEYS}
-    del chunks
+    assert cursor == n_total
+    subjects = np.concatenate(subjects_chunks, axis=0)
+    np.save(paths["subjects"], subjects)
+    del subjects_chunks
     gc.collect()
+
+    del X_mm, X_noz_mm, yt_mm, y3_mm, tid_mm
+    gc.collect()
+
+    X = np.load(paths["X"], mmap_mode="r")
+    y_task = np.load(paths["y_task"])
+    y_three = np.load(paths["y_three"])
+    subjects = np.load(paths["subjects"], allow_pickle=True)
+    trial_id = np.load(paths["trial_id"])
+    n_subj = len(set(subjects.tolist()))
     print(
         "全量:",
-        merged["X"].shape,
+        tuple(X.shape),
         "y_task",
-        np.bincount(merged["y_task"], minlength=2),
+        np.bincount(y_task, minlength=2),
         "subjects",
-        len(set(merged["subjects"].tolist())),
+        n_subj,
     )
-    sanity_check_outputs(merged["X"], merged["y_task"], merged["y_three"])
-
-    for k in FULL_KEYS:
-        np.save(out_dir / f"stieger_{k}.npy", merged[k])
-
-    parts = split_all_trials(
-        merged["X"],
-        merged["y_task"],
-        merged["y_three"],
-        val_ratio=val_ratio,
-        seed=seed,
-        subjects=merged["subjects"],
+    n_chk = min(8, len(X))
+    sanity_check_outputs(
+        np.asarray(X[:n_chk]),
+        y_task[:n_chk],
+        y_three[:n_chk],
     )
-    for split in ("train", "val"):
-        Xs_, yt_, y3_, sid_ = parts[split]
-        np.save(out_dir / f"{split}_X.npy", Xs_)
-        np.save(out_dir / f"{split}_y_task.npy", yt_)
-        np.save(out_dir / f"{split}_y_three.npy", y3_)
-        np.save(out_dir / f"{split}_subjects.npy", sid_)
-    print("saved full + train/val →", out_dir)
+    assert X.ndim == 4 and len(X) == len(y_task) == len(y_three) == len(subjects) == len(trial_id)
+    assert set(np.unique(y_task)).issubset({0, 1})
+    assert set(np.unique(y_three)).issubset({0, 1, 2})
+    assert np.all((y_three == 0) == (y_task == 0))
+
+    for p in out_dir.glob("train_*.npy"):
+        p.unlink(missing_ok=True)
+    for p in out_dir.glob("val_*.npy"):
+        p.unlink(missing_ok=True)
+
+    print("saved stieger_*.npy →", out_dir)
 
 
 def run_batch(

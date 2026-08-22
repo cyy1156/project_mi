@@ -54,21 +54,28 @@ def _require_data(data_dir: Path) -> None:
         )
 
 
+_MERGED_CACHE: dict[str, dict[str, np.ndarray]] = {}
+
+
 def load_merged(data_dir: Path | None = None) -> dict[str, np.ndarray]:
     data_dir = Path(data_dir or DATA_DIR)
+    cache_key = str(data_dir.resolve())
+    cached = _MERGED_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
     _require_data(data_dir)
-    X = np.load(data_dir / "stieger_X.npy")
+    X = np.load(data_dir / "stieger_X.npy", mmap_mode="r")
     y_task = np.load(data_dir / "stieger_y_task.npy")
     y_three = np.load(data_dir / "stieger_y_three.npy")
     subjects = np.load(data_dir / "stieger_subjects.npy", allow_pickle=True)
     trial_id = np.load(data_dir / "stieger_trial_id.npy")
     noz_path = data_dir / "stieger_X_noz.npy"
-    X_noz = np.load(noz_path) if noz_path.is_file() else None
+    X_noz = np.load(noz_path, mmap_mode="r") if noz_path.is_file() else None
     if X.shape[-1] != N_TIMES:
         raise RuntimeError(f"期望 n_times={N_TIMES}，得到 {X.shape}")
     if X_noz is not None and X_noz.shape != X.shape:
         raise RuntimeError(f"X_noz shape {X_noz.shape} != X {X.shape}")
-    return {
+    pack = {
         "X": X,
         "X_noz": X_noz,
         "y_task": y_task,
@@ -76,6 +83,8 @@ def load_merged(data_dir: Path | None = None) -> dict[str, np.ndarray]:
         "subjects": subjects,
         "trial_id": trial_id,
     }
+    _MERGED_CACHE[cache_key] = pack
+    return pack
 
 
 def list_subjects(data_dir: Path | None = None) -> list[str]:
@@ -127,9 +136,10 @@ def iter_subject_streams(
     *,
     data_dir: Path | None = None,
     subjects: list[str] | None = None,
-) -> list[SubjectStream]:
+):
     all_subs = list_subjects(data_dir)
     if subjects:
         allow = {s.strip() for s in subjects if s.strip()}
         all_subs = [s for s in all_subs if s in allow]
-    return [build_subject_stream(s, data_dir=data_dir) for s in all_subs]
+    for sid in all_subs:
+        yield build_subject_stream(sid, data_dir=data_dir)
