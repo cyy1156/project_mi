@@ -21,7 +21,7 @@ class ArmSpec:
 
     @property
     def results_subdir(self) -> str:
-        return f"S09-{self.arm_id}"
+        return f"S10-{self.arm_id}"
 
 
 ARM_REGISTRY: dict[str, ArmSpec] = {

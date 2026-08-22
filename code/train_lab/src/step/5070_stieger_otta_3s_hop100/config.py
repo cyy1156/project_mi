@@ -45,17 +45,25 @@ HOP_SEC = 0.1
 N_TIMES = int(WIN_SEC * SFREQ)  # 750
 N_FOLDS = 5
 
-# 只读锚点（07 登记值，用于 Δ 对照）
-ANCHOR_A0 = {"task": (0.5789, 0.0501), "three": (0.4198, 0.0585)}
-ANCHOR_B0 = {"task": (0.7868, 0.0797), "three": (0.6590, 0.0929)}
+# 只读锚点（07 全量 trial；OTTA 臂为后半评，配对 Δ 用同跑 A0/B0）
+ANCHOR_A0_READONLY = {"task": (0.5789, 0.0501), "three": (0.4198, 0.0585)}
+ANCHOR_B0_READONLY = {"task": (0.7868, 0.0797), "three": (0.6590, 0.0929)}
+ANCHOR_A0 = ANCHOR_A0_READONLY
+ANCHOR_B0 = ANCHOR_B0_READONLY
+
+ADABN_VERSION = "v1.2"
+PROTOCOL_VERSION = "v1.2"
+ADABN_PREDICT_FIRST = True  # 严格因果：先预测后更新 running stats
+INPUT_PIPELINE = "noz_unified"
 
 PROTOCOL = (
     "stieger_otta Tw=3s hop=100ms "
-    "arm=09_otta_ea_adabn_stieger "
+    "arm=09_otta_ea_adabn_stieger_v1.2 "
     "model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) "
     "ft=shallow_stieger_ft_half_balbatch_accpaper "
     "data=stieger_3s_hop100 eval_half=causal_stream "
-    "ea=ref_src|ref_cal adabn=bn_running_only conf_tau=optional "
+    "input=noz_unified ea=A:src|B:cal_whiten "
+    "adabn=v1.2_predict_first_update "
     "device=5070"
 )
 

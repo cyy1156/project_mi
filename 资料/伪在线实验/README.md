@@ -38,8 +38,10 @@
 | **06 前半FT+后半门控** | [`06_旁路_OpenBMI_前半FT后半门控/`](./06_旁路_OpenBMI_前半FT后半门控/) | **已结案** | |
 | **07 OpenBMI 3s · Stieger** | [`07_旁路_OpenBMI_3s滑窗_Stieger零样本/`](./07_旁路_OpenBMI_3s滑窗_Stieger零样本/) | **方案已立** | S3·Tw=3s·**Stieger 复现 01–06 协议**（5060） |
 | **08 OpenBMI 3s · Stieger · 5070** | [`08_旁路_OpenBMI_3s滑窗_Stieger零样本_5070/`](./08_旁路_OpenBMI_3s滑窗_Stieger零样本_5070/) | **方案已立** | 协议同 07 · **RTX 5070** · 独立 out |
+| **09 OTTA 测试时自适应** | [`09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger/`](./09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger/) | **方案已立** | EA+AdaBN+置信度 · Stieger 回放（A/B 零训练）· 含在线全量 FT 对照（C 系列） |
+| **10 5060 统一复现+OTTA** | [`10_旁路_OpenBMI_3s滑窗_Stieger_5060_复现与OTTA/`](./10_旁路_OpenBMI_3s滑窗_Stieger_5060_复现与OTTA/) | **代码已建** | 合并 08+09 · `--tw 2s\|3s` · OTTA v1.2 |
 
-**勿覆盖** 01–06 的 `out/` / `results/`；07 / 08 产物只写各自目录，互不覆盖。
+**勿覆盖** 01–06 的 `out/` / `results/`；07 / 08 / 09 / 10 产物只写各自目录，互不覆盖。
 
 ## 本轮被试会话（各臂共用）
 

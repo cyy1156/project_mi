@@ -1,4 +1,4 @@
-"""S09 A/B 臂评测：后半 trial · 因果 OTTA 回放。"""
+"""S10 Part III A/B 臂评测：后半 trial · OTTA v1.2。"""
 
 from __future__ import annotations
 
@@ -26,7 +26,7 @@ from config import (
     N_FOLDS,
     N_TIMES,
     OPENBMI_CHANS,
-    PROTOCOL,
+    PROTOCOL_OTTA,
     PROTOCOL_VERSION,
     RESULTS_ROOT,
 )
@@ -135,7 +135,7 @@ def eval_one_arm(
 
     results = {
         "arm": arm.arm_id,
-        "protocol": PROTOCOL,
+        "protocol": PROTOCOL_OTTA,
         "spec": {
             "protocol_version": PROTOCOL_VERSION,
             "input_pipeline": INPUT_PIPELINE,
@@ -157,7 +157,7 @@ def eval_one_arm(
         "subjects": {},
     }
     md = [
-        f"# S09-{arm.arm_id} OTTA 回放",
+        f"# S10-{arm.arm_id} OTTA 回放",
         "",
         f"- 时间：`{stamp}`",
         f"- 权重：`{run_dir or ft_root}`",
@@ -378,7 +378,7 @@ def eval_one_arm(
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="S09 OTTA A/B 臂评测")
+    p = argparse.ArgumentParser(description="S10 OTTA A/B 臂评测")
     p.add_argument("--arm", default="", help="单臂代号如 A3")
     p.add_argument("--arms", default="", help="多臂逗号分隔，覆盖 --arm")
     p.add_argument("--subjects", default="")

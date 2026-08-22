@@ -1,4 +1,4 @@
-"""本地冒烟：单被试 · fold0 · v1.1 关键臂快速路径。"""
+"""本地冒烟：3s 回归 + 2s 零样本 + OTTA S1。"""
 
 from __future__ import annotations
 
@@ -17,18 +17,19 @@ def _run(cmd: list[str]) -> None:
 
 def main() -> None:
     subj = "S1"
+    _run([PY, "eval_zeroshot.py", "--tw", "3s", "--subjects", subj, "--smoke"])
+    _run([PY, "eval_zeroshot.py", "--tw", "2s", "--subjects", subj, "--smoke"])
     _run(
         [
             PY,
-            "eval_ab.py",
+            "eval_otta.py",
             "--arms",
-            "A0,A2,A3,B0,B2,B3",
+            "A0,A3,B0,B3",
             "--subjects",
             subj,
             "--smoke",
         ]
     )
-    _run([PY, "eval_c1.py", "--subjects", subj, "--smoke", "--tasks", "three"])
     print("[smoke ok]", flush=True)
 
 

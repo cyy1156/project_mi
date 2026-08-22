@@ -1,4 +1,4 @@
-"""S09-C1：B3 + 每 trial 伪标签全量微调（Q3 对照臂）。"""
+"""S10-C1：B3 + 每 trial 伪标签全量微调（Q3）。"""
 
 from __future__ import annotations
 
@@ -24,7 +24,7 @@ from config import (
     INPUT_PIPELINE,
     N_FOLDS,
     N_TIMES,
-    PROTOCOL,
+    PROTOCOL_OTTA,
     PROTOCOL_VERSION,
     RESULTS_ROOT,
 )
@@ -241,7 +241,7 @@ def run_c1_subject(
 
 
 def main() -> None:
-    p = argparse.ArgumentParser(description="S09-C1 伪标签在线 FT")
+    p = argparse.ArgumentParser(description="S10-C1 伪标签在线 FT")
     p.add_argument("--subjects", default="")
     p.add_argument("--tasks", default="three")
     p.add_argument("--smoke", action="store_true")
@@ -260,14 +260,14 @@ def main() -> None:
     paired_a0 = load_paired_summary("A0", head="three")
     paired_b3 = load_paired_summary("B3", head="three")
 
-    results_dir = RESULTS_ROOT / "S09-C1"
+    results_dir = RESULTS_ROOT / "S10-C1"
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     out_run = results_dir / f"{stamp}_shallow_C1"
     out_run.mkdir(parents=True, exist_ok=True)
 
     results = {
         "arm": "C1",
-        "protocol": PROTOCOL,
+        "protocol": PROTOCOL_OTTA,
         "ft_root": str(ft_root),
         "spec": {
             "protocol_version": PROTOCOL_VERSION,
@@ -290,7 +290,7 @@ def main() -> None:
         },
         "subjects": {},
     }
-    md = [f"# S09-C1 伪标签全量 FT · {stamp}", ""]
+    md = [f"# S10-C1 伪标签全量 FT · {stamp}", ""]
 
     for stream in iter_subject_streams(subjects=subjects):
         print(f"\n=== C1 {stream.subject_id} ===", flush=True)
