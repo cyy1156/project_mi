@@ -10,6 +10,7 @@ from typing import Any
 import numpy as np
 
 from data import SubjectStream
+from util_metrics import jsonable
 
 
 @dataclass(frozen=True)
@@ -112,5 +113,5 @@ def write_split_artifacts(stream: SubjectStream, split: CueSplit, out_dir: Path)
         "meta": stream.meta,
     }
     path = out_dir / "split_manifest.json"
-    path.write_text(json.dumps(man, indent=2, ensure_ascii=False), encoding="utf-8")
+    path.write_text(json.dumps(jsonable(man), indent=2, ensure_ascii=False), encoding="utf-8")
     return path
