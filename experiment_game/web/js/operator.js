@@ -36,7 +36,102 @@ const el = {
   portsHint: document.getElementById("ports-hint"),
   portList: document.getElementById("serial-port-list"),
   portInput: document.getElementById("serial_port_input"),
+  setupTimeline: document.getElementById("setup-timeline"),
+  timingHint: document.getElementById("timing-hint"),
+  runTimeline: document.getElementById("run-timeline"),
+  runTimingHint: document.getElementById("run-timing-hint"),
 };
+
+/* ---------------- 试次时序：读取 / 时间轴渲染 ---------------- */
+
+const TIMING_KEYS = [
+  ["t_fixation_s", "fixation_s", "注视", "tl-fixation"],
+  ["t_cue_s", "cue_s", "提示", "tl-cue"],
+  ["t_mi_s", "mi_s", "MI", "tl-mi"],
+  ["t_post_mi_hold_s", "post_mi_hold_s", "保持", "tl-hold"],
+  ["t_rest_s", "rest_s", "静息", "tl-rest"],
+  ["t_transition_s", "transition_s", "过渡", "tl-transition"],
+];
+
+const TIMING_PRESETS = {
+  standard: { fixation_s: 2, cue_s: 2, mi_s: 4, post_mi_hold_s: 1, rest_s: 4, transition_s: 3 },
+  mi6: { fixation_s: 2, cue_s: 2, mi_s: 6, post_mi_hold_s: 1, rest_s: 4, transition_s: 3 },
+  mi8: { fixation_s: 2, cue_s: 2, mi_s: 8, post_mi_hold_s: 1, rest_s: 4, transition_s: 3 },
+};
+
+function readTimingFromForm() {
+  const t = {};
+  for (const [formName, cfgKey] of TIMING_KEYS) {
+    const node = el.form.elements.namedItem(formName);
+    const v = Number(node && node.value);
+    t[cfgKey] = Number.isFinite(v) ? v : 0;
+  }
+  return t;
+}
+
+function setTimingToForm(timing) {
+  for (const [formName, cfgKey] of TIMING_KEYS) {
+    const node = el.form.elements.namedItem(formName);
+    if (node && timing && timing[cfgKey] != null) node.value = timing[cfgKey];
+  }
+  renderSetupTimeline();
+}
+
+/** 渲染时间轴：按各阶段秒数比例着色分段；container 为空则跳过 */
+function renderTimeline(container, timing) {
+  if (!container) return null;
+  const order = TIMING_KEYS.map(([, key, zh, cls]) => ({ key, zh, cls, s: Number(timing[key]) || 0 }));
+  const total = order.reduce((a, b) => a + b.s, 0);
+  container.innerHTML = "";
+  if (total <= 0) return { total };
+  for (const seg of order) {
+    if (seg.s <= 0) continue;
+    const div = document.createElement("div");
+    div.className = `tl-seg ${seg.cls}`;
+    div.style.flexGrow = String(seg.s);
+    div.title = `${seg.zh} ${seg.s}s`;
+    const label = document.createElement("span");
+    label.textContent = `${seg.zh} ${seg.s}s`;
+    div.appendChild(label);
+    container.appendChild(div);
+  }
+  const cap = document.createElement("div");
+  cap.className = "tl-total";
+  cap.textContent = `单 trial 合计 ${total}s`;
+  container.appendChild(cap);
+  return { total };
+}
+
+function updateTimingHint(total) {
+  if (!el.timingHint) return;
+  const fd = new FormData(el.form);
+  const acquire = Number(fd.get("acquire_trials") || 0) || 0;
+  const learnN = Number(fd.get("learn_trials_per_step") || 0) || 0;
+  const skipAdapt = el.form.querySelector('[name="skip_adapt"]')?.checked;
+  const skipLearn = el.form.querySelector('[name="skip_learn"]')?.checked;
+  let trials = acquire;
+  if (!skipLearn) trials += 3 * learnN;
+  if (!skipAdapt) trials += 2;
+  const est = trials * total;
+  el.timingHint.textContent =
+    `单 trial = ${total}s · 预计试次总数 ≈ ${trials}` +
+    `（正式 ${acquire}${skipLearn ? "" : ` + 学习 ${3 * learnN}`}${skipAdapt ? "" : " + 适应 2"}）` +
+    ` · 纯试次时长 ≈ ${Math.round(est / 60)} 分钟（不含弹窗确认与暂停）`;
+}
+
+function renderSetupTimeline() {
+  const { total } = renderTimeline(el.setupTimeline, readTimingFromForm()) || { total: 0 };
+  updateTimingHint(total);
+}
+
+function applyTimingPreset(name) {
+  const preset = TIMING_PRESETS[name];
+  if (preset) setTimingToForm(preset);
+}
+
+document.querySelectorAll("[data-timing-preset]").forEach((btn) => {
+  btn.addEventListener("click", () => applyTimingPreset(btn.dataset.timingPreset));
+});
 
 let ws = null;
 let subjectUrl = `http://${location.hostname || "127.0.0.1"}:8080/`;
@@ -105,6 +200,12 @@ function formToRunConfig() {
       skip_learn: el.form.querySelector('[name="skip_learn"]')?.checked || false,
       skip_gate: el.form.querySelector('[name="skip_gate"]')?.checked || false,
       ready_timeout_s: 90,
+      timing: readTimingFromForm(),
+      phase4: {
+        window_mode: el.form.elements.namedItem("p4_window_mode")?.value || "fixed",
+        win_sec: Number(el.form.elements.namedItem("p4_win_sec")?.value) || 2,
+        hop_ms: Number(el.form.elements.namedItem("p4_hop_ms")?.value) || 100,
+      },
     },
     storage: {
       save_root: String(fd.get("save_root") || "experiment_game/data/sessions").trim(),
@@ -168,6 +269,22 @@ function applyConfigToForm(cfg) {
   set("bandpass_high_hz", filt.bandpass_high_hz ?? 45);
   set("notch_low_hz", filt.notch_low_hz ?? 49);
   set("notch_high_hz", filt.notch_high_hz ?? 51);
+  setTimingToForm(cfg.experiment?.timing || {});
+  const p4 = cfg.experiment?.phase4 || {};
+  const setSel = (name, value) => {
+    const node = el.form.elements.namedItem(name);
+    if (node) node.value = value;
+  };
+  setSel("p4_window_mode", p4.window_mode || "fixed");
+  set("p4_win_sec", p4.win_sec ?? 2);
+  set("p4_hop_ms", p4.hop_ms ?? 100);
+  // Summary 页手动切窗控件默认跟随配置
+  const runMode = document.getElementById("p4-run-mode");
+  const runWin = document.getElementById("p4-run-win");
+  const runHop = document.getElementById("p4-run-hop");
+  if (runMode) runMode.value = p4.window_mode || "fixed";
+  if (runWin) runWin.value = p4.win_sec ?? 2;
+  if (runHop) runHop.value = p4.hop_ms ?? 100;
   hotkeysEnabled = cfg.ui?.operator_hotkeys !== false;
   syncAcqUi();
 }
@@ -219,6 +336,7 @@ function configBrief(cfg) {
     `${cfg.subject?.subject_id}/${cfg.subject?.session_id}`,
     acq.enabled ? (acq.board_mode === "cyton" ? `真机 ${acq.serial_port}` : "合成板") : "不采数",
     `trials=${exp.acquire_trials}`,
+    `MI=${exp.timing?.mi_s ?? 4}s`,
     cfg.storage?.save_layout || "phase_folders",
   ];
   return parts.join(" · ");
@@ -256,6 +374,17 @@ function updateRunLockSummary(msg) {
     `<div><span class="k">正式 trials</span>${msg.acquire_trials}</div>`,
     `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
   ].join("");
+  // 本场锁定的时序构成
+  if (msg.timing) {
+    renderTimeline(el.runTimeline, msg.timing);
+    if (el.runTimingHint) {
+      el.runTimingHint.textContent =
+        `注视 ${msg.timing.fixation_s}s → 提示 ${msg.timing.cue_s}s → ` +
+        `MI ${msg.timing.mi_s}s → 保持 ${msg.timing.post_mi_hold_s}s → ` +
+        `静息 ${msg.timing.rest_s}s → 过渡 ${msg.timing.transition_s}s` +
+        (msg.trial_total_s ? ` · 合计 ${msg.trial_total_s}s` : "");
+    }
+  }
 }
 
 function maybeShowReuseBar(cfg) {
@@ -301,8 +430,12 @@ function showPhase4Result(p4) {
   }
   const s = p4.summary || {};
   if (p4.ok) {
+    const w = s.window || {};
+    const wdesc = w.mode === "slide"
+      ? `滑动窗 ${w.win_sec}s/步长${w.hop_ms}ms`
+      : `固定窗 ${w.win_sec ?? 2}s`;
     el.phase4Msg.textContent =
-      `Phase4 OK · N=${s.n ?? "—"} · X=${JSON.stringify(s.X_shape || [])} · ` +
+      `Phase4 OK · ${wdesc} · N=${s.n ?? "—"} · X=${JSON.stringify(s.X_shape || [])} · ` +
       `y_task=${JSON.stringify(s.y_task_counts || {})} → ${p4.epochs_dir || ""}`;
   } else {
     el.phase4Msg.textContent = `Phase4 失败：${p4.message || "未知错误"}`;
@@ -353,7 +486,8 @@ function handleMessage(msg) {
     if (msg.subject_url) subjectUrl = msg.subject_url;
     sessionRoot = msg.session_root || "";
     updateRunLockSummary(msg);
-    tryOpenSubject();
+    // 换场继续段（segment>1）不重复打开诱导页
+    if (!msg.segment || msg.segment <= 1) tryOpenSubject();
   } else if (t === "acq_status") {
     el.stAcq.textContent = `${msg.state || "—"}${msg.message ? " · " + msg.message : ""}`;
   } else if (t === "stage") {
@@ -378,6 +512,16 @@ function handleMessage(msg) {
     paused = Boolean(msg.paused);
     el.stReject.textContent = String(msg.reject_count ?? 0);
     document.getElementById("btn-pause").textContent = paused ? "继续" : "暂停";
+  } else if (t === "session_segment_saved") {
+    // 换场中场：本场已落盘，等待第二次 B；停留在运行页并提示
+    if (el.runSummary) {
+      el.runSummary.innerHTML = [
+        `<div><span class="k">已保存</span><code>${msg.root || "—"}</code></div>`,
+        `<div><span class="k">本段 trial</span>${msg.trials_done ?? "—"}</div>`,
+        `<div><span class="k">剩余</span>${msg.trials_remaining ?? "—"} 个 trial</div>`,
+        `<div><span class="k">下一步</span>引导抬手休息后按 B 开下一段</div>`,
+      ].join("");
+    }
   } else if (t === "session_saved") {
     starting = false;
     showView("summary");
@@ -427,6 +571,25 @@ function handleMessage(msg) {
       li.textContent = `99_summary/phase4_pointer.json → ${msg.epochs_dir}`;
       el.summaryFiles.appendChild(li);
     }
+  } else if (t === "questionnaire_ack") {
+    const runEl = document.getElementById("q-status-run");
+    const sumEl = document.getElementById("q-status");
+    let text;
+    if (msg.ok) {
+      const s = msg.summary || {};
+      text =
+        `问卷已提交并保存 → ${msg.path || ""}` +
+        (s.kinesthetic_mean != null ? ` · 动觉均分 ${s.kinesthetic_mean}` : "") +
+        (s.involuntary ? ` · 不自主动手: ${s.involuntary}` : "") +
+        (s.fatigue != null ? ` · 疲劳 ${s.fatigue}` : "");
+    } else {
+      text = `问卷未完成：${(msg.errors || []).join("；") || msg.message || "未知错误"}`;
+    }
+    if (runEl) runEl.textContent = text;
+    if (sumEl) sumEl.textContent = text;
+  } else if (t === "operator_hint") {
+    const runEl = document.getElementById("q-status-run");
+    if (runEl && msg.message) runEl.textContent = msg.message;
   } else if (t === "subject_page_opened") {
     if (!msg.ok) el.popupWarn.classList.remove("hidden");
   }
@@ -464,7 +627,10 @@ function startSession() {
   send({ type: "session_start", run_config: cfg });
 }
 
-el.form.addEventListener("change", syncAcqUi);
+el.form.addEventListener("change", () => {
+  syncAcqUi();
+  renderSetupTimeline();
+});
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
   startSession();
@@ -517,6 +683,15 @@ document.getElementById("btn-reuse-edit")?.addEventListener("click", () => {
   if (el.reuseBar) el.reuseBar.classList.add("hidden");
 });
 
+document.getElementById("btn-split").addEventListener("click", () => {
+  send({ type: "operator", action: "split_session" });
+});
+document.getElementById("btn-questionnaire").addEventListener("click", () => {
+  send({ type: "questionnaire_open" });
+});
+document.getElementById("btn-summary-questionnaire")?.addEventListener("click", () => {
+  send({ type: "questionnaire_open" });
+});
 document.getElementById("btn-pause").addEventListener("click", () => {
   send({ type: "operator", action: paused ? "resume" : "pause" });
 });
@@ -553,7 +728,14 @@ document.getElementById("btn-phase4")?.addEventListener("click", () => {
     btn.textContent = "切窗中…";
   }
   if (el.phase4Msg) el.phase4Msg.textContent = "Phase4 切窗进行中（仅 acquire + 未 reject）…";
-  send({ type: "run_phase4", path: sessionRoot });
+  const runMode = document.getElementById("p4-run-mode")?.value || "fixed";
+  const runWin = Number(document.getElementById("p4-run-win")?.value) || 2;
+  const runHop = Number(document.getElementById("p4-run-hop")?.value) || 100;
+  send({
+    type: "run_phase4",
+    path: sessionRoot,
+    phase4: { window_mode: runMode, win_sec: runWin, hop_ms: runHop },
+  });
 });
 document.getElementById("btn-copy-path").addEventListener("click", async () => {
   if (!sessionRoot) return;
@@ -575,6 +757,8 @@ window.addEventListener("keydown", (e) => {
   if (!hotkeysEnabled) return;
   if (e.target && ["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
   const k = e.key.toLowerCase();
+  if (k === "b") send({ type: "operator", action: "split_session" });
+  if (k === "q") send({ type: "questionnaire_open" });
   if (k === "p") send({ type: "operator", action: "toggle_pause" });
   if (k === "n") send({ type: "operator", action: "continue" });
   if (k === "g") send({ type: "operator", action: "gate_ok" });
@@ -587,4 +771,5 @@ window.addEventListener("keydown", (e) => {
 const hash = (location.hash || "#setup").replace("#", "");
 showView(["setup", "run", "summary"].includes(hash) ? hash : "setup");
 syncAcqUi();
+renderSetupTimeline();
 connect();

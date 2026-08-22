@@ -47,6 +47,30 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--no-split", action="store_true", help="不写 train_/val_")
     p.add_argument("--val-ratio", type=float, default=0.2)
     p.add_argument("--seed", type=int, default=42)
+    p.add_argument(
+        "--window-mode",
+        choices=["fixed", "slide"],
+        default="fixed",
+        help="fixed=每阶段起点 1 窗；slide=阶段区间内滑窗",
+    )
+    p.add_argument(
+        "--win-sec",
+        type=float,
+        default=2.0,
+        help="窗长（秒），默认 2.0 → 500@250Hz",
+    )
+    p.add_argument(
+        "--hop-ms",
+        type=float,
+        default=100.0,
+        help="滑窗步长（毫秒），仅 slide 模式生效",
+    )
+    p.add_argument(
+        "--baseline-s",
+        type=float,
+        default=0.5,
+        help="窗内基线校正时长（秒）",
+    )
     args = p.parse_args(argv)
 
     session = args.session
@@ -68,17 +92,30 @@ def main(argv: list[str] | None = None) -> int:
             / "experiment_game"
             / "data"
             / "epochs"
-            / session.name
         )
+        name = session.name
+        if args.window_mode == "slide":
+            name += f"_slide_w{args.win_sec:g}s_h{args.hop_ms:g}ms"
+        elif abs(args.win_sec - 2.0) > 1e-9:
+            name += f"_w{args.win_sec:g}s"
+        out = out / name
     elif not out.is_absolute():
         out = (_REPO_ROOT / out).resolve()
 
     print(f"session={session}")
     print(f"phases={phases}")
+    print(
+        f"window: mode={args.window_mode} win={args.win_sec}s "
+        f"hop={args.hop_ms}ms baseline={args.baseline_s}s"
+    )
     bundle = preprocess_session(
         session,
         phases=phases,
         apply_filter=not args.no_filter,
+        window_mode=args.window_mode,
+        win_sec=args.win_sec,
+        hop_ms=args.hop_ms,
+        baseline_s=args.baseline_s,
     )
     save_bundle(
         bundle,

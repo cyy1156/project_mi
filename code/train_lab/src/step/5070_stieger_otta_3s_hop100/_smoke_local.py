@@ -1,4 +1,4 @@
-"""本地冒烟：单被试 · fold0 · v1.1 关键臂快速路径。"""
+"""本地冒烟：单被试 · fold0 · v1.2 关键臂快速路径。"""
 
 from __future__ import annotations
 

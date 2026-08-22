@@ -39,7 +39,11 @@ from adabn import (
 )
 from infer import load_ft_fold
 from otta_infer import build_eval_tensors
-from paired_results import load_paired_summary, subject_acc
+from paired_results import (
+    load_paired_summary,
+    require_paired_summaries,
+    subject_acc,
+)
 from util_metrics import aggregate_windows_to_segments, jsonable, mean_std
 
 
@@ -257,8 +261,13 @@ def main() -> None:
     device = torch.device(args.device)
     ft_root = _resolve_ft_root(args.ft_stamp)
 
-    paired_a0 = load_paired_summary("A0", head="three")
-    paired_b3 = load_paired_summary("B3", head="three")
+    if args.smoke:
+        paired_a0 = load_paired_summary("A0", head="three")
+        paired_b3 = load_paired_summary("B3", head="three")
+    else:
+        paired = require_paired_summaries(("A0", "B3"), head="three")
+        paired_a0 = paired["A0"]
+        paired_b3 = paired["B3"]
 
     results_dir = RESULTS_ROOT / "S09-C1"
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")

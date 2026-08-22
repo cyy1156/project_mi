@@ -13,6 +13,14 @@ class _QuietHandler(SimpleHTTPRequestHandler):
     def log_message(self, format: str, *args) -> None:  # noqa: A003
         pass
 
+    def end_headers(self) -> None:
+        # 本机实验控制台：html/js/css 更新频繁，禁止启发式缓存，
+        # 每次普通刷新都回源校验（304 由 Last-Modified 协商完成）。
+        path = self.translate_path(self.path).lower()
+        if path.endswith((".html", ".js", ".css", ".json")):
+            self.send_header("Cache-Control", "no-cache")
+        super().end_headers()
+
 
 class StaticServer:
     def __init__(self, root: Path, host: str = "127.0.0.1", port: int = 8080) -> None:

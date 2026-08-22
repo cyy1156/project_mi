@@ -23,6 +23,10 @@ if (-not (Test-Path $StX)) { throw "missing stieger_X.npy - run stieger preproce
 if (-not (Test-Path $StNoz)) { throw "missing stieger_X_noz.npy - required for EA" }
 Log "data ok"
 
+Log "archive invalid / stopped runs ..."
+& $PY archive_invalid_runs.py 2>&1 | Tee-Object -FilePath $Log -Append
+if ($LASTEXITCODE -ne 0) { throw "archive_invalid_runs failed" }
+
 Log "build EA ref=src cache (A-series) ..."
 & $PY -c "import _bootstrap; from ref_cov import load_ref_cov_src; load_ref_cov_src()" 2>&1 | Tee-Object -FilePath $Log -Append
 if ($LASTEXITCODE -ne 0) { throw "EA ref cache failed" }
@@ -35,7 +39,11 @@ Log "eval_ab.py --arms B0,B1,B2,B3,B4"
 & $PY eval_ab.py --arms B0,B1,B2,B3,B4 2>&1 | Tee-Object -FilePath $Log -Append
 if ($LASTEXITCODE -ne 0) { throw "eval_ab B-series failed" }
 
-Log "eval_c1.py (B3 v1.1 + pseudo-label FT)"
+Log "preflight C1 paired refs (A0/B3 v1.2 full 24 subj) ..."
+& $PY -c "import _bootstrap; from paired_results import require_paired_summaries; require_paired_summaries(('A0','B3'))" 2>&1 | Tee-Object -FilePath $Log -Append
+if ($LASTEXITCODE -ne 0) { throw "C1 preflight failed - run A0/B3 full eval first" }
+
+Log "eval_c1.py (B3 v1.2 + pseudo-label FT)"
 & $PY eval_c1.py 2>&1 | Tee-Object -FilePath $Log -Append
 if ($LASTEXITCODE -ne 0) { throw "eval_c1 failed" }
 

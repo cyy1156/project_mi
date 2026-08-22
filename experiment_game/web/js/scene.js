@@ -1036,7 +1036,9 @@ export class HomeDeskScene {
       stage === "rest" ||
       stage === "mi" ||
       stage === "post_mi_hold" ||
-      stage === "cue"
+      stage === "cue" ||
+      stage === "settle" ||
+      stage === "session_split"
     ) {
       this.transition = null;
       this.camera.position.copy(this.camRest);

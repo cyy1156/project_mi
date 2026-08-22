@@ -43,6 +43,8 @@ class Phase2Config:
     rotate_objects: bool = True
     rotate_scenes: bool = True
     object_pool: Sequence[str] = field(default_factory=lambda: ["cup", "bottle", "apple"])
+    # 换场继续段：开始前静坐缓冲秒数（0 = 不缓冲）
+    settle_s: float = 0.0
 
 
 class SessionRunner:
@@ -69,6 +71,10 @@ class SessionRunner:
         self._current_label: Optional[int] = None
         self._reject_count = 0
         self._aborted = False
+        # 换场（B 键）：请求在正式段下一个 trial 边界结束本场
+        self._split_requested = False
+        self._split_active = False
+        self.trials_done = 0
 
         self.bridge.set_operator_hook(self._on_operator)
 
@@ -140,6 +146,30 @@ class SessionRunner:
             self._broadcast_operator_state()
         elif action in ("gate_ok", "continue"):
             self.on_console(f"[operator] {action}")
+        elif action == "split_session":
+            if self._current_phase == "acquire" and not self._split_requested:
+                self._split_requested = True
+                self.on_console(
+                    "[operator] B 换场已请求：当前 trial 结束后本场停止录制"
+                )
+            elif self._split_requested:
+                self.on_console("[operator] B 换场已在等待中")
+            else:
+                self.on_console(
+                    "[operator] B 换场仅正式采集段可用（进入 acquire 后生效）"
+                )
+
+    def request_split(self) -> None:
+        """供编排器直接请求换场（操作台 B 键）。"""
+        if self._current_phase == "acquire" and not self._split_requested:
+            self._split_requested = True
+            self.on_console("[operator] B 换场已请求：当前 trial 结束后本场停止录制")
+        elif not self._split_requested:
+            self.on_console("[operator] B 换场仅正式采集段可用（进入 acquire 后生效）")
+
+    @property
+    def split_requested(self) -> bool:
+        return bool(self._split_active)
 
     def _broadcast_operator_state(self) -> None:
         self.bridge.broadcast(
@@ -495,19 +525,115 @@ class SessionRunner:
                 )
             self._run_one_trial(ctx)
             labels_out.append(ctx.label)
+            self.trials_done = len(labels_out)
             prev_obj, prev_scene = ctx.object, ctx.scene
+
+            # B 换场：在 trial 边界收尾本场（仅当还有剩余 trial 才算换场，
+            # 否则视为正常结束）
+            if self._split_requested and len(labels_out) < len(enriched):
+                self._split_active = True
+                self._finish_segment_for_split(ctx, len(enriched) - len(labels_out))
+                return labels_out
 
         self.events.emit("phase_end", phase="acquire")
         self.markers.push(format_payload("phase_end", phase="acquire"))
         return labels_out
 
+    def _finish_segment_for_split(self, ctx: TrialContext, remaining: int) -> None:
+        """换场收尾：打事件 → 提示被试 → 结束 acquire 段。"""
+        self.events.emit(
+            "session_split",
+            phase="acquire",
+            trial_id=ctx.trial_id,
+            completed=self.trials_done,
+            remaining=remaining,
+        )
+        self.markers.push(
+            format_payload(
+                "session_split", trial_id=ctx.trial_id, phase="acquire"
+            )
+        )
+        self.events.emit("phase_end", phase="acquire")
+        self.markers.push(format_payload("phase_end", phase="acquire"))
+        self.on_console(
+            f"[split] 本场在 trial={ctx.trial_id} 后结束；剩余 {remaining} 个 trial "
+            "将在新 session 继续（等待操作者再按 B）"
+        )
+        self.bridge.broadcast(
+            {
+                "type": "stage",
+                "phase": "acquire",
+                "stage": "session_split",
+                "trial_id": ctx.trial_id,
+                "label": None,
+                "hand": "none",
+                "anim": "none",
+                "duration_s": 0,
+                "object": ctx.object,
+                "scene": ctx.scene,
+                "learn_step": None,
+                "transition_amp": "micro",
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "hud",
+                "text": "中场休息",
+                "subtext": "请按操作者引导抬手对照画面；坐好后等待开始下一场",
+                "show_cross": False,
+            }
+        )
+        self._broadcast_operator_state()
+
+    def _run_settle(self) -> None:
+        """换场继续段开场的静坐缓冲：注视十字，让体感残余与注意力复位。"""
+        dur = float(self.config.settle_s)
+        self.events.emit("settle_start", duration_s=dur)
+        self.markers.push(format_payload("settle_start", phase="acquire"))
+        self.bridge.broadcast(
+            {
+                "type": "stage",
+                "phase": "acquire",
+                "stage": "settle",
+                "trial_id": None,
+                "label": None,
+                "hand": "none",
+                "anim": "none",
+                "duration_s": dur,
+                "object": self._current_object,
+                "scene": self._current_scene,
+                "learn_step": None,
+                "transition_amp": "micro",
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "hud",
+                "text": "请坐好，注视十字放松",
+                "subtext": f"{dur:.0f} 秒后自动开始",
+                "show_cross": True,
+            }
+        )
+        self.on_console(f"[settle] 继续段静坐缓冲 {dur:.0f}s…")
+        wait_until(
+            local_clock() + dur,
+            is_paused=self.bridge.is_paused,
+            should_abort=self.bridge.should_abort,
+        )
+        self.events.emit("settle_end")
+        self.markers.push(format_payload("settle_end", phase="acquire"))
+
     def run_all(self) -> None:
         self.bridge.clear_event("abort")
+        self.bridge.clear_event("split_request")
         self.bridge.paused = False
         self.bridge.clear_reject()
         self._reject_count = 0
         self.bridge.broadcast({"type": "session", "status": "running"})
         self._broadcast_operator_state()
+        # 换场继续段：先静坐缓冲（注视十字），再进入正式 trial
+        if self.config.settle_s > 0:
+            self._run_settle()
         try:
             if not self.config.skip_adapt:
                 self.run_adapt()
@@ -516,6 +642,10 @@ class SessionRunner:
             if not self.config.skip_gate:
                 self.run_gate()
             schedule = self.run_acquire()
+            if self._split_active:
+                # 换场收尾：不发 done；编排器等待第二次 B 开新 session
+                self._broadcast_operator_state()
+                return
             self.bridge.broadcast({"type": "session", "status": "done"})
             self.bridge.broadcast(
                 {

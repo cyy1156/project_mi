@@ -29,8 +29,8 @@ class SharedTrainHP:
     seed: int = 42
     max_epochs: int = 300
     patience: int = 20
-    batch_train: int = 128
-    batch_eval: int = 256
+    batch_train: int = 256
+    batch_eval: int = 512
     lr: float = 1e-4
     weight_decay: float = 1e-4
     drop_prob: float = 0.50
