@@ -1,0 +1,55 @@
+{
+  "arm": "A0",
+  "subjects": {
+    "S1": {
+      "task": {
+        "subject_id": "S1",
+        "head": "task",
+        "init_run": "D:\\MI\\code\\train_lab\\out\\5070_baseline_openbmi_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260822_094942",
+        "n_eval_cues": 699,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6795422031473534
+              }
+            ],
+            "acc_paper_mean": 0.6795422031473534,
+            "acc_paper_std": 0.0
+          }
+        ]
+      }
+    }
+  },
+  "meta": {
+    "arm": "A0",
+    "protocol": "scheme25 aug+incremental_ft Tw=3s hop=100ms openbmi_train=stieger_eval noz_unified device=5070",
+    "init_run": "D:\\MI\\code\\train_lab\\out\\5070_baseline_openbmi_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260822_094942",
+    "hparams": {
+      "n_folds": 1,
+      "val_ratio": 0.2,
+      "seed": 42,
+      "max_epochs": 2,
+      "patience": 2,
+      "batch_train": 32,
+      "batch_eval": 64,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "drop_prob": 0.5,
+      "replay_ratio": 0.0,
+      "aug": null
+    },
+    "k_list": [
+      0,
+      10,
+      20,
+      40,
+      80,
+      -1
+    ],
+    "anchor_09_A0_three": 0.4119
+  }
+}
