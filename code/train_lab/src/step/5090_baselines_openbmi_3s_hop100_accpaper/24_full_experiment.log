@@ -1,0 +1,38 @@
+﻿[2026-08-23 12:19:09] SCHEME24 FULL START s3=F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three
+[2026-08-23 12:19:09] S3 calibration Three test_acc_paper=0.5839 gate=[0.584,0.591]
+[2026-08-23 12:19:09] WARN: S3 outside calibration gate 鈥?continuing per user request (cross-machine sanity 0.587)
+[2026-08-23 12:19:09] BEGIN V dump-probs
+[2026-08-23 12:19:14] FAIL V dump-probs exit=1
+[2026-08-23 12:19:32] SCHEME24 FULL START s3=F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three
+[2026-08-23 12:19:32] S3 calibration Three test_acc_paper=0.5839 gate=[0.584,0.591]
+[2026-08-23 12:19:32] WARN: S3 outside calibration gate 鈥?continuing per user request (cross-machine sanity 0.587)
+[2026-08-23 12:19:32] BEGIN V dump-probs
+[2026-08-23 12:19:51] OK V dump-probs
+[2026-08-23 12:19:51] BEGIN V weighted vote replay
+[2026-08-23 12:19:52] FAIL V weighted vote replay exit=1
+[2026-08-23 12:21:26] SCHEME24 FULL START s3=F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three
+[2026-08-23 12:21:26] S3 calibration Three test_acc_paper=0.5839 gate=[0.584,0.591]
+[2026-08-23 12:21:26] WARN: S3 outside calibration gate 鈥?continuing per user request (cross-machine sanity 0.587)
+[2026-08-23 12:21:26] BEGIN V dump-probs
+[2026-08-23 12:21:46] OK V dump-probs
+[2026-08-23 12:21:46] BEGIN V weighted vote replay
+[2026-08-23 12:21:48] FAIL V weighted vote replay exit=1
+[2026-08-23 12:35:55] SCHEME24 FULL START s3=F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three
+[2026-08-23 12:35:55] S3 calibration Three test_acc_paper=0.5839 gate=[0.584,0.591]
+[2026-08-23 12:35:55] WARN: S3 outside calibration gate 鈥?continuing per user request (cross-machine sanity 0.587)
+[2026-08-23 12:35:55] SKIP V dump-probs (prob_dump_three.csv exists)
+[2026-08-23 12:35:55] SKIP V replay (F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three\replay_v_weighted_vote.json exists)
+[2026-08-23 12:38:55] BEGIN T shallow t0-weight=0.6
+[2026-08-23 13:11:30] OK T shallow t0-weight=0.6
+[2026-08-23 13:11:30] T alpha=0.6 test_acc_paper=0.5886 delta_vs_S3=0.47pp
+[2026-08-23 13:14:30] BEGIN E eegnet five-fold
+[2026-08-23 13:49:08] OK E eegnet five-fold
+[2026-08-23 13:52:08] BEGIN E conformer five-fold
+[2026-08-23 14:08:18] FAIL E conformer five-fold exit=120
+[2026-08-23 15:06:19] SCHEME24 FULL START s3=F:\Cyy\MI\code\train_lab\out\5090_alg_incr_3s_hop100_accpaper\shallow_openbmi_3s_hop100_balbatch_accpaper\openbmi_3s_hop100\run_20260823_095327\three
+[2026-08-23 15:06:19] S3 calibration Three test_acc_paper=0.5839 gate=[0.584,0.591]
+[2026-08-23 15:06:19] WARN: S3 outside calibration gate 鈥?continuing per user request (cross-machine sanity 0.587)
+[2026-08-23 15:06:19] BEGIN W O3s_m five-fold
+[2026-08-23 16:09:54] OK W O3s_m five-fold
+[2026-08-23 16:09:54] BEGIN W dump O1s_m
+[2026-08-23 16:10:39] FAIL W dump O1s_m exit=120
