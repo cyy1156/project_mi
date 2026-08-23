@@ -53,6 +53,11 @@ ARMS: dict[str, ArmSpec] = {
         leak_eval_full=True,
     ),
     "O1s_m": _a("O1s_m", "23 · G1s 掩码", geom_id="G1s"),
+    "O3s_m": _a(
+        "O3s_m",
+        "24 · G3s 掩码 · 3s 窗（past100+cur750+future150）",
+        geom_id="G3s",
+    ),
     "O1s_f": _a(
         "O1s_f",
         "23 · G1s oracle",

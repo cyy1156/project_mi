@@ -24,6 +24,7 @@ GEOMETRIES: dict[str, GeomSpec] = {
     "G2s": GeomSpec("G2s", 100, 500, 400, 1000),
     "G15": GeomSpec("G15", 100, 375, 400, 875),
     "G1s": GeomSpec("G1s", 100, 250, 400, 750),
+    "G3s": GeomSpec("G3s", 100, 750, 150, 1000),
     "G600": GeomSpec("G600", 100, 500, 0, 600),
 }
 
