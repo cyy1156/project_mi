@@ -31,6 +31,7 @@ class WsBridge:
             "abort": threading.Event(),
             "gate_ok": threading.Event(),
             "split_request": threading.Event(),
+            "v2_guidance_confirm": threading.Event(),
         }
         self._on_message: Optional[Callable[[dict], None]] = None
         self._server = None

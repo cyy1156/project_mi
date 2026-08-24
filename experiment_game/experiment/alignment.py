@@ -21,6 +21,39 @@ def _load_events(path: Path) -> List[Dict[str, Any]]:
     return rows
 
 
+def _find_eeg_meta_path(
+    session_root: Path,
+    eeg_path: Optional[Path],
+) -> Optional[Path]:
+    if eeg_path is not None:
+        meta = eeg_path.with_suffix(".meta.json")
+        if meta.is_file():
+            return meta
+    session_root = Path(session_root)
+    for candidate in (
+        session_root / "eeg.meta.json",
+        session_root / "continuous" / "eeg.meta.json",
+    ):
+        if candidate.is_file():
+            return candidate
+    return None
+
+
+def _load_eeg_quality(meta_path: Optional[Path]) -> Optional[Dict[str, Any]]:
+    if meta_path is None or not meta_path.is_file():
+        return None
+    try:
+        payload = json.loads(meta_path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    quality = payload.get("quality")
+    if isinstance(quality, dict):
+        return quality
+    return None
+
+
 def _eeg_span(path: Path) -> Optional[Tuple[float, float, int]]:
     if not path.is_file():
         return None
@@ -69,6 +102,10 @@ def build_trial_table(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             "transition",
         ):
             row[f"t_{name}"] = float(ev["t_lsl"])
+        if name == "trial_invalid":
+            row["invalid"] = 1
+            if ev.get("reason"):
+                row["invalid_reason"] = ev.get("reason")
         if name in ("trial_start", "cue", "mi_start") and ev.get("label") is not None:
             row["label"] = ev.get("label")
 
@@ -94,6 +131,8 @@ def write_trial_table(path: Path, rows: List[Dict[str, Any]]) -> None:
         "object",
         "scene",
         "rejected",
+        "invalid",
+        "invalid_reason",
         "t_trial_start",
         "t_fixation",
         "t_cue",
@@ -120,11 +159,14 @@ def verify_alignment(
     *,
     tol_s: float = 0.05,
     require_acq: bool = True,
+    eeg_quality: Optional[Dict[str, Any]] = None,
+    max_drop_rate_pct: float = 1.0,
 ) -> Dict[str, Any]:
     report: Dict[str, Any] = {
         "passed": True,
         "checks": [],
         "errors": [],
+        "quality": eeg_quality or {},
     }
 
     def add(ok: bool, name: str, detail: str = "") -> None:
@@ -182,6 +224,26 @@ def verify_alignment(
                     if not (t0 <= float(tv) <= t1):
                         outside += 1
             add(outside == 0, "markers_within_eeg", f"outside={outside}")
+
+        quality = eeg_quality or {}
+        if quality:
+            report["quality"] = quality
+            drop = float(quality.get("drop_rate_pct", 0.0))
+            lsl_ok = bool(quality.get("lsl_timeline_ok"))
+            add(True, "eeg_quality_present", f"drop_rate_pct={drop}")
+            drop_ok = lsl_ok or drop <= max_drop_rate_pct
+            add(
+                drop_ok,
+                "eeg_drop_rate_ok",
+                f"drop_rate_pct={drop} max={max_drop_rate_pct} lsl_timeline_ok={lsl_ok}",
+            )
+            add(
+                lsl_ok,
+                "eeg_lsl_timeline_ok",
+                f"lsl_timeline_ok={lsl_ok}",
+            )
+        else:
+            add(False, "eeg_quality_present", "missing eeg.meta.json quality")
     else:
         add(True, "eeg_optional", "acq disabled")
 
@@ -214,11 +276,19 @@ def write_alignment_bundle(
         encoding="utf-8",
     )
 
+    eeg_meta_path = (
+        _find_eeg_meta_path(session_root, eeg_path if acq_enabled else None)
+        if acq_enabled
+        else None
+    )
+    eeg_quality = _load_eeg_quality(eeg_meta_path) if acq_enabled else None
+
     report = verify_alignment(
         events,
         rows,
         eeg_path if acq_enabled else None,
         require_acq=acq_enabled,
+        eeg_quality=eeg_quality,
     )
     (align_dir / "verify_report.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2) + "\n",

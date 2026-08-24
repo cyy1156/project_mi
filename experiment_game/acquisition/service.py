@@ -3,8 +3,9 @@
 from __future__ import annotations
 
 import sys
+import time
 from pathlib import Path
-from typing import List, Optional, Sequence
+from typing import Any, Dict, List, Optional, Sequence
 
 DEFAULT_CHANNEL_LABELS: List[str] = [
     "C3",
@@ -132,6 +133,69 @@ class AcquisitionFacade:
         if not ok:
             mgr.stop_acquisition()
             raise RuntimeError(f"启动录制失败: {msg}")
+
+    def health_check(
+        self,
+        *,
+        wait_s: float = 1.5,
+        min_samples: int = 200,
+        lsl_stream_name: str = "OpenBCI_EEG",
+        resolve_lsl: bool = True,
+    ) -> Dict[str, Any]:
+        """启动后断言采集 RUNNING、样本推送增长、LSL 流可 resolve。"""
+        from lsl_connect.state import ServiceState
+
+        mgr = self.manager
+        st = mgr.get_status()
+        state = st.get("state")
+        if state != ServiceState.RUNNING.value:
+            hint = ""
+            if not self._use_synthetic:
+                hint = (
+                    f"；当前串口={self._serial_port}。"
+                    "请关闭 OpenBCI GUI 串口直播后重试"
+                )
+            raise RuntimeError(
+                f"采集未进入 RUNNING（state={state}）{hint}"
+            )
+
+        s0 = int(st.get("samples_pushed") or 0)
+        time.sleep(wait_s)
+        st2 = mgr.get_status()
+        s1 = int(st2.get("samples_pushed") or 0)
+        delta = s1 - s0
+        if delta < min_samples:
+            raise RuntimeError(
+                f"采集推送样本不足：{wait_s:.1f}s 内仅增长 {delta}（需 ≥ {min_samples}）"
+            )
+
+        lsl_ok = True
+        lsl_detail = "skipped"
+        if resolve_lsl:
+            try:
+                from pylsl import resolve_byprop
+
+                streams = resolve_byprop("name", lsl_stream_name, timeout=2.0)
+                lsl_ok = bool(streams)
+                lsl_detail = f"resolved={len(streams)}"
+                if not lsl_ok:
+                    raise RuntimeError(
+                        f"LSL 流 {lsl_stream_name} 未 resolve（timeout=2s）"
+                    )
+            except RuntimeError:
+                raise
+            except Exception as exc:  # noqa: BLE001
+                raise RuntimeError(f"LSL resolve 失败: {exc}") from exc
+
+        return {
+            "state": state,
+            "samples_pushed": s1,
+            "delta_samples": delta,
+            "wait_s": wait_s,
+            "lsl_stream": lsl_stream_name,
+            "lsl_ok": lsl_ok,
+            "lsl_detail": lsl_detail,
+        }
 
     def stop(self) -> dict:
         mgr = self.manager

@@ -40,6 +40,13 @@ const el = {
   timingHint: document.getElementById("timing-hint"),
   runTimeline: document.getElementById("run-timeline"),
   runTimingHint: document.getElementById("run-timing-hint"),
+  v2Panel: document.getElementById("v2-panel"),
+  v2StageHint: document.getElementById("v2-stage-hint"),
+  v2GateAcc: document.getElementById("v2-gate-acc"),
+  v2GateStatus: document.getElementById("v2-gate-status"),
+  v2GateN: document.getElementById("v2-gate-n"),
+  v2GateCurve: document.getElementById("v2-gate-curve"),
+  btnV2Guidance: document.getElementById("btn-v2-guidance"),
 };
 
 /* ---------------- 试次时序：读取 / 时间轴渲染 ---------------- */
@@ -119,6 +126,35 @@ function updateTimingHint(total) {
     ` · 纯试次时长 ≈ ${Math.round(est / 60)} 分钟（不含弹窗确认与暂停）`;
 }
 
+function syncPhaseModeUi() {
+  const v2 =
+    (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "v2_session";
+  document.querySelectorAll(".phase2-only").forEach((node) => {
+    node.classList.toggle("hidden", v2);
+  });
+}
+
+function setV2RunPanel(on) {
+  el.v2Panel?.classList.toggle("hidden", !on);
+  el.phaseSteps?.classList.toggle("hidden", on);
+}
+
+function updateV2Gate(msg) {
+  if (el.v2GateAcc) {
+    el.v2GateAcc.textContent =
+      msg.acc != null ? `${(Number(msg.acc) * 100).toFixed(1)}%` : "—";
+  }
+  if (el.v2GateStatus) el.v2GateStatus.textContent = msg.status || "—";
+  if (el.v2GateN) el.v2GateN.textContent = String(msg.n_quiz ?? 0);
+  if (el.v2GateCurve && Array.isArray(msg.curve)) {
+    el.v2GateCurve.textContent = msg.curve.map(([k, a]) => `k=${k}: ${(a * 100).toFixed(1)}%`).join("\n");
+  }
+}
+
+el.form.querySelectorAll('input[name="phase_mode"]').forEach((r) => {
+  r.addEventListener("change", syncPhaseModeUi);
+});
+
 function renderSetupTimeline() {
   const { total } = renderTimeline(el.setupTimeline, readTimingFromForm()) || { total: 0 };
   updateTimingHint(total);
@@ -192,6 +228,7 @@ function formToRunConfig() {
       },
     },
     experiment: {
+      phase_mode: String(fd.get("phase_mode") || "phase2_full"),
       acquire_trials: Number(fd.get("acquire_trials") || 40),
       learn_trials_per_step: Number(fd.get("learn_trials_per_step") || 2),
       seed: seedRaw === "" ? null : Number(seedRaw),
@@ -257,6 +294,11 @@ function applyConfigToForm(cfg) {
   set("skip_adapt", cfg.experiment?.skip_adapt);
   set("skip_learn", cfg.experiment?.skip_learn);
   set("skip_gate", cfg.experiment?.skip_gate);
+  const pm = cfg.experiment?.phase_mode || "phase2_full";
+  for (const r of el.form.querySelectorAll('input[name="phase_mode"]')) {
+    r.checked = r.value === pm;
+  }
+  syncPhaseModeUi();
   set("save_root", cfg.storage?.save_root);
   set("save_layout", cfg.storage?.save_layout || "phase_folders");
   set("auto_phase4", cfg.storage?.auto_phase4);
@@ -368,12 +410,19 @@ function updateRunLockSummary(msg) {
     save_root: msg.save_root,
     session_root: msg.session_root,
   };
-  el.runSummary.innerHTML = [
-    `<div><span class="k">采集</span>${msg.acq_enabled ? "开" : "关"}</div>`,
-    `<div><span class="k">板卡</span>${msg.board_mode}${msg.board_mode === "cyton" ? " / " + (msg.serial_port || "") : ""}</div>`,
-    `<div><span class="k">正式 trials</span>${msg.acquire_trials}</div>`,
-    `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
-  ].join("");
+  el.runSummary.innerHTML = msg.phase_mode === "v2_session"
+    ? [
+        `<div><span class="k">模式</span>v2 会话</div>`,
+        `<div><span class="k">采集</span>${msg.acq_enabled ? "开" : "关"}</div>`,
+        `<div><span class="k">参数</span>config/v2_session.yaml</div>`,
+        `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
+      ].join("")
+    : [
+        `<div><span class="k">采集</span>${msg.acq_enabled ? "开" : "关"}</div>`,
+        `<div><span class="k">板卡</span>${msg.board_mode}${msg.board_mode === "cyton" ? " / " + (msg.serial_port || "") : ""}</div>`,
+        `<div><span class="k">正式 trials</span>${msg.acquire_trials}</div>`,
+        `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
+      ].join("");
   // 本场锁定的时序构成
   if (msg.timing) {
     renderTimeline(el.runTimeline, msg.timing);
@@ -485,9 +534,25 @@ function handleMessage(msg) {
   } else if (t === "session_started") {
     if (msg.subject_url) subjectUrl = msg.subject_url;
     sessionRoot = msg.session_root || "";
+    const v2 = msg.phase_mode === "v2_session";
+    setV2RunPanel(v2);
+    if (v2 && el.v2StageHint) {
+      el.v2StageHint.textContent = "v2 会话已启动；轮间请点「确认动觉引导完成」";
+      setPhaseStep("adapt");
+    }
     updateRunLockSummary(msg);
-    // 换场继续段（segment>1）不重复打开诱导页
-    if (!msg.segment || msg.segment <= 1) tryOpenSubject();
+    // 诱导页已在 config_ack 打开；此处不再重复（避免多窗口）
+  } else if (t === "v2_gate") {
+    updateV2Gate(msg);
+  } else if (t === "v2_stage") {
+    if (el.v2StageHint) {
+      const stage = msg.stage || "—";
+      const mode = msg.ctx?.mode || "";
+      el.v2StageHint.textContent = `v2 · ${stage}${mode ? ` (${mode})` : ""}`;
+    }
+    if (msg.stage === "guidance_begin" && el.btnV2Guidance) {
+      el.btnV2Guidance.disabled = false;
+    }
   } else if (t === "acq_status") {
     el.stAcq.textContent = `${msg.state || "—"}${msg.message ? " · " + msg.message : ""}`;
   } else if (t === "stage") {
@@ -554,6 +619,10 @@ function handleMessage(msg) {
     if (!msg.train_eligible) {
       el.summaryMsg.textContent += "（不可用于训练切窗）";
     }
+    const aq = msg.acq_quality;
+    if (aq && aq.drop_rate_pct != null) {
+      el.summaryMsg.textContent += ` · 丢包率 ${aq.drop_rate_pct}%`;
+    }
     showPhase4Result(msg.phase4 || null);
     const btnP4 = document.getElementById("btn-phase4");
     if (btnP4) btnP4.disabled = !msg.acq_enabled;
@@ -595,11 +664,16 @@ function handleMessage(msg) {
   }
 }
 
-function tryOpenSubject() {
+let subjectPageOpened = false;
+
+function tryOpenSubject(force = false) {
   const cfgOpen = el.form.querySelector('[name="open_subject_page"]')?.checked !== false;
   if (!cfgOpen) return;
+  if (subjectPageOpened && !force) return;
   const w = window.open(subjectUrl, "_blank");
-  if (!w) {
+  if (w) {
+    subjectPageOpened = true;
+  } else {
     el.popupWarn.classList.remove("hidden");
     send({ type: "open_subject_page" });
   }
@@ -620,6 +694,7 @@ function saveLocalDefaults(cfg) {
 
 function startSession() {
   if (starting) return;
+  subjectPageOpened = false;
   const cfg = formToRunConfig();
   hotkeysEnabled = cfg.ui.operator_hotkeys !== false;
   showErrors([]);
@@ -701,11 +776,16 @@ document.getElementById("btn-continue").addEventListener("click", () => {
 document.getElementById("btn-gate").addEventListener("click", () => {
   send({ type: "operator", action: "gate_ok" });
 });
+el.btnV2Guidance?.addEventListener("click", () => {
+  send({ type: "v2_guidance_confirm" });
+  if (el.btnV2Guidance) el.btnV2Guidance.disabled = true;
+  if (el.v2StageHint) el.v2StageHint.textContent = "已确认引导，会话继续…";
+});
 document.getElementById("btn-reject").addEventListener("click", () => {
   send({ type: "operator", action: "reject" });
 });
 document.getElementById("btn-reopen").addEventListener("click", () => {
-  tryOpenSubject();
+  tryOpenSubject(true);
   send({ type: "open_subject_page" });
 });
 document.getElementById("btn-abort").addEventListener("click", () => {
@@ -771,5 +851,6 @@ window.addEventListener("keydown", (e) => {
 const hash = (location.hash || "#setup").replace("#", "");
 showView(["setup", "run", "summary"].includes(hash) ? hash : "setup");
 syncAcqUi();
+syncPhaseModeUi();
 renderSetupTimeline();
 connect();

@@ -71,6 +71,15 @@
           </fieldset>
 
           <fieldset>
+            <legend>会话模式</legend>
+            <div class="row">
+              <label class="radio"><input type="radio" name="phase_mode" value="phase2_full" checked /> v1 Phase2（适应→学习→正式）</label>
+              <label class="radio"><input type="radio" name="phase_mode" value="v2_session" /> v2 会话（标定→准入→游戏）</label>
+            </div>
+            <p class="hint">v2 轮数、gate、lr 等见 <code>experiment_game/config/v2_session.yaml</code>（统一参数，可编辑后重开会话）</p>
+          </fieldset>
+
+          <fieldset class="phase2-only">
             <legend>实验任务</legend>
             <label>正式 trial 数 <input name="acquire_trials" type="number" min="1" value="8" /></label>
             <label>学习每 Step 试次 <input name="learn_trials_per_step" type="number" min="1" value="2" /></label>
@@ -83,7 +92,7 @@
             <p class="hint">真机首测建议：正式 trial=4～8，可勾选跳过适应/学习以缩短时间。</p>
           </fieldset>
 
-          <fieldset>
+          <fieldset class="phase2-only">
             <legend>试次时序（单 trial 各阶段秒数）</legend>
             <div class="row">
               <label>注视 <input name="t_fixation_s" type="number" step="0.1" min="0.2" max="30" value="2" /> s</label>
@@ -210,6 +219,17 @@
           <div><span class="k">采集</span> <span id="st-acq">—</span></div>
         </div>
 
+        <div id="v2-panel" class="v2-panel hidden">
+          <h2 class="v2-title">v2 会话监控</h2>
+          <p id="v2-stage-hint" class="hint">等待 v2 阶段消息…</p>
+          <div class="v2-gate-box">
+            <div>小考 Three：<strong id="v2-gate-acc">—</strong></div>
+            <div>准入：<strong id="v2-gate-status">—</strong> · n=<span id="v2-gate-n">0</span></div>
+            <pre id="v2-gate-curve" class="v2-curve">—</pre>
+          </div>
+          <button type="button" id="btn-v2-guidance" class="primary">确认动觉引导完成</button>
+        </div>
+
         <div class="actions run-actions">
           <button type="button" id="btn-split" title="B">中场换场</button>
           <button type="button" id="btn-questionnaire" title="Q">问卷</button>
@@ -252,6 +272,6 @@
         <p id="q-status" class="hint"></p>
       </section>
     </div>
-    <script type="module" src="js/operator.js?v=20260822a"></script>
+    <script type="module" src="js/operator.js?v=20260823b"></script>
   </body>
 </html>

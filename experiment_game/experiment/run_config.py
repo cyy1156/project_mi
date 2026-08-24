@@ -35,6 +35,8 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
         "markers_lsl": True,
     },
     "experiment": {
+        "phase_mode": "phase2_full",
+        "v2_config_path": None,
         "acquire_trials": 8,
         "learn_trials_per_step": 2,
         "skip_adapt": False,

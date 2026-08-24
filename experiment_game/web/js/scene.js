@@ -414,6 +414,8 @@ export class HomeDeskScene {
     this.transition = null;
     this._stageKey = "";
     this._animProgress = 0;
+    this._v2ProgressEl = null;
+    this._v2GameLabel = 0;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -1176,5 +1178,100 @@ export class HomeDeskScene {
     this.camera.aspect = w / h;
     this.camera.updateProjectionMatrix();
     this.renderer.setSize(w, h);
+  }
+
+  /* ----- v2 会话挂点（v2_bridge → window.__v2scene） ----- */
+
+  v2Fixation() {
+    this.handSide = "none";
+    this.anim = "none";
+    this._resetHands();
+    this._resetCup();
+    this.setHudHighlight(false);
+    this._v2ProgressEl?.remove();
+    this._v2ProgressEl = null;
+  }
+
+  v2Cue(label) {
+    this._v2GameLabel = Number(label) || 0;
+    this._v2ProgressEl?.remove();
+    this._v2ProgressEl = null;
+    if (label === 1) {
+      this.handSide = "left";
+      this.anim = "full_grasp";
+      this.animT0 = this.clock.getElapsedTime();
+      this.animDur = 2;
+      this.setHudHighlight(true);
+      if (!this.cup.userData.held) this._resetCup();
+    } else if (label === 2) {
+      this.handSide = "right";
+      this.anim = "reach";
+      this.animT0 = this.clock.getElapsedTime();
+      this.animDur = 2;
+      this.setHudHighlight(true);
+      this._resetCup();
+    } else {
+      this.v2Fixation();
+    }
+  }
+
+  v2CalProgress(p) {
+    let bar = this._v2ProgressEl;
+    if (!bar) {
+      bar = document.createElement("div");
+      bar.id = "v2-cal-progress";
+      bar.style.cssText =
+        "position:fixed;left:10%;right:10%;bottom:8%;height:6px;background:#3338;border-radius:3px;z-index:50";
+      const fill = document.createElement("div");
+      fill.className = "fill";
+      fill.style.cssText =
+        "height:100%;width:0%;background:#4ade80;border-radius:3px;transition:width .12s";
+      bar.appendChild(fill);
+      document.body.appendChild(bar);
+      this._v2ProgressEl = bar;
+    }
+    const fill = bar.querySelector(".fill");
+    const t = typeof p === "number" ? p : 0;
+    if (fill) fill.style.width = `${Math.min(100, Math.max(0, t * 100))}%`;
+  }
+
+  v2GameLevel(level, reach) {
+    const label = this._v2GameLabel;
+    const side = label === 2 ? "right" : "left";
+    this.handSide = side;
+    this.setHudHighlight(true);
+    if (reach) {
+      this.anim = "full_grasp";
+      this.animT0 = this.clock.getElapsedTime() - this.animDur * 0.35;
+      this.animDur = 2.2;
+      this.cup.userData.highlight = true;
+      return;
+    }
+    const lv = Math.max(0, Math.min(4, Number(level) || 0));
+    this.anim = "reach";
+    this.animT0 = this.clock.getElapsedTime();
+    this.animDur = 0.9;
+    const arm = side === "left" ? this.handL : this.handR;
+    const rest = { pos: arm.userData.rest.pos, rot: arm.userData.rest.rot };
+    const deep = this._poseReach(side);
+    const t = lv / 4;
+    arm.position.lerpVectors(rest.pos, deep.pos, t * 0.55 + 0.15);
+    arm.rotation.set(
+      THREE.MathUtils.lerp(rest.rot.x, deep.rot.x, t),
+      THREE.MathUtils.lerp(rest.rot.y, deep.rot.y, t),
+      THREE.MathUtils.lerp(rest.rot.z, deep.rot.z, t)
+    );
+    setGrasp(arm, Math.min(1, t * 0.5));
+  }
+
+  v2Iti() {
+    this._v2ProgressEl?.remove();
+    this._v2ProgressEl = null;
+    this.v2Fixation();
+  }
+
+  v2Idle(_text) {
+    this._v2ProgressEl?.remove();
+    this._v2ProgressEl = null;
   }
 }
