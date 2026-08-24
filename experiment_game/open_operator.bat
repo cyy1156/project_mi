@@ -1,29 +1,30 @@
 @echo off
 setlocal EnableExtensions
-cd /d "%~dp0.."
+pushd "%~dp0.."
 if errorlevel 1 (
   echo ERROR: cannot cd to repo root from %~dp0
   pause
   exit /b 1
 )
 
-rem Python 解析顺序：仓库 .venv → conda cyy 环境（C:\Users\yy\.conda\envs\cyy）
-set "PY=%CD%\.venv\Scripts\python.exe"
-if not exist "%PY%" set "PY=%USERPROFILE%\.conda\envs\cyy\python.exe"
-if not exist "%PY%" (
+set "PY="
+if exist "%CD%\.venv\Scripts\python.exe" set "PY=%CD%\.venv\Scripts\python.exe"
+if not defined PY if exist "%USERPROFILE%\.conda\envs\cyy\python.exe" set "PY=%USERPROFILE%\.conda\envs\cyy\python.exe"
+if not defined PY (
   echo ERROR: Python not found. Checked:
   echo   %CD%\.venv\Scripts\python.exe
   echo   %USERPROFILE%\.conda\envs\cyy\python.exe
-  echo Create one of them, or: conda create -n cyy python=3.13
-  echo then pip install -r experiment_game\requirements.txt pylsl brainflow pyyaml
+  echo Create conda env: conda create -n cyy python=3.13
   pause
   exit /b 1
 )
 
 echo.
-echo === Operator console ===
+echo === Operator console (local) ===
 echo Browser: http://127.0.0.1:8080/operator.html#setup
 echo Subject: http://127.0.0.1:8080/
+echo Repo root: %CD%
+echo Python: %PY%
 echo Keep this window open. Close it to stop the server.
 echo.
 
@@ -34,4 +35,5 @@ if not "%ERR%"=="0" (
   echo Exit code: %ERR%
   pause
 )
+popd
 exit /b %ERR%

@@ -1,0 +1,33 @@
+{
+  "arm": "B3",
+  "protocol": "stieger_otta Tw=3s hop=100ms arm=09_otta_ea_adabn_stieger model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) ft=shallow_stieger_ft_half_balbatch_accpaper data=stieger_3s_hop100 eval_half=causal_stream ea=ref_src|ref_cal adabn=bn_running_only conf_tau=optional device=5070",
+  "spec": {
+    "weight": "ft",
+    "ea_ref": "src",
+    "adabn": 1,
+    "gate": "H0",
+    "conf_tau": null
+  },
+  "weight_run": null,
+  "ft_root": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300",
+  "ea_ref_meta": {
+    "source": "openbmi_mats_online",
+    "path": "D:\\MI\\DATA\\openbmi\\sess*_subj*_EEG_MI.mat",
+    "note": "未找到 openbmi_3s_hop100_noz；由 mat 在线估计。正式跑前建议: cd preprocess_lab && python -m src.datasets.openbmi.batch_3s_hop100 --no-zscore",
+    "cache": "D:\\MI\\code\\train_lab\\out\\stieger_otta_3s_hop100_accpaper\\ea_ref_src_cov.npy"
+  },
+  "subjects": {},
+  "macro": {
+    "task": {
+      "mean": null,
+      "std": null,
+      "per_subject": []
+    },
+    "three": {
+      "mean": null,
+      "std": null,
+      "per_subject": []
+    }
+  },
+  "delta": {}
+}

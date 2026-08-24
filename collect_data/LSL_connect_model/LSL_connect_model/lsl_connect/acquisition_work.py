@@ -8,12 +8,13 @@ from __future__ import annotations
 import threading
 import time
 from dataclasses import dataclass
-from typing import Optional
+from typing import Any, Callable, Dict, List, Optional
 
 import numpy as np
 from pylsl import StreamOutlet
 
 from lsl_connect.board import BoardConfig, CytonBoard
+from lsl_connect.cyton_link import probe_cyton_version
 from lsl_connect.lsl_streams import (
     BoardToLslTimestampMapper,
     LslStreamConfig,
@@ -27,6 +28,8 @@ from lsl_connect.preprocessing import (
     preprocess_eeg_batch,
 )
 
+LinkEventCallback = Callable[[Dict[str, Any]], None]
+
 
 @dataclass
 class AcquisitionConfig:
@@ -36,6 +39,12 @@ class AcquisitionConfig:
     loop_sleep_sec: float = 0.005
     stats_every_n_batches: int = 20
     quiet: bool = False
+    # 真机无线断流检测与自动重连（合成板在 start() 里旁路）
+    stall_detect_enabled: bool = True
+    stall_threshold_sec: float = 4.0
+    reconnect_max_attempts: int = 3
+    reconnect_cooldown_sec: float = 5.0
+    reconnect_cooldown_max_sec: float = 30.0
 
 
 class AcquisitionWorker:
@@ -55,6 +64,7 @@ class AcquisitionWorker:
         lsl_config: Optional[LslStreamConfig] = None,
         preprocess_config: Optional[PreprocessConfig] = None,
         acq_config: Optional[AcquisitionConfig] = None,
+        on_link_event: Optional[LinkEventCallback] = None,
     ) -> None:
         self._board_config = board_config or BoardConfig(use_synthetic=True)
         self._lsl_config = lsl_config or LslStreamConfig(
@@ -65,6 +75,7 @@ class AcquisitionWorker:
 
         self._preprocess_config = preprocess_config or PreprocessConfig()
         self._acq_config = acq_config or AcquisitionConfig()
+        self._on_link_event = on_link_event
 
         self._stop_event = threading.Event()
         self._thread: Optional[threading.Thread] = None
@@ -80,6 +91,15 @@ class AcquisitionWorker:
         self._ts_channel: Optional[int] = None
         self._ts_mapper = BoardToLslTimestampMapper()
 
+        self._stall_enabled = False
+        self._last_data_at = 0.0
+        self._last_reconnect_at: Optional[float] = None
+        self._link_dead = False
+        self._stall_count = 0
+        self._reconnect_ok = 0
+        self._reconnect_fail = 0
+        self._link_events: List[Dict[str, Any]] = []
+
     @property
     def is_running(self) -> bool:
         return self._thread is not None and self._thread.is_alive()
@@ -87,6 +107,29 @@ class AcquisitionWorker:
     def get_samples_pushed(self) -> int:
         with self._stats_lock:
             return self._samples_pushed
+
+    def get_link_stats(self) -> Dict[str, Any]:
+        with self._stats_lock:
+            return {
+                "stall_count": self._stall_count,
+                "reconnect_ok": self._reconnect_ok,
+                "reconnect_fail": self._reconnect_fail,
+                "link_dead": self._link_dead,
+                "last_event": self._link_events[-1] if self._link_events else None,
+                "events": list(self._link_events[-10:]),
+            }
+
+    def _emit_link_event(self, kind: str, **fields: Any) -> None:
+        ev: Dict[str, Any] = {"kind": kind, "at": time.time(), **fields}
+        with self._stats_lock:
+            self._link_events.append(ev)
+            if len(self._link_events) > 50:
+                self._link_events = self._link_events[-50:]
+        if self._on_link_event is not None:
+            try:
+                self._on_link_event(ev)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[警告] on_link_event: {exc}")
 
     def start(self) -> None:
         if self.is_running:
@@ -96,6 +139,18 @@ class AcquisitionWorker:
         with self._stats_lock:
             self._samples_pushed = 0
             self._batch_count = 0
+            self._link_dead = False
+            self._stall_count = 0
+            self._reconnect_ok = 0
+            self._reconnect_fail = 0
+            self._link_events = []
+
+        self._stall_enabled = (
+            self._acq_config.stall_detect_enabled
+            and not self._board_config.use_synthetic
+        )
+        self._last_data_at = time.monotonic()
+        self._last_reconnect_at = None
 
         self._board = CytonBoard(self._board_config)
         self._board.connect()
@@ -168,6 +223,97 @@ class AcquisitionWorker:
 
         return n
 
+    def _reconnect_cooldown_sec(self) -> float:
+        cfg = self._acq_config
+        cooldown = float(cfg.reconnect_cooldown_sec)
+        now = time.monotonic()
+        if self._last_reconnect_at is not None and (now - self._last_reconnect_at) < 60.0:
+            cooldown = min(float(cfg.reconnect_cooldown_max_sec), cooldown * 2.0)
+        return cooldown
+
+    def _handle_stall(self, now: float) -> None:
+        assert self._board is not None
+        cfg = self._acq_config
+        port = self._board_config.serial_port
+        gap_s = max(0.0, now - self._last_data_at)
+
+        with self._stats_lock:
+            self._stall_count += 1
+
+        self._emit_link_event(
+            "stall",
+            gap_s=round(gap_s, 2),
+            message=f"无线数据停滞 {gap_s:.1f}s",
+        )
+        if not cfg.quiet:
+            print(f"[链路] stall {gap_s:.1f}s，开始自动重连…")
+
+        for attempt in range(1, int(cfg.reconnect_max_attempts) + 1):
+            if self._stop_event.is_set():
+                return
+
+            self._emit_link_event(
+                "reconnect_attempt",
+                attempt=attempt,
+                max_attempts=cfg.reconnect_max_attempts,
+                message=f"重连 {attempt}/{cfg.reconnect_max_attempts}",
+            )
+            if not cfg.quiet:
+                print(f"[链路] 重连 {attempt}/{cfg.reconnect_max_attempts}…")
+
+            try:
+                self._board.stop_stream_only()
+                self._board.disconnect()
+            except Exception as exc:  # noqa: BLE001
+                self._emit_link_event("reconnect_error", attempt=attempt, error=str(exc))
+
+            probe = probe_cyton_version(port)
+            if not probe.ok:
+                self._emit_link_event(
+                    "reconnect_probe_fail",
+                    attempt=attempt,
+                    failure_kind=probe.failure_kind.value,
+                    message=probe.summary(),
+                )
+                if self._stop_event.wait(self._reconnect_cooldown_sec()):
+                    return
+                continue
+
+            try:
+                self._board.connect()
+                self._ts_mapper.reset()
+                self._last_data_at = time.monotonic()
+                self._last_reconnect_at = self._last_data_at
+                with self._stats_lock:
+                    self._reconnect_ok += 1
+                self._emit_link_event(
+                    "reconnect_ok",
+                    attempt=attempt,
+                    message=f"重连成功（第 {attempt} 次）",
+                )
+                if not cfg.quiet:
+                    print(f"[链路] 重连成功（第 {attempt} 次）")
+                return
+            except Exception as exc:  # noqa: BLE001
+                self._emit_link_event(
+                    "reconnect_fail",
+                    attempt=attempt,
+                    error=str(exc),
+                    message=str(exc),
+                )
+                if self._stop_event.wait(self._reconnect_cooldown_sec()):
+                    return
+
+        with self._stats_lock:
+            self._reconnect_fail += 1
+            self._link_dead = True
+        self._emit_link_event(
+            "link_dead",
+            message="无线断流，自动重连失败：请检查 Cyton 电量、dongle 距离后重开机",
+        )
+        if not cfg.quiet:
+            print("[链路] 自动重连已达上限，link_dead=True")
+
     def _run_loop(self) -> None:
         assert self._board is not None
 
@@ -182,10 +328,40 @@ class AcquisitionWorker:
                 f"拉数: fetch_new_batch | push 块大小: {bs} | "
                 f"滤波: {'ON' if self._preprocess_config.filter_enabled else 'OFF'}"
             )
+            if self._stall_enabled:
+                print(
+                    f"断流检测: ON（>{cfg.stall_threshold_sec}s 触发重连，"
+                    f"最多 {cfg.reconnect_max_attempts} 次）"
+                )
             print("-" * 50)
 
         while not self._stop_event.is_set():
-            data = self._board.fetch_new_batch()
+            now = time.monotonic()
+            try:
+                data = self._board.fetch_new_batch()
+            except Exception as exc:  # noqa: BLE001
+                if (
+                    self._stall_enabled
+                    and not self._link_dead
+                    and not self._stop_event.is_set()
+                ):
+                    self._emit_link_event("fetch_error", error=str(exc))
+                    self._handle_stall(now)
+                time.sleep(cfg.loop_sleep_sec)
+                continue
+
+            if data.shape[1] > 0:
+                self._last_data_at = now
+            elif (
+                self._stall_enabled
+                and not self._link_dead
+                and not self._stop_event.is_set()
+                and now - self._last_data_at > cfg.stall_threshold_sec
+            ):
+                self._handle_stall(now)
+                time.sleep(cfg.loop_sleep_sec)
+                continue
+
             if data.shape[1] == 0:
                 time.sleep(cfg.loop_sleep_sec)
                 continue

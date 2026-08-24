@@ -27,6 +27,7 @@ from experiment_game.experiment.trial_v2 import (
     build_game_schedule,
 )
 from experiment_game.experiment.v2_config import V2Config
+from experiment_game.experiment.prompt_wait import ENV_ADAPT_BODY, wait_prompt_continue
 from experiment_game.experiment.ws_bridge import WsBridge
 
 _ADAPT_ROOT = str(Path(__file__).resolve().parents[2] / "code")
@@ -65,31 +66,109 @@ def _load_openbmi_replay_pool(
         return None
 
 
-def _try_imports(cfg: V2Config):
-    """返回 (registry, buffer, pre, infer) 或全 None（降级）。"""
+def diagnose_v2_online_deps(
+    cfg: V2Config,
+    *,
+    require_lsl: bool = True,
+    lsl_timeout_s: float = 5.0,
+    on_console: Optional[Callable[[str], None]] = None,
+) -> Tuple[Optional[tuple], List[str]]:
+    """检查在线判定/微调依赖。
+
+    返回 (deps_or_None, reasons)。
+    deps = (registry, buffer, pre, infer)；失败时 deps 为 None。
+    require_lsl=False 时只检查权重（会话开始前、采集尚未推 LSL 时用）。
+    """
+    log = on_console or (lambda _m: None)
+    reasons: List[str] = []
     try:
         import torch  # noqa: F401
+    except Exception as exc:
+        reasons.append(f"torch 不可用: {exc}")
+        return None, reasons
+
+    try:
         from adapt_engine.registry import ModelRegistry
         from experiment_game.experiment.inference_v2 import (
             InferenceService,
             OnlinePreprocessor,
             RingBuffer,
         )
-        task = (Path(__file__).resolve().parents[2] / cfg.s3_task_ckpt)
-        three = (Path(__file__).resolve().parents[2] / cfg.s3_three_ckpt)
-        if not task.exists() or not three.exists():
-            return None
+    except Exception as exc:
+        reasons.append(f"adapt_engine/inference 导入失败: {exc}")
+        return None, reasons
+
+    task = Path(__file__).resolve().parents[2] / cfg.s3_task_ckpt
+    three = Path(__file__).resolve().parents[2] / cfg.s3_three_ckpt
+    if not task.exists():
+        reasons.append(f"缺 task 权重: {task}")
+    if not three.exists():
+        reasons.append(f"缺 three 权重: {three}")
+    if reasons:
+        return None, reasons
+
+    try:
         reg = ModelRegistry(task, three)
-        buf = RingBuffer()
+    except Exception as exc:
+        reasons.append(f"ModelRegistry 加载失败: {exc}")
+        return None, reasons
+
+    if not require_lsl:
+        log("[v2] 权重就绪（LSL 待采集启动后再挂）")
+        return (reg, None, None, None), []
+
+    buf = RingBuffer()
+    try:
+        buf.attach_lsl("OpenBCI_EEG", timeout_s=lsl_timeout_s)
+    except Exception as exc:
+        reasons.append(f"LSL OpenBCI_EEG 不可用: {exc}")
         try:
-            buf.attach_lsl("OpenBCI_EEG")
+            buf.close()
         except Exception:
-            return None
+            pass
+        return None, reasons
+
+    try:
         pre = OnlinePreprocessor()
-        infer = InferenceService(buf, reg, pre, task_p_on=cfg.task_p_on)
-        return reg, buf, pre, infer
-    except Exception:
+        infer = InferenceService(
+            buf,
+            reg,
+            pre,
+            task_p_on=cfg.task_p_on,
+            signal_quality=cfg.signal_quality_config(),
+        )
+    except Exception as exc:
+        reasons.append(f"InferenceService 初始化失败: {exc}")
+        try:
+            buf.close()
+        except Exception:
+            pass
+        return None, reasons
+
+    log("[v2] 在线依赖就绪：权重 + LSL OpenBCI_EEG")
+    return (reg, buf, pre, infer), []
+
+
+def _try_imports(cfg: V2Config, on_console: Optional[Callable[[str], None]] = None):
+    """返回 (registry, buffer, pre, infer) 或全 None（降级）。"""
+    deps, reasons = diagnose_v2_online_deps(cfg, require_lsl=True, on_console=on_console)
+    if deps is None:
+        log = on_console or print
+        for r in reasons:
+            log(f"[v2] ⚠️ 演练降级原因：{r}")
         return None
+    return deps
+
+
+def probe_v2_weights_missing(cfg: V2Config) -> bool:
+    """会话开始前：仅查权重（此时尚无 LSL，不能据此判演练）。"""
+    deps, _ = diagnose_v2_online_deps(cfg, require_lsl=False)
+    return deps is None
+
+
+def probe_v2_degraded(cfg: V2Config) -> bool:
+    """兼容旧调用：含 LSL 检查。采集启动前请用 probe_v2_weights_missing。"""
+    return _try_imports(cfg) is None
 
 
 class _SessionStore:
@@ -162,21 +241,53 @@ def run_v2_session(
     on_console: Callable[[str], None] = print,
     *,
     config_path: Optional[str] = None,
+    v2_overrides: Optional[Dict] = None,
+    protocol_locked: bool = True,
+    seed: Optional[int] = None,
+    skip_guidance: bool = False,
+    skip_calibration: bool = False,
+    skip_gate: bool = False,
+    skip_game: bool = False,
 ) -> Dict:
+    import random
+
     cfg = V2Config.load_yaml(config_path) if config_path else V2Config.load_yaml()
+    ignored = cfg.apply_overrides(v2_overrides, protocol_locked=protocol_locked)
+    if ignored:
+        on_console(f"[v2] 冻结锁忽略 overrides: {ignored}")
+    verr = cfg.verify_errors()
+    if verr:
+        raise ValueError("v2 配置无效: " + "; ".join(verr))
+
+    rng = random.Random(seed) if seed is not None else random.Random()
     on_console(
         f"[v2] 常量加载：轮数{cfg.cal_rounds_min}-{cfg.cal_rounds_max} "
         f"准入{cfg.gate_enter_three} lr={cfg.group_lr} "
         f"D8栅格{len(cfg.judgment_times)}档"
+        f"{' · locked' if protocol_locked else ' · debug'}"
+        f"{f' · seed={seed}' if seed is not None else ''}"
     )
 
-    deps = _try_imports(cfg)
+    deps = _try_imports(cfg, on_console=on_console)
     degraded = deps is None
     if degraded:
         on_console("[v2] ⚠️ 权重或 LSL 不可用 → 流程演练模式（无判定/无微调）")
+        bridge.broadcast({
+            "type": "v2_online_status",
+            "degraded": True,
+            "reason": "weights_or_lsl_unavailable",
+            "message": "演练模式：权重或 LSL 不可用，无在线判定/微调",
+        })
         reg = buf = infer = None
     else:
         reg, buf, _, infer = deps
+        on_console("[v2] ✅ 在线判定/微调已启用")
+        bridge.broadcast({
+            "type": "v2_online_status",
+            "degraded": False,
+            "reason": "ok",
+            "message": "在线判定与微调已启用",
+        })
 
     store = _SessionStore()
     window_cache: Dict[int, list] = {}
@@ -184,6 +295,16 @@ def run_v2_session(
     consecutive_invalid = 0
     aborted = False
     abort_reason: Optional[str] = None
+    progress: Dict[str, object] = {
+        "cal_round": 0,
+        "cal_rounds_max": cfg.cal_rounds_max,
+        "game_round": 0,
+        "game_rounds": cfg.game_rounds,
+        "subblock": 0,
+        "score": None,
+        "ft_status": "idle",
+        "phase_step": "guidance",
+    }
 
     def judgment_fn(mi_t: float, t_rel: float, ctx) -> Optional[Dict]:
         tid = getattr(ctx, "trial_id", -1)
@@ -192,6 +313,8 @@ def run_v2_session(
             return None
         try:
             j = infer.judge(mi_t, t_rel)
+            if j is not None and j.get("signal_bad"):
+                return j
             if j is not None and "window" in j:
                 window_cache.setdefault(tid, []).append(np.asarray(j["window"], dtype=np.float32))
             return j
@@ -201,16 +324,40 @@ def run_v2_session(
     def on_stage(stage: str, ctx, data) -> None:
         if stage == "mi_start" and isinstance(data, dict) and "mi_t" in data:
             mi_times[getattr(ctx, "trial_id", -1)] = float(data["mi_t"])
+        if stage == "round_start" and isinstance(data, dict):
+            m = data.get("mode")
+            if m == "calibration":
+                progress["phase_step"] = "calibration"
+            elif m == "game":
+                progress["phase_step"] = "game"
+        score = None
+        if isinstance(data, dict):
+            if data.get("score") is not None:
+                score = data.get("score")
+            elif isinstance(data.get("summary"), dict) and data["summary"].get("score") is not None:
+                score = data["summary"].get("score")
+        if score is not None:
+            progress["score"] = score
+        if ctx is not None and getattr(ctx, "subblock", None):
+            progress["subblock"] = getattr(ctx, "subblock", 0)
+        mode = getattr(ctx, "mode", None) if ctx is not None else None
+        if mode == "calibration":
+            progress["phase_step"] = "calibration"
+        elif mode == "game":
+            progress["phase_step"] = "game"
         bridge.broadcast({
             "type": "v2_stage",
             "stage": stage,
             "ctx": {
-                "trial_id": getattr(ctx, "trial_id", None),
-                "label": getattr(ctx, "label", None),
-                "mode": getattr(ctx, "mode", None),
-                "round": getattr(ctx, "round_no", None),
+                "trial_id": getattr(ctx, "trial_id", None) if ctx else None,
+                "label": getattr(ctx, "label", None) if ctx else None,
+                "mode": mode,
+                "round": getattr(ctx, "round_no", None) if ctx else None,
+                "subblock": getattr(ctx, "subblock", None) if ctx else None,
             },
             "data": _ser(data),
+            "progress": dict(progress),
+            "score": score,
         })
 
     def on_trial_end(ctx, summary: Optional[Dict]) -> Optional[str]:
@@ -288,6 +435,10 @@ def run_v2_session(
         group_size: int = 3,
     ) -> None:
         """游戏轮：每 group_size 试次一组 FT（H6）。"""
+        stub = TrialContextV2(
+            trial_id=0, label=0, mode="game", round_no=round_no, subblock=0,
+        )
+        on_stage("round_start", stub, {"mode": "game", "round": round_no})
         sm.events.emit(
             "round_start", phase="game", round=round_no,
             payload={"phase": "game", "event": "round_start"},
@@ -332,6 +483,7 @@ def run_v2_session(
                         "action": action.value,
                         **rec,
                     })
+        on_stage("round_end", stub, {"mode": "game", "round": round_no})
         sm.events.emit(
             "round_end", phase="game", round=round_no,
             payload={"phase": "game", "event": "round_end"},
@@ -379,6 +531,58 @@ def run_v2_session(
 
         _run_v1_fallback_record(events, markers, bridge, on_console=on_console)
 
+    def _early_abort_summary(reason: str, *, rounds: int = 0, gstatus: str = "pending") -> Dict:
+        nonlocal aborted, abort_reason
+        aborted = True
+        abort_reason = reason
+        progress["phase_step"] = "end"
+        if buf:
+            buf.close()
+        return {
+            "gate_status": gstatus,
+            "rounds": rounds,
+            "curve": [[p.k_ft, round(p.acc, 4)] for p in quiz.curve] if quiz else [],
+            "degraded": degraded,
+            "aborted": True,
+            "abort_reason": reason,
+            "valid_trials": len(store.valid_trials),
+            "labels": {str(k): v for k, v in store.labels.items() if k in store.valid_trials},
+            "drift_stats": drift_stats,
+            "v2_config_effective": cfg.to_dict(),
+            "protocol_locked": protocol_locked,
+            "seed": seed,
+            "weak_mi": gstatus == "weak_mi",
+            "skips": {
+                "guidance": skip_guidance,
+                "calibration": skip_calibration,
+                "gate": skip_gate,
+                "game": skip_game,
+            },
+        }
+
+    def _abort_guidance(reason: str, *, inter_round: bool = False, rounds: int = 0) -> Dict:
+        on_console(f"[v2] 引导未确认（{'轮间' if inter_round else '阶段0'}）——真机模式中止")
+        events.emit(
+            "v2_guidance_abort",
+            phase="v2",
+            reason=reason,
+            inter_round=inter_round,
+        )
+        markers.push(f"v2_guidance_abort|reason={reason}")
+        bridge.broadcast({
+            "type": "v2_abort",
+            "reason": reason,
+            "kind": "guidance_timeout",
+            "inter_round": inter_round,
+        })
+        bridge.broadcast({
+            "type": "session",
+            "status": "error",
+            "message": "动觉引导未确认，会话已中止",
+            "phase": "v2_session",
+        })
+        return _early_abort_summary(reason, rounds=rounds)
+
     def _run_round_safe(*args, **kwargs) -> None:
         try:
             sm.run_round(*args, **kwargs)
@@ -389,16 +593,50 @@ def run_v2_session(
                 raise
 
     # ============ 阶段 0：动觉引导（不采集） ============
-    bridge.broadcast({"type": "v2_stage", "stage": "guidance_begin", "ctx": None, "data": {"round": 0}})
-    events.emit("v2_guidance_begin", phase="v2")
-    confirmed = bridge.wait_client_event("v2_guidance_confirm", timeout=600.0)
-    events.emit("v2_guidance_end", phase="v2", passed=bool(confirmed))
-    bridge.broadcast({"type": "v2_stage", "stage": "guidance_end", "ctx": None, "data": {"passed": confirmed}})
-    if not confirmed:
-        on_console("[v2] 引导未确认（超时）——仍继续（演练允许）")
+    round_no, trial_offset = 0, 0
+    gate_status = "degraded" if degraded else "pending"
+    drift_stats: List = []
+    ctrl = gate = quiz = fin = drift = None
+
+    progress["phase_step"] = "adapt"
+    wait_prompt_continue(
+        bridge,
+        on_console,
+        prompt_id="v2_env_adapt",
+        title="环境适应",
+        body=ENV_ADAPT_BODY,
+        button="我明白了",
+    )
+
+    progress["phase_step"] = "guidance"
+    if skip_guidance:
+        on_console("[v2] 调试跳过：动觉引导")
+        events.emit("v2_guidance_end", phase="v2", passed=True, skipped=True)
+        bridge.broadcast({
+            "type": "v2_stage", "stage": "guidance_end", "ctx": None,
+            "data": {"passed": True, "skipped": True}, "progress": dict(progress),
+        })
+    else:
+        bridge.broadcast({
+            "type": "v2_stage", "stage": "guidance_begin", "ctx": None,
+            "data": {"round": 0, "timeout_s": 600}, "progress": dict(progress),
+        })
+        events.emit("v2_guidance_begin", phase="v2")
+        confirmed = bridge.wait_client_event("v2_guidance_confirm", timeout=600.0)
+        events.emit("v2_guidance_end", phase="v2", passed=bool(confirmed))
+        bridge.broadcast({
+            "type": "v2_stage", "stage": "guidance_end", "ctx": None,
+            "data": {"passed": confirmed}, "progress": dict(progress),
+        })
+        if not confirmed:
+            if degraded:
+                on_console("[v2] 引导未确认（超时）——演练模式继续")
+            else:
+                summary = _abort_guidance("guidance_timeout_phase0")
+                on_console(f"[v2] 会话完成：{summary}")
+                return summary
 
     # ============ 阶段 1+2：标定轮 × N + 准入 ============
-    ctrl = gate = quiz = fin = drift = None
     replay_pool = _load_openbmi_replay_pool(cfg, on_console=on_console)
     predict_window = None
 
@@ -435,15 +673,14 @@ def run_v2_session(
         gate = AdmissionGate(_G(cfg))
         ctrl = RoundController(fin, quiz, gate, constants=_C(cfg), logger=on_console)
         drift = DriftGuard(patience=cfg.drift_patience)
+        gate_status = "pending"
 
-    round_no, trial_offset = 0, 0
-    gate_status = "degraded"
-    drift_stats = []
-
-    if not aborted:
+    if not aborted and not skip_calibration:
+        progress["phase_step"] = "calibration"
         while round_no < cfg.cal_rounds_max and not aborted:
             round_no += 1
-            labels = build_calibration_schedule()
+            progress["cal_round"] = round_no
+            labels = build_calibration_schedule(rng)
             round_ids = [trial_offset + i + 1 for i in range(len(labels))]
             for i, lab in enumerate(labels):
                 store.labels[round_ids[i]] = int(lab)
@@ -451,6 +688,11 @@ def run_v2_session(
             trial_offset += len(labels)
             _commit_round_windows(round_ids)
             if ctrl is not None and predict_window is not None:
+                progress["ft_status"] = "running"
+                bridge.broadcast({
+                    "type": "v2_stage", "stage": "ft_begin", "ctx": None,
+                    "data": {"round": round_no}, "progress": dict(progress),
+                })
                 pre_state = None
                 if drift is not None:
                     def _save_pre_state():
@@ -465,6 +707,7 @@ def run_v2_session(
                     predict_window=predict_window,
                     frozen=drift.frozen if drift is not None else False,
                 )
+                progress["ft_status"] = "done"
                 gate_status = res["gate"].status
                 if drift is not None:
                     action = drift.after_round(
@@ -487,30 +730,100 @@ def run_v2_session(
                     "n_quiz": res["curve"].n_quiz,
                     "status": gate_status,
                     "curve": [[p.k_ft, round(p.acc, 4)] for p in quiz.curve],
+                    "progress": dict(progress),
                 })
+                progress["phase_step"] = "gate"
                 if gate_status == "pass":
+                    events.emit(
+                        "v2_gate_pass",
+                        phase="v2",
+                        round=round_no,
+                        acc=float(res["curve"].acc),
+                    )
+                    markers.push(f"v2_gate_pass|round={round_no}")
+                    bridge.broadcast({
+                        "type": "v2_stage",
+                        "stage": "gate_pass",
+                        "ctx": None,
+                        "data": {"round": round_no, "acc": float(res["curve"].acc)},
+                        "progress": dict(progress),
+                    })
+                    break
+                if skip_gate:
+                    on_console("[v2] 调试跳过：准入门槛，强制继续/结束标定")
                     break
             if aborted:
+                break
+            if round_no >= cfg.cal_rounds_min and gate_status == "pass":
                 break
             bridge.broadcast({
                 "type": "v2_stage",
                 "stage": "guidance_begin",
                 "ctx": None,
-                "data": {"round": round_no, "inter_round": True},
+                "data": {
+                    "round": round_no,
+                    "inter_round": True,
+                    "gap_s": cfg.cal_round_gap_s,
+                    "timeout_s": cfg.cal_round_gap_s,
+                },
+                "progress": dict(progress),
             })
             confirmed = bridge.wait_client_event("v2_guidance_confirm", timeout=cfg.cal_round_gap_s)
             bridge.broadcast({
                 "type": "v2_stage",
                 "stage": "guidance_end",
                 "ctx": None,
-                "data": {"round": round_no, "inter_round": True},
+                "data": {"round": round_no, "inter_round": True, "passed": bool(confirmed)},
+                "progress": dict(progress),
             })
+            if not confirmed:
+                if degraded:
+                    on_console("[v2] 轮间引导未确认（超时）——演练模式继续")
+                else:
+                    summary = _abort_guidance(
+                        "guidance_timeout_inter_round",
+                        inter_round=True,
+                        rounds=round_no,
+                    )
+                    on_console(f"[v2] 会话完成：{summary}")
+                    return summary
+    elif skip_calibration:
+        on_console("[v2] 调试跳过：标定轮")
+        gate_status = "skipped"
+
+    if gate_status == "weak_mi":
+        on_console(f"[v2] ⚠️ weak_mi：{round_no} 轮标定未达准入，将用当前权重继续游戏")
+        events.emit(
+            "v2_weak_mi",
+            phase="v2",
+            rounds=round_no,
+            acc=float(quiz.curve[-1].acc) if quiz and quiz.curve else None,
+        )
+        markers.push(f"v2_weak_mi|rounds={round_no}")
+        bridge.broadcast({
+            "type": "v2_stage",
+            "stage": "weak_mi",
+            "ctx": None,
+            "data": {"rounds": round_no, "gate_status": gate_status},
+            "progress": dict(progress),
+        })
+        bridge.broadcast({
+            "type": "v2_gate",
+            "round": round_no,
+            "acc": float(quiz.curve[-1].acc) if quiz and quiz.curve else None,
+            "n_quiz": quiz.n_trials if quiz else 0,
+            "status": "weak_mi",
+            "curve": [[p.k_ft, round(p.acc, 4)] for p in quiz.curve] if quiz else [],
+            "progress": dict(progress),
+        })
 
     # ============ 阶段 3：游戏协同（试次内推理冻结；组级 FT） ============
-    if not aborted:
+    if not aborted and not skip_game:
+        progress["phase_step"] = "game"
         on_console(f"[v2] 游戏 {cfg.game_rounds} 轮（可配 {cfg.game_rounds_min}–{cfg.game_rounds_max}）")
         for g_round in range(1, cfg.game_rounds + 1):
-            labels = build_game_schedule(cfg.game_trials_per_round)
+            progress["game_round"] = g_round
+            labels = build_game_schedule(cfg.game_trials_per_round, rng)
             _run_game_trials(labels, round_no=g_round, trial_id_offset=trial_offset)
             trial_offset += len(labels)
             bridge.broadcast({
@@ -518,9 +831,13 @@ def run_v2_session(
                 "stage": "round_end",
                 "ctx": None,
                 "data": {"mode": "game", "round": g_round},
+                "progress": dict(progress),
             })
+    elif skip_game:
+        on_console("[v2] 调试跳过：游戏轮")
 
-    bridge.broadcast({"type": "session", "status": "done" if not aborted else "aborted"})
+    progress["phase_step"] = "end"
+    bridge.broadcast({"type": "session", "status": "done" if not aborted else "aborted", "phase": "end"})
     if buf:
         buf.close()
     summary = {
@@ -531,7 +848,18 @@ def run_v2_session(
         "aborted": aborted,
         "abort_reason": abort_reason,
         "valid_trials": len(store.valid_trials),
+        "labels": {str(k): v for k, v in store.labels.items() if k in store.valid_trials},
         "drift_stats": drift_stats,
+        "v2_config_effective": cfg.to_dict(),
+        "protocol_locked": protocol_locked,
+        "seed": seed,
+        "weak_mi": gate_status == "weak_mi",
+        "skips": {
+            "guidance": skip_guidance,
+            "calibration": skip_calibration,
+            "gate": skip_gate,
+            "game": skip_game,
+        },
     }
     on_console(f"[v2] 会话完成：{summary}")
     return summary

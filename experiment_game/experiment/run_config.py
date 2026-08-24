@@ -37,6 +37,12 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
     "experiment": {
         "phase_mode": "phase2_full",
         "v2_config_path": None,
+        "protocol_locked": True,
+        "v2_overrides": {},
+        "skip_v2_guidance": False,
+        "skip_v2_calibration": False,
+        "skip_v2_gate": False,
+        "skip_v2_game": False,
         "acquire_trials": 8,
         "learn_trials_per_step": 2,
         "skip_adapt": False,
@@ -226,6 +232,56 @@ def validate_run_config(
     exp["skip_adapt"] = bool(exp.get("skip_adapt", False))
     exp["skip_learn"] = bool(exp.get("skip_learn", False))
     exp["skip_gate"] = bool(exp.get("skip_gate", False))
+    exp["protocol_locked"] = bool(exp.get("protocol_locked", True))
+    exp["skip_v2_guidance"] = bool(exp.get("skip_v2_guidance", False))
+    exp["skip_v2_calibration"] = bool(exp.get("skip_v2_calibration", False))
+    exp["skip_v2_gate"] = bool(exp.get("skip_v2_gate", False))
+    exp["skip_v2_game"] = bool(exp.get("skip_v2_game", False))
+    ov = exp.get("v2_overrides")
+    exp["v2_overrides"] = ov if isinstance(ov, dict) else {}
+    v3ov = exp.get("v3_overrides")
+    exp["v3_overrides"] = v3ov if isinstance(v3ov, dict) else {}
+    phase_mode = str(exp.get("phase_mode") or "phase2_full")
+    exp["phase_mode"] = phase_mode
+    if phase_mode == "v2_session":
+        try:
+            from experiment_game.experiment.v2_config import V2Config
+
+            v2_path = exp.get("v2_config_path")
+            v2_cfg = V2Config.load_yaml(v2_path) if v2_path else V2Config.load_yaml()
+            v2_cfg.apply_overrides(
+                exp["v2_overrides"], protocol_locked=exp["protocol_locked"]
+            )
+            errors.extend(v2_cfg.verify_errors())
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"v2 配置加载失败: {exc}")
+    elif phase_mode == "v3_session":
+        try:
+            from experiment_game.experiment.v3_config import V3Config
+
+            v3_path = exp.get("v3_config_path")
+            v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+            v3_cfg.apply_overrides(
+                exp["v3_overrides"], protocol_locked=exp["protocol_locked"]
+            )
+            errors.extend(v3_cfg.verify_errors())
+            if not acq["enabled"]:
+                errors.append("v3 探针会话必须开启采集（无演练模式）")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"v3 配置加载失败: {exc}")
+    elif phase_mode == "v4_session":
+        try:
+            from experiment_game.experiment.v4_config import V4Config
+
+            v4_path = exp.get("v4_config_path")
+            v4_cfg = V4Config.load_yaml(v4_path) if v4_path else V4Config.load_yaml()
+            v4ov = exp.get("v4_overrides")
+            v4_cfg.apply_overrides(v4ov if isinstance(v4ov, dict) else {})
+            errors.extend(v4_cfg.verify_errors())
+            if not acq["enabled"]:
+                errors.append("v4 质量检测必须开启采集")
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"v4 配置加载失败: {exc}")
     try:
         exp["ready_timeout_s"] = float(exp.get("ready_timeout_s", 90))
     except (TypeError, ValueError):

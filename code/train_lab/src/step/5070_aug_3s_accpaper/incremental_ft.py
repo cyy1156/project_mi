@@ -87,12 +87,25 @@ class ReplayDataset(Dataset):
         self.n_classes = n_classes
         self.aug = aug
         self.seed = seed
+        self._epoch = 0
         self._indices = list(range(len(self.y_st)))
         if self.X_rep is not None and len(self.y_rep) and self.replay_ratio > 0:
             n_rep = max(1, int(round(len(self.y_st) * self.replay_ratio)))
             rng = np.random.default_rng(seed)
             rep_idx = rng.integers(0, len(self.y_rep), size=n_rep)
             self._indices.extend([("r", int(i)) for i in rep_idx])
+
+    def set_epoch(self, epoch: int) -> None:
+        self._epoch = int(epoch)
+
+    def labels_array(self) -> np.ndarray:
+        ys: list[int] = []
+        for ref in self._indices:
+            if isinstance(ref, tuple) and ref[0] == "r":
+                ys.append(int(self.y_rep[ref[1]]))
+            else:
+                ys.append(int(self.y_st[ref]))
+        return np.asarray(ys, dtype=np.int64)
 
     def __len__(self) -> int:
         return len(self._indices)
@@ -108,7 +121,18 @@ class ReplayDataset(Dataset):
         if x.ndim == 4 and x.shape[1] == 1:
             x = x[0]
         if self.aug is not None and self.aug.enabled:
-            x = apply_domain_aug_np(x, self.aug, seed=self.seed, index=i, y=y)
+            pool_x = self.X_st if self.X_st is not None and len(self.X_st) else None
+            pool_y = self.y_st if self.y_st is not None and len(self.y_st) else None
+            x = apply_domain_aug_np(
+                x,
+                self.aug,
+                seed=self.seed,
+                index=i,
+                y=y,
+                epoch=self._epoch,
+                x_pool=pool_x,
+                y_pool=pool_y,
+            )
         return torch.from_numpy(x), torch.tensor(y, dtype=torch.long)
 
 
@@ -181,7 +205,9 @@ def finetune_on_mask(
         train_loader = DataLoader(
             train_ds,
             batch_size=hp.batch_train,
-            shuffle=True,
+            sampler=make_balanced_sampler(
+                train_ds.labels_array(), n_classes=n_outputs, generator=g
+            ),
             num_workers=0,
         )
     elif hp.aug is not None and hp.aug.enabled:
@@ -189,7 +215,12 @@ def finetune_on_mask(
             X_tr, y_tr, aug=hp.aug, seed=hp.seed + fold, n_classes=n_outputs
         )
         train_loader = DataLoader(
-            train_ds, batch_size=hp.batch_train, shuffle=True, num_workers=0
+            train_ds,
+            batch_size=hp.batch_train,
+            sampler=make_balanced_sampler(
+                train_ds.labels_array(), n_classes=n_outputs, generator=g
+            ),
+            num_workers=0,
         )
     else:
         train_loader = DataLoader(
@@ -214,6 +245,8 @@ def finetune_on_mask(
         split = build_cue_split(stream, val_ratio=hp.val_ratio, seed=hp.seed)
     best_score, best_state, bad = -1.0, None, 0
     for ep in range(1, hp.max_epochs + 1):
+        if hasattr(train_ds, "set_epoch"):
+            train_ds.set_epoch(ep)
         run_epoch(model, train_loader, criterion, optimizer, device, True)
         model.eval()
         agg = eval_mask_pack(

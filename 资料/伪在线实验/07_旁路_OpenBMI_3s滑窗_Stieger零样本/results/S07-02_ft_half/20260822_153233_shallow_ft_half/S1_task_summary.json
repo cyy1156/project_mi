@@ -1,0 +1,61 @@
+{
+  "acc_paper_mean": 0.8783977110157367,
+  "acc_paper_std": 0.0,
+  "folds": [
+    {
+      "fold": 0,
+      "best_epoch": 2,
+      "best_val_acc_paper": 0.9321428571428572,
+      "val_segment_metrics": {
+        "n_segments": 280,
+        "n_windows": 4408,
+        "acc_paper": 0.9321428571428572,
+        "balanced_accuracy": 0.9321428571428572,
+        "f1": 0.9328621908127208,
+        "specificity": 0.9214285714285714,
+        "recall": 0.9428571428571428,
+        "precision": 0.9230769230769231,
+        "accuracy": 0.9321428571428572
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1398,
+        "n_windows": 22239,
+        "acc_paper": 0.8783977110157367,
+        "balanced_accuracy": 0.8783977110157368,
+        "f1": 0.8778735632183908,
+        "specificity": 0.882689556509299,
+        "recall": 0.8741058655221745,
+        "precision": 0.8816738816738817,
+        "accuracy": 0.8783977110157367
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.8451818876748055,
+        "recall": 0.8317525773195876,
+        "specificity": 0.8705943555728963,
+        "precision": 0.924028403451172,
+        "f1": 0.8754656924801968,
+        "balanced_accuracy": 0.851173466446242,
+        "tp": 12102,
+        "tn": 6694,
+        "fp": 995,
+        "fn": 2448
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153233\\S1\\task\\fold0\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1398,
+        "n_windows": 22239,
+        "acc_paper": 0.6573676680972819,
+        "balanced_accuracy": 0.6573676680972818,
+        "f1": 0.5719392314566577,
+        "specificity": 0.8569384835479256,
+        "recall": 0.45779685264663805,
+        "precision": 0.7619047619047619,
+        "accuracy": 0.6573676680972819
+      },
+      "delta_vs_zeroshot": 0.22103004291845485
+    }
+  ],
+  "zeroshot_acc_paper_mean": 0.6573676680972819,
+  "zeroshot_acc_paper_std": 0.0,
+  "delta_mean": 0.22103004291845485
+}

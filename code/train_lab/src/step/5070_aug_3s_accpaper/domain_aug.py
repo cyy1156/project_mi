@@ -64,8 +64,15 @@ def aug_config_from_spec(spec: str) -> AugConfig:
     return AugConfig(enabled=True, ops=ops)
 
 
+def _rng_for_aug(seed_base: int, index: int, epoch: int = 0) -> np.random.Generator:
+    """逐 epoch 重随机：同窗不同 epoch 得到不同增广。"""
+    return np.random.default_rng(
+        int(seed_base) + int(epoch) * 1_000_003 + int(index) * 9973
+    )
+
+
 def _rng_from_item(seed_base: int, index: int) -> np.random.Generator:
-    return np.random.default_rng(int(seed_base) + int(index) * 9973)
+    return _rng_for_aug(seed_base, index, epoch=0)
 
 
 def apply_domain_aug_np(
@@ -77,12 +84,13 @@ def apply_domain_aug_np(
     y: int | None = None,
     y_pool: np.ndarray | None = None,
     x_pool: np.ndarray | None = None,
+    epoch: int = 0,
 ) -> np.ndarray:
     """x: (8, T) float32，已 z-score。"""
     cfg = cfg.effective()
     if not cfg.enabled:
         return x
-    rng = _rng_from_item(seed, index)
+    rng = _rng_for_aug(seed, index, epoch)
     if rng.random() > cfg.p_apply:
         return x
     out = np.array(x, dtype=np.float32, copy=True)
@@ -110,8 +118,12 @@ def apply_domain_aug_np(
         if y_pool is not None and x_pool is not None and len(x_pool) > 1:
             lam = float(rng.beta(cfg.mixup_alpha, cfg.mixup_alpha))
             j = int(rng.integers(0, len(x_pool)))
-            if int(y_pool[j]) == int(y) if y is not None else True:
-                out = (lam * out + (1.0 - lam) * x_pool[j]).astype(np.float32)
+            while j == int(index) and len(x_pool) > 1:
+                j = int(rng.integers(0, len(x_pool)))
+            other = np.asarray(x_pool[j], dtype=np.float32)
+            if other.ndim == 3 and other.shape[0] == 1:
+                other = other[0]
+            out = (lam * out + (1.0 - lam) * other).astype(np.float32)
     else:
         raise ValueError(f"未知增广 op={op!r}")
     return out

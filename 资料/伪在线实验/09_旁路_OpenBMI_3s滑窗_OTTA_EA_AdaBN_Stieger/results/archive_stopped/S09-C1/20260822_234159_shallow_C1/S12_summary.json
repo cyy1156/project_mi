@@ -1,0 +1,139 @@
+{
+  "three": {
+    "mean": 0.4549152542372881,
+    "std": 0.09144755004729432,
+    "folds": [
+      {
+        "acc_paper": 0.27203389830508473,
+        "n_trial_updates": 573,
+        "n_trial_skip": 17,
+        "thirds": {
+          "first": 0.28316326530612246,
+          "mid": 0.26649746192893403,
+          "last": 0.26649746192893403
+        },
+        "collapse": 0,
+        "collapse_reasons": [],
+        "ref_a0_three": null,
+        "ref_b3_three": null,
+        "segment_metrics": {
+          "n_segments": 1180,
+          "n_windows": 18879,
+          "acc_paper": 0.27203389830508473,
+          "balanced_accuracy": 0.3392400741896447,
+          "f1_macro": 0.16566973719621322,
+          "recall_idle": 0.022033898305084745,
+          "recall_left": 0.018050541516245487,
+          "recall_right": 0.9776357827476039,
+          "accuracy": 0.2745762711864407
+        },
+        "fold": 0
+      },
+      {
+        "acc_paper": 0.5008474576271187,
+        "n_trial_updates": 586,
+        "n_trial_skip": 4,
+        "thirds": {
+          "first": 0.5025510204081632,
+          "mid": 0.5,
+          "last": 0.5
+        },
+        "collapse": 0,
+        "collapse_reasons": [],
+        "ref_a0_three": null,
+        "ref_b3_three": null,
+        "segment_metrics": {
+          "n_segments": 1180,
+          "n_windows": 18879,
+          "acc_paper": 0.5008474576271187,
+          "balanced_accuracy": 0.3372400451268425,
+          "f1_macro": 0.2334726159007697,
+          "recall_idle": 0.9949152542372881,
+          "recall_left": 0.007220216606498195,
+          "recall_right": 0.009584664536741214,
+          "accuracy": 0.5016949152542373
+        },
+        "fold": 1
+      },
+      {
+        "acc_paper": 0.5,
+        "n_trial_updates": 570,
+        "n_trial_skip": 20,
+        "thirds": {
+          "first": 0.5,
+          "mid": 0.5,
+          "last": 0.5
+        },
+        "collapse": 0,
+        "collapse_reasons": [],
+        "ref_a0_three": null,
+        "ref_b3_three": null,
+        "segment_metrics": {
+          "n_segments": 1180,
+          "n_windows": 18879,
+          "acc_paper": 0.5,
+          "balanced_accuracy": 0.34065521110053076,
+          "f1_macro": 0.24576947144677605,
+          "recall_idle": 0.9847457627118644,
+          "recall_left": 0.018050541516245487,
+          "recall_right": 0.019169329073482427,
+          "accuracy": 0.5016949152542373
+        },
+        "fold": 2
+      },
+      {
+        "acc_paper": 0.49915254237288137,
+        "n_trial_updates": 528,
+        "n_trial_skip": 62,
+        "thirds": {
+          "first": 0.49744897959183676,
+          "mid": 0.5,
+          "last": 0.5
+        },
+        "collapse": 0,
+        "collapse_reasons": [],
+        "ref_a0_three": null,
+        "ref_b3_three": null,
+        "segment_metrics": {
+          "n_segments": 1180,
+          "n_windows": 18879,
+          "acc_paper": 0.49915254237288137,
+          "balanced_accuracy": 0.3498668812882928,
+          "f1_macro": 0.27854700571067464,
+          "recall_idle": 0.9508474576271186,
+          "recall_left": 0.02527075812274368,
+          "recall_right": 0.07348242811501597,
+          "accuracy": 0.5008474576271187
+        },
+        "fold": 3
+      },
+      {
+        "acc_paper": 0.502542372881356,
+        "n_trial_updates": 586,
+        "n_trial_skip": 4,
+        "thirds": {
+          "first": 0.5076530612244898,
+          "mid": 0.5,
+          "last": 0.5
+        },
+        "collapse": 0,
+        "collapse_reasons": [],
+        "ref_a0_three": null,
+        "ref_b3_three": null,
+        "segment_metrics": {
+          "n_segments": 1180,
+          "n_windows": 18879,
+          "acc_paper": 0.502542372881356,
+          "balanced_accuracy": 0.34050835923734774,
+          "f1_macro": 0.24206694510598178,
+          "recall_idle": 0.9915254237288136,
+          "recall_left": 0.010830324909747292,
+          "recall_right": 0.019169329073482427,
+          "accuracy": 0.5033898305084745
+        },
+        "fold": 4
+      }
+    ],
+    "n_collapse_folds": 0
+  }
+}

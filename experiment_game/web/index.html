@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>MI 诱导 · Phase 3</title>
-  <link rel="stylesheet" href="./css/style.css?v=20260821a" />
+  <link rel="stylesheet" href="./css/style.css?v=20260824p1" />
 </head>
 <body>
   <div id="app">
@@ -43,9 +43,15 @@
     </div>
     <div id="questionnaire" class="hidden" aria-hidden="true">
       <div class="q-card">
-        <h1 id="q-title">问卷</h1>
+        <div class="q-header">
+          <h1 id="q-title">问卷</h1>
+          <button id="q-close" type="button" class="q-close" title="关闭问卷" aria-label="关闭问卷">×</button>
+        </div>
         <div id="q-body"></div>
-        <button id="q-submit" type="button">提交问卷</button>
+        <div class="q-actions">
+          <button id="q-submit" type="button">提交问卷</button>
+          <button id="q-close-bottom" type="button" class="q-close-secondary">关闭</button>
+        </div>
         <p class="q-hint" id="q-hint"></p>
       </div>
     </div>
@@ -71,6 +77,6 @@
     }
   }
   </script>
-  <script type="module" src="./js/main.js?v=20260821a"></script>
+  <script type="module" src="./js/main.js?v=20260824prompt3"></script>
 </body>
 </html>

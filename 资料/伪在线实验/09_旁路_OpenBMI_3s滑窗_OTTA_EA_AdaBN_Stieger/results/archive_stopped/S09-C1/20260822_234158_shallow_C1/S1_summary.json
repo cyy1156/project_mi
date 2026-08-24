@@ -1,0 +1,39 @@
+{
+  "three": {
+    "mean": 0.2918454935622318,
+    "std": 0.0,
+    "folds": [
+      {
+        "acc_paper": 0.2918454935622318,
+        "n_trial_updates": 699,
+        "n_trial_skip": 0,
+        "thirds": {
+          "first": 0.3369098712446352,
+          "mid": 0.26180257510729615,
+          "last": 0.27682403433476394
+        },
+        "collapse": 1,
+        "collapse_reasons": [
+          "drift_last_vs_first",
+          "below_S09_A0_eval_half",
+          "below_S09_B3_eval_half"
+        ],
+        "ref_a0_three": 0.5336194563662375,
+        "ref_b3_three": 0.6695278969957081,
+        "segment_metrics": {
+          "n_segments": 1398,
+          "n_windows": 22239,
+          "acc_paper": 0.2918454935622318,
+          "balanced_accuracy": 0.3448154119471392,
+          "f1_macro": 0.1715439199084059,
+          "recall_idle": 0.030042918454935622,
+          "recall_left": 0.009584664536741214,
+          "recall_right": 0.9948186528497409,
+          "accuracy": 0.2918454935622318
+        },
+        "fold": 0
+      }
+    ],
+    "n_collapse_folds": 1
+  }
+}

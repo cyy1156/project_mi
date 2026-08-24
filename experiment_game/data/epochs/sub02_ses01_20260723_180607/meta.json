@@ -1,5 +1,5 @@
 {
-  "session_dir": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607",
+  "session_dir": "D:\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607",
   "subject_id": "sub02",
   "session_id": "ses01",
   "fs": 250.0,
@@ -12,7 +12,8 @@
       "trial_id": 64,
       "kind": "rest",
       "reason": "window_oob",
-      "sample": 297814
+      "sample": 297814,
+      "offset": 0
     }
   ],
   "ch_names": [
@@ -25,9 +26,14 @@
     "FC3",
     "FC4"
   ],
-  "_eeg_path": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\eeg.csv",
-  "_events_path": "D:\\cyy\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\events.jsonl",
+  "_eeg_path": "D:\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\eeg.csv",
+  "_events_path": "D:\\MI\\experiment_game\\data\\sessions\\sub02_ses01_20260723_180607\\continuous\\events.jsonl",
   "exclude_rejected": true,
+  "window_mode": "fixed",
+  "win_sec": 2.0,
+  "hop_ms": 100.0,
+  "baseline_s": 0.5,
+  "n_times": 500,
   "summary": {
     "n": 127,
     "X_shape": [
@@ -50,7 +56,8 @@
         "trial_id": 64,
         "kind": "rest",
         "reason": "window_oob",
-        "sample": 297814
+        "sample": 297814,
+        "offset": 0
       }
     ]
   },

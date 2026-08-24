@@ -14,6 +14,7 @@ from typing import Any, Dict, List, Optional
 from lsl_connect.acquisition_work import AcquisitionConfig, AcquisitionWorker
 from lsl_connect.eeg_labels import labels_from_text, validate_eeg_channel_labels
 from lsl_connect.board import BoardConfig, CytonBoard
+from lsl_connect.cyton_link import classify_brainflow_error, format_link_failure
 from lsl_connect.lsl_streams import DEFAULT_EEG_LABELS, LslStreamConfig
 from lsl_connect.model_worker import ModelWorker, ModelWorkerConfig
 from lsl_connect.preprocessing import PreprocessConfig
@@ -36,22 +37,19 @@ from models.registry import ModelSpec
 
 
 def format_board_error(exc: Exception, board_cfg: BoardConfig) -> str:
-    """将 BrainFlow 连接错误转成可操作的中文提示。"""
-    raw = str(exc)
+    """将 BrainFlow / 链路预检错误转成可操作的中文提示。"""
+    if board_cfg.use_synthetic:
+        return f"合成板启动失败: {exc}"
+
     port = board_cfg.serial_port
-    if (
-        "UNABLE_TO_OPEN_PORT" in raw
-        or "BOARD_NOT_READY" in raw
-        or "unable to prepare" in raw.lower()
-    ):
-        if board_cfg.use_synthetic:
-            return f"合成板启动失败: {raw}"
-        return (
-            f"无法打开串口 {port}（BrainFlow: {raw}）。\n"
-            f"常见原因：① 串口号不对 ② 上次采集未释放 COM（请先停止采集并等待 1–2 秒）\n"
-            f"③ OpenBCI GUI 正占用 CYTON Serial 模式 ④ USB 松动。当前配置串口: {port}"
-        )
-    return raw
+    kind = classify_brainflow_error(exc)
+    msg = str(exc)
+    # connect() 已包装为 RuntimeError(report.message)；直接返回
+    if "串口" in msg and ("Cyton" in msg or "BrainFlow" in msg or "dongle" in msg):
+        return msg
+    if "预检失败" in msg or "无回应" in msg or "停流" in msg:
+        return msg
+    return format_link_failure(kind, port, brainflow_msg=msg)
 
 
 @dataclass
@@ -80,6 +78,7 @@ class ServiceManager:
         self,
         config: Optional[ServiceManagerConfig] = None,
         event_bus: Optional[Any] = None,
+        link_event_callback: Optional[Any] = None,
     ) -> None:
         if config is None:
             board = BoardConfig(use_synthetic=True, cyton_eeg_count=8)
@@ -108,6 +107,7 @@ class ServiceManager:
         self._model_workers: dict[str, ModelWorker] = {}
         self._model_specs, self._models_msg = get_model_registry()
         self._event_bus = event_bus
+        self._link_event_callback = link_event_callback
 
     def get_state(self) -> ServiceState:
         with self._lock:
@@ -143,6 +143,7 @@ class ServiceManager:
                 lsl_config=self._config.lsl,
                 preprocess_config=self._config.preprocess,
                 acq_config=self._config.acquisition,
+                on_link_event=self._on_worker_link_event,
             )
             worker.start()
             with self._lock:
@@ -230,6 +231,15 @@ class ServiceManager:
             CytonBoard.force_release_all(settle_sec=0.8)
         return True
 
+    def _on_worker_link_event(self, event: Dict[str, Any]) -> None:
+        msg = event.get("message") or event.get("kind") or "link_event"
+        self._log_warn(f"[链路] {msg}")
+        if self._link_event_callback is not None:
+            try:
+                self._link_event_callback(event)
+            except Exception as exc:  # noqa: BLE001
+                print(f"[警告] link_event_callback: {exc}")
+
     def get_status(self) -> Dict[str, Any]:
         """供 status 命令 / 测试脚本使用。"""
         with self._lock:
@@ -240,8 +250,32 @@ class ServiceManager:
 
         samples = worker.get_samples_pushed() if worker is not None else 0
         port = "合成板" if board_cfg.use_synthetic else board_cfg.serial_port
+        link_stats = worker.get_link_stats() if worker is not None else {}
+        last_connect: Dict[str, Any] = {}
+        if worker is not None and worker._board is not None:
+            report = worker._board.last_connect_report
+            if report is not None:
+                fw = ""
+                for att in report.attempts:
+                    if att.probe and att.probe.firmware_line:
+                        fw = att.probe.firmware_line
+                        break
+                last_connect = {
+                    "attempts": len(report.attempts),
+                    "firmware": fw,
+                    "failure_kind": (
+                        report.failure_kind.value
+                        if hasattr(report.failure_kind, "value")
+                        else str(report.failure_kind)
+                    ),
+                    "message": (report.message or "").split("\n")[0],
+                    "ok": report.ok,
+                }
 
         rec = self.get_recording_status()
+        rec_stats = {}
+        if self._recorder is not None:
+            rec_stats = self._recorder.get_stats()
         return {
             "state": state.value,
             "serial_port": port,
@@ -258,6 +292,9 @@ class ServiceManager:
             "recording_path": rec.get("path"),
             "recording_samples": rec.get("samples_written", 0),
             "eeg_channel_labels": self.get_eeg_channel_labels(),
+            "link_stats": link_stats,
+            "last_connect": last_connect,
+            "gap_samples": int(rec_stats.get("estimated_gap_samples") or 0),
         }
 
     def get_eeg_channel_labels(self) -> List[str]:

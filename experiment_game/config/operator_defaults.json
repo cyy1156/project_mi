@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "subject": {
-    "subject_id": "webchk",
-    "session_id": "ui02",
-    "notes": "web_self_check"
+    "subject_id": "opsmoke",
+    "session_id": "ws01",
+    "notes": "ws_smoke"
   },
   "acquisition": {
     "enabled": true,
-    "board_mode": "synthetic",
-    "serial_port": "COM5",
+    "board_mode": "cyton",
+    "serial_port": "COM4",
     "sample_rate_hz": 250,
     "channel_labels": [
       "C3",
@@ -30,16 +30,51 @@
     "markers_lsl": true
   },
   "experiment": {
-    "phase_mode": "phase2_full",
+    "phase_mode": "v4_session",
     "v2_config_path": null,
+    "protocol_locked": true,
+    "v2_overrides": {
+      "cal_rounds_min": 4,
+      "cal_rounds_max": 6,
+      "game_rounds": 2,
+      "trials_per_round": 6,
+      "ft_trials_per_round": 4,
+      "quiz_trials_per_round": 2,
+      "game_trials_per_round": 3,
+      "prep_s": 2,
+      "cue_s": 2,
+      "imagine_s": 6,
+      "iti_s": 3,
+      "gate_enter_three": 0.6,
+      "gate_min_quiz_trials": 12,
+      "judgment_step_s": 0.6,
+      "judgment_half_weight_until_s": 2.4,
+      "score_early_stop": 5,
+      "score_invalid_max": 3,
+      "wrong_class_abort": 5,
+      "consecutive_invalid_abort": 5,
+      "ft_min_valid_trials": 6,
+      "group_lr": 0.0001,
+      "replay_ratio": 0.15,
+      "drift_patience": 2,
+      "task_p_on": 0.6,
+      "ft_epochs": 5,
+      "ft_batch_size": 32,
+      "game_rounds_min": 1,
+      "game_rounds_max": 3
+    },
+    "skip_v2_guidance": true,
+    "skip_v2_calibration": false,
+    "skip_v2_gate": true,
+    "skip_v2_game": false,
     "acquire_trials": 2,
     "learn_trials_per_step": 1,
     "skip_adapt": true,
     "skip_learn": true,
     "skip_gate": true,
-    "seed": 7,
+    "seed": null,
     "open_subject_page": false,
-    "ready_timeout_s": 60.0,
+    "ready_timeout_s": 90.0,
     "timing": {
       "fixation_s": 2.0,
       "cue_s": 2.0,
@@ -55,6 +90,16 @@
     },
     "split": {
       "settle_s": 15.0
+    },
+    "v3_overrides": {
+      "blocks": 2,
+      "trials_per_block": 18,
+      "baseline_rest_s": 60,
+      "block_gap_s": 90,
+      "prep_s": 2,
+      "cue_s": 2,
+      "imagine_s": 6,
+      "iti_s": 3
     }
   },
   "storage": {

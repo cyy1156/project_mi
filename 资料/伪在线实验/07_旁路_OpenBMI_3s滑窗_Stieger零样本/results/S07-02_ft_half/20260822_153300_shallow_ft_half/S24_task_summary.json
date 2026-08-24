@@ -1,0 +1,269 @@
+{
+  "acc_paper_mean": 0.8150823827629912,
+  "acc_paper_std": 0.007296242314131423,
+  "folds": [
+    {
+      "fold": 0,
+      "best_epoch": 1,
+      "best_val_acc_paper": 0.8734177215189873,
+      "val_segment_metrics": {
+        "n_segments": 316,
+        "n_windows": 5178,
+        "acc_paper": 0.8734177215189873,
+        "balanced_accuracy": 0.8734177215189873,
+        "f1": 0.8742138364779874,
+        "specificity": 0.8670886075949367,
+        "recall": 0.879746835443038,
+        "precision": 0.86875,
+        "accuracy": 0.8734177215189873
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.8193916349809885,
+        "balanced_accuracy": 0.8193916349809887,
+        "f1": 0.8263254113345521,
+        "specificity": 0.779467680608365,
+        "recall": 0.8593155893536122,
+        "precision": 0.795774647887324,
+        "accuracy": 0.8193916349809885
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.8036114849708389,
+        "recall": 0.8219049200287786,
+        "specificity": 0.7655259822560203,
+        "precision": 0.8794859647044889,
+        "f1": 0.8497210699470749,
+        "balanced_accuracy": 0.7937154511423994,
+        "tp": 14851,
+        "tn": 6644,
+        "fp": 2035,
+        "fn": 3218
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300\\S24\\task\\fold0\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.5399239543726235,
+        "balanced_accuracy": 0.5399239543726236,
+        "f1": 0.6669724770642201,
+        "specificity": 0.15842839036755388,
+        "recall": 0.9214195183776933,
+        "precision": 0.5226455787203451,
+        "accuracy": 0.5399239543726235
+      },
+      "delta_vs_zeroshot": 0.279467680608365
+    },
+    {
+      "fold": 1,
+      "best_epoch": 20,
+      "best_val_acc_paper": 0.8734177215189873,
+      "val_segment_metrics": {
+        "n_segments": 316,
+        "n_windows": 5178,
+        "acc_paper": 0.8734177215189873,
+        "balanced_accuracy": 0.8734177215189873,
+        "f1": 0.8742138364779874,
+        "specificity": 0.8670886075949367,
+        "recall": 0.879746835443038,
+        "precision": 0.86875,
+        "accuracy": 0.8734177215189873
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.8269961977186312,
+        "balanced_accuracy": 0.8269961977186312,
+        "f1": 0.8342440801457195,
+        "specificity": 0.7832699619771863,
+        "recall": 0.870722433460076,
+        "precision": 0.8006993006993007,
+        "accuracy": 0.8269961977186312
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.813406609839988,
+        "recall": 0.8357961148929105,
+        "specificity": 0.7667934093789607,
+        "precision": 0.8818171201681654,
+        "f1": 0.8581900838187243,
+        "balanced_accuracy": 0.8012947621359356,
+        "tp": 15102,
+        "tn": 6655,
+        "fp": 2024,
+        "fn": 2967
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300\\S24\\task\\fold1\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.5329531051964512,
+        "balanced_accuracy": 0.5329531051964512,
+        "f1": 0.6564102564102564,
+        "specificity": 0.17363751584283904,
+        "recall": 0.8922686945500634,
+        "precision": 0.5191740412979351,
+        "accuracy": 0.5329531051964512
+      },
+      "delta_vs_zeroshot": 0.29404309252217997
+    },
+    {
+      "fold": 2,
+      "best_epoch": 2,
+      "best_val_acc_paper": 0.879746835443038,
+      "val_segment_metrics": {
+        "n_segments": 316,
+        "n_windows": 5178,
+        "acc_paper": 0.879746835443038,
+        "balanced_accuracy": 0.879746835443038,
+        "f1": 0.8848484848484849,
+        "specificity": 0.8354430379746836,
+        "recall": 0.9240506329113924,
+        "precision": 0.8488372093023255,
+        "accuracy": 0.879746835443038
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.8130544993662865,
+        "balanced_accuracy": 0.8130544993662865,
+        "f1": 0.8259587020648967,
+        "specificity": 0.7389100126742713,
+        "recall": 0.8871989860583016,
+        "precision": 0.7726269315673289,
+        "accuracy": 0.8130544993662865
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.8160983998803649,
+        "recall": 0.8596491228070176,
+        "specificity": 0.7254291969120866,
+        "precision": 0.8669903996427774,
+        "f1": 0.8633041545088231,
+        "balanced_accuracy": 0.7925391598595521,
+        "tp": 15533,
+        "tn": 6296,
+        "fp": 2383,
+        "fn": 2536
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300\\S24\\task\\fold2\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.5348542458808618,
+        "balanced_accuracy": 0.5348542458808618,
+        "f1": 0.6702605570530099,
+        "specificity": 0.12420785804816223,
+        "recall": 0.9455006337135615,
+        "precision": 0.5191370911621433,
+        "accuracy": 0.5348542458808618
+      },
+      "delta_vs_zeroshot": 0.27820025348542465
+    },
+    {
+      "fold": 3,
+      "best_epoch": 5,
+      "best_val_acc_paper": 0.8765822784810127,
+      "val_segment_metrics": {
+        "n_segments": 316,
+        "n_windows": 5178,
+        "acc_paper": 0.8765822784810127,
+        "balanced_accuracy": 0.8765822784810127,
+        "f1": 0.8785046728971962,
+        "specificity": 0.8607594936708861,
+        "recall": 0.8924050632911392,
+        "precision": 0.8650306748466258,
+        "accuracy": 0.8765822784810127
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.8073510773130546,
+        "balanced_accuracy": 0.8073510773130546,
+        "f1": 0.8274687854710556,
+        "specificity": 0.6907477820025348,
+        "recall": 0.9239543726235742,
+        "precision": 0.7492291880781089,
+        "accuracy": 0.8073510773130546
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.822827874981307,
+        "recall": 0.8944047816702639,
+        "specificity": 0.6738103468141491,
+        "precision": 0.8509372367312553,
+        "f1": 0.872129732063355,
+        "balanced_accuracy": 0.7841075642422065,
+        "tp": 16161,
+        "tn": 5848,
+        "fp": 2831,
+        "fn": 1908
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300\\S24\\task\\fold3\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.5050697084917617,
+        "balanced_accuracy": 0.5050697084917617,
+        "f1": 0.6626349892008639,
+        "specificity": 0.03802281368821293,
+        "recall": 0.9721166032953105,
+        "precision": 0.5026212319790302,
+        "accuracy": 0.5050697084917617
+      },
+      "delta_vs_zeroshot": 0.30228136882129286
+    },
+    {
+      "fold": 4,
+      "best_epoch": 5,
+      "best_val_acc_paper": 0.870253164556962,
+      "val_segment_metrics": {
+        "n_segments": 316,
+        "n_windows": 5178,
+        "acc_paper": 0.870253164556962,
+        "balanced_accuracy": 0.870253164556962,
+        "f1": 0.8761329305135952,
+        "specificity": 0.8227848101265823,
+        "recall": 0.9177215189873418,
+        "precision": 0.838150289017341,
+        "accuracy": 0.870253164556962
+      },
+      "eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.8086185044359949,
+        "balanced_accuracy": 0.8086185044359949,
+        "f1": 0.8266360505166476,
+        "specificity": 0.7046894803548795,
+        "recall": 0.9125475285171103,
+        "precision": 0.7555089192025184,
+        "accuracy": 0.8086185044359949
+      },
+      "eval_window_metrics": {
+        "accuracy": 0.8231643487363541,
+        "recall": 0.8901986828269411,
+        "specificity": 0.6836041018550524,
+        "precision": 0.8541766236524879,
+        "f1": 0.8718157181571816,
+        "balanced_accuracy": 0.7869013923409968,
+        "tp": 16085,
+        "tn": 5933,
+        "fp": 2746,
+        "fn": 1984
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300\\S24\\task\\fold4\\best_task.pt",
+      "zeroshot_eval_segment_metrics": {
+        "n_segments": 1578,
+        "n_windows": 26748,
+        "acc_paper": 0.517743979721166,
+        "balanced_accuracy": 0.517743979721166,
+        "f1": 0.6643140714600794,
+        "specificity": 0.08111533586818757,
+        "recall": 0.9543726235741445,
+        "precision": 0.5094722598105548,
+        "accuracy": 0.517743979721166
+      },
+      "delta_vs_zeroshot": 0.2908745247148289
+    }
+  ],
+  "zeroshot_acc_paper_mean": 0.5261089987325729,
+  "zeroshot_acc_paper_std": 0.012859233392457073,
+  "delta_mean": 0.2889733840304183
+}

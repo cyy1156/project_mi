@@ -1,0 +1,98 @@
+{
+  "n_windows_eval": 24553,
+  "split": {
+    "n_train_cues": 754,
+    "n_eval_cues": 754
+  },
+  "metrics": {
+    "task": {
+      "acc_paper_mean": 0.6940318302387268,
+      "acc_paper_std": 0.016165144811875417,
+      "abstain_rate_mean": 0.0,
+      "abstain_rate_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "acc_paper": 0.6982758620689655,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 1,
+          "acc_paper": 0.6637931034482759,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 2,
+          "acc_paper": 0.7115384615384616,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 3,
+          "acc_paper": 0.6942970822281167,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 4,
+          "acc_paper": 0.7022546419098143,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        }
+      ]
+    },
+    "three": {
+      "acc_paper_mean": 0.46206896551724136,
+      "acc_paper_std": 0.013436525349510809,
+      "abstain_rate_mean": 0.0,
+      "abstain_rate_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "acc_paper": 0.47679045092838196,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 1,
+          "acc_paper": 0.4409814323607427,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 2,
+          "acc_paper": 0.4761273209549072,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 3,
+          "acc_paper": 0.4608753315649867,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        },
+        {
+          "fold": 4,
+          "acc_paper": 0.45557029177718833,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        }
+      ]
+    }
+  },
+  "latency_ms_mean": [
+    2.159922750822345,
+    2.203447309968115,
+    2.208224876828509,
+    2.2004833706422784,
+    2.196686425285481,
+    2.1912065857568397,
+    2.2106334338154565,
+    2.197878361079809,
+    2.182715924727463,
+    2.195111530179744
+  ],
+  "latency_ms_mean_fold": 2.1946310569106044
+}

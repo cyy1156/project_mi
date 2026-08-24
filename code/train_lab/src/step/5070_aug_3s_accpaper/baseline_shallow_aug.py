@@ -49,12 +49,31 @@ def _parse_aug_from_argv() -> None:
     set_aug_config(cfg)
 
 
+def _argv_for_task_runner(argv: list[str]) -> list[str]:
+    """剥离本脚本专用 flag，保留 task_runner 可识别的 CLI（如 --num-workers）。"""
+    skip = {"--aug", "--train-device"}
+    out = [argv[0]]
+    i = 1
+    while i < len(argv):
+        tok = argv[i]
+        if tok == "--fast-batch":
+            i += 1
+            continue
+        if tok in skip:
+            i += 2 if i + 1 < len(argv) else 1
+            continue
+        out.append(tok)
+        i += 1
+    return out
+
+
 if __name__ == "__main__":
     train_device, fast_batch = _parse_train_device()
     out_tag = patch_baseline_modules(
         train_device=train_device, fast_batch=fast_batch
     )
     _parse_aug_from_argv()
+    sys.argv = _argv_for_task_runner(sys.argv)
 
     from task_runner import run_baseline_main  # noqa: E402
 

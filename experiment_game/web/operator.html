@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>操作台 · 采集控制</title>
-    <link rel="stylesheet" href="css/operator.css?v=20260822b" />
+    <link rel="stylesheet" href="css/operator.css?v=20260824sqc" />
   </head>
   <body>
     <div id="app">
@@ -75,8 +75,112 @@
             <div class="row">
               <label class="radio"><input type="radio" name="phase_mode" value="phase2_full" checked /> v1 Phase2（适应→学习→正式）</label>
               <label class="radio"><input type="radio" name="phase_mode" value="v2_session" /> v2 会话（标定→准入→游戏）</label>
+              <label class="radio"><input type="radio" name="phase_mode" value="v3_session" /> v3 探针（零样本 · 引导 A/B）</label>
+              <label class="radio"><input type="radio" name="phase_mode" value="v4_session" /> v4 质量检测（实验前 · 无模型）</label>
             </div>
-            <p class="hint">v2 轮数、gate、lr 等见 <code>experiment_game/config/v2_session.yaml</code>（统一参数，可编辑后重开会话）</p>
+            <p class="hint v4-only hidden">v4 仅需采集与 LSL，用于戴帽后修电极；连续 15s 达标后可开 v3。</p>
+            <label class="check lock-check">
+              <input type="checkbox" name="protocol_locked" checked />
+              采集模式（冻结协议）· 锁定 v2 时序与高级常量，防手滑
+            </label>
+            <p class="hint">关闭冻结须显式确认；正式采集请保持开启。yaml 见 <code>config/v2_session.yaml</code> / <code>v3_session.yaml</code> / <code>v4_session.yaml</code>。</p>
+          </fieldset>
+
+          <fieldset class="v3-only hidden">
+            <legend>v3 探针任务</legend>
+            <div class="row">
+              <label>块数 <input name="v3_blocks" type="number" min="1" max="4" value="2" /></label>
+              <label>每块试次 <input name="v3_trials_per_block" type="number" min="6" max="36" value="18" /></label>
+              <label>静息基线 <input name="v3_baseline_rest_s" type="number" min="10" max="300" value="60" /> s</label>
+              <label>块间休息 <input name="v3_block_gap_s" type="number" min="30" max="300" value="90" /> s</label>
+            </div>
+            <label>随机种子（空=随机，决定 A/B 块顺序） <input name="v3_seed" type="number" placeholder="空" /></label>
+            <p class="hint">全程冻结零样本权重；必须开启采集。无模型或 LSL 不可用将拒跑。</p>
+          </fieldset>
+
+          <fieldset class="v3-only v3-lockable hidden">
+            <legend>v3 试次时序 <span class="lock-badge hidden">锁定</span></legend>
+            <div class="row">
+              <label>准备 prep <input name="v3_prep_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>Cue <input name="v3_cue_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>MI <input name="v3_imagine_s" type="number" step="0.1" min="1" max="12" value="6" /> s</label>
+              <label>ITI <input name="v3_iti_s" type="number" step="0.1" min="0.5" max="15" value="3" /> s</label>
+            </div>
+            <p class="hint">与 v2 小考同口径（D8 0.6s 栅格）；被试屏复用 v2_stage 渲染。</p>
+          </fieldset>
+
+          <fieldset class="v2-only hidden">
+            <legend>v2 实验任务</legend>
+            <div class="row">
+              <label>标定轮 min <input name="v2_cal_rounds_min" type="number" min="1" max="8" value="4" /></label>
+              <label>标定轮 max <input name="v2_cal_rounds_max" type="number" min="1" max="8" value="6" /></label>
+              <label>游戏轮数 <input name="v2_game_rounds" type="number" min="1" max="3" value="2" /></label>
+            </div>
+            <div class="row">
+              <label>每轮总试次 <input name="v2_trials_per_round" type="number" min="6" max="36" value="18" /></label>
+              <label>训练 FT <input name="v2_ft_trials_per_round" type="number" min="1" max="30" value="12" /></label>
+              <label>小考/测试 <input name="v2_quiz_trials_per_round" type="number" min="1" max="18" value="6" /></label>
+              <label>游戏每轮试次 <input name="v2_game_trials_per_round" type="number" min="3" max="32" value="16" /></label>
+            </div>
+            <p id="v2-trial-compose-hint" class="hint">
+              标定每轮：前 N 个试次增量训练（FT），后 M 个试次小考（不进训练）。须满足 FT + 小考 = 每轮总试次。
+            </p>
+            <label>随机种子（空=随机） <input name="v2_seed" type="number" placeholder="空" /></label>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="skip_v2_guidance" /> 跳过引导（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_calibration" /> 跳过标定（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_gate" /> 跳过准入（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_game" /> 跳过游戏（调试）</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="v2-only v2-lockable hidden">
+            <legend>v2 试次时序 <span class="lock-badge hidden">锁定</span></legend>
+            <div class="row">
+              <label>准备 prep <input name="v2_prep_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>Cue <input name="v2_cue_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>MI <input name="v2_imagine_s" type="number" step="0.1" min="1" max="12" value="6" /> s</label>
+              <label>ITI <input name="v2_iti_s" type="number" step="0.1" min="0.5" max="15" value="3" /> s</label>
+            </div>
+            <div class="row tl-presets">
+              <span class="hint">预设：</span>
+              <button type="button" data-v2-timing-preset="standard">标准 2/2/6/3</button>
+              <button type="button" data-v2-timing-preset="debug4">调试 MI4s</button>
+            </div>
+            <div id="setup-timeline-v2" class="timeline" aria-label="v2 单 trial 时间轴"></div>
+            <p id="timing-hint-v2" class="hint"></p>
+          </fieldset>
+
+          <fieldset class="v2-only v2-lockable collapsible hidden">
+            <legend>高级 · v2 常量 <span class="lock-badge hidden">锁定</span></legend>
+            <p class="hint">门控</p>
+            <div class="row">
+              <label>gate_enter_three <input name="v2_gate_enter_three" type="number" step="0.01" min="0.01" max="1" value="0.6" /></label>
+              <label>gate_min_quiz <input name="v2_gate_min_quiz_trials" type="number" min="6" max="48" value="12" /></label>
+            </div>
+            <p class="hint">D8 计分</p>
+            <div class="row">
+              <label>step_s <input name="v2_judgment_step_s" type="number" step="0.1" min="0.2" max="2" value="0.6" /></label>
+              <label>半票至 <input name="v2_judgment_half_weight_until_s" type="number" step="0.1" value="2.4" /></label>
+              <label>早停分 <input name="v2_score_early_stop" type="number" step="0.5" value="5" /></label>
+              <label>无效上限 <input name="v2_score_invalid_max" type="number" step="0.5" value="3" /></label>
+            </div>
+            <div class="row">
+              <label>错类熔断 <input name="v2_wrong_class_abort" type="number" step="0.5" value="5" /></label>
+              <label>连无效中止 <input name="v2_consecutive_invalid_abort" type="number" min="1" max="20" value="5" /></label>
+              <label>FT最少有效 <input name="v2_ft_min_valid_trials" type="number" min="1" max="40" value="6" /></label>
+            </div>
+            <p class="hint">适配 / FT</p>
+            <div class="row">
+              <label>group_lr <input name="v2_group_lr" type="number" step="0.00001" min="0.000001" max="0.01" value="0.0001" /></label>
+              <label>replay_ratio <input name="v2_replay_ratio" type="number" step="0.01" min="0" max="0.5" value="0.15" /></label>
+              <label>drift_patience <input name="v2_drift_patience" type="number" min="1" max="10" value="2" /></label>
+              <label>task_p_on <input name="v2_task_p_on" type="number" step="0.05" min="0" max="1" value="0.6" /></label>
+            </div>
+            <div class="row">
+              <label>ft_epochs <input name="v2_ft_epochs" type="number" min="1" max="50" value="5" /></label>
+              <label>ft_batch_size <input name="v2_ft_batch_size" type="number" min="1" max="256" value="32" /></label>
+            </div>
           </fieldset>
 
           <fieldset class="phase2-only">
@@ -129,7 +233,7 @@
             <label class="check"><input type="checkbox" name="save_events" checked disabled /> 保存 events（必开）</label>
             <label class="check"><input type="checkbox" name="save_session_meta" checked disabled /> 保存 session.meta（必开）</label>
             <label class="check"><input type="checkbox" name="auto_phase4" /> 结束后自动 Phase4 切窗（仅 acquire + 未 reject）</label>
-            <div class="row">
+            <div class="row phase2-only" id="p4-v1-params">
               <label>切窗模式
                 <select name="p4_window_mode">
                   <option value="fixed" selected>固定窗（每阶段 1 窗）</option>
@@ -139,7 +243,8 @@
               <label>窗长 <input name="p4_win_sec" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
               <label>步长 <input name="p4_hop_ms" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
             </div>
-            <p id="p4-hint" class="hint">滑动窗在各阶段区间内滑切，不跨阶段；窗长不得超过 MI/静息时长。这些参数同时用于「自动切窗」和结束后 Summary 页手动切窗的默认值。</p>
+            <p id="p4-hint-v2" class="hint v2-only hidden">v2 切窗口径冻结：3s / 750pt / hop100 · 管道 phase4_v2（标定）+ phase4_v2_game（游戏）。</p>
+            <p id="p4-hint" class="hint phase2-only">滑动窗在各阶段区间内滑切，不跨阶段；窗长不得超过 MI/静息时长。这些参数同时用于「自动切窗」和结束后 Summary 页手动切窗的默认值。</p>
             <p id="save-hint" class="hint">默认 phase_folders：continuous/ + by_phase/ + alignment/</p>
           </fieldset>
 
@@ -198,6 +303,7 @@
           <p id="run-timing-hint" class="hint"></p>
         </div>
         <div id="run-lock" class="lock-bar">实验进行中：设备与保存路径已锁定；需改请先中止。</div>
+        <div id="run-alert" class="run-alert hidden" role="alert"></div>
         <div id="popup-warn" class="warn hidden">若诱导页未出现：请允许弹窗，或点下方「重新打开诱导页」。</div>
 
         <ol id="phase-steps" class="steps">
@@ -207,27 +313,109 @@
           <li data-phase="acquire">acquire</li>
           <li data-phase="end">end</li>
         </ol>
+        <ol id="phase-steps-v2" class="steps hidden">
+          <li data-phase="guidance">引导</li>
+          <li data-phase="calibration">标定</li>
+          <li data-phase="gate">准入</li>
+          <li data-phase="game">游戏</li>
+          <li data-phase="end">收工</li>
+        </ol>
+        <ol id="phase-steps-v3" class="steps hidden">
+          <li data-phase="baseline">基线</li>
+          <li data-phase="block">块1</li>
+          <li data-phase="guidance">引导</li>
+          <li data-phase="block2">块2</li>
+          <li data-phase="report">报告</li>
+        </ol>
 
         <div class="status-grid">
           <div><span class="k">阶段</span> <span id="st-phase">—</span></div>
           <div><span class="k">子阶段</span> <span id="st-stage">—</span></div>
           <div><span class="k">trial</span> <span id="st-trial">—</span></div>
           <div><span class="k">label</span> <span id="st-label">—</span></div>
-          <div><span class="k">object</span> <span id="st-object">—</span></div>
-          <div><span class="k">scene</span> <span id="st-scene">—</span></div>
+          <div id="st-object-wrap"><span class="k">object</span> <span id="st-object">—</span></div>
+          <div id="st-scene-wrap"><span class="k">scene</span> <span id="st-scene">—</span></div>
+          <div id="st-v2-round-wrap" class="hidden"><span class="k">轮次</span> <span id="st-v2-round">—</span></div>
+          <div id="st-v2-score-wrap" class="hidden"><span class="k">D8 Score</span> <span id="st-v2-score">—</span></div>
           <div><span class="k">reject</span> <span id="st-reject">0</span></div>
           <div><span class="k">采集</span> <span id="st-acq">—</span></div>
+          <div><span class="k">链路</span> <span id="link-line" class="stat-ok">—</span></div>
         </div>
 
         <div id="v2-panel" class="v2-panel hidden">
           <h2 class="v2-title">v2 会话监控</h2>
           <p id="v2-stage-hint" class="hint">等待 v2 阶段消息…</p>
+          <div class="v2-progress-row">
+            <div>标定轮 <strong id="v2-cal-prog">—</strong> · 游戏轮 <strong id="v2-game-prog">—</strong> · 子块 <strong id="v2-subblock">—</strong></div>
+            <div>FT <strong id="v2-ft-status">idle</strong></div>
+          </div>
+          <div class="v2-score-bar-wrap">
+            <div class="v2-score-label">D8 Score <span id="v2-score-num">—</span></div>
+            <div class="v2-score-track"><div id="v2-score-fill" class="v2-score-fill"></div></div>
+          </div>
           <div class="v2-gate-box">
-            <div>小考 Three：<strong id="v2-gate-acc">—</strong></div>
+            <div>小考 Three：<strong id="v2-gate-acc">—</strong> <span id="v2-weak-mi" class="hidden warn-inline">weak_mi</span></div>
             <div>准入：<strong id="v2-gate-status">—</strong> · n=<span id="v2-gate-n">0</span></div>
             <pre id="v2-gate-curve" class="v2-curve">—</pre>
           </div>
           <button type="button" id="btn-v2-guidance" class="primary">确认动觉引导完成</button>
+          <p id="v2-guidance-countdown" class="hint hidden">引导倒计时 —</p>
+        </div>
+
+        <ol id="phase-steps-v4" class="steps hidden">
+          <li data-phase="check" class="active">检测</li>
+          <li data-phase="stable">稳定</li>
+          <li data-phase="done">结果</li>
+        </ol>
+
+        <div id="v4-panel" class="v4-panel hidden">
+          <h2 class="v4-title">v4 数据质量检测</h2>
+          <div class="v4-verdict-row">
+            <span id="v4-verdict-dot" class="v4-dot fail">●</span>
+            <span id="v4-verdict-text" class="v4-verdict-text">等待数据…</span>
+          </div>
+          <div class="v4-streak-wrap">
+            <span>连续达标 <strong id="v4-streak">0/5</strong></span>
+            <div class="v4-streak-track"><div id="v4-streak-fill" class="v4-streak-fill"></div></div>
+          </div>
+          <p id="v4-headline" class="v4-headline hint">请静坐放松，正在评估信号…</p>
+          <p class="v4-hint hint">
+            <strong>绿格</strong> = 最近 3s 静息信号合格（std 3–60µV、无饱和）。<strong>按压不会变绿</strong>，只会饱和变红。
+            触诊：极轻碰一下，看哪格 <strong>µV 数字</strong> 先跳（0.5s 刷新）。
+          </p>
+          <div id="v4-metrics" class="v4-metrics"></div>
+          <div id="v4-channels" class="v4-channels" aria-label="通道热力图"></div>
+          <ul id="v4-problems" class="v4-problems"></ul>
+          <div class="v4-actions">
+            <button type="button" id="btn-v4-to-v3" class="primary" disabled>PASS 后开始 v3 →</button>
+            <span class="hint">或中止后返回配置页换 v3 模式</span>
+          </div>
+        </div>
+
+        <div id="v3-panel" class="v3-panel hidden">
+          <h2 class="v3-title">v3 探针监控</h2>
+          <div class="v3-progress-row">
+            <span>块 <strong id="v3-block-prog">—</strong></span>
+            <span>试次 <strong id="v3-trial-prog">—</strong></span>
+            <span>条件 <strong id="v3-cond">—</strong></span>
+          </div>
+          <div class="v3-eeg-wrap">
+            <canvas id="v3-eeg" width="720" height="280" aria-label="实时脑电"></canvas>
+            <span id="v3-eeg-gain" class="v3-eeg-gain">±— µV</span>
+          </div>
+          <p id="v3-power-legend" class="v3-power-legend">蓝=mu 8–13Hz · 紫=βL 13–20Hz（仅参考，无独立合格线） · 条=相对开场 60s 基线的 ERD%（mu ≤−15% 绿，白线=合格位）<label class="v3-gain-toggle"><input type="checkbox" id="v3-ch-gain" /> 逐通道增益</label></p>
+          <div id="v3-power-bars" class="v3-power-bars"></div>
+          <p id="v3-hat-check" class="v3-hat-check hidden" role="status"></p>
+          <div id="v3-feature-cards" class="v3-feature-cards"></div>
+          <div class="v3-block-stats">
+            块累计（L/R 有效 <span id="v3-block-nvalid">—</span>/<span id="v3-block-nlr">—</span>）：
+            acc <span id="v3-block-acc">—</span> · 对侧 muERD <span id="v3-block-erd">—</span> · 偏侧 <span id="v3-block-lat">—</span>
+          </div>
+          <div class="v3-console-actions">
+            <button type="button" id="btn-restart" class="primary">重新开始</button>
+            <span class="hint">中止当前场次并返回配置页（已采集数据会保留）</span>
+          </div>
+          <button type="button" id="btn-v3-guidance" class="primary hidden">确认动觉引导完成</button>
         </div>
 
         <div class="actions run-actions">
@@ -241,15 +429,18 @@
           <button type="button" id="btn-abort" class="danger">中止</button>
         </div>
         <p id="q-status-run" class="hint"></p>
-        <p class="hint">快捷键：B 换场 · Q 问卷 · P 暂停 · N 代确认 · G 准入 · R Reject · Esc 中止</p>
+        <p class="hint">快捷键：B 换场 · Q 问卷 · P 暂停 · N 代确认 · G 准入确认 · R Reject · Esc 中止（v2：引导确认用面板按钮）</p>
       </section>
 
       <!-- Summary -->
       <section id="view-summary" class="view hidden">
         <h1>结束与保存 <span id="verify-badge" class="na">—</span></h1>
         <p id="summary-msg" class="lead"></p>
+        <p id="v2-accept-detail" class="hint"></p>
+        <p id="v3-summary-detail" class="hint hidden"></p>
+        <p id="v4-summary-detail" class="hint hidden"></p>
         <p id="phase4-msg" class="hint"></p>
-        <div class="row p4-run-row">
+        <div class="row p4-run-row phase2-only" id="p4-summary-v1">
           <span class="hint">切窗参数：</span>
           <label>模式
             <select id="p4-run-mode">
@@ -260,6 +451,7 @@
           <label>窗长 <input id="p4-run-win" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
           <label>步长 <input id="p4-run-hop" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
         </div>
+        <div id="p4-summary-v2" class="hint hidden">v2 管道：标定 / 游戏（3s·hop100）</div>
         <p><span class="k">会话目录</span> <code id="summary-root">—</code></p>
         <ul id="summary-files" class="file-list"></ul>
         <div class="actions">
@@ -272,6 +464,6 @@
         <p id="q-status" class="hint"></p>
       </section>
     </div>
-    <script type="module" src="js/operator.js?v=20260823b"></script>
+    <script type="module" src="js/operator.js?v=20260825v4live"></script>
   </body>
 </html>

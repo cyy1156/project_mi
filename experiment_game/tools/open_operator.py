@@ -6,6 +6,7 @@
 
   python -m experiment_game.tools.open_operator
   python -m experiment_game.tools.open_operator --no-browser
+  python -m experiment_game.tools.open_operator --host 0.0.0.0   # 局域网监控端
 """
 
 from __future__ import annotations
@@ -26,16 +27,27 @@ def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="操作者采集控制台")
     p.add_argument("--http-port", type=int, default=8080)
     p.add_argument("--ws-port", type=int, default=8765)
+    p.add_argument(
+        "--host",
+        default="127.0.0.1",
+        help="绑定地址：本机 127.0.0.1；局域网监控传 0.0.0.0（或具体 LAN IP）",
+    )
     p.add_argument("--open-browser", action="store_true", default=True)
     p.add_argument("--no-browser", action="store_true")
     args = p.parse_args(argv)
 
-    svc = OperatorService(http_port=args.http_port, ws_port=args.ws_port)
+    svc = OperatorService(
+        http_port=args.http_port,
+        ws_port=args.ws_port,
+        serve_host=args.host,
+    )
     open_browser = args.open_browser and not args.no_browser
 
     print("=== 操作者采集控制台 ===")
     print("关闭本窗口即结束服务。")
-    print("默认：采集开 + 合成板；真机请在 Setup 选 Cyton，串口 COM5。")
+    print("默认：采集开 + 合成板；真机请在 Setup 选 Cyton，串口填设备管理器中的 COM（当前机常见 COM3）。")
+    if args.host not in ("127.0.0.1", "localhost"):
+        print(f"远程模式：--host {args.host}（监控端用下方打印的局域网 URL）")
 
     try:
         svc.start()

@@ -1,0 +1,2470 @@
+{
+  "arm": "B3",
+  "protocol": "stieger_otta Tw=3s hop=100ms arm=09_otta_ea_adabn_stieger_v1.2 model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) ft=shallow_stieger_ft_half_balbatch_accpaper data=stieger_3s_hop100 eval_half=causal_stream input=noz_unified ea=A:src|B:cal_whiten adabn=v1.2_predict_first_update device=5070",
+  "spec": {
+    "protocol_version": "v1.2",
+    "input_pipeline": "noz_unified",
+    "weight": "ft",
+    "ea_ref": "cal",
+    "adabn": 1,
+    "adabn_version": "v1.2",
+    "adabn_predict_first": 1,
+    "gate": "H0",
+    "conf_tau": null,
+    "eval_protocol": "eval_half_causal",
+    "paired_anchor": "B0",
+    "ablation_vs": [
+      "B1",
+      "B2"
+    ],
+    "readonly_anchor": null
+  },
+  "weight_run": null,
+  "ft_root": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300",
+  "ea_ref_meta": {},
+  "subjects": {
+    "S1": {
+      "n_windows_eval": 22239,
+      "split": {
+        "n_train_cues": 699,
+        "n_eval_cues": 699
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8353361945636625,
+          "acc_paper_std": 0.014344726249047368,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8340486409155937,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8512160228898427,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8476394849785408,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8333333333333334,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8104434907010014,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.6713876967095851,
+          "acc_paper_std": 0.020610790802234047,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6695278969957081,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7074391988555079,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6638054363376252,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6437768240343348,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6723891273247496,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        2.1614283960479814,
+        2.1898575160688614,
+        2.1801435181657554,
+        2.2054381042341276,
+        2.2214066864200572,
+        2.199755330722441,
+        2.1907100724379713,
+        2.202252619243164,
+        2.2148240478892243,
+        2.2012104725682753
+      ],
+      "latency_ms_mean_fold": 2.1967026763797857
+    },
+    "S10": {
+      "n_windows_eval": 31286,
+      "split": {
+        "n_train_cues": 874,
+        "n_eval_cues": 874
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7356979405034325,
+          "acc_paper_std": 0.0040452333019825384,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7351258581235698,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7288329519450801,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7414187643020596,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7368421052631579,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7362700228832952,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.4910755148741418,
+          "acc_paper_std": 0.012352741030906906,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.4834096109839817,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.4862700228832952,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5154462242562929,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.4879862700228833,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.48226544622425627,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        2.32071908843717,
+        2.1900368087659055,
+        2.1932937767659144,
+        2.1751931534163234,
+        2.161554724084813,
+        2.2177285846640817,
+        2.187490625279105,
+        2.1858939557479613,
+        2.183728536768496,
+        2.188812296199122
+      ],
+      "latency_ms_mean_fold": 2.200445155012889
+    },
+    "S11": {
+      "n_windows_eval": 20414,
+      "split": {
+        "n_train_cues": 671,
+        "n_eval_cues": 672
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.903422619047619,
+          "acc_paper_std": 0.0058283202462994475,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.9025297619047619,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.9025297619047619,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.9107142857142857,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.9077380952380952,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8936011904761905,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.6683035714285714,
+          "acc_paper_std": 0.005055145164125908,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6636904761904762,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6733630952380952,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6674107142857143,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6748511904761905,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6622023809523809,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        2.1637233026015066,
+        2.1951831144417846,
+        2.1940416821522573,
+        2.2187893406207175,
+        2.2114330801969944,
+        2.1817914373406175,
+        2.1974858577675005,
+        2.1941819927639123,
+        2.2024089008395795,
+        2.222359121207735
+      ],
+      "latency_ms_mean_fold": 2.1981397829932603
+    },
+    "S12": {
+      "n_windows_eval": 18879,
+      "split": {
+        "n_train_cues": 590,
+        "n_eval_cues": 590
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.6888135593220339,
+          "acc_paper_std": 0.013187704178933524,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7127118644067797,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.688135593220339,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6754237288135593,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6898305084745763,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6779661016949152,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.45983050847457624,
+          "acc_paper_std": 0.019060073765612476,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.4542372881355932,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.4822033898305085,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.44322033898305085,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.43728813559322033,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.4822033898305085,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        2.3873022035256564,
+        2.180817018840827,
+        2.176778240438035,
+        2.189713454114475,
+        2.183053191376559,
+        2.205650558807715,
+        2.1857939297946793,
+        2.1749003867036594,
+        2.1758535091626334,
+        2.2465301604964587
+      ],
+      "latency_ms_mean_fold": 2.21063926532607
+    },
+    "S13": {
+      "n_windows_eval": 22586,
+      "split": {
+        "n_train_cues": 698,
+        "n_eval_cues": 699
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7349070100143063,
+          "acc_paper_std": 0.009496095436495608,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7503576537911302,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7260371959942775,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7381974248927039,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7360515021459227,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7238912732474965,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.4932761087267525,
+          "acc_paper_std": 0.01640909980994526,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.48569384835479257,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.505722460658083,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.4971387696709585,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.4656652360515021,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5121602288984263,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        2.1995462808447845,
+        2.18914130430833,
+        2.182130448049909,
+        2.1942506818193475,
+        2.236078061611758,
+        1.5757136898924082,
+        1.1370671079534056,
+        1.1252221376067955,
+        1.1208574736360102,
+        1.1203756397833375
+      ],
+      "latency_ms_mean_fold": 1.7080382825506084
+    },
+    "S14": {
+      "n_windows_eval": 18377,
+      "split": {
+        "n_train_cues": 611,
+        "n_eval_cues": 612
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7995098039215687,
+          "acc_paper_std": 0.010546496446473812,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7973856209150327,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7916666666666666,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8031045751633987,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8178104575163399,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7875816993464052,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5522875816993464,
+          "acc_paper_std": 0.01597634844651021,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5236928104575164,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5465686274509803,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5678104575163399,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5637254901960784,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.559640522875817,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1309349240857043,
+        1.1368174729680498,
+        1.1476266692780561,
+        1.2741995320533448,
+        1.131750878811118,
+        1.1165614681460403,
+        1.11946646894292,
+        1.1225839092614194,
+        1.1186223267768267,
+        1.1178302061968162
+      ],
+      "latency_ms_mean_fold": 1.1416393856520295
+    },
+    "S15": {
+      "n_windows_eval": 21420,
+      "split": {
+        "n_train_cues": 659,
+        "n_eval_cues": 660
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8595454545454546,
+          "acc_paper_std": 0.0220276143580439,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8651515151515151,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.884090909090909,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8621212121212121,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8681818181818182,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8181818181818182,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.613030303030303,
+          "acc_paper_std": 0.005011465275315501,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.621969696969697,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6090909090909091,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6090909090909091,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6151515151515151,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6098484848484849,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.124181400574572,
+        1.1197705368357462,
+        1.133945130702705,
+        1.1242430532397278,
+        1.1288882959935431,
+        1.1182039728948039,
+        1.12705400562818,
+        1.1311415172758177,
+        1.120928804871582,
+        1.1299644304796987
+      ],
+      "latency_ms_mean_fold": 1.1258321148496377
+    },
+    "S16": {
+      "n_windows_eval": 23056,
+      "split": {
+        "n_train_cues": 707,
+        "n_eval_cues": 707
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7620933521923622,
+          "acc_paper_std": 0.00631918186808733,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7588401697312589,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7630834512022631,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7644978783592645,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7715700141442716,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7524752475247525,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.4864214992927864,
+          "acc_paper_std": 0.010710492230632298,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5063649222065064,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.47736916548797736,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.4809052333804809,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.4886845827439887,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.4787835926449788,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1468555430269984,
+        1.127523130701956,
+        1.1274393433157333,
+        1.1234433683583815,
+        1.1203866759098824,
+        1.121994244471066,
+        1.1138352706227599,
+        1.1137904015953637,
+        1.1164361337549276,
+        1.1109670671920426
+      ],
+      "latency_ms_mean_fold": 1.122267117894911
+    },
+    "S17": {
+      "n_windows_eval": 17234,
+      "split": {
+        "n_train_cues": 532,
+        "n_eval_cues": 532
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8736842105263157,
+          "acc_paper_std": 0.012631802719106333,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8656015037593985,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8956766917293233,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8759398496240601,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8731203007518797,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8580827067669173,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5874060150375939,
+          "acc_paper_std": 0.009265983115688898,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5798872180451128,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6052631578947368,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5827067669172933,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5874060150375939,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.581766917293233,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1312209121487196,
+        1.1136010212582286,
+        1.100573999129221,
+        1.1009982825184255,
+        1.1057906696216357,
+        1.0958829755784585,
+        1.1034877161010839,
+        1.1016100731252094,
+        1.1048319484740612,
+        1.1076011024796069
+      ],
+      "latency_ms_mean_fold": 1.106559870043465
+    },
+    "S18": {
+      "n_windows_eval": 18266,
+      "split": {
+        "n_train_cues": 574,
+        "n_eval_cues": 574
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.6705574912891986,
+          "acc_paper_std": 0.012675937117478242,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.686411149825784,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6611498257839721,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6515679442508711,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6733449477351916,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6803135888501742,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.39878048780487807,
+          "acc_paper_std": 0.011600746909119488,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.3989547038327526,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.4155052264808362,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.406794425087108,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.3893728222996516,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.3832752613240418,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1206578725301424,
+        1.111764004136752,
+        1.1157178856660426,
+        1.1139853279230523,
+        1.107533740329723,
+        1.1140600295544936,
+        1.1151966878379358,
+        1.1187871838189307,
+        1.1167429979186918,
+        1.111782333259459
+      ],
+      "latency_ms_mean_fold": 1.1146228062975223
+    },
+    "S19": {
+      "n_windows_eval": 23552,
+      "split": {
+        "n_train_cues": 715,
+        "n_eval_cues": 716
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.777513966480447,
+          "acc_paper_std": 0.007332069691847297,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7835195530726257,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.776536312849162,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7639664804469274,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.784217877094972,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7793296089385475,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5657821229050279,
+          "acc_paper_std": 0.015834564575195605,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5405027932960894,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5886871508379888,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5600558659217877,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5663407821229051,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5733240223463687,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.0945949091293365,
+        1.0959168860425883,
+        1.0999103261172116,
+        1.099986094649066,
+        1.1039962423514345,
+        1.1026087253809365,
+        1.1046715480785985,
+        1.1096290719089676,
+        1.102878158947795,
+        1.1216156292868578
+      ],
+      "latency_ms_mean_fold": 1.103580759189279
+    },
+    "S2": {
+      "n_windows_eval": 24553,
+      "split": {
+        "n_train_cues": 754,
+        "n_eval_cues": 754
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8537135278514588,
+          "acc_paper_std": 0.006086362814633292,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8620689655172413,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8580901856763926,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8521220159151194,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8521220159151194,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8441644562334217,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.6412466843501327,
+          "acc_paper_std": 0.010610079575596803,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.633289124668435,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6293103448275862,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6478779840848806,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6584880636604774,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6372679045092838,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1191899075145113,
+        1.1149149309945083,
+        1.1188348022686372,
+        1.1142726062475932,
+        1.1186908850111905,
+        1.1221619394707896,
+        1.1229969046827628,
+        1.1303357267799468,
+        1.122282295400646,
+        1.1240966317615846
+      ],
+      "latency_ms_mean_fold": 1.1207776630132171
+    },
+    "S20": {
+      "n_windows_eval": 10646,
+      "split": {
+        "n_train_cues": 352,
+        "n_eval_cues": 352
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7752840909090908,
+          "acc_paper_std": 0.00900169290781527,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7741477272727273,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7755681818181818,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7755681818181818,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7613636363636364,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7897727272727273,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5497159090909092,
+          "acc_paper_std": 0.02497739163674235,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5553977272727273,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5852272727272727,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5525568181818182,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5482954545454546,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5071022727272727,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1290770429661325,
+        1.1241765922158755,
+        1.1198710313942373,
+        1.1271719707197916,
+        1.1276292973764654,
+        1.1204616288058455,
+        1.131332998313525,
+        1.1276478113697836,
+        1.123263451001799,
+        1.1252719612728426
+      ],
+      "latency_ms_mean_fold": 1.1255903785436296
+    },
+    "S21": {
+      "n_windows_eval": 13843,
+      "split": {
+        "n_train_cues": 429,
+        "n_eval_cues": 430
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7969767441860466,
+          "acc_paper_std": 0.020335211384836453,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7604651162790698,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8104651162790698,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8162790697674419,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8081395348837209,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7895348837209303,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5193023255813953,
+          "acc_paper_std": 0.01581737309128553,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5383720930232558,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5255813953488372,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5011627906976744,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5313953488372093,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1481540056646227,
+        1.1258672252843442,
+        1.1193893014395475,
+        1.1136599291558484,
+        1.1161626381824135,
+        1.122317994647267,
+        1.1167443184660424,
+        1.124878378933117,
+        1.1275130680155034,
+        1.1345270389482283
+      ],
+      "latency_ms_mean_fold": 1.1249213898736934
+    },
+    "S22": {
+      "n_windows_eval": 13307,
+      "split": {
+        "n_train_cues": 403,
+        "n_eval_cues": 404
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.6358910891089109,
+          "acc_paper_std": 0.007803902361601218,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6311881188118812,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6386138613861386,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6274752475247525,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6324257425742574,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6497524752475248,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.3683168316831683,
+          "acc_paper_std": 0.008081597879858673,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.3650990099009901,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.38242574257425743,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.36386138613861385,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.3589108910891089,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.3712871287128713,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.132942714382747,
+        1.1249787705374128,
+        1.1486516570385235,
+        1.1621713458809808,
+        1.154560787471499,
+        1.184021221940008,
+        1.1841302472094193,
+        1.1813834898189626,
+        1.2266292627999085,
+        1.2709681370206858
+      ],
+      "latency_ms_mean_fold": 1.1770437634100148
+    },
+    "S23": {
+      "n_windows_eval": 13191,
+      "split": {
+        "n_train_cues": 411,
+        "n_eval_cues": 412
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7160194174757282,
+          "acc_paper_std": 0.010383130891362832,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7099514563106796,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6990291262135923,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7281553398058253,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7196601941747572,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7233009708737864,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.4660194174757281,
+          "acc_paper_std": 0.017197077265940143,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.441747572815534,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.49150485436893204,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.47694174757281554,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.46480582524271846,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.4550970873786408,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.2737688802596814,
+        1.245846167892424,
+        1.2364808733438923,
+        1.3450540216448499,
+        1.327342756538485,
+        1.2463852399725581,
+        1.1467530285987602,
+        1.1323539761972774,
+        1.1327919945523495,
+        1.1796724887788554
+      ],
+      "latency_ms_mean_fold": 1.2266449427779134
+    },
+    "S24": {
+      "n_windows_eval": 26748,
+      "split": {
+        "n_train_cues": 788,
+        "n_eval_cues": 789
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7809885931558936,
+          "acc_paper_std": 0.015567183634011906,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7629911280101395,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7674271229404309,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7775665399239544,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7921419518377694,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8048162230671736,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5462610899873258,
+          "acc_paper_std": 0.018151220264875693,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5278833967046895,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5690747782002535,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.55893536121673,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5532319391634981,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5221799746514575,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.171565702154042,
+        1.1588193061041818,
+        1.1496173134386154,
+        1.1046054620886048,
+        1.0993228428295596,
+        1.1067386832156711,
+        1.1042336996913873,
+        1.1011540414341519,
+        1.0966291872317964,
+        1.099180069550452
+      ],
+      "latency_ms_mean_fold": 1.119186630773846
+    },
+    "S25": {
+      "n_windows_eval": 22365,
+      "split": {
+        "n_train_cues": 681,
+        "n_eval_cues": 682
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8089442815249266,
+          "acc_paper_std": 0.0060916651254665855,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8115835777126099,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8064516129032258,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7983870967741935,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8159824046920822,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8123167155425219,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5912023460410558,
+          "acc_paper_std": 0.009554448420906098,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5894428152492669,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6070381231671554,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5909090909090909,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5769794721407625,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.591642228739003,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1154601923237946,
+        1.1160508740858388,
+        1.107502025460872,
+        1.1023470690555013,
+        1.104644363996263,
+        1.1142487234155465,
+        1.103143000255574,
+        1.1155958328070859,
+        1.106506049641719,
+        1.1017287368840887
+      ],
+      "latency_ms_mean_fold": 1.1087226867926285
+    },
+    "S3": {
+      "n_windows_eval": 13579,
+      "split": {
+        "n_train_cues": 415,
+        "n_eval_cues": 415
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8698795180722891,
+          "acc_paper_std": 0.00875465162630596,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8614457831325302,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8759036144578313,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8578313253012049,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8734939759036144,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.880722891566265,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5797590361445784,
+          "acc_paper_std": 0.020036256873240853,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5795180722891566,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5518072289156627,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5771084337349398,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6144578313253012,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5759036144578313,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1237209220287818,
+        1.1238960379816287,
+        1.103032233577004,
+        1.6538834965561615,
+        2.4849631858220014,
+        1.8996974445661323,
+        1.1312162456252546,
+        1.1395666985608288,
+        1.127380580319689,
+        1.1395934825980247
+      ],
+      "latency_ms_mean_fold": 1.392695032763551
+    },
+    "S4": {
+      "n_windows_eval": 14586,
+      "split": {
+        "n_train_cues": 484,
+        "n_eval_cues": 485
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7224742268041238,
+          "acc_paper_std": 0.024136924745009312,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6793814432989691,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7453608247422681,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.722680412371134,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7195876288659794,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7453608247422681,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5880412371134021,
+          "acc_paper_std": 0.008615497903412827,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5979381443298969,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5989690721649484,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5793814432989691,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5804123711340207,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5835051546391753,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.104509180008832,
+        1.1134754833380869,
+        1.1196305977504832,
+        1.1260906349011093,
+        1.1509745097538278,
+        1.1587185109203688,
+        1.1496259084540257,
+        1.1409215275311475,
+        1.118975332463287,
+        1.1232775332893326
+      ],
+      "latency_ms_mean_fold": 1.1306199218410502
+    },
+    "S5": {
+      "n_windows_eval": 4036,
+      "split": {
+        "n_train_cues": 166,
+        "n_eval_cues": 167
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.6838323353293413,
+          "acc_paper_std": 0.0251639537598212,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6766467065868264,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6976047904191617,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7005988023952096,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6377245508982036,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7065868263473054,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.558682634730539,
+          "acc_paper_std": 0.019180380093469406,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5479041916167665,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.5658682634730539,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5269461077844312,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5808383233532934,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.5718562874251497,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1172186818808143,
+        1.111917393419643,
+        1.1128650892352732,
+        1.1147558722252244,
+        1.1058669722831935,
+        1.169772051496502,
+        1.1023592665154112,
+        1.1077761396890777,
+        1.10729194744632,
+        1.1200561941918854
+      ],
+      "latency_ms_mean_fold": 1.1169879608383346
+    },
+    "S7": {
+      "n_windows_eval": 21730,
+      "split": {
+        "n_train_cues": 657,
+        "n_eval_cues": 657
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7884322678843226,
+          "acc_paper_std": 0.015121441956797307,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.80441400304414,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8036529680365296,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.7671232876712328,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.7922374429223744,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.7747336377473364,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5136986301369864,
+          "acc_paper_std": 0.01049014364694844,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5197869101978692,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.525875190258752,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5205479452054794,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.5,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.502283105022831,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1049181270261272,
+        1.1092254164288706,
+        1.1140126047134509,
+        1.1084881914575482,
+        1.1115455775637897,
+        1.111739493793163,
+        1.1120814266270138,
+        1.1066339024519871,
+        1.1083866451735456,
+        1.1120412931553332
+      ],
+      "latency_ms_mean_fold": 1.109907267839083
+    },
+    "S8": {
+      "n_windows_eval": 17106,
+      "split": {
+        "n_train_cues": 559,
+        "n_eval_cues": 560
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8505357142857143,
+          "acc_paper_std": 0.02090582625558172,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8571428571428571,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8875,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8455357142857143,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8294642857142858,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8330357142857143,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.665,
+          "acc_paper_std": 0.02851780682525305,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6526785714285714,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.7151785714285714,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.6473214285714286,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6758928571428572,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6339285714285714,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.126967631285084,
+        1.1122617502492373,
+        1.1101669122132205,
+        1.1071316730951684,
+        1.115186811659358,
+        1.1096966386442337,
+        1.107698924343054,
+        1.1047267333398556,
+        1.111345212252908,
+        1.110087197510659
+      ],
+      "latency_ms_mean_fold": 1.1115269484592778
+    },
+    "S9": {
+      "n_windows_eval": 14873,
+      "split": {
+        "n_train_cues": 474,
+        "n_eval_cues": 474
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.8067510548523206,
+          "acc_paper_std": 0.004736275173131572,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.8048523206751055,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.8006329113924051,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.8037974683544303,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.8132911392405063,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.8111814345991561,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.6099156118143461,
+          "acc_paper_std": 0.025902155948468026,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.580168776371308,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 1,
+              "acc_paper": 0.6550632911392406,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 2,
+              "acc_paper": 0.5907172995780591,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 3,
+              "acc_paper": 0.6065400843881856,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            },
+            {
+              "fold": 4,
+              "acc_paper": 0.6170886075949367,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.1427793989361434,
+        1.1042811604835316,
+        1.0971387547733036,
+        1.1088388287376116,
+        1.1018966247528568,
+        1.1096775230277145,
+        1.1087839642092228,
+        1.1071273582941352,
+        1.10228993474245,
+        1.1130521414334626
+      ],
+      "latency_ms_mean_fold": 1.1095865689390432
+    }
+  },
+  "ea_pipeline_meta": {
+    "mode": "cal",
+    "input_pipeline": "noz_unified",
+    "r_ref": "identity_trace_scaled",
+    "r_src": "cal_half"
+  },
+  "macro": {
+    "task": {
+      "mean": 0.7804501859936069,
+      "std": 0.06959174746125794,
+      "per_subject": [
+        0.8353361945636625,
+        0.7356979405034325,
+        0.903422619047619,
+        0.6888135593220339,
+        0.7349070100143063,
+        0.7995098039215687,
+        0.8595454545454546,
+        0.7620933521923622,
+        0.8736842105263157,
+        0.6705574912891986,
+        0.777513966480447,
+        0.8537135278514588,
+        0.7752840909090908,
+        0.7969767441860466,
+        0.6358910891089109,
+        0.7160194174757282,
+        0.7809885931558936,
+        0.8089442815249266,
+        0.8698795180722891,
+        0.7224742268041238,
+        0.6838323353293413,
+        0.7884322678843226,
+        0.8505357142857143,
+        0.8067510548523206
+      ]
+    },
+    "three": {
+      "mean": 0.5493642985055471,
+      "std": 0.07843772724141752,
+      "per_subject": [
+        0.6713876967095851,
+        0.4910755148741418,
+        0.6683035714285714,
+        0.45983050847457624,
+        0.4932761087267525,
+        0.5522875816993464,
+        0.613030303030303,
+        0.4864214992927864,
+        0.5874060150375939,
+        0.39878048780487807,
+        0.5657821229050279,
+        0.6412466843501327,
+        0.5497159090909092,
+        0.5193023255813953,
+        0.3683168316831683,
+        0.4660194174757281,
+        0.5462610899873258,
+        0.5912023460410558,
+        0.5797590361445784,
+        0.5880412371134021,
+        0.558682634730539,
+        0.5136986301369864,
+        0.665,
+        0.6099156118143461
+      ]
+    }
+  },
+  "delta": {
+    "primary": {
+      "three_vs_B0": -0.10962693814696038,
+      "paired_anchor": "B0",
+      "paired_baseline_run": "D:\\MI\\资料\\伪在线实验\\09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger\\results\\S09-B0\\20260823_054019_shallow_B0\\summary.json",
+      "n_pass_ge_0.02": 0,
+      "wilcoxon_p": 1.1920928955078125e-07
+    },
+    "ablation_vs_B1": {
+      "three_vs_B1": 0.17437187995438164,
+      "paired_anchor": "B1",
+      "paired_baseline_run": "D:\\MI\\资料\\伪在线实验\\09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger\\results\\S09-B1\\20260823_055232_shallow_B1\\summary.json",
+      "n_pass_ge_0.02": 20,
+      "wilcoxon_p": 3.933906555175781e-06
+    },
+    "ablation_vs_B2": {
+      "three_vs_B2": -0.08100537038220401,
+      "paired_anchor": "B2",
+      "paired_baseline_run": "D:\\MI\\资料\\伪在线实验\\09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger\\results\\S09-B2\\20260823_060053_shallow_B2\\summary.json",
+      "n_pass_ge_0.02": 0,
+      "wilcoxon_p": 1.1920928955078125e-07
+    }
+  }
+}

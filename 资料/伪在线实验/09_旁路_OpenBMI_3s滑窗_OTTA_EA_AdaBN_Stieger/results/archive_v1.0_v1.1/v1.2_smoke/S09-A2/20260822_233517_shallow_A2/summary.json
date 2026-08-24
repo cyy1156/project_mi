@@ -1,0 +1,107 @@
+{
+  "arm": "A2",
+  "protocol": "stieger_otta Tw=3s hop=100ms arm=09_otta_ea_adabn_stieger_v1.2 model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) ft=shallow_stieger_ft_half_balbatch_accpaper data=stieger_3s_hop100 eval_half=causal_stream input=noz_unified ea=A:src|B:cal_whiten adabn=v1.2_predict_first_update device=5070",
+  "spec": {
+    "protocol_version": "v1.2",
+    "input_pipeline": "noz_unified",
+    "weight": "zeroshot",
+    "ea_ref": "off",
+    "adabn": 1,
+    "adabn_version": "v1.2",
+    "adabn_predict_first": 1,
+    "gate": "H0",
+    "conf_tau": null,
+    "eval_protocol": "eval_half_causal",
+    "paired_anchor": "A0",
+    "ablation_vs": [
+      "A0"
+    ],
+    "readonly_anchor": null
+  },
+  "weight_run": "D:\\MI\\code\\train_lab\\out\\5060_baseline_openbmi_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260821_190504",
+  "ft_root": null,
+  "ea_ref_meta": {
+    "source": "cache",
+    "path": "D:\\MI\\code\\train_lab\\out\\stieger_otta_3s_hop100_accpaper\\ea_ref_src_cov.npy"
+  },
+  "subjects": {
+    "S1": {
+      "n_windows_eval": 22239,
+      "split": {
+        "n_train_cues": 699,
+        "n_eval_cues": 699
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.7153075822603719,
+          "acc_paper_std": 0.0,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.7153075822603719,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5121602288984263,
+          "acc_paper_std": 0.0,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5121602288984263,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        1.8734417194920758,
+        1.9849570709213493
+      ],
+      "latency_ms_mean_fold": 1.9291993952067126
+    }
+  },
+  "ea_pipeline_meta": {
+    "mode": "off",
+    "input_pipeline": "noz_unified"
+  },
+  "macro": {
+    "task": {
+      "mean": 0.7153075822603719,
+      "std": 0.0,
+      "per_subject": [
+        0.7153075822603719
+      ]
+    },
+    "three": {
+      "mean": 0.5121602288984263,
+      "std": 0.0,
+      "per_subject": [
+        0.5121602288984263
+      ]
+    }
+  },
+  "delta": {
+    "primary": {
+      "three_vs_A0": -0.02145922746781126,
+      "paired_anchor": "A0",
+      "paired_baseline_run": "D:\\MI\\资料\\伪在线实验\\09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger\\results\\S09-A0\\20260822_233448_shallow_A0\\summary.json",
+      "n_pass_ge_0.02": 0,
+      "wilcoxon_p": 1.0
+    },
+    "ablation_vs_A0": {
+      "three_vs_A0": -0.02145922746781126,
+      "paired_anchor": "A0",
+      "paired_baseline_run": "D:\\MI\\资料\\伪在线实验\\09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger\\results\\S09-A0\\20260822_233448_shallow_A0\\summary.json",
+      "n_pass_ge_0.02": 0,
+      "wilcoxon_p": 1.0
+    }
+  }
+}
