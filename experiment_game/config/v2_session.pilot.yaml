@@ -1,0 +1,19 @@
+# v2 试点 preset（短会话 · 开发/冒烟用）
+# 用法：操作台 v2 会话启动时指定，或 session_v2.run_v2_session(config_path=...)
+# 继承 prod 默认值，仅覆盖下列字段。
+
+cal_rounds_min: 2
+cal_rounds_max: 4
+cal_round_gap_s: 90.0
+
+gate_enter_three: 0.60
+gate_min_quiz_trials: 6
+
+game_rounds: 1
+game_rounds_min: 1
+game_rounds_max: 2
+
+ft_epochs: 3
+ft_batch_size: 32
+
+# 其余时序/模型路径与 v2_session.yaml 相同；D8 计分参数见 prod yaml §judgment_* / score_*

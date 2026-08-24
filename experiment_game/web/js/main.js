@@ -1,5 +1,6 @@
 import { WsClient } from "./ws_client.js?v=20260821a";
-import { HomeDeskScene } from "./scene.js?v=20260821a";
+import { HomeDeskScene } from "./scene.js?v=20260823b";
+import { handleV2Stage, maybeDemo } from "./v2_bridge.js?v=20260823b";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
@@ -32,6 +33,14 @@ const el = {
 
 const scene = new HomeDeskScene(document.getElementById("c"));
 window.__miScene = scene;
+window.__v2scene = {
+  fixation: () => scene.v2Fixation(),
+  cue: (label) => scene.v2Cue(label),
+  calProgress: (p) => scene.v2CalProgress(p),
+  gameLevel: (n, reach) => scene.v2GameLevel(n, reach),
+  iti: () => scene.v2Iti(),
+  idle: (text) => scene.v2Idle(text),
+};
 let promptOpen = false;
 let promptAllowSubject = true;
 let sessionDone = false;
@@ -250,9 +259,13 @@ if (el.qSubmit) {
   el.qSubmit.addEventListener("click", submitQuestionnaire);
 }
 
+if (maybeDemo()) {
+  // v2 演示模式：渲染层兜底，不启动 ws
+} else {
 const client = new WsClient(
   wsUrl,
   (msg) => {
+    if (msg.type === "v2_stage") { handleV2Stage(msg.stage, msg.ctx, msg.data); return; }
     if (msg.type === "hud") {
       if (el.text) el.text.textContent = msg.text || "";
       if (el.sub) el.sub.textContent = msg.subtext || "";
@@ -405,3 +418,4 @@ function loop(now) {
   scene.update();
 }
 loop(performance.now());
+}

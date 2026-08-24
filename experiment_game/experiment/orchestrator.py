@@ -84,6 +84,7 @@ class OperatorService:
         self._busy = False
         self._worker: Optional[threading.Thread] = None
         self._acq: Optional[AcquisitionFacade] = None
+        self._last_acq_quality: Dict[str, Any] = {}
         self._events: Optional[EventLogger] = None
         self._markers: Optional[MarkerPublisher] = None
         self._paths: Optional[SessionPaths] = None
@@ -379,6 +380,7 @@ class OperatorService:
                         ),
                         "train_eligible": False,
                         "message": f"异常结束: {exc}",
+                        "acq_quality": dict(self._last_acq_quality),
                     }
                 )
         finally:
@@ -388,16 +390,22 @@ class OperatorService:
 
     def _run_session(self, cfg: Dict[str, Any]) -> None:
         # 重置桥接事件，避免上一场 ready/abort 残留
-        for name in ("ready", "continue", "abort", "gate_ok", "split_request"):
+        for name in ("ready", "continue", "abort", "gate_ok", "split_request", "v2_guidance_confirm"):
             self.bridge.clear_event(name)
         self.bridge.paused = False
         self.bridge.reject_requested = False
         self._runner = None
         self._split_waiting = False
+        self._q_context: Optional[Dict[str, Any]] = None
+        self._last_acq_quality = {}
+
+        exp = cfg["experiment"]
+        if str(exp.get("phase_mode") or "phase2_full") == "v2_session":
+            self._run_v2_session(cfg)
+            return
 
         sub = cfg["subject"]
         acq_cfg = cfg["acquisition"]
-        exp = cfg["experiment"]
         storage = cfg["storage"]
         save_root = Path(storage["save_root"])
         timing = timing_from_dict(exp.get("timing"))
@@ -511,7 +519,7 @@ class OperatorService:
                     )
                     self._acq.create()
                     self._acq.start(paths.eeg_csv)
-                    time.sleep(1.5)
+                    self._acq.health_check()
                     self._emit_acq_status("recording", "录制中")
                 except Exception as exc:  # noqa: BLE001
                     msg = str(exc)
@@ -538,13 +546,7 @@ class OperatorService:
 
             self.bridge.broadcast({"type": "session", "status": "running", "phase": "waiting_ready"})
 
-            if is_first and exp.get("open_subject_page", True):
-                # 后端再开一次，作为弹窗拦截时的兜底（与前端 window.open 并存）
-                try:
-                    webbrowser.open(self.subject_url)
-                except Exception as exc:  # noqa: BLE001
-                    print(f"[operator] 打开诱导页失败: {exc}", file=sys.stderr)
-
+            # 诱导页由操作台前端 window.open；弹窗被拦时前端会发 open_subject_page
             if is_first:
                 timeout = float(exp.get("ready_timeout_s") or 60)
                 print(f"[operator] 等待诱导页 ready（{timeout:.0f}s）…")
@@ -668,6 +670,7 @@ class OperatorService:
                         "train_eligible": bool(acq_on and verify.get("passed", False)),
                         "verify": verify,
                         "phase4": phase4_result,
+                        "acq_quality": self._acq_quality_for_saved(verify),
                         "message": "换场等待被中止/超时；已保留本段数据",
                     }
                 )
@@ -685,6 +688,7 @@ class OperatorService:
                     "train_eligible": bool(acq_on and verify.get("passed", False)),
                     "verify": verify,
                     "phase4": phase4_result,
+                    "acq_quality": self._acq_quality_for_saved(verify),
                     "segments": segment,
                     "trials_done": trials_done_total,
                     "message": "会话已结束" if acq_on else "会话已结束（无 EEG，不可训练切窗）",
@@ -695,6 +699,181 @@ class OperatorService:
                 self._emit_acq_status("stopped", "录制已停止")
             print(f"[operator] 会话目录: {paths.root}")
             return
+
+    def _run_v2_session(self, cfg: Dict[str, Any]) -> None:
+        """v2 会话模式：标定→准入→游戏；参数见 config/v2_session.yaml。"""
+        sub = cfg["subject"]
+        acq_cfg = cfg["acquisition"]
+        exp = cfg["experiment"]
+        storage = cfg["storage"]
+        save_root = Path(storage["save_root"])
+        subject_id = sub["subject_id"]
+        session_id = sub["session_id"]
+
+        paths = create_session_dir(save_root, subject_id, session_id)
+        self._paths = paths
+        (paths.root / "run_config.json").write_text(
+            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        self._maybe_persist_last_config(cfg)
+
+        use_synthetic = acq_cfg["board_mode"] != "cyton"
+        acq_on = bool(acq_cfg["enabled"])
+        meta = SessionMeta(
+            subject_id=subject_id,
+            session_id=session_id,
+            phase_mode="v2_session",
+            use_synthetic=use_synthetic if acq_on else True,
+            trial_count=0,
+            object="cup",
+            scene="home_desk",
+            notes=str(sub.get("notes") or "operator_console_v2"),
+            channel_labels=list(acq_cfg.get("channel_labels") or DEFAULT_CHANNEL_LABELS),
+        )
+        write_session_meta(paths.meta_json, meta)
+        update_session_meta(paths.meta_json, v2_config="config/v2_session.yaml")
+
+        self.bridge.broadcast(
+            {
+                "type": "session_started",
+                "session_root": str(paths.root),
+                "subject_url": self.subject_url,
+                "acq_enabled": acq_on,
+                "board_mode": acq_cfg["board_mode"],
+                "serial_port": acq_cfg.get("serial_port"),
+                "phase_mode": "v2_session",
+                "save_root": str(save_root),
+                "open_subject_page": exp.get("open_subject_page", True),
+                "segment": 1,
+            }
+        )
+
+        events = EventLogger(paths.events_jsonl)
+        self._events = events
+        markers = MarkerPublisher(enabled=acq_on and bool(acq_cfg.get("markers_lsl", True)))
+        self._markers = markers
+        runner = SessionRunner(events, markers, self.bridge, on_console=print)
+        self._runner = runner
+
+        if acq_on:
+            self._emit_acq_status("connecting", "正在启动采集…")
+            try:
+                filt = acq_cfg.get("filter") or {}
+                self._acq = AcquisitionFacade(
+                    use_synthetic=use_synthetic,
+                    serial_port=str(acq_cfg.get("serial_port") or "COM5"),
+                    channel_labels=meta.channel_labels,
+                    filter_enabled=bool(filt.get("enabled", True)),
+                    bandpass_low_hz=float(filt.get("bandpass_low_hz", 0.5)),
+                    bandpass_high_hz=float(filt.get("bandpass_high_hz", 45.0)),
+                    notch_low_hz=float(filt.get("notch_low_hz", 49.0)),
+                    notch_high_hz=float(filt.get("notch_high_hz", 51.0)),
+                )
+                self._acq.create()
+                self._acq.start(paths.eeg_csv)
+                self._acq.health_check()
+                self._emit_acq_status("recording", "录制中")
+            except Exception as exc:  # noqa: BLE001
+                msg = str(exc)
+                if not use_synthetic:
+                    msg = (
+                        f"{msg}\n真机排查：关闭 OpenBCI GUI 串口直播；"
+                        f"确认设备管理器串口为 {acq_cfg.get('serial_port')}；重新插拔 USB。"
+                    )
+                self._emit_acq_status("error", msg)
+                raise RuntimeError(msg) from exc
+        else:
+            self._emit_acq_status("idle", "本次未开启采集")
+
+        events.emit(
+            "session_start",
+            subject_id=subject_id,
+            session_id=session_id,
+            phase="v2_session",
+        )
+        markers.push(f"session_start|subject={subject_id}|session={session_id}|phase=v2_session")
+
+        self.bridge.broadcast({"type": "session", "status": "running", "phase": "v2_session"})
+
+        # 诱导页由操作台前端打开；弹窗被拦时前端发 open_subject_page
+        timeout = float(exp.get("ready_timeout_s") or 90)
+        print(f"[operator] 等待诱导页 ready（{timeout:.0f}s）…")
+        try:
+            runner.wait_browser_ready(timeout=timeout)
+        except TimeoutError as exc:
+            raise TimeoutError(
+                f"诱导页未在 {timeout:.0f}s 内 ready；请点「重新打开诱导页」并允许弹窗"
+            ) from exc
+
+        v2_path = exp.get("v2_config_path")
+        summary = runner.run_v2_session(config_path=v2_path)
+        self._runner = None
+
+        events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v2_session")
+        markers.push("session_end|phase=v2_session")
+
+        self._shutdown_session_resources()
+
+        layout = str(storage.get("save_layout") or "phase_folders")
+        try:
+            finalize_session_layout(
+                paths.root,
+                save_layout=layout,
+                save_continuous=bool(storage.get("save_continuous_master", True)),
+                save_phase_slices=bool(
+                    storage.get("save_phase_slices") or layout == "phase_folders"
+                ),
+                acq_enabled=acq_on,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
+
+        verify = {}
+        try:
+            verify = write_alignment_bundle(paths.root, acq_enabled=acq_on)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] alignment 失败: {exc}", file=sys.stderr)
+            verify = {"passed": False, "errors": [str(exc)]}
+
+        phase4_result: Optional[Dict[str, Any]] = None
+        if acq_on and bool(storage.get("auto_phase4")):
+            print("[operator] auto_phase4 v2：phase4_v2 + phase4_v2_game…")
+            try:
+                from experiment_game.offline.phase4_v2 import run as run_p4_cal
+                from experiment_game.offline.phase4_v2_game import run as run_p4_game
+
+                run_p4_cal(str(paths.root))
+                run_p4_game(str(paths.root))
+                phase4_result = {
+                    "ok": True,
+                    "message": "v2 双管道切窗完成",
+                    "epochs_dir": str(paths.root / "phase4_v2"),
+                }
+            except Exception as exc:  # noqa: BLE001
+                phase4_result = {"ok": False, "message": str(exc)}
+
+        update_session_meta(paths.meta_json, v2_summary=summary)
+
+        files = self._list_session_files(paths.root)
+        self.bridge.broadcast(
+            {
+                "type": "session_saved",
+                "root": str(paths.root),
+                "files": files,
+                "acq_enabled": acq_on,
+                "train_eligible": bool(acq_on and verify.get("passed", False)),
+                "verify": verify,
+                "phase4": phase4_result,
+                "acq_quality": self._acq_quality_for_saved(verify),
+                "v2_summary": summary,
+                "message": "v2 会话已结束" if acq_on else "v2 会话已结束（无 EEG）",
+            }
+        )
+        self.bridge.broadcast({"type": "session", "status": "done"})
+        if acq_on:
+            self._emit_acq_status("stopped", "录制已停止")
+        print(f"[operator] v2 会话目录: {paths.root}")
 
     def _wait_split_or_abort(self, timeout_s: float) -> bool:
         """换场等待：第二次 B 返回 True；中止/超时返回 False。"""
@@ -757,6 +936,14 @@ class OperatorService:
 
         threading.Thread(target=_job, name="phase4", daemon=True).start()
 
+    def _acq_quality_for_saved(self, verify: Dict[str, Any]) -> Dict[str, Any]:
+        q = verify.get("quality")
+        if isinstance(q, dict) and q:
+            return q
+        if self._last_acq_quality:
+            return dict(self._last_acq_quality)
+        return {}
+
     def _shutdown_session_resources(self) -> None:
         acq = self._acq
         self._acq = None
@@ -764,6 +951,15 @@ class OperatorService:
             try:
                 report = acq.stop()
                 print(f"[operator] 录制停止: {report.get('message')}")
+                quality = report.get("quality")
+                if isinstance(quality, dict) and quality:
+                    self._last_acq_quality = quality
+                    q_msg = quality.get("drop_rate_pct")
+                    if q_msg is not None:
+                        print(
+                            f"[operator] 录制质量: drop_rate_pct={q_msg} "
+                            f"severity={quality.get('severity', '?')}"
+                        )
             except Exception as exc:  # noqa: BLE001
                 print(f"[operator] 停止录制异常: {exc}", file=sys.stderr)
             try:

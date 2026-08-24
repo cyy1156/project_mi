@@ -1,9 +1,9 @@
 {
   "schema_version": 2,
   "subject": {
-    "subject_id": "opsmoke",
-    "session_id": "ws01",
-    "notes": "ws_smoke"
+    "subject_id": "webchk",
+    "session_id": "ui02",
+    "notes": "web_self_check"
   },
   "acquisition": {
     "enabled": true,
@@ -30,6 +30,8 @@
     "markers_lsl": true
   },
   "experiment": {
+    "phase_mode": "phase2_full",
+    "v2_config_path": null,
     "acquire_trials": 2,
     "learn_trials_per_step": 1,
     "skip_adapt": true,
@@ -37,7 +39,7 @@
     "skip_gate": true,
     "seed": 7,
     "open_subject_page": false,
-    "ready_timeout_s": 90.0,
+    "ready_timeout_s": 60.0,
     "timing": {
       "fixation_s": 2.0,
       "cue_s": 2.0,

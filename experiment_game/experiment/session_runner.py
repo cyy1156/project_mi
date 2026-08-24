@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
-from typing import Callable, List, Optional, Sequence
+from typing import Callable, Dict, List, Optional, Sequence
 
 from pylsl import local_clock
 
@@ -678,3 +678,15 @@ class SessionRunner:
             self.on_console("会话被操作者中止")
         finally:
             self._broadcast_operator_state()
+
+    def run_v2_session(self, *, config_path: Optional[str] = None) -> Dict:
+        """v2 会话模式：委托 session_v2.run_v2_session，与 run_all 并列。"""
+        from experiment_game.experiment.session_v2 import run_v2_session
+
+        return run_v2_session(
+            self.events,
+            self.markers,
+            self.bridge,
+            on_console=self.on_console,
+            config_path=config_path,
+        )
