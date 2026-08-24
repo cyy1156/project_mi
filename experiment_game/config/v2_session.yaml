@@ -47,3 +47,12 @@ ft_weight_decay: 0.0001
 # 模型与回放
 s3_task_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/task/fold0/best_task.pt"
 s3_three_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/three/fold0/best_three.pt"
+
+# 信号质量门控（空帽/断线/饱和时不计分、不进 FT）
+signal_quality_enabled: true
+signal_min_median_std_uv: 3.0
+signal_min_peak_to_peak_uv: 8.0
+signal_max_peak_uv: 1000.0
+signal_min_per_channel_std_uv: 2.0
+signal_min_active_channels: 3
+signal_max_channel_std_ratio: 20.0

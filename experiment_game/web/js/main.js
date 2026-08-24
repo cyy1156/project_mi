@@ -1,6 +1,6 @@
-import { WsClient } from "./ws_client.js?v=20260821a";
+import { WsClient } from "./ws_client.js?v=20260824prompt3";
 import { HomeDeskScene } from "./scene.js?v=20260823b";
-import { handleV2Stage, maybeDemo } from "./v2_bridge.js?v=20260823b";
+import { handleV2Stage, maybeDemo } from "./v2_bridge.js?v=20260824p2";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
@@ -21,6 +21,8 @@ const el = {
   qTitle: document.getElementById("q-title"),
   qBody: document.getElementById("q-body"),
   qSubmit: document.getElementById("q-submit"),
+  qClose: document.getElementById("q-close"),
+  qCloseBottom: document.getElementById("q-close-bottom"),
   qHint: document.getElementById("q-hint"),
   offline: document.getElementById("offline"),
   opbar: document.getElementById("opbar"),
@@ -44,7 +46,14 @@ window.__v2scene = {
 let promptOpen = false;
 let promptAllowSubject = true;
 let sessionDone = false;
+let qOpen = false;
 let paused = false;
+let lastPromptPayload = null;
+let promptContinuePending = false;
+let promptContinueSentAt = 0;
+let dismissedPromptId = null;
+/** @type {import("./ws_client.js").WsClient | null} */
+let client = null;
 
 function setHelpTip(text) {
   if (el.helpTip) el.helpTip.textContent = text;
@@ -54,9 +63,11 @@ function setStatus(s) {
   if (el.status) el.status.textContent = s;
   const offline =
     /断开|错误|重试|服务已结束|连接 WebSocket/i.test(s) && !sessionDone;
-  setOffline(offline && !promptOpen);
-  if (sessionDone) {
-    setHelpTip("本会话已结束，可关闭页面");
+  setOffline(offline && !promptOpen && !qOpen);
+  if (qOpen) {
+    setHelpTip("请完成后点击「提交问卷」");
+  } else if (sessionDone) {
+    setHelpTip("本会话已结束；操作台点「问卷」可在此页作答");
   } else if (promptOpen) {
     setHelpTip(
       promptAllowSubject
@@ -80,9 +91,24 @@ function setOffline(on) {
 
 function showPrompt(msg) {
   if (!el.prompt) return;
+  const pid = msg?.id || null;
+  if (pid && pid === dismissedPromptId) return;
+  if (
+    promptContinuePending &&
+    Date.now() - promptContinueSentAt < 4000
+  ) {
+    return;
+  }
+  lastPromptPayload = msg;
+  promptContinuePending = false;
+  dismissedPromptId = null;
+  sessionDone = false; // 新弹窗出现时允许确认（避免上场 done 卡住）
   if (el.promptTitle) el.promptTitle.textContent = msg.title || "";
   if (el.promptBody) el.promptBody.textContent = msg.body || "";
-  if (el.promptBtn) el.promptBtn.textContent = msg.button || "继续";
+  if (el.promptBtn) {
+    el.promptBtn.textContent = msg.button || "继续";
+    el.promptBtn.disabled = false;
+  }
   promptAllowSubject = msg.allow_subject !== false;
   if (el.promptHint) {
     el.promptHint.innerHTML = promptAllowSubject
@@ -106,21 +132,41 @@ function hidePrompt() {
   el.prompt.classList.add("hidden");
   el.prompt.setAttribute("aria-hidden", "true");
   promptOpen = false;
+  if (el.promptBtn) el.promptBtn.disabled = false;
 }
 
 function sendContinue(role = "subject") {
-  if (!promptOpen || sessionDone) return;
+  if (!promptOpen && !lastPromptPayload) return;
   if (role === "subject" && !promptAllowSubject) return;
+  if (!client) {
+    setStatus("未连接 — 无法确认");
+    setHelpTip("请保持操作台黑窗口打开；刷新本页或重新打开诱导页");
+    setOffline(true);
+    return;
+  }
+  if (el.promptBtn) el.promptBtn.disabled = true;
+  dismissedPromptId = lastPromptPayload?.id || dismissedPromptId;
+  promptContinuePending = true;
+  promptContinueSentAt = Date.now();
   hidePrompt();
-  client.send({ type: "continue", role });
-  // 仅准入弹窗额外发 gate_ok（与 G 键同效）
+  const ok = client.send({ type: "continue", role });
+  if (!ok) {
+    promptContinuePending = false;
+    if (lastPromptPayload) showPrompt(lastPromptPayload);
+    if (el.promptBtn) el.promptBtn.disabled = false;
+    setStatus("未连接 — 无法确认");
+    setHelpTip("请保持操作台黑窗口打开；刷新本页或重新打开诱导页");
+    setOffline(true);
+    return;
+  }
   if (!promptAllowSubject) {
     client.send({ type: "operator", action: "gate_ok" });
   }
-  setStatus("已连接");
+  setStatus("已确认，请稍候…");
 }
 
 function sendOperator(action) {
+  if (!client) return;
   client.send({ type: "operator", action });
   // 确认类操作立刻关弹窗，避免后端已前进、前端仍挡着
   if (action === "gate_ok" || action === "continue") {
@@ -149,13 +195,14 @@ function updateOpState(msg) {
 
 /* ---------------- 采集结束问卷（操作者 Q 推送） ---------------- */
 
-let qOpen = false;
-
 function showQuestionnaire(msg) {
-  if (!el.qWrap || sessionDone) return;
+  // 问卷 deliberately 在会话结束后由操作台推送；不可因 sessionDone 拦截
+  if (!el.qWrap) return;
   el.qTitle.textContent = msg.title || "问卷";
   el.qBody.innerHTML = "";
-  el.qHint.textContent = "";
+  el.qHint.textContent = msg.session_root
+    ? `提交后保存到：${msg.session_root}/99_summary/`
+    : "";
   let lastGroup = "";
   for (const q of msg.questions || []) {
     if (q.group && q.group !== lastGroup) {
@@ -216,7 +263,9 @@ function showQuestionnaire(msg) {
   el.qWrap.classList.remove("hidden");
   el.qWrap.setAttribute("aria-hidden", "false");
   qOpen = true;
+  if (el.qSubmit) el.qSubmit.disabled = false;
   setHelpTip("请完成后点击「提交问卷」");
+  setStatus("问卷进行中");
 }
 
 function hideQuestionnaire() {
@@ -224,9 +273,20 @@ function hideQuestionnaire() {
   el.qWrap.classList.add("hidden");
   el.qWrap.setAttribute("aria-hidden", "true");
   qOpen = false;
+  if (el.qSubmit) el.qSubmit.disabled = false;
+  if (sessionDone) {
+    setStatus("完成");
+    setHelpTip("本会话已结束；操作台点「问卷」可再次打开");
+  }
+}
+
+function closeQuestionnaireManual() {
+  hideQuestionnaire();
+  if (el.qHint) el.qHint.textContent = "";
 }
 
 function submitQuestionnaire() {
+  if (!qOpen) return;
   const answers = {};
   const missing = [];
   document.querySelectorAll("#q-body input[type=radio]:checked").forEach((rb) => {
@@ -250,11 +310,18 @@ function submitQuestionnaire() {
     if (el.qHint) el.qHint.textContent = `还有未作答的题目：${missing.join("、")}`;
     return;
   }
+  if (el.qSubmit) el.qSubmit.disabled = true;
+  if (el.qHint) el.qHint.textContent = "提交中…";
+  if (!client) {
+    if (el.qSubmit) el.qSubmit.disabled = false;
+    if (el.qHint) el.qHint.textContent = "未连接，无法提交";
+    return;
+  }
   client.send({ type: "questionnaire_result", form: "post", answers });
-  if (el.qHint) el.qHint.textContent = "已提交，感谢配合";
-  setTimeout(hideQuestionnaire, 800);
 }
 
+el.qClose?.addEventListener("click", closeQuestionnaireManual);
+el.qCloseBottom?.addEventListener("click", closeQuestionnaireManual);
 if (el.qSubmit) {
   el.qSubmit.addEventListener("click", submitQuestionnaire);
 }
@@ -262,7 +329,7 @@ if (el.qSubmit) {
 if (maybeDemo()) {
   // v2 演示模式：渲染层兜底，不启动 ws
 } else {
-const client = new WsClient(
+client = new WsClient(
   wsUrl,
   (msg) => {
     if (msg.type === "v2_stage") { handleV2Stage(msg.stage, msg.ctx, msg.data); return; }
@@ -283,11 +350,30 @@ const client = new WsClient(
     } else if (msg.type === "questionnaire") {
       showQuestionnaire(msg);
     } else if (msg.type === "questionnaire_ack") {
-      if (!msg.ok && msg.errors && msg.errors.length) {
-        if (el.qHint) el.qHint.textContent = `提交未通过：${msg.errors.join("；")}`;
+      if (msg.ok) {
+        if (el.qHint) {
+          el.qHint.textContent = msg.path
+            ? `已保存：${msg.path}`
+            : "已提交，感谢配合";
+        }
+        setHelpTip(msg.path ? `问卷已保存：${msg.path}` : "问卷已提交");
+        // 成功后立即关闭；若仍卡住可用右上角 × /「关闭」
+        hideQuestionnaire();
+        if (sessionDone) setStatus("完成");
+      } else {
+        if (el.qSubmit) el.qSubmit.disabled = false;
+        const errText =
+          (msg.errors && msg.errors.length)
+            ? msg.errors.join("；")
+            : (msg.message || "未知错误");
+        if (el.qHint) el.qHint.textContent = `提交未通过：${errText}`;
       }
     } else if (msg.type === "prompt") {
       showPrompt(msg);
+    } else if (msg.type === "continue_ack") {
+      promptContinuePending = false;
+      hidePrompt();
+      setStatus("已连接");
     } else if (msg.type === "operator_state") {
       updateOpState(msg);
     } else if (msg.type === "session") {
@@ -300,6 +386,9 @@ const client = new WsClient(
         setStatus("完成");
       } else if (msg.status === "error") {
         setStatus(`错误: ${msg.message || ""}`);
+      } else if (msg.status === "running") {
+        sessionDone = false;
+        if (msg.phase && el.phase) el.phase.textContent = msg.phase;
       } else if (msg.phase && el.phase) {
         el.phase.textContent = msg.phase;
       }
@@ -314,10 +403,16 @@ const client = new WsClient(
 );
 
 if (el.promptBtn) {
-  el.promptBtn.addEventListener("click", () => {
+  el.promptBtn.addEventListener("click", (ev) => {
+    ev.preventDefault();
+    ev.stopPropagation();
     // 准入弹窗不允许被试：按钮按操作者确认
     sendContinue(promptAllowSubject ? "subject" : "operator");
   });
+}
+if (el.prompt) {
+  el.prompt.style.pointerEvents = "auto";
+  el.prompt.style.zIndex = "30";
 }
 if (el.opPause) {
   el.opPause.addEventListener("click", () => sendOperator("toggle_pause"));
@@ -376,10 +471,12 @@ window.addEventListener("keydown", (ev) => {
 });
 
 window.addEventListener("focus", () => {
+  if (promptOpen || promptContinuePending) return;
   client.send({ type: "sync" });
 });
 document.addEventListener("visibilitychange", () => {
   if (document.visibilityState === "visible") {
+    if (promptOpen || promptContinuePending) return;
     client.send({ type: "sync" });
   }
 });

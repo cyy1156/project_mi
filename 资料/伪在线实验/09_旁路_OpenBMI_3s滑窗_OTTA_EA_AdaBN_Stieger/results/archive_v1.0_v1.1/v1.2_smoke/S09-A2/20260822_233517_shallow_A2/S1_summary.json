@@ -1,0 +1,42 @@
+{
+  "n_windows_eval": 22239,
+  "split": {
+    "n_train_cues": 699,
+    "n_eval_cues": 699
+  },
+  "metrics": {
+    "task": {
+      "acc_paper_mean": 0.7153075822603719,
+      "acc_paper_std": 0.0,
+      "abstain_rate_mean": 0.0,
+      "abstain_rate_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "acc_paper": 0.7153075822603719,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        }
+      ]
+    },
+    "three": {
+      "acc_paper_mean": 0.5121602288984263,
+      "acc_paper_std": 0.0,
+      "abstain_rate_mean": 0.0,
+      "abstain_rate_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "acc_paper": 0.5121602288984263,
+          "abstain_rate": 0.0,
+          "n_segments_scored": 0
+        }
+      ]
+    }
+  },
+  "latency_ms_mean": [
+    1.8734417194920758,
+    1.9849570709213493
+  ],
+  "latency_ms_mean_fold": 1.9291993952067126
+}

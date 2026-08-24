@@ -415,6 +415,7 @@ export class HomeDeskScene {
     this._stageKey = "";
     this._animProgress = 0;
     this._v2ProgressEl = null;
+    this._v2IdleEl = null;
     this._v2GameLabel = 0;
 
     this.renderer = new THREE.WebGLRenderer({
@@ -1190,12 +1191,16 @@ export class HomeDeskScene {
     this.setHudHighlight(false);
     this._v2ProgressEl?.remove();
     this._v2ProgressEl = null;
+    this._v2IdleEl?.remove();
+    this._v2IdleEl = null;
   }
 
   v2Cue(label) {
     this._v2GameLabel = Number(label) || 0;
     this._v2ProgressEl?.remove();
     this._v2ProgressEl = null;
+    this._v2IdleEl?.remove();
+    this._v2IdleEl = null;
     if (label === 1) {
       this.handSide = "left";
       this.anim = "full_grasp";
@@ -1267,11 +1272,33 @@ export class HomeDeskScene {
   v2Iti() {
     this._v2ProgressEl?.remove();
     this._v2ProgressEl = null;
+    this._v2IdleEl?.remove();
+    this._v2IdleEl = null;
     this.v2Fixation();
   }
 
-  v2Idle(_text) {
+  v2Idle(text) {
     this._v2ProgressEl?.remove();
     this._v2ProgressEl = null;
+    this._v2IdleEl?.remove();
+    this._v2IdleEl = null;
+    this.handSide = "none";
+    this.anim = "none";
+    this._resetHands();
+    this._resetCup();
+    this.setHudHighlight(false);
+    const title = typeof text === "object" && text ? (text.title || "") : String(text || "");
+    const sub = typeof text === "object" && text ? (text.sub || "") : "";
+    if (!title && !sub) return;
+    const el = document.createElement("div");
+    el.id = "v2-idle-overlay";
+    el.style.cssText =
+      "position:fixed;inset:0;display:flex;align-items:center;justify-content:center;flex-direction:column;background:#0b1220cc;color:#e8eefc;z-index:60;pointer-events:none;text-align:center;padding:24px";
+    el.innerHTML = [
+      title ? `<div style="font-size:clamp(22px,4vw,36px);font-weight:600;margin-bottom:12px">${title}</div>` : "",
+      sub ? `<div style="font-size:clamp(14px,2.2vw,20px);opacity:.75;max-width:640px;line-height:1.5">${sub}</div>` : "",
+    ].join("");
+    document.body.appendChild(el);
+    this._v2IdleEl = el;
   }
 }

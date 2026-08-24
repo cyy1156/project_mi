@@ -174,6 +174,7 @@ class TrialStateMachineV2:
         tracker = OnlineScoreTracker(ctx.label, sc)
         mi_end_early = False
         end_reason: Optional[str] = None
+        signal_bad_ticks = 0
 
         for t_rel in t.judgment_times:
             if mi_end_early:
@@ -188,6 +189,19 @@ class TrialStateMachineV2:
                 continue
             j = self.judgment_fn(mi_t, t_rel, ctx)
             if j is None:
+                continue
+            if j.get("signal_bad"):
+                signal_bad_ticks += 1
+                self._emit(
+                    "judge", ctx,
+                    extra={
+                        "t_rel": t_rel,
+                        "signal_bad": True,
+                        "signal_reason": j.get("reason"),
+                        "signal_metrics": j.get("signal_metrics"),
+                    },
+                )
+                self._notify("judge", ctx, j)
                 continue
             j = dict(j)
             tick = tracker.apply_tick(t_rel, int(j.get("pred", 0)), extra={
@@ -245,6 +259,23 @@ class TrialStateMachineV2:
                     "trial_invalid", ctx,
                     extra={"reason": verdict.invalid_reason, "score": verdict.score},
                 )
+        elif signal_bad_ticks > 0 and not ctx.rejected:
+            summary_dict = {
+                "label": ctx.label,
+                "score": 0.0,
+                "valid": False,
+                "invalid_reason": "trial_invalid_signal_quality",
+                "signal_bad_ticks": signal_bad_ticks,
+                "early_stop": False,
+            }
+            self._emit(
+                "trial_invalid", ctx,
+                extra={
+                    "reason": "trial_invalid_signal_quality",
+                    "score": 0.0,
+                    "signal_bad_ticks": signal_bad_ticks,
+                },
+            )
         self._emit("trial_end", ctx, extra={"score_v21": summary_dict})
         self._notify("trial_end", ctx, {"summary": summary_dict})
 
@@ -263,6 +294,10 @@ class TrialStateMachineV2:
         round_no: int,
         trial_id_offset: int = 0,
     ) -> List[int]:
+        stub = TrialContextV2(
+            trial_id=0, label=0, mode=mode, round_no=round_no, subblock=0,
+        )
+        self._notify("round_start", stub, {"mode": mode, "round": round_no})
         self.events.emit("round_start", phase=mode, round=round_no, payload=format_payload("round_start", phase=mode))
         self.markers.push(format_payload("round_start", phase=mode))
         per_sub = 6 if mode == "calibration" else len(labels)
@@ -275,6 +310,7 @@ class TrialStateMachineV2:
                 subblock=(i // per_sub) + 1 if mode == "calibration" else 0,
             )
             self.run_trial(ctx)
+        self._notify("round_end", stub, {"mode": mode, "round": round_no})
         self.events.emit("round_end", phase=mode, round=round_no, payload=format_payload("round_end", phase=mode))
         self.markers.push(format_payload("round_end", phase=mode))
         return list(labels)

@@ -274,12 +274,13 @@ body,
 #prompt {
   position: absolute;
   inset: 0;
-  z-index: 10;
+  z-index: 30;
   display: flex;
   align-items: center;
   justify-content: center;
   background: rgba(8, 10, 12, 0.55);
   backdrop-filter: blur(2px);
+  pointer-events: auto;
 }
 
 #prompt.hidden,
@@ -372,52 +373,44 @@ body,
 
 .q-card h1 {
   font-size: 18px;
-  margin: 0 0 12px;
+  margin: 0;
+  flex: 1;
 }
 
-.q-group {
-  font-weight: 700;
-  margin: 14px 0 6px;
-  color: #c4a574;
-  font-size: 13px;
+.q-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 12px;
 }
 
-.q-item {
-  background: rgba(255, 255, 255, 0.04);
+.q-close {
+  width: 36px;
+  height: 36px;
   border: 1px solid #2a3542;
   border-radius: 8px;
-  padding: 10px 12px;
-  margin-bottom: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: #e8eef4;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  flex-shrink: 0;
 }
 
-.q-item p {
-  margin: 0 0 8px;
-  font-size: 13px;
-  line-height: 1.5;
+.q-close:hover {
+  background: rgba(228, 87, 87, 0.25);
+  border-color: #e45757;
 }
 
-.q-options {
+.q-actions {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px 18px;
-  font-size: 13px;
-}
-
-.q-options label {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  cursor: pointer;
-}
-
-.q-anchors {
-  font-size: 11px;
-  color: #9aa7b5;
-  margin-top: 6px;
+  gap: 10px;
+  margin-top: 14px;
 }
 
 #q-submit {
-  margin-top: 14px;
   padding: 10px 22px;
   font-size: 14px;
   font-weight: 700;
@@ -426,6 +419,22 @@ body,
   border: none;
   border-radius: 8px;
   cursor: pointer;
+}
+
+.q-close-secondary {
+  padding: 10px 18px;
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  color: #9aa7b5;
+  border: 1px solid #2a3542;
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.q-close-secondary:hover {
+  color: #e8eef4;
+  border-color: #9aa7b5;
 }
 
 .q-hint {

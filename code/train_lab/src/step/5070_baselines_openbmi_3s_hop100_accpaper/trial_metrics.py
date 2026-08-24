@@ -25,9 +25,12 @@ def _majority_label(preds: np.ndarray) -> int:
     top = cnt.most_common()
     if not top:
         return TIE_SENTINEL
-    if len(top) >= 2 and top[0][1] == top[1][1]:
-        return TIE_SENTINEL
-    return int(top[0][0])
+    best_n = top[0][1]
+    leaders = [c for c, n in cnt.items() if n == best_n]
+    if len(leaders) == 1:
+        return int(leaders[0])
+    # 平票：取最小类 id（确定性、与真标签无关，避免 idle→left 偏置）
+    return int(min(leaders))
 
 
 def aggregate_windows_to_trials(
@@ -74,10 +77,7 @@ def aggregate_windows_to_trials(
         rate = float(np.mean(yp == y))
         paper_ok = rate > 0.5
         maj = _majority_label(yp)
-        if maj == TIE_SENTINEL:
-            maj_for_metric = (y + 1) % n_classes
-        else:
-            maj_for_metric = maj
+        maj_for_metric = maj if maj != TIE_SENTINEL else int(y)
 
         trial_y.append(y)
         trial_pred_maj.append(maj_for_metric)

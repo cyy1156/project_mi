@@ -1,0 +1,24 @@
+{
+  "arm": "S07-02/S07-05",
+  "protocol": "stieger_pseudo_online Tw=3s hop=100ms arm=07_openbmi_s3_stieger_reproduce_01to06 model=shallow weights=openbmi_3s_hop100_balbatch_accpaper data=stieger_3s_hop100 no_channel_remap gates=H0-H3_online_erd_laterality ft=cue_order_half full_model balbatch early_stop=acc_paper",
+  "init_run": "D:\\MI\\code\\train_lab\\out\\5060_baseline_openbmi_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260821_190504",
+  "weight_root": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153233",
+  "hparams": {
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 2,
+    "patience": 2,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "early_stop": "acc_paper",
+    "n_times_expected": 750,
+    "finetune_mode": "full_model"
+  },
+  "folds": [
+    0
+  ]
+}

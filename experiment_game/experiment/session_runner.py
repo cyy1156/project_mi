@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Callable, Dict, List, Optional, Sequence
 
 from pylsl import local_clock
@@ -22,6 +23,7 @@ from experiment_game.experiment.trial_sm import (
     build_label_schedule,
     wait_until,
 )
+from experiment_game.experiment.prompt_wait import ENV_ADAPT_BODY, wait_prompt_continue
 from experiment_game.experiment.ws_bridge import WsBridge, hand_from_label
 
 
@@ -235,47 +237,17 @@ class SessionRunner:
         *,
         allow_subject: bool = True,
     ) -> None:
-        self.bridge.clear_event("continue")
-        self.bridge.clear_event("gate_ok")
-        prompt = {
-            "type": "prompt",
-            "id": prompt_id,
-            "title": title,
-            "body": body,
-            "button": button,
-            "allow_subject": allow_subject,
-        }
-        self.bridge.broadcast(prompt)
-        self._broadcast_operator_state()
-        who = "被试或操作者" if allow_subject else "操作者（G / 代确认 / 点按钮）"
-        self.on_console(f"[prompt] {title} — 等待{who}「{button}」…")
-        if self.config.auto_continue:
-            self.bridge.clear_pending_prompt()
-            wait_until(local_clock() + 0.3)
-            return
-        deadline = local_clock() + 600.0
-        while local_clock() < deadline:
-            if self.bridge.should_abort():
-                raise SessionAbort("operator abort")
-            if self.bridge.is_paused():
-                wait_until(
-                    local_clock() + 0.2,
-                    is_paused=None,
-                    should_abort=self.bridge.should_abort,
-                )
-                continue
-            # 准入：接受 continue 或 gate_ok（G）
-            if self.bridge.wait_client_event("continue", timeout=0.4):
-                self.bridge.clear_pending_prompt()
-                self.bridge.clear_event("gate_ok")
-                return
-            if self.bridge.wait_client_event("gate_ok", timeout=0.1):
-                self.bridge.clear_pending_prompt()
-                self.bridge.clear_event("continue")
-                return
-            self.bridge.broadcast(prompt)
-        self.bridge.clear_pending_prompt()
-        raise TimeoutError(f"等待 continue 超时: {prompt_id}")
+        wait_prompt_continue(
+            self.bridge,
+            self.on_console,
+            prompt_id=prompt_id,
+            title=title,
+            body=body,
+            button=button,
+            allow_subject=allow_subject,
+            auto_continue=self.config.auto_continue,
+            after_broadcast=self._broadcast_operator_state,
+        )
 
     def wait_browser_ready(self, timeout: float = 300.0) -> None:
         self.bridge.broadcast(
@@ -313,7 +285,7 @@ class SessionRunner:
         self._wait_continue(
             "adapt_welcome",
             "环境适应",
-            "你将看到第一人称双手与桌面上的目标物。任务是：根据提示，在脑中想象用左手或右手去抓取。实验过程请尽量身体静止、不要真实动手。",
+            ENV_ADAPT_BODY,
             "我明白了",
         )
         self.bridge.broadcast(
@@ -679,7 +651,18 @@ class SessionRunner:
         finally:
             self._broadcast_operator_state()
 
-    def run_v2_session(self, *, config_path: Optional[str] = None) -> Dict:
+    def run_v2_session(
+        self,
+        *,
+        config_path: Optional[str] = None,
+        v2_overrides: Optional[Dict] = None,
+        protocol_locked: bool = True,
+        seed: Optional[int] = None,
+        skip_guidance: bool = False,
+        skip_calibration: bool = False,
+        skip_gate: bool = False,
+        skip_game: bool = False,
+    ) -> Dict:
         """v2 会话模式：委托 session_v2.run_v2_session，与 run_all 并列。"""
         from experiment_game.experiment.session_v2 import run_v2_session
 
@@ -689,4 +672,57 @@ class SessionRunner:
             self.bridge,
             on_console=self.on_console,
             config_path=config_path,
+            v2_overrides=v2_overrides,
+            protocol_locked=protocol_locked,
+            seed=seed,
+            skip_guidance=skip_guidance,
+            skip_calibration=skip_calibration,
+            skip_gate=skip_gate,
+            skip_game=skip_game,
+        )
+
+    def run_v3_session(
+        self,
+        *,
+        config_path: Optional[str] = None,
+        v3_overrides: Optional[Dict] = None,
+        protocol_locked: bool = True,
+        seed: Optional[int] = None,
+        subject_id: str = "unknown",
+    ) -> Dict:
+        """v3 探针会话：委托 session_v3.run_v3_session。"""
+        from experiment_game.experiment.session_v3 import run_v3_session
+
+        return run_v3_session(
+            self.events,
+            self.markers,
+            self.bridge,
+            on_console=self.on_console,
+            config_path=config_path,
+            v3_overrides=v3_overrides,
+            protocol_locked=protocol_locked,
+            seed=seed,
+            subject_id=subject_id,
+        )
+
+    def run_v4_session(
+        self,
+        buf,
+        *,
+        config_path: Optional[str] = None,
+        v4_overrides: Optional[Dict] = None,
+        session_dir: Optional[Path] = None,
+    ) -> Dict:
+        """v4 质量检测：委托 session_v4.run_v4_session。"""
+        from experiment_game.experiment.session_v4 import run_v4_session
+
+        return run_v4_session(
+            self.events,
+            self.markers,
+            self.bridge,
+            buf,
+            on_console=self.on_console,
+            config_path=config_path,
+            v4_overrides=v4_overrides,
+            session_dir=session_dir,
         )

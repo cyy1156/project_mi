@@ -1,0 +1,35 @@
+# v4 实验前数据质量检测（无模型）
+duration_s: 90
+eval_interval_s: 3.0
+eval_window_s: 3.0
+pass_streak_required: 5
+auto_stop_on_pass: false
+
+eeg_frame_interval_s: 0.25
+save_eeg_csv: true
+lsl_stream_name: OpenBCI_EEG
+lsl_timeout_s: 8.0
+
+channel_labels:
+  - Cz
+  - C3
+  - C4
+  - CP3
+  - FC4
+  - FC3
+  - CP4
+  - CPz
+fs: 250
+
+signal_quality_enabled: true
+signal_min_median_std_uv: 3.0
+signal_max_median_std_uv: 60.0
+signal_min_peak_to_peak_uv: 8.0
+signal_max_ptp_uv: 400.0
+signal_max_peak_uv: 1000.0
+signal_min_per_channel_std_uv: 2.0
+signal_max_per_channel_std_uv: 60.0
+signal_min_active_channels: 6
+signal_max_channel_std_ratio: 20.0
+signal_min_car_std_uv: 2.0
+signal_max_common_mode_ratio: 0.85

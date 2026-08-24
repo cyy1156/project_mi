@@ -5,9 +5,12 @@ from __future__ import annotations
 import asyncio
 import json
 import threading
+import time
 from typing import Any, Callable, Optional, Set
 
 import websockets
+
+from experiment_game.experiment.trial_sm import SessionAbort
 
 
 class WsBridge:
@@ -155,10 +158,22 @@ class WsBridge:
             ev.set()
 
     def wait_client_event(self, name: str, timeout: Optional[float] = None) -> bool:
+        """等待客户端事件；每 50ms 轮询一次，期间响应 abort。"""
         ev = self._client_events.get(name)
         if ev is None:
             raise KeyError(name)
-        return ev.wait(timeout=timeout)
+        deadline = None if timeout is None else time.monotonic() + float(timeout)
+        while True:
+            if self.should_abort():
+                raise SessionAbort("operator abort")
+            if deadline is None:
+                slice_s = 0.05
+            else:
+                slice_s = min(0.05, max(0.0, deadline - time.monotonic()))
+                if slice_s <= 0:
+                    return False
+            if ev.wait(timeout=slice_s):
+                return True
 
     def _run(self) -> None:
         loop = asyncio.new_event_loop()
@@ -202,10 +217,12 @@ class WsBridge:
                 pass
         self._clients.clear()
 
-    async def _send_pending(self, ws: Any) -> None:
+    async def _send_pending(self, ws: Any, *, skip_prompt: bool = False) -> None:
         with self._lock:
             msgs = [dict(m) for m in self._pending]
         for message in msgs:
+            if skip_prompt and message.get("type") == "prompt":
+                continue
             try:
                 await ws.send(json.dumps(message, ensure_ascii=False))
             except Exception:  # noqa: BLE001
@@ -223,7 +240,9 @@ class WsBridge:
             )
         except Exception:  # noqa: BLE001
             pass
-        await self._send_pending(ws)
+        await self._send_pending(
+            ws, skip_prompt=self._client_events["continue"].is_set()
+        )
         try:
             async for raw in ws:
                 try:
@@ -231,12 +250,23 @@ class WsBridge:
                 except json.JSONDecodeError:
                     continue
                 mtype = msg.get("type")
-                if mtype in self._client_events:
+                if mtype == "continue":
+                    self.clear_pending_prompt()
+                    self._client_events["continue"].set()
+                    try:
+                        await ws.send(
+                            json.dumps({"type": "continue_ack"}, ensure_ascii=False)
+                        )
+                    except Exception:  # noqa: BLE001
+                        pass
+                elif mtype in self._client_events:
                     self._client_events[mtype].set()
                 if mtype == "operator":
                     self._handle_operator(msg)
                 if mtype in ("ready", "sync"):
-                    await self._send_pending(ws)
+                    # continue 已确认后不再重放 prompt（避免点击后弹窗又弹回）
+                    if not self._client_events["continue"].is_set():
+                        await self._send_pending(ws)
                 if self._on_message is not None:
                     self._on_message(msg)
         finally:
@@ -255,10 +285,17 @@ class WsBridge:
         elif action == "abort":
             self._client_events["abort"].set()
             self.paused = False
+            self.broadcast({
+                "type": "session",
+                "status": "aborting",
+                "message": "正在中止会话…",
+            })
         elif action == "gate_ok":
+            self.clear_pending_prompt()
             self._client_events["gate_ok"].set()
             self._client_events["continue"].set()
         elif action == "continue":
+            self.clear_pending_prompt()
             self._client_events["continue"].set()
         if self._operator_hook is not None:
             try:

@@ -16,6 +16,7 @@ if TYPE_CHECKING:
 
 _AUG_CFG: AugConfig | None = None
 _AUG_SEED: int = 42
+_AUG_EPOCH: int = 0
 _PATCHED = False
 
 
@@ -23,6 +24,11 @@ def set_aug_config(cfg: AugConfig | None, *, seed: int = 42) -> None:
     global _AUG_CFG, _AUG_SEED
     _AUG_CFG = cfg
     _AUG_SEED = int(seed)
+
+
+def set_aug_epoch(epoch: int) -> None:
+    global _AUG_EPOCH
+    _AUG_EPOCH = int(epoch)
 
 
 def patch_baseline_modules(
@@ -70,10 +76,12 @@ def patch_baseline_modules(
 
     _orig_init = tr.PackedArrayDataset.__init__
     _orig_getitem = tr.PackedArrayDataset.__getitem__
+    _orig_train_one_fold = tr.train_one_fold
 
-    def _init(self, y_pack, *, x_path=None, aug_cfg=None, **kwargs):
-        _orig_init(self, y_pack, x_path=x_path)
-        self._aug_cfg = aug_cfg if aug_cfg is not None else _AUG_CFG
+    def _init(self, y_pack, *, x_path=None, augment: bool = False, **kwargs):
+        _orig_init(self, y_pack, x_path=x_path, augment=augment, **kwargs)
+        # 仅 train 显式 augment=True；val/test 不得回落全局增广
+        self._aug_cfg = _AUG_CFG if augment and _AUG_CFG is not None else None
 
     def _getitem(self, i: int):
         x, y = _orig_getitem(self, i)
@@ -86,16 +94,32 @@ def patch_baseline_modules(
             arr = np.asarray(x, dtype=np.float32)
         if arr.ndim == 3 and arr.shape[0] == 1:
             arr = arr[0]
+        x_pool = y_pool = None
+        if "mixup" in cfg.ops:
+            Xv = self._X_view()
+            x_pool = Xv
+            y_pool = self.y
         out = apply_domain_aug_np(
             arr,
             cfg,
             seed=_AUG_SEED,
             index=int(i),
             y=int(y.item()) if isinstance(y, torch.Tensor) else int(y),
+            epoch=_AUG_EPOCH,
+            x_pool=x_pool,
+            y_pool=y_pool,
         )
         return torch.from_numpy(out), y
 
+    def _train_one_fold(*args, **kwargs):
+        tr.AUG_EPOCH_HOOK = set_aug_epoch
+        try:
+            return _orig_train_one_fold(*args, **kwargs)
+        finally:
+            tr.AUG_EPOCH_HOOK = None
+
     tr.PackedArrayDataset.__init__ = _init  # type: ignore[method-assign]
     tr.PackedArrayDataset.__getitem__ = _getitem  # type: ignore[method-assign]
+    tr.train_one_fold = _train_one_fold  # type: ignore[method-assign]
     _PATCHED = True
     return out_tag

@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import socket
 import subprocess
 import sys
 import threading
@@ -51,6 +52,30 @@ _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WEB_ROOT = _PKG_ROOT / "web"
 
 
+def _lan_ipv4_addrs() -> List[str]:
+    """本机局域网 IPv4（排除 loopback），供监控端抄地址。"""
+    found: List[str] = []
+    try:
+        hostname = socket.gethostname()
+        for info in socket.getaddrinfo(hostname, None, socket.AF_INET):
+            ip = info[4][0]
+            if ip and not ip.startswith("127.") and ip not in found:
+                found.append(ip)
+    except OSError:
+        pass
+    if not found:
+        try:
+            s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+            s.connect(("8.8.8.8", 80))
+            ip = s.getsockname()[0]
+            s.close()
+            if ip and not ip.startswith("127."):
+                found.append(ip)
+        except OSError:
+            pass
+    return found
+
+
 def _next_session_id(session_id: str, step: int) -> str:
     """换场继续段的 session_id：ses01 → ses02（保留补零）；无数字后缀则 _s2。"""
     m = re.match(r"^(.*?)(\d+)$", session_id)
@@ -71,6 +96,7 @@ class OperatorService:
         *,
         http_port: int = 8080,
         ws_port: int = 8765,
+        serve_host: str = "127.0.0.1",
         web_root: Optional[Path] = None,
         repo_root: Optional[Path] = None,
     ) -> None:
@@ -78,8 +104,9 @@ class OperatorService:
         self.web_root = Path(web_root) if web_root else _WEB_ROOT
         self.http_port = http_port
         self.ws_port = ws_port
-        self.bridge = WsBridge(port=ws_port)
-        self.http = StaticServer(self.web_root, port=http_port)
+        self.serve_host = serve_host
+        self.bridge = WsBridge(host=serve_host, port=ws_port)
+        self.http = StaticServer(self.web_root, host=serve_host, port=http_port)
         self._lock = threading.Lock()
         self._busy = False
         self._worker: Optional[threading.Thread] = None
@@ -94,9 +121,15 @@ class OperatorService:
         self._runner: Optional[SessionRunner] = None
         self._split_waiting = False
         self._q_context: Optional[Dict[str, Any]] = None
+        # Cyton 链路监控（F3）
+        self._link_monitor_stop = threading.Event()
+        self._link_monitor_thread: Optional[threading.Thread] = None
+        self._link_prev_pushed = 0
+        self._link_firmware = ""
 
     @property
     def operator_url(self) -> str:
+        # 本机浏览器仍用 127.0.0.1；LAN 地址在 start() 额外打印
         return f"http://127.0.0.1:{self.http_port}/operator.html#setup"
 
     @property
@@ -123,7 +156,16 @@ class OperatorService:
         self._emit_acq_status("idle", "等待 Setup 开始实验")
         print(f"操作台: {self.operator_url}")
         print(f"诱导页: {self.subject_url}")
-        print(f"WebSocket: {self.bridge.url}")
+        print(f"WebSocket: ws://127.0.0.1:{self.ws_port}")
+        if self.serve_host not in ("127.0.0.1", "localhost"):
+            print(f"绑定地址: {self.serve_host}:{self.http_port} / WS :{self.ws_port}")
+            lan = _lan_ipv4_addrs()
+            if lan:
+                for ip in lan:
+                    print(f"监控端打开: http://{ip}:{self.http_port}/operator.html#setup")
+                    print(f"  （WS 自动连 ws://{ip}:{self.ws_port}）")
+            else:
+                print("未解析到局域网 IP；请在实验机执行 ipconfig 后告知监控端。")
 
     def stop(self) -> None:
         self._stop_servers.set()
@@ -248,6 +290,12 @@ class OperatorService:
                     "message": "未找到可关联的会话目录（先完成一场采集）",
                 }
             )
+            self.bridge.broadcast(
+                {
+                    "type": "operator_hint",
+                    "message": "问卷失败：未找到会话目录（先完成一场采集）",
+                }
+            )
             return
         self._q_context = {
             "session_root": str(target),
@@ -257,7 +305,17 @@ class OperatorService:
         payload = post_form_payload()
         payload["session_root"] = str(target)
         self.bridge.broadcast(payload)
-        print(f"[operator] 问卷已推送到诱导页（关联 {target.name}）")
+        save_hint = f"{target}/99_summary/questionnaire_post_*.json"
+        self.bridge.broadcast(
+            {
+                "type": "operator_hint",
+                "message": (
+                    f"问卷已推送到诱导页（请保持诱导页打开）。"
+                    f"提交后保存到：{save_hint}"
+                ),
+            }
+        )
+        print(f"[operator] 问卷已推送到诱导页（关联 {target.name}）→ {save_hint}")
 
     def _handle_questionnaire_result(self, msg: Dict[str, Any]) -> None:
         errors = validate_post_answers(msg.get("answers"))
@@ -304,6 +362,12 @@ class OperatorService:
                 "ok": True,
                 "summary": summarize_post_answers(answers),
                 "path": str(path),
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "operator_hint",
+                "message": f"问卷已保存：{path}",
             }
         )
         print(f"[operator] 问卷已保存: {path}")
@@ -400,7 +464,14 @@ class OperatorService:
         self._last_acq_quality = {}
 
         exp = cfg["experiment"]
-        if str(exp.get("phase_mode") or "phase2_full") == "v2_session":
+        phase_mode = str(exp.get("phase_mode") or "phase2_full")
+        if phase_mode == "v3_session":
+            self._run_v3_session(cfg)
+            return
+        if phase_mode == "v4_session":
+            self._run_v4_session(cfg)
+            return
+        if phase_mode == "v2_session":
             self._run_v2_session(cfg)
             return
 
@@ -504,30 +575,12 @@ class OperatorService:
             self._runner = runner
 
             if acq_on:
-                self._emit_acq_status("connecting", "正在启动采集…")
                 try:
-                    filt = acq_cfg.get("filter") or {}
-                    self._acq = AcquisitionFacade(
-                        use_synthetic=use_synthetic,
-                        serial_port=str(acq_cfg.get("serial_port") or "COM5"),
-                        channel_labels=meta.channel_labels,
-                        filter_enabled=bool(filt.get("enabled", True)),
-                        bandpass_low_hz=float(filt.get("bandpass_low_hz", 0.5)),
-                        bandpass_high_hz=float(filt.get("bandpass_high_hz", 45.0)),
-                        notch_low_hz=float(filt.get("notch_low_hz", 49.0)),
-                        notch_high_hz=float(filt.get("notch_high_hz", 51.0)),
+                    self._start_acquisition_pipeline(
+                        paths, meta, acq_cfg, use_synthetic
                     )
-                    self._acq.create()
-                    self._acq.start(paths.eeg_csv)
-                    self._acq.health_check()
-                    self._emit_acq_status("recording", "录制中")
                 except Exception as exc:  # noqa: BLE001
                     msg = str(exc)
-                    if not use_synthetic:
-                        msg = (
-                            f"{msg}\n真机排查：关闭 OpenBCI GUI 串口直播；"
-                            f"确认设备管理器串口为 {acq_cfg.get('serial_port')}；重新插拔 USB。"
-                        )
                     self._emit_acq_status("error", msg)
                     raise RuntimeError(msg) from exc
             else:
@@ -732,7 +785,40 @@ class OperatorService:
             channel_labels=list(acq_cfg.get("channel_labels") or DEFAULT_CHANNEL_LABELS),
         )
         write_session_meta(paths.meta_json, meta)
-        update_session_meta(paths.meta_json, v2_config="config/v2_session.yaml")
+
+        protocol_locked = bool(exp.get("protocol_locked", True))
+        v2_overrides = exp.get("v2_overrides") if isinstance(exp.get("v2_overrides"), dict) else {}
+        v2_path = exp.get("v2_config_path")
+        from experiment_game.experiment.v2_config import V2Config
+
+        v2_cfg = V2Config.load_yaml(v2_path) if v2_path else V2Config.load_yaml()
+        ignored = v2_cfg.apply_overrides(v2_overrides, protocol_locked=protocol_locked)
+        verr = v2_cfg.verify_errors()
+        if verr:
+            raise RuntimeError("v2 配置无效: " + "; ".join(verr))
+        from experiment_game.experiment.session_v2 import (
+            diagnose_v2_online_deps,
+            probe_v2_weights_missing,
+        )
+
+        weights_missing = probe_v2_weights_missing(v2_cfg)
+        update_session_meta(
+            paths.meta_json,
+            v2_config=str(v2_path or "config/v2_session.yaml"),
+            v2_config_effective=v2_cfg.to_dict(),
+            protocol_locked=protocol_locked,
+            v2_overrides_ignored=ignored,
+            v2_weights_missing=weights_missing,
+            # 采集前尚无 LSL，不能定论 degraded；仅权重缺失时先提示
+            v2_degraded=weights_missing,
+            seed=exp.get("seed"),
+            v2_skips={
+                "guidance": bool(exp.get("skip_v2_guidance")),
+                "calibration": bool(exp.get("skip_v2_calibration")),
+                "gate": bool(exp.get("skip_v2_gate")),
+                "game": bool(exp.get("skip_v2_game")),
+            },
+        )
 
         self.bridge.broadcast(
             {
@@ -743,9 +829,30 @@ class OperatorService:
                 "board_mode": acq_cfg["board_mode"],
                 "serial_port": acq_cfg.get("serial_port"),
                 "phase_mode": "v2_session",
+                # 采集前：仅权重缺失才标演练；LSL 就绪后由 v2_online_status 纠正
+                "degraded": weights_missing,
+                "degraded_pending_lsl": bool(acq_on) and not weights_missing,
                 "save_root": str(save_root),
                 "open_subject_page": exp.get("open_subject_page", True),
                 "segment": 1,
+                "protocol_locked": protocol_locked,
+                "timing": {
+                    "prep_s": v2_cfg.prep_s,
+                    "cue_s": v2_cfg.cue_s,
+                    "mi_s": v2_cfg.imagine_s,
+                    "iti_s": v2_cfg.iti_s,
+                    "fixation_s": v2_cfg.prep_s,
+                    "post_mi_hold_s": 0,
+                    "rest_s": 0,
+                    "transition_s": v2_cfg.iti_s,
+                },
+                "trial_total_s": v2_cfg.trial_total_s(),
+                "v2_config_effective": {
+                    "cal_rounds_min": v2_cfg.cal_rounds_min,
+                    "cal_rounds_max": v2_cfg.cal_rounds_max,
+                    "game_rounds": v2_cfg.game_rounds,
+                    "gate_enter_three": v2_cfg.gate_enter_three,
+                },
             }
         )
 
@@ -757,34 +864,52 @@ class OperatorService:
         self._runner = runner
 
         if acq_on:
-            self._emit_acq_status("connecting", "正在启动采集…")
             try:
-                filt = acq_cfg.get("filter") or {}
-                self._acq = AcquisitionFacade(
-                    use_synthetic=use_synthetic,
-                    serial_port=str(acq_cfg.get("serial_port") or "COM5"),
-                    channel_labels=meta.channel_labels,
-                    filter_enabled=bool(filt.get("enabled", True)),
-                    bandpass_low_hz=float(filt.get("bandpass_low_hz", 0.5)),
-                    bandpass_high_hz=float(filt.get("bandpass_high_hz", 45.0)),
-                    notch_low_hz=float(filt.get("notch_low_hz", 49.0)),
-                    notch_high_hz=float(filt.get("notch_high_hz", 51.0)),
+                self._start_acquisition_pipeline(
+                    paths, meta, acq_cfg, use_synthetic
                 )
-                self._acq.create()
-                self._acq.start(paths.eeg_csv)
-                self._acq.health_check()
-                self._emit_acq_status("recording", "录制中")
+                # 采集已推 LSL：再确认在线依赖（纠正 session_started 的 pending 状态）
+                deps, reasons = diagnose_v2_online_deps(
+                    v2_cfg, require_lsl=True, lsl_timeout_s=8.0, on_console=print
+                )
+                online_ok = deps is not None
+                if deps is not None and deps[1] is not None:
+                    try:
+                        deps[1].close()
+                    except Exception:
+                        pass
+                update_session_meta(
+                    paths.meta_json,
+                    v2_degraded=not online_ok,
+                    v2_online_ready=online_ok,
+                    v2_online_fail_reasons=reasons,
+                )
+                self.bridge.broadcast({
+                    "type": "v2_online_status",
+                    "degraded": not online_ok,
+                    "reason": "ok" if online_ok else "post_acq_check_failed",
+                    "message": (
+                        "在线判定与微调已启用"
+                        if online_ok
+                        else ("演练模式：" + ("；".join(reasons) if reasons else "LSL/权重不可用"))
+                    ),
+                    "reasons": reasons,
+                })
+                if not online_ok:
+                    print(f"[operator] ⚠️ 采集已开但仍无法挂在线推理：{reasons}")
             except Exception as exc:  # noqa: BLE001
                 msg = str(exc)
-                if not use_synthetic:
-                    msg = (
-                        f"{msg}\n真机排查：关闭 OpenBCI GUI 串口直播；"
-                        f"确认设备管理器串口为 {acq_cfg.get('serial_port')}；重新插拔 USB。"
-                    )
                 self._emit_acq_status("error", msg)
                 raise RuntimeError(msg) from exc
         else:
             self._emit_acq_status("idle", "本次未开启采集")
+            update_session_meta(paths.meta_json, v2_degraded=True, v2_online_ready=False)
+            self.bridge.broadcast({
+                "type": "v2_online_status",
+                "degraded": True,
+                "reason": "acq_disabled",
+                "message": "演练模式：未开启采集，无 LSL / 无在线微调",
+            })
 
         events.emit(
             "session_start",
@@ -807,7 +932,16 @@ class OperatorService:
             ) from exc
 
         v2_path = exp.get("v2_config_path")
-        summary = runner.run_v2_session(config_path=v2_path)
+        summary = runner.run_v2_session(
+            config_path=v2_path,
+            v2_overrides=v2_overrides,
+            protocol_locked=protocol_locked,
+            seed=exp.get("seed"),
+            skip_guidance=bool(exp.get("skip_v2_guidance")),
+            skip_calibration=bool(exp.get("skip_v2_calibration")),
+            skip_gate=bool(exp.get("skip_v2_gate")),
+            skip_game=bool(exp.get("skip_v2_game")),
+        )
         self._runner = None
 
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v2_session")
@@ -845,15 +979,25 @@ class OperatorService:
 
                 run_p4_cal(str(paths.root))
                 run_p4_game(str(paths.root))
+                from experiment_game.experiment.v2_acceptance import count_phase4_windows
+
                 phase4_result = {
                     "ok": True,
                     "message": "v2 双管道切窗完成",
                     "epochs_dir": str(paths.root / "phase4_v2"),
+                    "v2_pipes": count_phase4_windows(paths.root),
                 }
             except Exception as exc:  # noqa: BLE001
                 phase4_result = {"ok": False, "message": str(exc)}
 
-        update_session_meta(paths.meta_json, v2_summary=summary)
+        from experiment_game.experiment.v2_acceptance import compute_v2_acceptance
+
+        v2_accept = compute_v2_acceptance(
+            summary=summary, verify=verify, session_root=paths.root
+        )
+        update_session_meta(paths.meta_json, v2_summary=summary, v2_acceptance=v2_accept)
+        if summary.get("weak_mi"):
+            update_session_meta(paths.meta_json, weak_mi=True, gate_status="weak_mi")
 
         files = self._list_session_files(paths.root)
         self.bridge.broadcast(
@@ -867,6 +1011,8 @@ class OperatorService:
                 "phase4": phase4_result,
                 "acq_quality": self._acq_quality_for_saved(verify),
                 "v2_summary": summary,
+                "v2_acceptance": v2_accept,
+                "phase_mode": "v2_session",
                 "message": "v2 会话已结束" if acq_on else "v2 会话已结束（无 EEG）",
             }
         )
@@ -874,6 +1020,324 @@ class OperatorService:
         if acq_on:
             self._emit_acq_status("stopped", "录制已停止")
         print(f"[operator] v2 会话目录: {paths.root}")
+
+    def _run_v3_session(self, cfg: Dict[str, Any]) -> None:
+        """v3 探针会话：零样本冻结 · A/B 引导 · 拒跑无模型。"""
+        sub = cfg["subject"]
+        acq_cfg = cfg["acquisition"]
+        exp = cfg["experiment"]
+        storage = cfg["storage"]
+        save_root = Path(storage["save_root"])
+        subject_id = sub["subject_id"]
+        session_id = sub["session_id"]
+
+        paths = create_session_dir(save_root, subject_id, session_id)
+        self._paths = paths
+        (paths.root / "run_config.json").write_text(
+            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        self._maybe_persist_last_config(cfg)
+
+        use_synthetic = acq_cfg["board_mode"] != "cyton"
+        acq_on = bool(acq_cfg["enabled"])
+        if not acq_on:
+            raise RuntimeError(
+                "v3 探针会话必须开启采集（无演练模式）。请勾选采集并确认 LSL 可用。"
+            )
+
+        from experiment_game.experiment.v3_config import V3Config
+        from experiment_game.experiment.session_v3 import block_order, diagnose_v3_deps
+
+        protocol_locked = bool(exp.get("protocol_locked", True))
+        v3_overrides = exp.get("v3_overrides") if isinstance(exp.get("v3_overrides"), dict) else {}
+        v3_path = exp.get("v3_config_path")
+        v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+        ignored = v3_cfg.apply_overrides(v3_overrides, protocol_locked=protocol_locked)
+        verr = v3_cfg.verify_errors()
+        if verr:
+            raise RuntimeError("v3 配置无效: " + "; ".join(verr))
+
+        seed = exp.get("seed")
+        b_order = block_order(seed=seed, subject_id=subject_id)
+
+        meta = SessionMeta(
+            subject_id=subject_id,
+            session_id=session_id,
+            phase_mode="v3_session",
+            use_synthetic=use_synthetic,
+            trial_count=0,
+            object="cup",
+            scene="home_desk",
+            notes=str(sub.get("notes") or "operator_console_v3"),
+            channel_labels=list(acq_cfg.get("channel_labels") or DEFAULT_CHANNEL_LABELS),
+        )
+        write_session_meta(paths.meta_json, meta)
+        update_session_meta(
+            paths.meta_json,
+            v3_config=str(v3_path or "config/v3_session.yaml"),
+            v3_config_effective=v3_cfg.to_dict(),
+            protocol_locked=protocol_locked,
+            v3_overrides_ignored=ignored,
+            v3_degraded=False,
+            v3_block_order=b_order,
+            v3_seed=seed,
+        )
+
+        self.bridge.broadcast({
+            "type": "session_started",
+            "session_root": str(paths.root),
+            "subject_url": self.subject_url,
+            "acq_enabled": acq_on,
+            "board_mode": acq_cfg["board_mode"],
+            "serial_port": acq_cfg.get("serial_port"),
+            "phase_mode": "v3_session",
+            "degraded": False,
+            "save_root": str(save_root),
+            "open_subject_page": exp.get("open_subject_page", True),
+            "segment": 1,
+            "protocol_locked": protocol_locked,
+            "v3_block_order": b_order,
+            "timing": {
+                "prep_s": v3_cfg.prep_s,
+                "cue_s": v3_cfg.cue_s,
+                "mi_s": v3_cfg.imagine_s,
+                "iti_s": v3_cfg.iti_s,
+                "fixation_s": v3_cfg.prep_s,
+                "post_mi_hold_s": 0,
+                "rest_s": 0,
+                "transition_s": v3_cfg.iti_s,
+            },
+            "trial_total_s": v3_cfg.trial_total_s(),
+            "v3_config_effective": {
+                "blocks": v3_cfg.blocks,
+                "trials_per_block": v3_cfg.trials_per_block,
+                "baseline_rest_s": v3_cfg.baseline_rest_s,
+            },
+        })
+
+        events = EventLogger(paths.events_jsonl)
+        self._events = events
+        markers = MarkerPublisher(enabled=acq_on and bool(acq_cfg.get("markers_lsl", True)))
+        self._markers = markers
+        runner = SessionRunner(events, markers, self.bridge, on_console=print)
+        self._runner = runner
+
+        try:
+            self._start_acquisition_pipeline(
+                paths, meta, acq_cfg, use_synthetic
+            )
+            deps, reasons = diagnose_v3_deps(v3_cfg, lsl_timeout_s=8.0, on_console=print)
+            if deps is None:
+                msg = (
+                    "v3 自检失败（权重或 LSL 不可用）："
+                    + ("；".join(reasons) if reasons else "未知")
+                    + "\n请确认 open_operator.bat、采集已开、ckpt 路径正确。"
+                )
+                raise RuntimeError(msg)
+            if deps[1] is not None:
+                try:
+                    deps[1].close()
+                except Exception:
+                    pass
+            update_session_meta(paths.meta_json, v3_online_ready=True)
+        except Exception as exc:  # noqa: BLE001
+            msg = str(exc)
+            self._emit_acq_status("error", msg)
+            raise RuntimeError(msg) from exc
+
+        events.emit("session_start", subject_id=subject_id, session_id=session_id, phase="v3_session")
+        markers.push(f"session_start|subject={subject_id}|session={session_id}|phase=v3_session")
+        self.bridge.broadcast({"type": "session", "status": "running", "phase": "v3_session"})
+
+        timeout = float(exp.get("ready_timeout_s") or 90)
+        print(f"[operator] 等待诱导页 ready（{timeout:.0f}s）…")
+        try:
+            runner.wait_browser_ready(timeout=timeout)
+        except TimeoutError as exc:
+            raise TimeoutError(
+                f"诱导页未在 {timeout:.0f}s 内 ready；请点「重新打开诱导页」并允许弹窗"
+            ) from exc
+
+        summary = runner.run_v3_session(
+            config_path=v3_path,
+            v3_overrides=v3_overrides,
+            protocol_locked=protocol_locked,
+            seed=seed,
+            subject_id=subject_id,
+        )
+        self._runner = None
+
+        events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v3_session")
+        markers.push("session_end|phase=v3_session")
+        self._shutdown_session_resources()
+
+        layout = str(storage.get("save_layout") or "phase_folders")
+        try:
+            finalize_session_layout(
+                paths.root,
+                save_layout=layout,
+                save_continuous=bool(storage.get("save_continuous_master", True)),
+                save_phase_slices=bool(
+                    storage.get("save_phase_slices") or layout == "phase_folders"
+                ),
+                acq_enabled=acq_on,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
+
+        verify = {}
+        try:
+            verify = write_alignment_bundle(paths.root, acq_enabled=acq_on)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] alignment 失败: {exc}", file=sys.stderr)
+            verify = {"passed": False, "errors": [str(exc)]}
+
+        update_session_meta(paths.meta_json, v3_summary=summary)
+        files = self._list_session_files(paths.root)
+        self.bridge.broadcast({
+            "type": "session_saved",
+            "root": str(paths.root),
+            "files": files,
+            "acq_enabled": acq_on,
+            "train_eligible": False,
+            "verify": verify,
+            "v3_summary": summary,
+            "phase_mode": "v3_session",
+            "message": "v3 探针会话已结束",
+        })
+        self.bridge.broadcast({"type": "session", "status": "done"})
+        self._emit_acq_status("stopped", "录制已停止")
+        print(f"[operator] v3 会话目录: {paths.root}")
+
+    def _run_v4_session(self, cfg: Dict[str, Any]) -> None:
+        """v4 实验前数据质量检测：无模型、连续帽检。"""
+        sub = cfg["subject"]
+        acq_cfg = cfg["acquisition"]
+        exp = cfg["experiment"]
+        storage = cfg["storage"]
+        save_root = Path(storage["save_root"])
+        subject_id = sub["subject_id"]
+        session_id = sub["session_id"]
+
+        paths = create_session_dir(save_root, subject_id, session_id)
+        self._paths = paths
+        (paths.root / "run_config.json").write_text(
+            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        self._maybe_persist_last_config(cfg)
+
+        use_synthetic = acq_cfg["board_mode"] != "cyton"
+        acq_on = bool(acq_cfg["enabled"])
+        if not acq_on:
+            raise RuntimeError("v4 质量检测必须开启采集。")
+
+        from experiment_game.experiment.v4_config import V4Config
+        from experiment_game.experiment.session_v4 import diagnose_v4_lsl
+
+        v4_overrides = exp.get("v4_overrides") if isinstance(exp.get("v4_overrides"), dict) else {}
+        v4_path = exp.get("v4_config_path")
+        v4_cfg = V4Config.load_yaml(v4_path) if v4_path else V4Config.load_yaml()
+        ignored = v4_cfg.apply_overrides(v4_overrides)
+        verr = v4_cfg.verify_errors()
+        if verr:
+            raise RuntimeError("v4 配置无效: " + "; ".join(verr))
+
+        meta = SessionMeta(
+            subject_id=subject_id,
+            session_id=session_id,
+            phase_mode="v4_session",
+            use_synthetic=use_synthetic,
+            trial_count=0,
+            object="cup",
+            scene="home_desk",
+            notes=str(sub.get("notes") or "operator_console_v4"),
+            channel_labels=list(acq_cfg.get("channel_labels") or DEFAULT_CHANNEL_LABELS),
+        )
+        write_session_meta(paths.meta_json, meta)
+        update_session_meta(
+            paths.meta_json,
+            v4_config=str(v4_path or "config/v4_session.yaml"),
+            v4_config_effective=v4_cfg.to_dict(),
+            v4_overrides_ignored=ignored,
+        )
+
+        self.bridge.broadcast({
+            "type": "session_started",
+            "session_root": str(paths.root),
+            "subject_url": self.subject_url,
+            "acq_enabled": acq_on,
+            "board_mode": acq_cfg["board_mode"],
+            "serial_port": acq_cfg.get("serial_port"),
+            "phase_mode": "v4_session",
+            "degraded": False,
+            "save_root": str(save_root),
+            "open_subject_page": False,
+            "v4_config_effective": {
+                "duration_s": v4_cfg.duration_s,
+                "pass_streak_required": v4_cfg.pass_streak_required,
+            },
+        })
+
+        events = EventLogger(paths.events_jsonl)
+        self._events = events
+        markers = MarkerPublisher(enabled=acq_on and bool(acq_cfg.get("markers_lsl", True)))
+        self._markers = markers
+        runner = SessionRunner(events, markers, self.bridge, on_console=print)
+        self._runner = runner
+
+        buf = None
+        try:
+            self._start_acquisition_pipeline(paths, meta, acq_cfg, use_synthetic)
+            buf, reasons = diagnose_v4_lsl(v4_cfg, on_console=print)
+            if buf is None:
+                msg = "v4 LSL 挂接失败：" + ("；".join(reasons) if reasons else "未知")
+                raise RuntimeError(msg)
+            update_session_meta(paths.meta_json, v4_lsl_ready=True)
+        except Exception as exc:  # noqa: BLE001
+            msg = str(exc)
+            self._emit_acq_status("error", msg)
+            raise RuntimeError(msg) from exc
+
+        events.emit("session_start", subject_id=subject_id, session_id=session_id, phase="v4_session")
+        markers.push(f"session_start|subject={subject_id}|session={session_id}|phase=v4_session")
+        self.bridge.broadcast({"type": "session", "status": "running", "phase": "v4_session"})
+
+        try:
+            summary = runner.run_v4_session(
+                buf,
+                config_path=v4_path,
+                v4_overrides=v4_overrides,
+                session_dir=paths.root,
+            )
+        finally:
+            if buf is not None:
+                try:
+                    buf.close()
+                except Exception:
+                    pass
+        self._runner = None
+
+        events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v4_session")
+        markers.push("session_end|phase=v4_session")
+        self._shutdown_session_resources()
+
+        update_session_meta(paths.meta_json, v4_summary=summary)
+        files = self._list_session_files(paths.root)
+        self.bridge.broadcast({
+            "type": "session_saved",
+            "root": str(paths.root),
+            "files": files,
+            "acq_enabled": acq_on,
+            "train_eligible": False,
+            "v4_summary": summary,
+            "phase_mode": "v4_session",
+            "message": "v4 质量检测已结束",
+        })
+        self.bridge.broadcast({"type": "session", "status": "done"})
+        self._emit_acq_status("stopped", "录制已停止")
+        print(f"[operator] v4 会话目录: {paths.root}")
 
     def _wait_split_or_abort(self, timeout_s: float) -> bool:
         """换场等待：第二次 B 返回 True；中止/超时返回 False。"""
@@ -915,6 +1379,33 @@ class OperatorService:
 
         def _job() -> None:
             try:
+                # v2 会话：走双管道切窗
+                meta_path = Path(target) / "session.meta.json"
+                is_v2 = False
+                if meta_path.is_file():
+                    try:
+                        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+                        is_v2 = meta.get("phase_mode") == "v2_session"
+                    except Exception:
+                        pass
+                if is_v2:
+                    from experiment_game.offline.phase4_v2 import run as run_p4_cal
+                    from experiment_game.offline.phase4_v2_game import run as run_p4_game
+                    from experiment_game.experiment.v2_acceptance import count_phase4_windows
+
+                    run_p4_cal(str(target))
+                    run_p4_game(str(target))
+                    pipes = count_phase4_windows(Path(target))
+                    self.bridge.broadcast({
+                        "type": "phase4_ack",
+                        "ok": True,
+                        "message": "v2 双管道切窗完成",
+                        "epochs_dir": str(Path(target) / "phase4_v2"),
+                        "path": str(target),
+                        "v2_pipes": pipes,
+                        "summary": {"n": pipes.get("pipes", {}).get("phase4_v2", {}).get("n_windows")},
+                    })
+                    return
                 result = run_phase4_for_session(
                     Path(target),
                     repo_root=self.repo_root,
@@ -945,6 +1436,7 @@ class OperatorService:
         return {}
 
     def _shutdown_session_resources(self) -> None:
+        self._stop_link_monitor()
         acq = self._acq
         self._acq = None
         if acq is not None:
@@ -988,6 +1480,177 @@ class OperatorService:
                 )
             except Exception:  # noqa: BLE001
                 pass
+
+    def _build_acquisition_facade(
+        self,
+        acq_cfg: Dict[str, Any],
+        channel_labels: List[str],
+        use_synthetic: bool,
+    ) -> AcquisitionFacade:
+        filt = acq_cfg.get("filter") or {}
+        return AcquisitionFacade(
+            use_synthetic=use_synthetic,
+            serial_port=str(acq_cfg.get("serial_port") or "COM5"),
+            channel_labels=channel_labels,
+            filter_enabled=bool(filt.get("enabled", True)),
+            bandpass_low_hz=float(filt.get("bandpass_low_hz", 0.5)),
+            bandpass_high_hz=float(filt.get("bandpass_high_hz", 45.0)),
+            notch_low_hz=float(filt.get("notch_low_hz", 49.0)),
+            notch_high_hz=float(filt.get("notch_high_hz", 51.0)),
+        )
+
+    def _on_acq_link_event(self, event: Dict[str, Any]) -> None:
+        kind = str(event.get("kind") or "")
+        message = str(event.get("message") or kind)
+        print(f"[operator] [链路] {message}")
+        if self._markers is None:
+            return
+        if kind not in (
+            "stall",
+            "reconnect_attempt",
+            "reconnect_ok",
+            "reconnect_fail",
+            "link_dead",
+        ):
+            return
+        gap_s = event.get("gap_s", "")
+        attempt = event.get("attempt", "")
+        ok = 1 if kind == "reconnect_ok" else 0
+        self._markers.push(
+            f"acq_reconnect|kind={kind}|attempt={attempt}|gap_s={gap_s}|ok={ok}"
+        )
+
+    def _start_acquisition_pipeline(
+        self,
+        paths: SessionPaths,
+        meta: SessionMeta,
+        acq_cfg: Dict[str, Any],
+        use_synthetic: bool,
+    ) -> None:
+        """F1 预检 + 启采集 + health_check + F3 链路监控。"""
+        self._emit_acq_status("connecting", "正在检查无线链路…")
+        self._acq = self._build_acquisition_facade(
+            acq_cfg, meta.channel_labels, use_synthetic
+        )
+
+        probe = self._acq.preflight_probe()
+        if not probe.get("ok"):
+            guidance = str(probe.get("guidance") or "链路预检失败")
+            self._emit_acq_status("error", guidance)
+            raise RuntimeError(guidance)
+
+        fw = str(probe.get("firmware_line") or "")
+        if fw:
+            update_session_meta(
+                paths.meta_json,
+                cyton_firmware=fw,
+                cyton_serial_port=self._acq.serial_port,
+            )
+        self._link_firmware = fw
+
+        self._emit_acq_status("connecting", "正在启动采集…")
+        self._acq.create(on_link_event=self._on_acq_link_event)
+        self._acq.start(paths.eeg_csv)
+        self._acq.health_check()
+        self._emit_acq_status("recording", "录制中")
+        self._start_link_monitor()
+
+    def _start_link_monitor(self) -> None:
+        self._stop_link_monitor()
+        self._link_monitor_stop.clear()
+        self._link_prev_pushed = 0
+        if self._acq is not None:
+            try:
+                st = self._acq.manager.get_status()
+                self._link_prev_pushed = int(st.get("samples_pushed") or 0)
+            except Exception:  # noqa: BLE001
+                pass
+        self._link_monitor_thread = threading.Thread(
+            target=self._link_monitor_loop,
+            name="LinkMonitor",
+            daemon=True,
+        )
+        self._link_monitor_thread.start()
+
+    def _stop_link_monitor(self) -> None:
+        self._link_monitor_stop.set()
+        t = self._link_monitor_thread
+        if t is not None and t.is_alive():
+            t.join(timeout=2.0)
+        self._link_monitor_thread = None
+
+    def _short_firmware(self, raw: str) -> str:
+        try:
+            from lsl_connect.cyton_link import short_firmware_display
+
+            return short_firmware_display(raw)
+        except ImportError:
+            text = re.sub(r"[^\x20-\x7E]", "", str(raw or "")).strip()
+            if not text:
+                return ""
+            if "Firmware:" in text:
+                return text.split("Firmware:", 1)[-1].strip()[:32]
+            match = re.search(r"OpenBCI[\w .-]{0,40}", text, re.IGNORECASE)
+            return match.group(0) if match else text[:48]
+
+    def _link_monitor_loop(self) -> None:
+        interval = 2.0
+        warned_dead = False
+        while not self._link_monitor_stop.wait(interval):
+            acq = self._acq
+            if acq is None:
+                continue
+            try:
+                st = acq.manager.get_status()
+            except Exception:  # noqa: BLE001
+                continue
+
+            pushed = int(st.get("samples_pushed") or 0)
+            hz = (pushed - self._link_prev_pushed) / interval
+            self._link_prev_pushed = pushed
+
+            link_stats = st.get("link_stats") or {}
+            last_connect = st.get("last_connect") or {}
+            firmware = self._link_firmware or str(last_connect.get("firmware") or "")
+            fw_short = self._short_firmware(firmware)
+
+            last_event = link_stats.get("last_event") or {}
+            link_dead = bool(link_stats.get("link_dead"))
+            guidance = ""
+            if link_dead:
+                guidance = str(
+                    last_event.get("message")
+                    or "无线断流，自动重连失败：请检查 Cyton 电量、dongle 距离后重开机"
+                ).split("\n")[0]
+
+            self.bridge.broadcast(
+                {
+                    "type": "link_status",
+                    "port": st.get("serial_port_raw") or st.get("serial_port"),
+                    "firmware": fw_short,
+                    "state": st.get("state"),
+                    "worker_running": st.get("worker_running"),
+                    "streaming_hz": round(hz, 1),
+                    "samples_pushed": pushed,
+                    "gap_samples": int(st.get("gap_samples") or 0),
+                    "reconnect_ok": int(link_stats.get("reconnect_ok") or 0),
+                    "reconnect_fail": int(link_stats.get("reconnect_fail") or 0),
+                    "link_dead": link_dead,
+                    "last_event": last_event,
+                    "guidance": guidance,
+                }
+            )
+
+            if link_dead and not warned_dead:
+                warned_dead = True
+                self._emit_acq_status("error", guidance)
+                self.bridge.broadcast(
+                    {
+                        "type": "v3_warn",
+                        "code": "link_dead",
+                        "message": guidance,
+                    }
+                )
 
     def _emit_acq_status(self, state: str, message: str = "") -> None:
         self.bridge.broadcast(

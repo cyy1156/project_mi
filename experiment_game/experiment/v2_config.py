@@ -1,17 +1,32 @@
 """v2 会话常量：从 config/v2_session.yaml 加载，运行时可改。
 
 默认值保留 SystemConstants 兼容；YAML 优先。无 PyYAML 时回退内置默认（保证 import 不崩）。
+UI overrides 经 apply_overrides；采集冻结锁用 PROTOCOL_LOCKED_ALLOW 白名单。
 """
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import asdict, dataclass, field, fields
 from pathlib import Path
-from typing import Any, Dict, Tuple
+from typing import Any, Dict, List, Optional, Set, Tuple
 
 
 _CONFIG_PATH = Path(__file__).resolve().parents[1] / "config" / "v2_session.yaml"
 _PROD_CONFIG_PATH = _CONFIG_PATH
+
+# 采集冻结锁开启时，允许从 UI overrides 覆盖的字段（G1 任务量）；
+# G2 时序 / G3 高级常量不在白名单 → orchestrator 侧忽略。
+PROTOCOL_LOCKED_ALLOW: Set[str] = {
+    "cal_rounds_min",
+    "cal_rounds_max",
+    "game_rounds",
+    "game_rounds_min",
+    "game_rounds_max",
+    "game_trials_per_round",
+    "trials_per_round",
+    "ft_trials_per_round",
+    "quiz_trials_per_round",
+}
 
 
 def _apply_yaml_dict(cfg: "V2Config", raw: Dict[str, Any]) -> None:
@@ -92,6 +107,28 @@ class V2Config:
     s3_task_ckpt: str = ""
     s3_three_ckpt: str = ""
 
+    # 信号质量门控（空帽/断线/饱和 → 不计分、不进 FT）
+    signal_quality_enabled: bool = True
+    signal_min_median_std_uv: float = 3.0
+    signal_min_peak_to_peak_uv: float = 8.0
+    signal_max_peak_uv: float = 1000.0
+    signal_min_per_channel_std_uv: float = 2.0
+    signal_min_active_channels: int = 3
+    signal_max_channel_std_ratio: float = 20.0
+
+    def signal_quality_config(self):
+        from experiment_game.experiment.signal_quality import SignalQualityConfig
+
+        return SignalQualityConfig(
+            enabled=self.signal_quality_enabled,
+            min_median_std_uv=self.signal_min_median_std_uv,
+            min_peak_to_peak_uv=self.signal_min_peak_to_peak_uv,
+            max_peak_uv=self.signal_max_peak_uv,
+            min_per_channel_std_uv=self.signal_min_per_channel_std_uv,
+            min_active_channels=self.signal_min_active_channels,
+            max_channel_std_ratio=self.signal_max_channel_std_ratio,
+        )
+
     def scoring_config(self):
         from adapt_engine.scoring_v21 import ScoringConfig
         return ScoringConfig(
@@ -104,15 +141,93 @@ class V2Config:
             wrong_class_abort=self.wrong_class_abort,
         )
 
-    def verify(self) -> None:
+    def to_dict(self) -> Dict[str, Any]:
+        d = asdict(self)
+        d["judgment_times"] = list(self.judgment_times)
+        return d
+
+    def trial_total_s(self) -> float:
+        return float(self.prep_s + self.cue_s + self.imagine_s + self.iti_s)
+
+    def apply_overrides(
+        self,
+        overrides: Optional[Dict[str, Any]],
+        *,
+        protocol_locked: bool = False,
+    ) -> List[str]:
+        """应用 UI overrides；返回被忽略的键（冻结锁白名单外）。"""
+        ignored: List[str] = []
+        if not overrides:
+            return ignored
+        known = {f.name for f in fields(self)}
+        for k, v in overrides.items():
+            if k not in known or k == "judgment_times":
+                continue
+            if protocol_locked and k not in PROTOCOL_LOCKED_ALLOW:
+                ignored.append(k)
+                continue
+            try:
+                cur = getattr(self, k)
+                if isinstance(cur, bool):
+                    setattr(self, k, bool(v))
+                elif isinstance(cur, int) and not isinstance(cur, bool):
+                    setattr(self, k, int(v))
+                elif isinstance(cur, float):
+                    setattr(self, k, float(v))
+                elif isinstance(cur, str):
+                    setattr(self, k, str(v))
+                else:
+                    setattr(self, k, v)
+            except (TypeError, ValueError):
+                ignored.append(k)
+        return ignored
+
+    def verify_errors(self) -> List[str]:
+        """范围校验，返回错误文案（空=通过）。不抛异常。"""
+        errs: List[str] = []
         self.judgment_times = _build_judgment_times(self.judgment_step_s, self.imagine_s)
-        assert self.ft_trials_per_round + self.quiz_trials_per_round == self.trials_per_round
-        assert self.trials_per_round % self.subblock_size == 0
-        assert self.gate_min_quiz_trials >= self.quiz_trials_per_round
-        assert self.cal_rounds_min <= self.cal_rounds_max
-        assert self.game_rounds_min <= self.game_rounds <= self.game_rounds_max
-        assert self.judgment_step_s > 0
-        assert self.score_valid_min > self.score_invalid_max
+        if self.ft_trials_per_round + self.quiz_trials_per_round != self.trials_per_round:
+            errs.append(
+                f"ft({self.ft_trials_per_round})+quiz({self.quiz_trials_per_round})"
+                f" 须等于 trials_per_round({self.trials_per_round})"
+            )
+        if self.trials_per_round % self.subblock_size != 0:
+            errs.append("trials_per_round 须能被 subblock_size 整除")
+        if self.gate_min_quiz_trials < self.quiz_trials_per_round:
+            errs.append("gate_min_quiz_trials 须 ≥ quiz_trials_per_round")
+        if self.cal_rounds_min > self.cal_rounds_max:
+            errs.append("cal_rounds_min 须 ≤ cal_rounds_max")
+        if not (self.game_rounds_min <= self.game_rounds <= self.game_rounds_max):
+            errs.append(
+                f"game_rounds={self.game_rounds} 须在 "
+                f"[{self.game_rounds_min}, {self.game_rounds_max}]"
+            )
+        if self.judgment_step_s <= 0:
+            errs.append("judgment_step_s 须 > 0")
+        if self.score_valid_min <= self.score_invalid_max:
+            errs.append("score_valid_min 须 > score_invalid_max")
+        if not (0.0 < self.gate_enter_three <= 1.0):
+            errs.append("gate_enter_three 须在 (0, 1]")
+        if not (1e-6 <= self.group_lr <= 1e-2):
+            errs.append("group_lr 须在 [1e-6, 1e-2]（推荐 1e-4）")
+        if not (0.0 <= self.replay_ratio <= 0.5):
+            errs.append("replay_ratio 须在 [0, 0.5]")
+        if self.prep_s < 0.5 or self.cue_s < 0.5 or self.imagine_s < 1.0 or self.iti_s < 0.5:
+            errs.append("时序过短：prep/cue≥0.5s、MI≥1s、ITI≥0.5s")
+        if self.trial_total_s() > 20.0:
+            errs.append(f"单 trial 合计 {self.trial_total_s():.1f}s 过长（建议 ≤13s）")
+        if self.ft_epochs < 1 or self.ft_epochs > 50:
+            errs.append("ft_epochs 须在 1–50")
+        if self.ft_batch_size < 1 or self.ft_batch_size > 256:
+            errs.append("ft_batch_size 须在 1–256")
+        if self.consecutive_invalid_abort < 1:
+            errs.append("consecutive_invalid_abort 须 ≥ 1")
+        return errs
+
+    def verify(self) -> None:
+        errs = self.verify_errors()
+        if errs:
+            raise AssertionError("; ".join(errs))
 
     @classmethod
     def load_yaml(cls, path: Path | str | None = None) -> "V2Config":

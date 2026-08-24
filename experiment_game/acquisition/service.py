@@ -62,6 +62,7 @@ class AcquisitionFacade:
         self._notch_low_hz = float(notch_low_hz)
         self._notch_high_hz = float(notch_high_hz)
         self._mgr = None
+        self._link_event_callback = None
 
     @property
     def manager(self):
@@ -69,7 +70,46 @@ class AcquisitionFacade:
             raise RuntimeError("采集尚未 create；请先调用 create()")
         return self._mgr
 
-    def create(self):
+    @property
+    def serial_port(self) -> str:
+        return self._serial_port
+
+    def preflight_probe(self) -> Dict[str, Any]:
+        """会话前快速探针：2s 内判断 L1/L2 无线链路，不启动 BrainFlow。"""
+        if self._use_synthetic:
+            return {
+                "ok": True,
+                "skipped": True,
+                "serial_port": self._serial_port,
+            }
+
+        from lsl_connect.cyton_link import format_link_failure, probe_cyton_version
+
+        probe = probe_cyton_version(self._serial_port)
+        if probe.ok:
+            return {
+                "ok": True,
+                "skipped": False,
+                "serial_port": self._serial_port,
+                "firmware_line": probe.firmware_line,
+                "failure_kind": probe.failure_kind.value,
+            }
+
+        guidance = format_link_failure(
+            probe.failure_kind,
+            self._serial_port,
+            probe=probe,
+        )
+        return {
+            "ok": False,
+            "skipped": False,
+            "serial_port": self._serial_port,
+            "failure_kind": probe.failure_kind.value,
+            "firmware_line": probe.firmware_line,
+            "guidance": guidance,
+        }
+
+    def create(self, on_link_event=None):
         from lsl_connect.board import BoardConfig
         from lsl_connect.lsl_streams import LslStreamConfig
         from lsl_connect.preprocessing import PreprocessConfig
@@ -102,7 +142,8 @@ class AcquisitionFacade:
             acquisition=AcquisitionConfig(),
             recording=RecordingConfig(),
         )
-        self._mgr = ServiceManager(cfg)
+        self._link_event_callback = on_link_event
+        self._mgr = ServiceManager(cfg, link_event_callback=on_link_event)
         ok, msg = self._mgr.set_eeg_channel_labels(",".join(self._labels))
         if not ok:
             raise RuntimeError(f"设置通道标签失败: {msg}")
@@ -137,12 +178,17 @@ class AcquisitionFacade:
     def health_check(
         self,
         *,
-        wait_s: float = 1.5,
-        min_samples: int = 200,
+        wait_s: float = 2.0,
+        min_samples: int = 150,
         lsl_stream_name: str = "OpenBCI_EEG",
         resolve_lsl: bool = True,
+        warmup_s: float = 1.0,
+        retries: int = 3,
     ) -> Dict[str, Any]:
-        """启动后断言采集 RUNNING、样本推送增长、LSL 流可 resolve。"""
+        """启动后断言采集 RUNNING、样本推送增长、LSL 流可 resolve。
+
+        Cyton 真机常需 1–2s 预热；串口已开但板子未推数时会重试若干次。
+        """
         from lsl_connect.state import ServiceState
 
         mgr = self.manager
@@ -159,14 +205,49 @@ class AcquisitionFacade:
                 f"采集未进入 RUNNING（state={state}）{hint}"
             )
 
-        s0 = int(st.get("samples_pushed") or 0)
-        time.sleep(wait_s)
-        st2 = mgr.get_status()
-        s1 = int(st2.get("samples_pushed") or 0)
-        delta = s1 - s0
+        if warmup_s > 0:
+            time.sleep(float(warmup_s))
+
+        delta = 0
+        s1 = int(st.get("samples_pushed") or 0)
+        attempts = max(1, int(retries))
+        for i in range(attempts):
+            st0 = mgr.get_status()
+            if st0.get("state") != ServiceState.RUNNING.value:
+                raise RuntimeError(
+                    f"采集在健康检查中退出 RUNNING（state={st0.get('state')}）；"
+                    f"串口={self._serial_port}。请确认 Cyton 已开机、dongle 配对，"
+                    "并关闭 OpenBCI GUI Serial 直播后重试"
+                )
+            worker_alive = bool(st0.get("worker_running"))
+            s0 = int(st0.get("samples_pushed") or 0)
+            time.sleep(float(wait_s))
+            st2 = mgr.get_status()
+            s1 = int(st2.get("samples_pushed") or 0)
+            delta = s1 - s0
+            if delta >= min_samples:
+                break
+            if i + 1 < attempts:
+                print(
+                    f"[operator] 样本仍不足（+{delta}/{min_samples}），"
+                    f"第 {i + 2}/{attempts} 次重试…"
+                    f"{'' if worker_alive else '（采集线程未运行）'}"
+                )
+
         if delta < min_samples:
+            hint = ""
+            if not self._use_synthetic:
+                hint = (
+                    f"\n真机排查（串口 {self._serial_port} 往往已打开，但板卡未推数）：\n"
+                    "  1) Cyton 主板开关打开、电池有电，LED 正常闪\n"
+                    "  2) USB dongle 插牢；与板卡距离近、少遮挡\n"
+                    "  3) 关闭 OpenBCI GUI 的 CYTON Serial 直播（会抢 COM/干扰）\n"
+                    "  4) 设备管理器确认仍是该 COM；拔插 USB 后等 5s 再开会话\n"
+                    "  5) 勿同时开两个操作台/采集进程"
+                )
             raise RuntimeError(
-                f"采集推送样本不足：{wait_s:.1f}s 内仅增长 {delta}（需 ≥ {min_samples}）"
+                f"采集推送样本不足：累计 {attempts}×{wait_s:.1f}s 后增长 {delta}"
+                f"（需 ≥ {min_samples}）{hint}"
             )
 
         lsl_ok = True
@@ -175,12 +256,12 @@ class AcquisitionFacade:
             try:
                 from pylsl import resolve_byprop
 
-                streams = resolve_byprop("name", lsl_stream_name, timeout=2.0)
+                streams = resolve_byprop("name", lsl_stream_name, timeout=3.0)
                 lsl_ok = bool(streams)
                 lsl_detail = f"resolved={len(streams)}"
                 if not lsl_ok:
                     raise RuntimeError(
-                        f"LSL 流 {lsl_stream_name} 未 resolve（timeout=2s）"
+                        f"LSL 流 {lsl_stream_name} 未 resolve（timeout=3s）"
                     )
             except RuntimeError:
                 raise
@@ -192,6 +273,8 @@ class AcquisitionFacade:
             "samples_pushed": s1,
             "delta_samples": delta,
             "wait_s": wait_s,
+            "warmup_s": warmup_s,
+            "retries": attempts,
             "lsl_stream": lsl_stream_name,
             "lsl_ok": lsl_ok,
             "lsl_detail": lsl_detail,

@@ -1,0 +1,78 @@
+{
+  "arm": "B3",
+  "protocol": "stieger_otta Tw=3s hop=100ms arm=09_otta_ea_adabn_stieger model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) ft=shallow_stieger_ft_half_balbatch_accpaper data=stieger_3s_hop100 eval_half=causal_stream ea=ref_src|ref_cal adabn=bn_running_only conf_tau=optional device=5070",
+  "spec": {
+    "weight": "ft",
+    "ea_ref": "src",
+    "adabn": 1,
+    "gate": "H0",
+    "conf_tau": null
+  },
+  "weight_run": null,
+  "ft_root": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300",
+  "ea_ref_meta": {
+    "source": "cache",
+    "path": "D:\\MI\\code\\train_lab\\out\\stieger_otta_3s_hop100_accpaper\\ea_ref_src_cov.npy"
+  },
+  "subjects": {
+    "S1": {
+      "n_windows_eval": 22239,
+      "split": {
+        "n_train_cues": 699,
+        "n_eval_cues": 699
+      },
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.721030042918455,
+          "acc_paper_std": 0.0,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.721030042918455,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.40701001430615164,
+          "acc_paper_std": 0.0,
+          "abstain_rate_mean": 0.0,
+          "abstain_rate_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.40701001430615164,
+              "abstain_rate": 0.0,
+              "n_segments_scored": 0
+            }
+          ]
+        }
+      },
+      "latency_ms_mean": [
+        0.8037489949800016,
+        0.880617491797684
+      ],
+      "latency_ms_mean_fold": 0.8421832433888428
+    }
+  },
+  "macro": {
+    "task": {
+      "mean": 0.721030042918455,
+      "std": 0.0,
+      "per_subject": [
+        0.721030042918455
+      ]
+    },
+    "three": {
+      "mean": 0.40701001430615164,
+      "std": 0.0,
+      "per_subject": [
+        0.40701001430615164
+      ]
+    }
+  },
+  "delta": {}
+}

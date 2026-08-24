@@ -1,0 +1,16 @@
+{
+  "arm": "C1",
+  "protocol": "stieger_otta Tw=3s hop=100ms arm=09_otta_ea_adabn_stieger model=shallow weights=openbmi_3s_hop100_balbatch_accpaper(5060) ft=shallow_stieger_ft_half_balbatch_accpaper data=stieger_3s_hop100 eval_half=causal_stream ea=ref_src|ref_cal adabn=bn_running_only conf_tau=optional device=5070",
+  "ft_root": "D:\\MI\\code\\train_lab\\out\\stieger_ft_3s_hop100_accpaper\\shallow_stieger_ft_half_balbatch_accpaper\\20260822_153300",
+  "ea_ref_meta": {
+    "source": "cache",
+    "path": "D:\\MI\\code\\train_lab\\out\\stieger_otta_3s_hop100_accpaper\\ea_ref_src_cov.npy"
+  },
+  "c1_hparams": {
+    "conf_tau": 0.6,
+    "min_conf_frac": 0.5,
+    "lr": 0.0001,
+    "base": "B3"
+  },
+  "subjects": {}
+}

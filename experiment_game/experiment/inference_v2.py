@@ -19,7 +19,13 @@ if _PREPROCESS_ROOT not in sys.path:
 
 FS = 250.0
 N_TIMES_3S = 750
-CHANNEL_ORDER = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]  # 冻结序（索引 0–7）
+
+from experiment_game.experiment.channel_layout import (  # noqa: E402
+    FROZEN_CHANNEL_ORDER,
+    reorder_device_to_frozen,
+)
+
+CHANNEL_ORDER = FROZEN_CHANNEL_ORDER  # 冻结序（索引 0–7）
 
 
 class RingBuffer:
@@ -37,12 +43,12 @@ class RingBuffer:
         self._stop = False
 
     # —— 数据源 ——
-    def attach_lsl(self, stream_name: str = "OpenBCI_EEG") -> None:
+    def attach_lsl(self, stream_name: str = "OpenBCI_EEG", *, timeout_s: float = 5.0) -> None:
         from pylsl import StreamInlet, resolve_byprop
 
-        streams = resolve_byprop("name", stream_name, timeout=5.0)
+        streams = resolve_byprop("name", stream_name, timeout=float(timeout_s))
         if not streams:
-            raise RuntimeError(f"未找到 LSL 流 {stream_name}")
+            raise RuntimeError(f"未找到 LSL 流 {stream_name}（timeout={timeout_s}s）")
         self._inlet = StreamInlet(streams[0], max_buflen=int(self.cap / 80) + 2)
         self._thread = threading.Thread(target=self._pull_loop, daemon=True)
         self._thread.start()
@@ -51,7 +57,9 @@ class RingBuffer:
         while not self._stop:
             sample, ts = self._inlet.pull_sample(timeout=0.1)
             if sample is not None:
-                self.push(np.asarray(sample, dtype=np.float64)[: self.n_ch])
+                row = np.asarray(sample, dtype=np.float64)[: self.n_ch]
+                row = reorder_device_to_frozen(row.reshape(1, -1))[0]
+                self.push(row)
 
     def push(self, sample_tc: np.ndarray) -> None:
         with self._lock:
@@ -86,6 +94,14 @@ class RingBuffer:
                 return self._buf[a:b].copy()
             return np.concatenate([self._buf[a:], self._buf[:b]], axis=0)
 
+    def snapshot_tail(self, seg_s: float, t_now_lsl: Optional[float] = None) -> Optional[np.ndarray]:
+        """取缓冲尾 seg_s 秒原始段 (T,8)。"""
+        from pylsl import local_clock
+
+        now = local_clock() if t_now_lsl is None else t_now_lsl
+        n = max(1, int(round(seg_s * self.fs)))
+        return self.window_ending_at(now, n, t_now_lsl=now)
+
     def close(self) -> None:
         self._stop = True
         if self._thread is not None:
@@ -109,37 +125,65 @@ class OnlinePreprocessor:
         self.buffer_s = buffer_s
         self.l_freq, self.h_freq = l_freq, h_freq
 
-    def process(self, raw_tail_tc: np.ndarray) -> np.ndarray:
+    def process(self, raw_tail_tc: np.ndarray, *, zscore: bool = True) -> np.ndarray:
         """raw_tail_tc: (T,8) 原始尾段（T ≥ 750）→ (8,750) 模型输入。"""
         x = self._car(np.asarray(raw_tail_tc, dtype=np.float64))
         x = self._filt(x, FS, l_freq=self.l_freq, h_freq=self.h_freq)
         win_tc = x[-N_TIMES_3S:]
-        return self._zs(win_tc).T.astype(np.float32)  # (8,750)
+        if zscore:
+            return self._zs(win_tc).T.astype(np.float32)  # (8,750)
+        return win_tc.astype(np.float32)
+
+    def process_segment(self, raw_tc: np.ndarray) -> np.ndarray:
+        """整段 CAR+notch+bp(8–30)，不做 z-score；供 v3 特征分析。"""
+        x = self._car(np.asarray(raw_tc, dtype=np.float64))
+        return self._filt(x, FS, l_freq=self.l_freq, h_freq=self.h_freq)
 
 
 class InferenceService:
-    """判定服务：judge(t_cue_lsl, t_rel) → {"pred","p_max","gated"}。
+    """判定服务：judge(t_cue_lsl, t_rel) → {"pred","p_max","gated"} 或 signal_bad。
 
     registry: adapt_engine.ModelRegistry；readout 默认串行门控。
     """
 
-    def __init__(self, buffer: RingBuffer, registry, pre: OnlinePreprocessor, *,
-                 task_p_on: float = 0.6, tail_s: float = 12.0):
+    def __init__(
+        self,
+        buffer: RingBuffer,
+        registry,
+        pre: OnlinePreprocessor,
+        *,
+        task_p_on: float = 0.6,
+        tail_s: float = 12.0,
+        signal_quality=None,
+    ):
         self.buffer = buffer
         self.registry = registry
         self.pre = pre
         self.task_p_on = task_p_on
         self.tail_s = tail_s
+        self.signal_quality = signal_quality
 
     def judge(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
         from pylsl import local_clock
 
         from adapt_engine.readout import serial_gating
+        from experiment_game.experiment.signal_quality import assess_eeg_window
 
         t_end = t_cue_lsl + t_rel
         win_tc = self.buffer.window_ending_at(t_end, N_TIMES_3S, t_now_lsl=local_clock())
         if win_tc is None:
             return None
+
+        if self.signal_quality is not None and self.signal_quality.enabled:
+            qa = assess_eeg_window(win_tc, self.signal_quality)
+            if not qa["ok"]:
+                return {
+                    "signal_bad": True,
+                    "reason": qa["reason"],
+                    "signal_metrics": qa.get("metrics") or {},
+                    "t_rel": t_rel,
+                }
+
         tail_n = int(self.tail_s * FS)
         tail = self.buffer.window_ending_at(t_end, tail_n, t_now_lsl=local_clock())
         if tail is None:
@@ -150,6 +194,14 @@ class InferenceService:
         p_three = heads["p_three"]
         out = serial_gating(p_task, p_three, task_p_on=self.task_p_on)
         out["window"] = window
+        out["p_three"] = [float(x) for x in np.asarray(p_three).ravel()]
+        out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
+        pred = int(out["pred"])
+        if pred < len(out["p_three"]):
+            others = [out["p_three"][i] for i in range(len(out["p_three"])) if i != pred]
+            out["margin"] = float(out["p_three"][pred] - max(others or [0.0]))
+        else:
+            out["margin"] = float(out.get("p_max", 0.0))
         return out
 
 

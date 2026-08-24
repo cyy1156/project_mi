@@ -1,0 +1,51 @@
+{
+  "arm": "S10-01",
+  "tw": "3s",
+  "protocol": "stieger_pseudo_online Tw=3s hop=100ms arm=10_unified_repro_S10-01 model=shallow weights=5060_openbmi_3s data=stieger_3s_hop100 device=5060",
+  "weight_run": "D:\\MI\\code\\train_lab\\out\\5060_baseline_openbmi_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260821_190504",
+  "n_times": 750,
+  "data_tag": "stieger_3s_hop100",
+  "subjects": {
+    "S1": {
+      "n_windows": 44445,
+      "metrics": {
+        "task": {
+          "acc_paper_mean": 0.6806151645207439,
+          "acc_paper_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.6806151645207439
+            }
+          ]
+        },
+        "three": {
+          "acc_paper_mean": 0.5658082975679543,
+          "acc_paper_std": 0.0,
+          "folds": [
+            {
+              "fold": 0,
+              "acc_paper": 0.5658082975679543
+            }
+          ]
+        }
+      }
+    }
+  },
+  "macro": {
+    "task": {
+      "mean": 0.6806151645207439,
+      "std": 0.0,
+      "per_subject": [
+        0.6806151645207439
+      ]
+    },
+    "three": {
+      "mean": 0.5658082975679543,
+      "std": 0.0,
+      "per_subject": [
+        0.5658082975679543
+      ]
+    }
+  }
+}

@@ -1,4 +1,4 @@
-﻿"""Task + Three 五折：Val Acc_paper 早停；train batch balance；无 RAP；仅 OpenBMI。"""
+"""Task + Three 五折：Val Acc_paper 早停；train batch balance；无 RAP；仅 OpenBMI。"""
 
 from __future__ import annotations
 
@@ -53,6 +53,9 @@ from perf_loader import apply_runtime_threads, configure_cuda_backends, make_loa
 
 BuildFn = Callable[..., nn.Module]
 
+# 方案25 域增广：patch_baseline 在训练循环注入 epoch（baseline 默认 no-op）
+AUG_EPOCH_HOOK: Callable[[int], None] | None = None
+
 
 class IndexArrayDataset(Dataset):
     """按全局下标从 mmap/数组取窗，避免 X[mask] 整段物化。"""
@@ -104,10 +107,18 @@ class IndexArrayDataset(Dataset):
 class PackedArrayDataset(Dataset):
     """折内打包窗：用路径 mmap，便于 Windows 多进程 DataLoader。"""
 
-    def __init__(self, y_pack: np.ndarray, *, x_path: str | Path):
+    def __init__(
+        self,
+        y_pack: np.ndarray,
+        *,
+        x_path: str | Path,
+        augment: bool = False,
+        **kwargs,
+    ):
         self.x_path = str(x_path)
         self._X = None
         self.y = np.asarray(y_pack, dtype=np.int64)
+        self.augment = bool(augment)
         n = int(np.load(self.x_path, mmap_mode="r").shape[0])
         assert len(self.y) == n
 
@@ -128,6 +139,44 @@ class PackedArrayDataset(Dataset):
 
 # 16GB 机：减小 fancy-index 临时块，降低 pack 峰值
 _GATHER_CHUNK = 256
+_PACK_VERSION = 2
+_PACK_DTYPE = np.float32
+
+
+def _pack_meta_path(pack_path: Path) -> Path:
+    return pack_path.with_suffix(pack_path.suffix + ".meta.json")
+
+
+def _indices_fingerprint(indices: np.ndarray, t: int, dtype) -> dict:
+    import hashlib
+
+    idx = np.asarray(indices, dtype=np.int64).reshape(-1)
+    return {
+        "pack_version": _PACK_VERSION,
+        "n": int(len(idx)),
+        "t": int(t),
+        "dtype": str(np.dtype(dtype).name),
+        "indices_hash": hashlib.sha256(idx.tobytes()).hexdigest()[:16],
+    }
+
+
+def _pack_meta_matches(meta_path: Path, indices: np.ndarray, t: int, dtype) -> bool:
+    if not meta_path.is_file():
+        return False
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        want = _indices_fingerprint(indices, t, dtype)
+        return all(meta.get(k) == want[k] for k in want)
+    except Exception:
+        return False
+
+
+def _write_pack_meta(pack_path: Path, indices: np.ndarray, t: int, dtype) -> None:
+    meta_path = _pack_meta_path(pack_path)
+    meta_path.write_text(
+        json.dumps(_indices_fingerprint(indices, t, dtype), indent=2),
+        encoding="utf-8",
+    )
 
 
 def _squeeze_time_windows(block: np.ndarray) -> np.ndarray:
@@ -145,11 +194,11 @@ def materialize_time_pack(
     indices: np.ndarray,
     out_path: Path,
     *,
-    dtype=np.float16,
+    dtype=_PACK_DTYPE,
 ) -> Path:
     """
     将全局下标对应的时域窗顺序写入磁盘 memmap，返回路径（供多进程 Dataset 打开）。
-    若同路径已有形状/dtype 匹配的文件则直接复用（避免 OOM 重试时重复 pack）。
+    若同路径已有形状/dtype/indices 指纹匹配的文件则直接复用。
     """
     import gc
 
@@ -157,7 +206,8 @@ def materialize_time_pack(
     n = int(len(indices))
     t = int(X_src.shape[-1])
     out_path.parent.mkdir(parents=True, exist_ok=True)
-    if out_path.is_file():
+    meta_path = _pack_meta_path(out_path)
+    if out_path.is_file() and _pack_meta_matches(meta_path, indices, t, dtype):
         try:
             cached = np.load(out_path, mmap_mode="r")
             if tuple(cached.shape) == (n, 8, t) and cached.dtype == np.dtype(dtype):
@@ -165,10 +215,16 @@ def materialize_time_pack(
                 return out_path
         except Exception:
             pass
+    if out_path.is_file():
         try:
             out_path.unlink()
         except OSError:
             pass
+        try:
+            meta_path.unlink(missing_ok=True)
+        except TypeError:
+            if meta_path.is_file():
+                meta_path.unlink()
     fp = np.lib.format.open_memmap(
         out_path, mode="w+", dtype=dtype, shape=(n, 8, t)
     )
@@ -183,6 +239,7 @@ def materialize_time_pack(
             gc.collect()
     fp.flush()
     del fp
+    _write_pack_meta(out_path, indices, t, dtype)
     gc.collect()
     return out_path
 
@@ -431,11 +488,19 @@ def train_one_fold(
             try:
                 cached_tr = np.load(pack_tr_path, mmap_mode="r")
                 cached_va = np.load(pack_va_path, mmap_mode="r")
+                meta_tr_ok = _pack_meta_matches(
+                    _pack_meta_path(pack_tr_path), tr_idx, int(cached_tr.shape[-1]), _PACK_DTYPE
+                )
+                meta_va_ok = _pack_meta_matches(
+                    _pack_meta_path(pack_va_path), va_idx, int(cached_va.shape[-1]), _PACK_DTYPE
+                )
                 if (
                     tuple(cached_tr.shape) == (len(tr_idx), 8, cached_tr.shape[-1])
                     and tuple(cached_va.shape) == (len(va_idx), 8, cached_tr.shape[-1])
-                    and cached_tr.dtype == np.dtype(np.float16)
-                    and cached_va.dtype == np.dtype(np.float16)
+                    and cached_tr.dtype == np.dtype(_PACK_DTYPE)
+                    and cached_va.dtype == np.dtype(_PACK_DTYPE)
+                    and meta_tr_ok
+                    and meta_va_ok
                 ):
                     reuse_packs = True
                     n_times = int(cached_tr.shape[-1])
@@ -495,7 +560,7 @@ def train_one_fold(
         elif reuse_packs:
             assert pack_tr_path is not None and pack_va_path is not None
             cache_paths.extend([pack_tr_path, pack_va_path])
-            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path)
+            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path, augment=True)
             X = None  # noqa: F841
             if src_box is not None:
                 src_box.clear()
@@ -506,14 +571,14 @@ def train_one_fold(
             pack_tr_path = fold_dir / "_cache_train_X.npy"
             pack_va_path = fold_dir / "_cache_val_X.npy"
             print(
-                f"  packing train/val windows → float16 "
+                f"  packing train/val windows → float32 "
                 f"(n={len(tr_idx)}/{len(va_idx)}) …",
                 flush=True,
             )
             pack_tr_path = materialize_time_pack(X, tr_idx, pack_tr_path)
             pack_va_path = materialize_time_pack(X, va_idx, pack_va_path)
             cache_paths.extend([pack_tr_path, pack_va_path])
-            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path)
+            train_ds = PackedArrayDataset(y_tr, x_path=pack_tr_path, augment=True)
             print(
                 f"  pack done train={pack_tr_path.name} val={pack_va_path.name}",
                 flush=True,
@@ -562,6 +627,8 @@ def train_one_fold(
         bad, ep = 0, 0
 
         for ep in range(1, hp.max_epochs + 1):
+            if AUG_EPOCH_HOOK is not None:
+                AUG_EPOCH_HOOK(ep)
             tr = run_epoch(
                 model,
                 train_loader,
