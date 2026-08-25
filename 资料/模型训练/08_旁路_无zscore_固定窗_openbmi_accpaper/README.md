@@ -6,7 +6,7 @@ OpenBMI · Cue **[2,4) s** Task + Cue 前 2 s Rest · **无滑窗** · **无 z-s
 | 文档 | 说明 |
 |------|------|
 | [方案.md](方案.md) | 冻结协议（含新建数据管道） |
-| [总结/结果登记表.md](./总结/结果登记表.md) | 待填 |
+| [总结/结果登记表.md](./总结/结果登记表.md) | **已登记**（仅 shallow 完整；其余未齐） |
 
 几何参考（BCI2a，非本臂数据）：[02_固定窗_bci2a_cue2to4s](../02_固定窗_bci2a_cue2to4s/)  
 训练包：`code/train_lab/src/step/5060_baselines_openbmi_2s_fixed_noz_accpaper/`
