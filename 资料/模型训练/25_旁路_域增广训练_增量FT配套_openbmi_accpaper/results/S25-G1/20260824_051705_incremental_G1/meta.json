@@ -1,0 +1,28 @@
+{
+  "arm": "G1",
+  "protocol": "scheme25 aug+incremental_ft Tw=3s hop=100ms openbmi_train=stieger_eval noz_unified device=5070",
+  "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+  "hparams": {
+    "n_folds": 5,
+    "val_ratio": 0.2,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "replay_ratio": 0.0,
+    "aug": null
+  },
+  "k_list": [
+    0,
+    10,
+    20,
+    40,
+    80,
+    -1
+  ],
+  "anchor_09_A0_three": 0.4119
+}

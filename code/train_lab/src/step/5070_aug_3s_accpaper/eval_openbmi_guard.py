@@ -12,7 +12,7 @@ HERE = Path(__file__).resolve().parent
 if str(HERE) not in sys.path:
     sys.path.insert(0, str(HERE))
 
-from s25_config import ANCHOR_S3_OPENBMI_THREE, RESULTS_ROOT
+from s25_config import RESULTS_ROOT, anchor_s3_openbmi_three
 from s25_weights import resolve_g1_run
 
 
@@ -32,11 +32,12 @@ def main() -> None:
     run_dir = resolve_g1_run(
         run_stamp=args.run_stamp or None, train_device=args.train_device
     )
+    anchor_three = anchor_s3_openbmi_three(args.train_device)
     three = _read_head_summary(run_dir, "three")
     task = _read_head_summary(run_dir, "task")
 
     test_three = float(three["test_acc_paper_mean"])
-    delta = test_three - ANCHOR_S3_OPENBMI_THREE
+    delta = test_three - anchor_three
     pass_guard = delta >= -0.01
 
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -45,7 +46,8 @@ def main() -> None:
 
     report = {
         "weight_run": str(run_dir),
-        "anchor_S3_three": ANCHOR_S3_OPENBMI_THREE,
+        "anchor_S3_three": anchor_three,
+        "train_device": args.train_device,
         "task_test_acc_paper": float(task["test_acc_paper_mean"]),
         "three_test_acc_paper": test_three,
         "delta_three_vs_S3": delta,
@@ -61,7 +63,7 @@ def main() -> None:
         "",
         f"- 权重：`{run_dir}`",
         f"- Three Test Acc_paper：`{test_three:.4f}`",
-        f"- S3 锚点：`{ANCHOR_S3_OPENBMI_THREE:.4f}`",
+        f"- S3 锚点（{args.train_device}）：`{anchor_three:.4f}`",
         f"- Δ：`{delta*100:+.2f} pp`",
         f"- 护栏（≥ −1 pp）：**{'PASS' if pass_guard else 'FAIL'}**",
         "",
