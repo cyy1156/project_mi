@@ -73,3 +73,29 @@ E1 回放 JSON 默认写在包目录 `replay_e1*.json`；训练 run 按 `run_YYY
 - E2 fold0 融合 Δ ≥ +0.3pp → 进成员池
 
 详细方案：`资料/模型训练/26_旁路_集成推理满配与训练配方升级_openbmi_accpaper/方案.md`
+
+---
+
+## 方案 28 · 成员经济性回放消融（零训练）
+
+| 模块 | 说明 |
+|------|------|
+| `s28_config.py` | R0–R6 成员池、预注册判定线 |
+| `member_runs.py` | `--members` 子集解析（26/28 共用） |
+| `replay_r28.py` | R0–R6 回放 CLI + 决策树 summary |
+| `verify_r28_dumps.py` | 四成员 prob dump 校验 |
+| `run_all_28_5090.ps1` | 5090 一键 R0–R6 |
+
+```powershell
+cd F:\Cyy\MI\code\train_lab\src\step\5090_ens_recipe_3s_hop100_accpaper
+python smoke_s28_test.py
+python verify_r28_dumps.py          # 需 5090 prob dump
+python replay_r28.py --arm R4
+python replay_r28.py --arm all        # R0–R6 + replay_r28_summary.json
+powershell -File .\run_all_28_5090.ps1
+powershell -File .\run_all_28_5090.ps1 -From all
+```
+
+`replay_e1.py` 亦支持 `--members shallow,eegnet`（复用 E1a–E1f 流程）。
+
+详细方案：`资料/模型训练/28_旁路_集成成员经济性_回放消融_openbmi_accpaper/方案.md`
