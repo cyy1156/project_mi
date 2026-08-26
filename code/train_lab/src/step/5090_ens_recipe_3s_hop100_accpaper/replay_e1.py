@@ -31,13 +31,14 @@ from s26_config import (  # noqa: E402
 
 
 def _parse_runs(args: argparse.Namespace) -> list[Path]:
+    m = DEFAULT_MEMBERS
     if args.four_member:
-        m = DEFAULT_MEMBERS
-        return [m.shallow, m.t_shallow, m.eegnet, m.conformer]
+        conf = Path(args.conformer_run) if args.conformer_run else m.conformer
+        return [m.shallow, m.t_shallow, m.eegnet, conf]
     return [
-        Path(args.shallow_run or DEFAULT_MEMBERS.shallow),
-        Path(args.eegnet_run or DEFAULT_MEMBERS.eegnet),
-        Path(args.conformer_run or DEFAULT_MEMBERS.conformer),
+        Path(args.shallow_run or m.shallow),
+        Path(args.eegnet_run or m.eegnet),
+        Path(args.conformer_run or m.conformer),
     ]
 
 
