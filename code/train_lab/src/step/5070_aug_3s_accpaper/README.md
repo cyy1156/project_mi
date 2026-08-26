@@ -17,18 +17,27 @@
 | `stieger_eval.py` | eval_half noz_unified 评测工具 |
 | `smoke_aug_test.py` | 阶段 0 口径单测 |
 | `verify_imports.py` | 导入与锚点权重快速校验 |
-| `run_all_25.ps1` | 一键跑序 |
+| `run_all_25_5090.ps1` | **5090 一键链**（G 优先 · A0 末段） |
+| `run_25_watch_progress.ps1` | 5090 进度监控 |
 
-权重输出：`train_lab/out/5070_aug_3s_accpaper/`  
+权重输出：`train_lab/out/5090_aug_3s_accpaper/`（5090）· `5070_aug_3s_accpaper/`（5070）  
 结果登记：`资料/模型训练/25_.../results/`
 
 ## 前置
 
 - conda 环境 `cyy`
 - `stieger_3s_hop100` 预处理（含 `stieger_X_noz.npy`）
-- A0 锚点 S3：`5070_baseline_openbmi_3s_hop100_accpaper` · `run_20260822_094942`
+- **5090 A0 锚点 S3**：`5090_alg_incr_3s_hop100_accpaper` · `run_20260823_095327`（three 头）
 
-## 一键运行
+## 5090 一键运行
+
+```powershell
+cd F:\Cyy\MI\code\train_lab\src\step\5070_aug_3s_accpaper
+powershell -File .\run_all_25_5090.ps1
+powershell -File .\run_25_watch_progress.ps1 -PollSec 60
+```
+
+## 5070 一键运行
 
 ```powershell
 cd D:\MI\code\train_lab\src\step\5070_aug_3s_accpaper

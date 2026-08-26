@@ -1,0 +1,4305 @@
+{
+  "arm": "G1",
+  "subjects": {
+    "S1": {
+      "three": {
+        "subject_id": "S1",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 699,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5128755364806867
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5264663805436338
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.48569384835479257
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.47639484978540775
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.49356223175965663
+              }
+            ],
+            "acc_paper_mean": 0.49899856938483544,
+            "acc_paper_std": 0.018245812526859414
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5515021459227468
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5972818311874106
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5264663805436338
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.580829756795422
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5042918454935622
+              }
+            ],
+            "acc_paper_mean": 0.5520743919885551,
+            "acc_paper_std": 0.034087689946264856
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5486409155937053
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5944206008583691
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5379113018597997
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5815450643776824
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.542203147353362
+              }
+            ],
+            "acc_paper_mean": 0.5609442060085836,
+            "acc_paper_std": 0.022707607913475928
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6087267525035766
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6208869814020028
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6359084406294707
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6123032904148784
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6366237482117311
+              }
+            ],
+            "acc_paper_mean": 0.6228898426323319,
+            "acc_paper_std": 0.011617088441008188
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.655937052932761
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.670958512160229
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6766809728183119
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6659513590844063
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6609442060085837
+              }
+            ],
+            "acc_paper_mean": 0.6660944206008584,
+            "acc_paper_std": 0.007286312777251417
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.8054363376251789
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.8161659513590844
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7868383404864091
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7918454935622318
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.804005722460658
+              }
+            ],
+            "acc_paper_mean": 0.8008583690987126,
+            "acc_paper_std": 0.01042092924261765
+          }
+        ]
+      }
+    },
+    "S10": {
+      "three": {
+        "subject_id": "S10",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 874,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.35469107551487417
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3512585812356979
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.34096109839816935
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.33981693363844395
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.37528604118993136
+              }
+            ],
+            "acc_paper_mean": 0.3524027459954233,
+            "acc_paper_std": 0.012802380531532601
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4954233409610984
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3901601830663616
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4965675057208238
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3804347826086957
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4919908466819222
+              }
+            ],
+            "acc_paper_mean": 0.4509153318077804,
+            "acc_paper_std": 0.05368608329530284
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4994279176201373
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4925629290617849
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5005720823798627
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4794050343249428
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4965675057208238
+              }
+            ],
+            "acc_paper_mean": 0.49370709382151023,
+            "acc_paper_std": 0.007666757696911189
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4994279176201373
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4937070938215103
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5005720823798627
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4982837528604119
+              }
+            ],
+            "acc_paper_mean": 0.4983981693363845,
+            "acc_paper_std": 0.0024646063190546983
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4971395881006865
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4874141876430206
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.488558352402746
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4708237986270023
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.46510297482837526
+              }
+            ],
+            "acc_paper_mean": 0.4818077803203661,
+            "acc_paper_std": 0.011931175438195612
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5600686498855835
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5594965675057209
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5623569794050344
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5429061784897025
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5480549199084668
+              }
+            ],
+            "acc_paper_mean": 0.5545766590389015,
+            "acc_paper_std": 0.007663341899148932
+          }
+        ]
+      }
+    },
+    "S11": {
+      "three": {
+        "subject_id": "S11",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 672,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3712797619047619
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3742559523809524
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3869047619047619
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4337797619047619
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4114583333333333
+              }
+            ],
+            "acc_paper_mean": 0.39553571428571427,
+            "acc_paper_std": 0.023798360478218813
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49404761904761907
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4337797619047619
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4568452380952381
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4538690476190476
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.43601190476190477
+              }
+            ],
+            "acc_paper_mean": 0.45491071428571433,
+            "acc_paper_std": 0.0216342641016503
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5029761904761905
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.49702380952380953
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5096726190476191
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5052083333333334
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5081845238095238
+              }
+            ],
+            "acc_paper_mean": 0.5046130952380953,
+            "acc_paper_std": 0.004449379877299427
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5066964285714286
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5133928571428571
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5014880952380952
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5089285714285714
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5074404761904762
+              }
+            ],
+            "acc_paper_mean": 0.5075892857142857,
+            "acc_paper_std": 0.0038345531924776997
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5186011904761905
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5111607142857143
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5089285714285714
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5163690476190477
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5074404761904762
+              }
+            ],
+            "acc_paper_mean": 0.5125,
+            "acc_paper_std": 0.004297478892319556
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6830357142857143
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6622023809523809
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6793154761904762
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6674107142857143
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.65625
+              }
+            ],
+            "acc_paper_mean": 0.6696428571428572,
+            "acc_paper_std": 0.010125610616788098
+          }
+        ]
+      }
+    },
+    "S12": {
+      "three": {
+        "subject_id": "S12",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 590,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3550847457627119
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3483050847457627
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.35
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.32033898305084746
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.338135593220339
+              }
+            ],
+            "acc_paper_mean": 0.3423728813559322,
+            "acc_paper_std": 0.012315865847176236
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.47372881355932206
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.45508474576271185
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.42542372881355933
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.39576271186440676
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3593220338983051
+              }
+            ],
+            "acc_paper_mean": 0.421864406779661,
+            "acc_paper_std": 0.040985420015355524
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4694915254237288
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4652542372881356
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.47372881355932206
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4516949152542373
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.43728813559322033
+              }
+            ],
+            "acc_paper_mean": 0.45949152542372873,
+            "acc_paper_std": 0.013339316860983736
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4957627118644068
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.49491525423728816
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4652542372881356
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.48050847457627116
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.45084745762711864
+              }
+            ],
+            "acc_paper_mean": 0.47745762711864403,
+            "acc_paper_std": 0.017356130825134677
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5008474576271187
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5076271186440678
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.45084745762711864
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4822033898305085
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4864406779661017
+              }
+            ],
+            "acc_paper_mean": 0.48559322033898306,
+            "acc_paper_std": 0.019685840553538475
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5779661016949152
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5771186440677966
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5779661016949152
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5677966101694916
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5627118644067797
+              }
+            ],
+            "acc_paper_mean": 0.5727118644067797,
+            "acc_paper_std": 0.0063054492331315985
+          }
+        ]
+      }
+    },
+    "S13": {
+      "three": {
+        "subject_id": "S13",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 699,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3197424892703863
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3147353361945637
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.32260371959942774
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3440629470672389
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3383404864091559
+              }
+            ],
+            "acc_paper_mean": 0.3278969957081545,
+            "acc_paper_std": 0.011297331629413225
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.43919885550786836
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4656652360515021
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4449213161659514
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.449928469241774
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.35765379113018597
+              }
+            ],
+            "acc_paper_mean": 0.43147353361945634,
+            "acc_paper_std": 0.0379461065167562
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4721030042918455
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4971387696709585
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4821173104434907
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.46280400572246067
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4220314735336195
+              }
+            ],
+            "acc_paper_mean": 0.467238912732475,
+            "acc_paper_std": 0.02530773995912148
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.51931330472103
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4978540772532189
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5021459227467812
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.49141630901287553
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4728183118741059
+              }
+            ],
+            "acc_paper_mean": 0.49670958512160224,
+            "acc_paper_std": 0.015103664973069114
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5278969957081545
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5128755364806867
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4928469241773963
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4864091559370529
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.48569384835479257
+              }
+            ],
+            "acc_paper_mean": 0.5011444921316166,
+            "acc_paper_std": 0.01660130120787258
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5450643776824035
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5650929899856938
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5436337625178826
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5457796852646638
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5443490701001431
+              }
+            ],
+            "acc_paper_mean": 0.5487839771101574,
+            "acc_paper_std": 0.008185819456892663
+          }
+        ]
+      }
+    },
+    "S14": {
+      "three": {
+        "subject_id": "S14",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 612,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.42401960784313725
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.35947712418300654
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.36519607843137253
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.40032679738562094
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.38562091503267976
+              }
+            ],
+            "acc_paper_mean": 0.38692810457516336,
+            "acc_paper_std": 0.023591738439598258
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4485294117647059
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4387254901960784
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3831699346405229
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44689542483660133
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.41911764705882354
+              }
+            ],
+            "acc_paper_mean": 0.4272875816993464,
+            "acc_paper_std": 0.02441156783919359
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5163398692810458
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.49264705882352944
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4803921568627451
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5008169934640523
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.548202614379085
+              }
+            ],
+            "acc_paper_mean": 0.5076797385620916,
+            "acc_paper_std": 0.023387142510149433
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.545751633986928
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.48937908496732024
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5122549019607843
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5514705882352942
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5531045751633987
+              }
+            ],
+            "acc_paper_mean": 0.5303921568627452,
+            "acc_paper_std": 0.025326270287578532
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5759803921568627
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5424836601307189
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5490196078431373
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5849673202614379
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.565359477124183
+              }
+            ],
+            "acc_paper_mean": 0.563562091503268,
+            "acc_paper_std": 0.015946239083340984
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6862745098039216
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6642156862745098
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6715686274509803
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6544117647058824
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6380718954248366
+              }
+            ],
+            "acc_paper_mean": 0.6629084967320261,
+            "acc_paper_std": 0.01619708859679251
+          }
+        ]
+      }
+    },
+    "S15": {
+      "three": {
+        "subject_id": "S15",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 660,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4257575757575758
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4166666666666667
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4409090909090909
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4121212121212121
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4318181818181818
+              }
+            ],
+            "acc_paper_mean": 0.4254545454545455,
+            "acc_paper_std": 0.010338619460140598
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.44545454545454544
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5242424242424243
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4265151515151515
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.43333333333333335
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.42803030303030304
+              }
+            ],
+            "acc_paper_mean": 0.45151515151515154,
+            "acc_paper_std": 0.036967834031552224
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5537878787878788
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5537878787878788
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5727272727272728
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.543939393939394
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5424242424242425
+              }
+            ],
+            "acc_paper_mean": 0.5533333333333335,
+            "acc_paper_std": 0.010805484442227533
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5886363636363636
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.593939393939394
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5787878787878787
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5818181818181818
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5712121212121212
+              }
+            ],
+            "acc_paper_mean": 0.5828787878787878,
+            "acc_paper_std": 0.007867124233786193
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6196969696969697
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6113636363636363
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6136363636363636
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6128787878787879
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6022727272727273
+              }
+            ],
+            "acc_paper_mean": 0.6119696969696969,
+            "acc_paper_std": 0.005616288785712323
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.718939393939394
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.7295454545454545
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7439393939393939
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7234848484848485
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.7151515151515152
+              }
+            ],
+            "acc_paper_mean": 0.7262121212121213,
+            "acc_paper_std": 0.010080028714230204
+          }
+        ]
+      }
+    },
+    "S16": {
+      "three": {
+        "subject_id": "S16",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 707,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3811881188118812
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.35431400282885434
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3910891089108911
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3811881188118812
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.400990099009901
+              }
+            ],
+            "acc_paper_mean": 0.3817538896746817,
+            "acc_paper_std": 0.015561270200254674
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49222065063649223
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4002828854314003
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.46605374823196605
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.47312588401697314
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4929278642149929
+              }
+            ],
+            "acc_paper_mean": 0.46492220650636495,
+            "acc_paper_std": 0.03398924669958344
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49434229137199437
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.47312588401697314
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.48656294200848654
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.48302687411598305
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4900990099009901
+              }
+            ],
+            "acc_paper_mean": 0.4854314002828854,
+            "acc_paper_std": 0.007206641698928992
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4957567185289958
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4618104667609618
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4681753889674682
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4667609618104668
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5106082036775106
+              }
+            ],
+            "acc_paper_mean": 0.4806223479490807,
+            "acc_paper_std": 0.019126695501450394
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5084865629420084
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4780763790664781
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.47171145685997173
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5021216407355021
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4823196605374823
+              }
+            ],
+            "acc_paper_mean": 0.4885431400282886,
+            "acc_paper_std": 0.014238722830746108
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5685997171145686
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.574964639321075
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5608203677510608
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5707213578500707
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5650636492220651
+              }
+            ],
+            "acc_paper_mean": 0.5680339462517681,
+            "acc_paper_std": 0.0048256639630076415
+          }
+        ]
+      }
+    },
+    "S17": {
+      "three": {
+        "subject_id": "S17",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 532,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.45300751879699247
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3693609022556391
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4182330827067669
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4266917293233083
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.424812030075188
+              }
+            ],
+            "acc_paper_mean": 0.4184210526315789,
+            "acc_paper_std": 0.027248508271234196
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4906015037593985
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.375
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.41541353383458646
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.48872180451127817
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4398496240601504
+              }
+            ],
+            "acc_paper_mean": 0.4419172932330827,
+            "acc_paper_std": 0.044148529493666745
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4708646616541353
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.42951127819548873
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4351503759398496
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5291353383458647
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4783834586466165
+              }
+            ],
+            "acc_paper_mean": 0.468609022556391,
+            "acc_paper_std": 0.03581110738078153
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.48120300751879697
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4398496240601504
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.45300751879699247
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5516917293233082
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.48778195488721804
+              }
+            ],
+            "acc_paper_mean": 0.48270676691729325,
+            "acc_paper_std": 0.03874460967981656
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5545112781954887
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5526315789473685
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5601503759398496
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5855263157894737
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5892857142857143
+              }
+            ],
+            "acc_paper_mean": 0.5684210526315789,
+            "acc_paper_std": 0.015742411064819616
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6973684210526315
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6983082706766918
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7189849624060151
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6898496240601504
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6672932330827067
+              }
+            ],
+            "acc_paper_mean": 0.6943609022556391,
+            "acc_paper_std": 0.016637196701773563
+          }
+        ]
+      }
+    },
+    "S18": {
+      "three": {
+        "subject_id": "S18",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 574,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3911149825783972
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.37717770034843207
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.33710801393728224
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3989547038327526
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4094076655052265
+              }
+            ],
+            "acc_paper_mean": 0.3827526132404181,
+            "acc_paper_std": 0.025129416511505867
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4520905923344948
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.38414634146341464
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3797909407665505
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4076655052264808
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4294425087108014
+              }
+            ],
+            "acc_paper_mean": 0.4106271777003484,
+            "acc_paper_std": 0.02732804835345235
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49477351916376305
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4930313588850174
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4991289198606272
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4912891986062718
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4886759581881533
+              }
+            ],
+            "acc_paper_mean": 0.49337979094076656,
+            "acc_paper_std": 0.0035103556933118304
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49738675958188155
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.49390243902439024
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.49825783972125437
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.49477351916376305
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5017421602787456
+              }
+            ],
+            "acc_paper_mean": 0.4972125435540069,
+            "acc_paper_std": 0.002776546594165371
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5008710801393729
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5087108013937283
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5017421602787456
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.49738675958188155
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5078397212543554
+              }
+            ],
+            "acc_paper_mean": 0.5033101045296167,
+            "acc_paper_std": 0.004316903029046641
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4991289198606272
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5052264808362369
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4834494773519164
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5113240418118467
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.514808362369338
+              }
+            ],
+            "acc_paper_mean": 0.502787456445993,
+            "acc_paper_std": 0.0110513947924416
+          }
+        ]
+      }
+    },
+    "S19": {
+      "three": {
+        "subject_id": "S19",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 716,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3687150837988827
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4238826815642458
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4085195530726257
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3973463687150838
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4175977653631285
+              }
+            ],
+            "acc_paper_mean": 0.4032122905027933,
+            "acc_paper_std": 0.019425963545563016
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.433659217877095
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4371508379888268
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4483240223463687
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.45321229050279327
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.46298882681564246
+              }
+            ],
+            "acc_paper_mean": 0.44706703910614526,
+            "acc_paper_std": 0.010685954895747798
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.45321229050279327
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4643854748603352
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.46717877094972066
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.47067039106145253
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4448324022346369
+              }
+            ],
+            "acc_paper_mean": 0.4600558659217877,
+            "acc_paper_std": 0.009599352110301447
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5013966480446927
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5328212290502793
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5062849162011173
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.47416201117318435
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.48463687150837986
+              }
+            ],
+            "acc_paper_mean": 0.4998603351955307,
+            "acc_paper_std": 0.020110761925712067
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5286312849162011
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5432960893854749
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5370111731843575
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5391061452513967
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.539804469273743
+              }
+            ],
+            "acc_paper_mean": 0.5375698324022347,
+            "acc_paper_std": 0.004906192198393941
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.702513966480447
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.7220670391061452
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7402234636871509
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7388268156424581
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.744413407821229
+              }
+            ],
+            "acc_paper_mean": 0.729608938547486,
+            "acc_paper_std": 0.015542377366752567
+          }
+        ]
+      }
+    },
+    "S2": {
+      "three": {
+        "subject_id": "S2",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 754,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4303713527851459
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.38992042440318303
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4051724137931034
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4290450928381963
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.43567639257294427
+              }
+            ],
+            "acc_paper_mean": 0.4180371352785146,
+            "acc_paper_std": 0.017552788601130718
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5570291777188329
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4993368700265252
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.490053050397878
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4635278514588859
+              }
+            ],
+            "acc_paper_mean": 0.5019893899204244,
+            "acc_paper_std": 0.030535677221777014
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5623342175066313
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4887267904509284
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5298408488063661
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5086206896551724
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5046419098143236
+              }
+            ],
+            "acc_paper_mean": 0.5188328912466844,
+            "acc_paper_std": 0.025399176508279192
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5762599469496021
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5285145888594165
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5881962864721485
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5755968169761273
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5523872679045093
+              }
+            ],
+            "acc_paper_mean": 0.5641909814323607,
+            "acc_paper_std": 0.021279757156638254
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6153846153846154
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.593501326259947
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6160477453580901
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.623342175066313
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6041114058355438
+              }
+            ],
+            "acc_paper_mean": 0.6104774535809019,
+            "acc_paper_std": 0.010481649765771447
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.786472148541114
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.7785145888594165
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7844827586206896
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7944297082228117
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.7964190981432361
+              }
+            ],
+            "acc_paper_mean": 0.7880636604774536,
+            "acc_paper_std": 0.006586052529408555
+          }
+        ]
+      }
+    },
+    "S20": {
+      "three": {
+        "subject_id": "S20",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 352,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.390625
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4616477272727273
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4275568181818182
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4616477272727273
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.46732954545454547
+              }
+            ],
+            "acc_paper_mean": 0.44176136363636365,
+            "acc_paper_std": 0.02919371040605712
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49857954545454547
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5838068181818182
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5397727272727273
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4872159090909091
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5042613636363636
+              }
+            ],
+            "acc_paper_mean": 0.5227272727272727,
+            "acc_paper_std": 0.03523185454074432
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5198863636363636
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5568181818181818
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5497159090909091
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5184659090909091
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.53125
+              }
+            ],
+            "acc_paper_mean": 0.5352272727272728,
+            "acc_paper_std": 0.015544731841255046
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5071022727272727
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.48295454545454547
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5284090909090909
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5056818181818182
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.546875
+              }
+            ],
+            "acc_paper_mean": 0.5142045454545455,
+            "acc_paper_std": 0.021765887851565854
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5426136363636364
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5454545454545454
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5298295454545454
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.49573863636363635
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5440340909090909
+              }
+            ],
+            "acc_paper_mean": 0.5315340909090909,
+            "acc_paper_std": 0.018745695098095025
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.65625
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6335227272727273
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6633522727272727
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6676136363636364
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6747159090909091
+              }
+            ],
+            "acc_paper_mean": 0.6590909090909091,
+            "acc_paper_std": 0.014119060954305866
+          }
+        ]
+      }
+    },
+    "S21": {
+      "three": {
+        "subject_id": "S21",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 430,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3918604651162791
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3488372093023256
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3755813953488372
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.33372093023255817
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3453488372093023
+              }
+            ],
+            "acc_paper_mean": 0.3590697674418605,
+            "acc_paper_std": 0.02137005582820492
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.35930232558139535
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.36511627906976746
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3430232558139535
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3918604651162791
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.29534883720930233
+              }
+            ],
+            "acc_paper_mean": 0.35093023255813954,
+            "acc_paper_std": 0.03193252756873576
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4197674418604651
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.44651162790697674
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.45465116279069767
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44651162790697674
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.44069767441860463
+              }
+            ],
+            "acc_paper_mean": 0.4416279069767442,
+            "acc_paper_std": 0.011798745017642628
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.49767441860465117
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.44883720930232557
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4848837209302326
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4441860465116279
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5174418604651163
+              }
+            ],
+            "acc_paper_mean": 0.4786046511627907,
+            "acc_paper_std": 0.02822110031473935
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4941860465116279
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5267441860465116
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4883720930232558
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5313953488372093
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5267441860465116
+              }
+            ],
+            "acc_paper_mean": 0.5134883720930233,
+            "acc_paper_std": 0.01830573828293436
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.7220930232558139
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6813953488372093
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7174418604651163
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7209302325581395
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.7197674418604652
+              }
+            ],
+            "acc_paper_mean": 0.7123255813953489,
+            "acc_paper_std": 0.015541427392189403
+          }
+        ]
+      }
+    },
+    "S22": {
+      "three": {
+        "subject_id": "S22",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 404,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3316831683168317
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3564356435643564
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3465346534653465
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3712871287128713
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.38242574257425743
+              }
+            ],
+            "acc_paper_mean": 0.35767326732673266,
+            "acc_paper_std": 0.01788355630513707
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.2957920792079208
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.29826732673267325
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3180693069306931
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3118811881188119
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.29826732673267325
+              }
+            ],
+            "acc_paper_mean": 0.30445544554455445,
+            "acc_paper_std": 0.008855714762375412
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.38242574257425743
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3056930693069307
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.35396039603960394
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.42945544554455445
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.35148514851485146
+              }
+            ],
+            "acc_paper_mean": 0.36460396039603954,
+            "acc_paper_std": 0.04069204546904057
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.2995049504950495
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3527227722772277
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3180693069306931
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.36386138613861385
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.28589108910891087
+              }
+            ],
+            "acc_paper_mean": 0.324009900990099,
+            "acc_paper_std": 0.030004656044922116
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3502475247524752
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.34405940594059403
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3527227722772277
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.34777227722772275
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3254950495049505
+              }
+            ],
+            "acc_paper_mean": 0.34405940594059403,
+            "acc_paper_std": 0.009713572708093345
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4405940594059406
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4368811881188119
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4207920792079208
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.43564356435643564
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.422029702970297
+              }
+            ],
+            "acc_paper_mean": 0.4311881188118812,
+            "acc_paper_std": 0.008157057947170344
+          }
+        ]
+      }
+    },
+    "S23": {
+      "three": {
+        "subject_id": "S23",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 412,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.33980582524271846
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3919902912621359
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.40048543689320387
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.375
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.34951456310679613
+              }
+            ],
+            "acc_paper_mean": 0.3713592233009709,
+            "acc_paper_std": 0.023494844738504966
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4016990291262136
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.41262135922330095
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.39805825242718446
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.39927184466019416
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.34101941747572817
+              }
+            ],
+            "acc_paper_mean": 0.39053398058252425,
+            "acc_paper_std": 0.025287022360464075
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4368932038834951
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4356796116504854
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4223300970873786
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4053398058252427
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4866504854368932
+              }
+            ],
+            "acc_paper_mean": 0.43737864077669897,
+            "acc_paper_std": 0.02714325933775587
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5072815533980582
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5266990291262136
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5157766990291263
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44660194174757284
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5121359223300971
+              }
+            ],
+            "acc_paper_mean": 0.5016990291262136,
+            "acc_paper_std": 0.028280605172096126
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5631067961165048
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5521844660194175
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5509708737864077
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5497572815533981
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5509708737864077
+              }
+            ],
+            "acc_paper_mean": 0.5533980582524272,
+            "acc_paper_std": 0.00491467396391178
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6140776699029126
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6201456310679612
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.633495145631068
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6237864077669902
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5800970873786407
+              }
+            ],
+            "acc_paper_mean": 0.6143203883495145,
+            "acc_paper_std": 0.018234601913585405
+          }
+        ]
+      }
+    },
+    "S24": {
+      "three": {
+        "subject_id": "S24",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 789,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.26552598225602025
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.2915082382762991
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.25918884664131814
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.2769328263624842
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.25475285171102663
+              }
+            ],
+            "acc_paper_mean": 0.26958174904942966,
+            "acc_paper_std": 0.013260219670114645
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.2693282636248416
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.2953105196451204
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.2522179974651457
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.25665399239543724
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.2458808618504436
+              }
+            ],
+            "acc_paper_mean": 0.2638783269961977,
+            "acc_paper_std": 0.01749141269791737
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.30988593155893535
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.42585551330798477
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.27566539923954375
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.36248415716096327
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3010139416983523
+              }
+            ],
+            "acc_paper_mean": 0.3349809885931559,
+            "acc_paper_std": 0.05350974645069099
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.38466413181242076
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.40430925221799746
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3650190114068441
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3821292775665399
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3897338403041825
+              }
+            ],
+            "acc_paper_mean": 0.385171102661597,
+            "acc_paper_std": 0.012670468377522111
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.42141951837769326
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4340937896070976
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4062103929024081
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.417617237008872
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.40430925221799746
+              }
+            ],
+            "acc_paper_mean": 0.4167300380228137,
+            "acc_paper_std": 0.01085557064910715
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.664765525982256
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6096324461343473
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6565272496831432
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6673003802281369
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6501901140684411
+              }
+            ],
+            "acc_paper_mean": 0.6496831432192649,
+            "acc_paper_std": 0.020923682559983472
+          }
+        ]
+      }
+    },
+    "S25": {
+      "three": {
+        "subject_id": "S25",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 682,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.45527859237536655
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.46774193548387094
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.43328445747800587
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44208211143695014
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4347507331378299
+              }
+            ],
+            "acc_paper_mean": 0.44662756598240466,
+            "acc_paper_std": 0.013118046478794734
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.44281524926686217
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4560117302052786
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.42961876832844575
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4406158357771261
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4215542521994135
+              }
+            ],
+            "acc_paper_mean": 0.4381231671554252,
+            "acc_paper_std": 0.011790534013474843
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4831378299120235
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4142228739002933
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4464809384164223
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44281524926686217
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.40615835777126097
+              }
+            ],
+            "acc_paper_mean": 0.43856304985337247,
+            "acc_paper_std": 0.02724038696784384
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4750733137829912
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4237536656891496
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4538123167155425
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.45161290322580644
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.45234604105571846
+              }
+            ],
+            "acc_paper_mean": 0.4513196480938417,
+            "acc_paper_std": 0.01631853484568943
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5564516129032258
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5065982404692082
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5175953079178885
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4934017595307918
+              }
+            ],
+            "acc_paper_mean": 0.514809384164223,
+            "acc_paper_std": 0.022301855160781023
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.7096774193548387
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.719208211143695
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7140762463343109
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7008797653958945
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.7074780058651027
+              }
+            ],
+            "acc_paper_mean": 0.7102639296187683,
+            "acc_paper_std": 0.006175788765000782
+          }
+        ]
+      }
+    },
+    "S3": {
+      "three": {
+        "subject_id": "S3",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 415,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.43614457831325304
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.39156626506024095
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.44457831325301206
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.44096385542168676
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.43614457831325304
+              }
+            ],
+            "acc_paper_mean": 0.4298795180722892,
+            "acc_paper_std": 0.019418158667861007
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4891566265060241
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4542168674698795
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5048192771084338
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5144578313253012
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4879518072289157
+              }
+            ],
+            "acc_paper_mean": 0.49012048192771085,
+            "acc_paper_std": 0.020508841282846486
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5493975903614458
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.519277108433735
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5542168674698795
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5301204819277109
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5132530120481927
+              }
+            ],
+            "acc_paper_mean": 0.5332530120481928,
+            "acc_paper_std": 0.016157161073966465
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5939759036144578
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5662650602409639
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5963855421686747
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5746987951807229
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5590361445783133
+              }
+            ],
+            "acc_paper_mean": 0.5780722891566265,
+            "acc_paper_std": 0.014842278163310334
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5927710843373494
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5879518072289157
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5831325301204819
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5831325301204819
+              }
+            ],
+            "acc_paper_mean": 0.5893975903614457,
+            "acc_paper_std": 0.006393493571769429
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6734939759036145
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6879518072289157
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6879518072289157
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6771084337349398
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6855421686746987
+              }
+            ],
+            "acc_paper_mean": 0.682409638554217,
+            "acc_paper_std": 0.005980565612525707
+          }
+        ]
+      }
+    },
+    "S4": {
+      "three": {
+        "subject_id": "S4",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 485,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.41030927835051545
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.49690721649484537
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4505154639175258
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.47216494845360824
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.477319587628866
+              }
+            ],
+            "acc_paper_mean": 0.4614432989690722,
+            "acc_paper_std": 0.02952560041416934
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.422680412371134
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4618556701030928
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5010309278350515
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.43917525773195876
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.39278350515463917
+              }
+            ],
+            "acc_paper_mean": 0.4435051546391753,
+            "acc_paper_std": 0.036526865794273895
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4515463917525773
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4134020618556701
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4742268041237113
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3989690721649485
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4041237113402062
+              }
+            ],
+            "acc_paper_mean": 0.4284536082474227,
+            "acc_paper_std": 0.029381262433879916
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4824742268041237
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.48762886597938143
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5010309278350515
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4865979381443299
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.37628865979381443
+              }
+            ],
+            "acc_paper_mean": 0.4668041237113402,
+            "acc_paper_std": 0.04568487811082405
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.534020618556701
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5092783505154639
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.51340206185567
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4917525773195876
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4690721649484536
+              }
+            ],
+            "acc_paper_mean": 0.5035051546391752,
+            "acc_paper_std": 0.021845942203869116
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.7505154639175258
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.7329896907216494
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7494845360824742
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7257731958762886
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.7494845360824742
+              }
+            ],
+            "acc_paper_mean": 0.7416494845360825,
+            "acc_paper_std": 0.010280371845210664
+          }
+        ]
+      }
+    },
+    "S5": {
+      "three": {
+        "subject_id": "S5",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 167,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5718562874251497
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5658682634730539
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5688622754491018
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5538922155688623
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5598802395209581
+              }
+            ],
+            "acc_paper_mean": 0.5640718562874252,
+            "acc_paper_std": 0.006449299170220972
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5538922155688623
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.46706586826347307
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5029940119760479
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4940119760479042
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5059880239520959
+              }
+            ],
+            "acc_paper_mean": 0.5047904191616766,
+            "acc_paper_std": 0.028124595367227244
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.48502994011976047
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.46107784431137727
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4880239520958084
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5119760479041916
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.49700598802395207
+              }
+            ],
+            "acc_paper_mean": 0.488622754491018,
+            "acc_paper_std": 0.016659194902088077
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5329341317365269
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5598802395209581
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5568862275449101
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4880239520958084
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5029940119760479
+              }
+            ],
+            "acc_paper_mean": 0.5281437125748503,
+            "acc_paper_std": 0.02863001937217226
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6227544910179641
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5808383233532934
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5778443113772455
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5598802395209581
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5119760479041916
+              }
+            ],
+            "acc_paper_mean": 0.5706586826347305,
+            "acc_paper_std": 0.03585821538102964
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6676646706586826
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6646706586826348
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6497005988023952
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6167664670658682
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6526946107784432
+              }
+            ],
+            "acc_paper_mean": 0.6502994011976048,
+            "acc_paper_std": 0.018103253242911357
+          }
+        ]
+      }
+    },
+    "S7": {
+      "three": {
+        "subject_id": "S7",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 657,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3455098934550989
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3546423135464231
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3447488584474886
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3554033485540335
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.350076103500761
+              }
+            ],
+            "acc_paper_mean": 0.350076103500761,
+            "acc_paper_std": 0.004437558519669178
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4048706240487062
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4117199391171994
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.350076103500761
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3736681887366819
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.350076103500761
+              }
+            ],
+            "acc_paper_mean": 0.3780821917808219,
+            "acc_paper_std": 0.02621939562084451
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.3675799086757991
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.3546423135464231
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.332572298325723
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.3523592085235921
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.3287671232876712
+              }
+            ],
+            "acc_paper_mean": 0.3471841704718417,
+            "acc_paper_std": 0.014498865393132252
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.423896499238965
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4147640791476408
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.3607305936073059
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4208523592085236
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4025875190258752
+              }
+            ],
+            "acc_paper_mean": 0.40456621004566207,
+            "acc_paper_std": 0.02310139284006597
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4528158295281583
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4474885844748858
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4353120243531202
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4360730593607306
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.4041095890410959
+              }
+            ],
+            "acc_paper_mean": 0.43515981735159814,
+            "acc_paper_std": 0.016903887841747955
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.58675799086758
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6027397260273972
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.606544901065449
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5989345509893456
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5989345509893456
+              }
+            ],
+            "acc_paper_mean": 0.5987823439878235,
+            "acc_paper_std": 0.0066415294457447035
+          }
+        ]
+      }
+    },
+    "S8": {
+      "three": {
+        "subject_id": "S8",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 560,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.45535714285714285
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4294642857142857
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.46517857142857144
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4714285714285714
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.48482142857142857
+              }
+            ],
+            "acc_paper_mean": 0.46125000000000005,
+            "acc_paper_std": 0.018545655192810324
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4973214285714286
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4589285714285714
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.48482142857142857
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5589285714285714
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5419642857142857
+              }
+            ],
+            "acc_paper_mean": 0.5083928571428571,
+            "acc_paper_std": 0.0368939116154104
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6580357142857143
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6589285714285714
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.61875
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.6214285714285714
+              }
+            ],
+            "acc_paper_mean": 0.6314285714285715,
+            "acc_paper_std": 0.023292450822232563
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5892857142857143
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6053571428571428
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.6508928571428572
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6026785714285714
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5982142857142857
+              }
+            ],
+            "acc_paper_mean": 0.6092857142857142,
+            "acc_paper_std": 0.021507295866989053
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.7035714285714286
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6732142857142858
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7017857142857142
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7080357142857143
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.66875
+              }
+            ],
+            "acc_paper_mean": 0.6910714285714287,
+            "acc_paper_std": 0.01658889166070514
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.8098214285714286
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.8241071428571428
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.8205357142857143
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.7955357142857142
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.8107142857142857
+              }
+            ],
+            "acc_paper_mean": 0.8121428571428572,
+            "acc_paper_std": 0.009968061240680618
+          }
+        ]
+      }
+    },
+    "S9": {
+      "three": {
+        "subject_id": "S9",
+        "head": "three",
+        "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+        "n_eval_cues": 474,
+        "curve": [
+          {
+            "k_cues": 0,
+            "k_label": "zeroshot",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.4525316455696203
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.45042194092827004
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.4651898734177215
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4472573839662447
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.45569620253164556
+              }
+            ],
+            "acc_paper_mean": 0.4542194092827005,
+            "acc_paper_std": 0.006136303616982692
+          },
+          {
+            "k_cues": 10,
+            "k_label": "10",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5042194092827004
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.4219409282700422
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.48417721518987344
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.4767932489451477
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.45147679324894513
+              }
+            ],
+            "acc_paper_mean": 0.4677215189873417,
+            "acc_paper_std": 0.028442699656291495
+          },
+          {
+            "k_cues": 20,
+            "k_label": "20",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5432489451476793
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5179324894514767
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5537974683544303
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.48523206751054854
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5137130801687764
+              }
+            ],
+            "acc_paper_mean": 0.5227848101265822,
+            "acc_paper_std": 0.024069131977977467
+          },
+          {
+            "k_cues": 40,
+            "k_label": "40",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5548523206751055
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5295358649789029
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.540084388185654
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5379746835443038
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5611814345991561
+              }
+            ],
+            "acc_paper_mean": 0.5447257383966244,
+            "acc_paper_std": 0.011586101449574688
+          },
+          {
+            "k_cues": 80,
+            "k_label": "80",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.5516877637130801
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.5485232067510548
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.5580168776371308
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.5907172995780591
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.5685654008438819
+              }
+            ],
+            "acc_paper_mean": 0.5635021097046413,
+            "acc_paper_std": 0.015233762192857138
+          },
+          {
+            "k_cues": -1,
+            "k_label": "all_half",
+            "folds": [
+              {
+                "fold": 0,
+                "acc_paper": 0.6845991561181435
+              },
+              {
+                "fold": 1,
+                "acc_paper": 0.6867088607594937
+              },
+              {
+                "fold": 2,
+                "acc_paper": 0.7014767932489452
+              },
+              {
+                "fold": 3,
+                "acc_paper": 0.6972573839662447
+              },
+              {
+                "fold": 4,
+                "acc_paper": 0.70042194092827
+              }
+            ],
+            "acc_paper_mean": 0.6940928270042194,
+            "acc_paper_std": 0.007060422164844519
+          }
+        ]
+      }
+    }
+  },
+  "meta": {
+    "arm": "G1",
+    "protocol": "scheme25 aug+incremental_ft Tw=3s hop=100ms openbmi_train=stieger_eval noz_unified device=5070",
+    "init_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_aug_3s_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260824_022731",
+    "hparams": {
+      "n_folds": 5,
+      "val_ratio": 0.2,
+      "seed": 42,
+      "max_epochs": 300,
+      "patience": 20,
+      "batch_train": 32,
+      "batch_eval": 64,
+      "lr": 0.0001,
+      "weight_decay": 0.0001,
+      "drop_prob": 0.5,
+      "replay_ratio": 0.0,
+      "aug": null
+    },
+    "k_list": [
+      0,
+      10,
+      20,
+      40,
+      80,
+      -1
+    ],
+    "anchor_09_A0_three": 0.4119
+  }
+}
