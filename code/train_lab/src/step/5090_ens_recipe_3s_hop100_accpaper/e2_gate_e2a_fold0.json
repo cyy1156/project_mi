@@ -1,0 +1,53 @@
+{
+  "gate_fold": 0,
+  "split": "val",
+  "base_runs": [
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_123900\\three",
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three",
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three"
+  ],
+  "candidate_run": "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_ens_recipe_3s_hop100_accpaper\\kan_bandpower_e2a\\openbmi_3s_hop100\\run_20260826_112702\\three",
+  "acc_paper_3member": 0.5933333333333334,
+  "acc_paper_4member": 0.5933333333333334,
+  "delta_pp": 0.0,
+  "adopt_ge_pp": 0.3,
+  "config_3member": {
+    "temperatures": [
+      1.9575069879402476,
+      1.955633629304201,
+      1.3676810233121455,
+      2.1639309846111625
+    ],
+    "weights": [
+      0.8,
+      0.0,
+      0.0,
+      0.19999999999999996
+    ],
+    "smooth_radius": 1,
+    "tau_conf": null,
+    "consist_c": null
+  },
+  "config_4member": {
+    "temperatures": [
+      1.9575069879402476,
+      1.955633629304201,
+      1.3676810233121455,
+      2.1639309846111625,
+      1.8615895576443133
+    ],
+    "weights": [
+      0.5,
+      0.0,
+      0.1,
+      0.30000000000000004,
+      0.09999999999999998
+    ],
+    "smooth_radius": 2,
+    "tau_conf": null,
+    "consist_c": null
+  },
+  "verdict": "negative",
+  "arm": "E2a"
+}
