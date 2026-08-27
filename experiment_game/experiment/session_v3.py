@@ -80,6 +80,40 @@ def diagnose_v3_deps(
     )
 
 
+def build_v3_deps_from_buffer(
+    cfg: V3Config,
+    buf: RingBuffer,
+    *,
+    on_console: Optional[Callable[[str], None]] = None,
+) -> tuple:
+    """仿真回放：权重 + 已有 RingBuffer（无 LSL）。"""
+    from pathlib import Path
+
+    from adapt_engine.registry import ModelRegistry
+
+    log = on_console or (lambda _m: None)
+    task = Path(__file__).resolve().parents[2] / cfg.s3_task_ckpt
+    three = Path(__file__).resolve().parents[2] / cfg.s3_three_ckpt
+    if not task.is_file():
+        raise FileNotFoundError(f"缺 task 权重: {task}")
+    if not three.is_file():
+        raise FileNotFoundError(f"缺 three 权重: {three}")
+    reg = ModelRegistry(task, three)
+    pre = OnlinePreprocessor()
+    infer = InferenceService(
+        buf,
+        reg,
+        pre,
+        task_p_on=cfg.task_p_on,
+        signal_quality=cfg.signal_quality_config(),
+        window_mode=cfg.online_window_mode,
+        mi_task_sec=cfg.imagine_s,
+        baseline_before_cue_s=cfg.baseline_before_cue_s,
+    )
+    log("[v3] 仿真依赖就绪：权重 + Replay RingBuffer")
+    return reg, buf, pre, infer
+
+
 def _extract_segment(buf: RingBuffer, t_start: float, t_end: float) -> Optional[np.ndarray]:
     from pylsl import local_clock
 
@@ -98,6 +132,13 @@ def run_v3_session(
     protocol_locked: bool = True,
     seed: Optional[int] = None,
     subject_id: str = "unknown",
+    subject_feedback_mode: str = "none",
+    deps: Optional[tuple] = None,
+    skip_session_baseline: bool = False,
+    skip_block_gap: bool = False,
+    block_order_override: Optional[List[str]] = None,
+    trial_labels_by_block: Optional[List[List[int]]] = None,
+    sim_meta: Optional[Dict[str, Any]] = None,
 ) -> Dict[str, Any]:
     import random
 
@@ -110,20 +151,32 @@ def run_v3_session(
         raise ValueError("v3 配置无效: " + "; ".join(verr))
 
     rng = random.Random(seed) if seed is not None else random.Random()
-    order = block_order(seed=seed, subject_id=subject_id)
+    if block_order_override is not None:
+        order = list(block_order_override)
+    else:
+        order = block_order(seed=seed, subject_id=subject_id)
     on_console(
-        f"[v3] 探针会话：块顺序 {' → '.join(order)} · D8 栅格 {len(cfg.judgment_times)} 档"
+        f"[v3] 探针会话：块顺序 {' → '.join(order)} · "
+        f"在线窗 {cfg.online_window_mode} ×{len(cfg.judgment_times)} 档"
         f"{f' · seed={seed}' if seed is not None else ''}"
     )
 
-    deps, reasons = diagnose_v3_deps(cfg, on_console=on_console)
-    if deps is None:
-        msg = _SELF_CHECK_HINT + "\n原因：" + ("；".join(reasons) if reasons else "未知")
-        on_console(f"[v3] ❌ {msg}")
-        raise RuntimeError(msg)
-
-    reg, buf, _, infer = deps
+    if deps is not None:
+        reg, buf, _, infer = deps
+        if reg is None or buf is None or infer is None:
+            raise RuntimeError("注入 deps 须含 registry、buffer、infer")
+    else:
+        deps_pair, reasons = diagnose_v3_deps(cfg, on_console=on_console)
+        if deps_pair is None:
+            msg = _SELF_CHECK_HINT + "\n原因：" + ("；".join(reasons) if reasons else "未知")
+            on_console(f"[v3] ERR {msg}")
+            raise RuntimeError(msg)
+        reg, buf, _, infer = deps_pair
     assert buf is not None and infer is not None
+    infer.window_mode = str(getattr(cfg, "online_window_mode", "openbmi_hop100"))
+    infer.mi_task_sec = float(cfg.imagine_s)
+    infer.baseline_before_cue_s = float(getattr(cfg, "baseline_before_cue_s", 0.5))
+    infer.forward_window = False
     pre_feat = OnlinePreprocessor()
     fp_start = _weight_fingerprint(reg)
     eeg_pub = EegFramePublisher(buf, bridge, cfg, pre=pre_feat, on_console=on_console)
@@ -149,6 +202,9 @@ def run_v3_session(
         "trial_in_block": 0,
         "trials_per_block": cfg.trials_per_block,
         "blocks_total": cfg.blocks,
+        "session_score": 0,
+        "session_trials_done": 0,
+        "session_score_max": int(cfg.blocks) * int(cfg.trials_per_block),
     }
 
     def _ser(data):
@@ -161,42 +217,102 @@ def run_v3_session(
             }
         return None
 
+    arm_peak_by_trial: Dict[int, int] = {}
+
     def on_stage(stage: str, ctx, data) -> None:
+        from experiment_game.experiment.score_feedback import enrich_stage_data
+
+        if ctx is not None and stage == "cue" and isinstance(data, dict) and "cue_t" in data:
+            tid = getattr(ctx, "trial_id", -1)
+            trial_times.setdefault(tid, {})["cue_t"] = float(data["cue_t"])
         if ctx is not None and stage == "mi_start" and isinstance(data, dict) and "mi_t" in data:
             mi_t = float(data["mi_t"])
             tid = getattr(ctx, "trial_id", -1)
+            cue_t = float(data.get("cue_t", mi_t - cfg.cue_s))
             trial_times[tid] = {
                 "mi_t": mi_t,
-                "cue_t": mi_t - cfg.cue_s,
+                "cue_t": cue_t,
                 "mi_end_t": mi_t + cfg.imagine_s,
             }
+        # 试次间 Rest（Cue 前约 4s）→ 灌入本块滚动 ERD 基线（不要求静息试次）
+        if stage == "rest_end" and isinstance(data, dict) and buf is not None:
+            rest_t = data.get("rest_t")
+            dur = float(data.get("duration_s") or cfg.inter_trial_rest_s)
+            if rest_t is not None and dur > 1e-6:
+                seg = _extract_segment(buf, float(rest_t), float(rest_t) + dur)
+                if seg is not None and seg.shape[0] >= int(FS):
+                    filt = pre_feat.process_segment(seg)
+                    n_itr = extractor.seed_rest_from_segment(filt, as_block_seed=False)
+                    if n_itr:
+                        on_console(f"[v3] 试次间 Rest 灌入 ERD 基线 +{n_itr} 窗")
         if ctx is not None:
             progress["trial_in_block"] = getattr(ctx, "trial_id", 0)
             progress["block_cond"] = current_cond
+        if subject_feedback_mode == "arm_reach":
+            data = enrich_stage_data(
+                stage,
+                ctx,
+                data if isinstance(data, dict) else data,
+                peak_by_trial=arm_peak_by_trial,
+            )
+        score = None
+        if isinstance(data, dict) and data.get("score") is not None:
+            score = data.get("score")
+        # 本场累计：多数票每试次 0/1，满分 = blocks × trials_per_block
+        if (
+            stage == "trial_end"
+            and ctx is not None
+            and not getattr(ctx, "rejected", False)
+            and isinstance(data, dict)
+        ):
+            summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
+            lab_end = getattr(ctx, "label", None)
+            # Rest(0)/L/R 均计分；静息无伸手/拿杯（见 score_feedback.enrich_stage_data）
+            if summary is not None and lab_end in (0, 1, 2):
+                pts = float(summary.get("score") or 0.0)
+                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
+                progress["score"] = pts
+        from experiment_game.experiment.class_labels import attach_judge_names, label_name
+
+        lab = getattr(ctx, "label", None) if ctx else None
+        if isinstance(data, dict):
+            data = attach_judge_names(data, label=lab)
         bridge.broadcast({
             "type": "v2_stage",
             "stage": stage,
             "ctx": {
                 "trial_id": getattr(ctx, "trial_id", None) if ctx else None,
-                "label": getattr(ctx, "label", None) if ctx else None,
+                "label": lab,
+                "label_name": label_name(lab),
                 "mode": getattr(ctx, "mode", None) if ctx else None,
                 "round": getattr(ctx, "round_no", None) if ctx else None,
                 "subblock": getattr(ctx, "subblock", None) if ctx else None,
             },
             "data": _ser(data),
             "progress": dict(progress),
+            "score": score,
+            "session_score": progress.get("session_score"),
+            "session_score_max": progress.get("session_score_max"),
+            "session_trials_done": progress.get("session_trials_done"),
         })
 
     def judgment_fn(mi_t: float, t_rel: float, ctx) -> Optional[Dict]:
         tid = getattr(ctx, "trial_id", -1)
-        trial_times.setdefault(tid, {})["mi_t"] = mi_t
-        trial_times[tid]["cue_t"] = mi_t - cfg.cue_s
+        times = trial_times.setdefault(tid, {})
+        times["mi_t"] = mi_t
+        cue_t = times.get("cue_t")
+        if cue_t is None:
+            cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
+            times["cue_t"] = cue_t
         try:
-            j = infer.judge(mi_t, t_rel)
+            j = infer.judge(float(cue_t), t_rel)
             if j is None:
                 return None
             rec = {
                 "t_rel": t_rel,
+                "win_start_rel": j.get("win_start_rel"),
+                "win_end_rel": j.get("win_end_rel", t_rel),
                 "pred": int(j.get("pred", 0)),
                 "gated": bool(j.get("gated", False)),
                 "gated_pred": 0 if j.get("gated") else int(j.get("pred", 0)),
@@ -228,9 +344,17 @@ def run_v3_session(
         cue_s=cfg.cue_s,
         imagine_s=cfg.imagine_s,
         iti_s=cfg.iti_s,
+        inter_trial_rest_s=cfg.inter_trial_rest_s,
         judgment_times=cfg.judgment_times,
-        scoring=cfg.scoring_config(),
     )
+    time_scale = 1.0
+    if sim_meta:
+        replay_speed = float(sim_meta.get("replay_speed") or 1.0)
+        if replay_speed > 1.0 + 1e-9:
+            time_scale = 1.0 / replay_speed
+            on_console(
+                f"[v3] 仿真：范式等待 ×{time_scale:.4f}（与 {replay_speed}× 回放墙钟对齐）"
+            )
     sm = TrialStateMachineV2(
         events,
         markers,
@@ -241,6 +365,7 @@ def run_v3_session(
         is_paused=bridge.is_paused,
         should_abort=bridge.should_abort,
         is_rejected=bridge.is_rejected,
+        time_scale=time_scale,
     )
 
     def _wait_rest(duration_s: float, *, hud: str, sub: str = "") -> None:
@@ -254,7 +379,7 @@ def run_v3_session(
             "show_cross": True,
         })
         wait_until(
-            local_clock() + duration_s,
+            local_clock() + duration_s * time_scale,
             is_paused=bridge.is_paused,
             should_abort=bridge.should_abort,
         )
@@ -294,7 +419,13 @@ def run_v3_session(
 
         primary = None
         if js_ok:
-            primary = min(js_ok, key=lambda j: abs(float(j["t_rel"]) - cfg.primary_judge_s))
+            from experiment_game.experiment.judge_aggregate import primary_judge_from_judgments
+
+            primary = primary_judge_from_judgments(
+                js_ok,
+                mode=getattr(cfg, "primary_judge_mode", "majority"),
+                primary_s=cfg.primary_judge_s,
+            )
 
         signal_reason = None
         if signal_bad:
@@ -376,6 +507,10 @@ def run_v3_session(
             "acc_argmax": round(acc, 3) if acc is not None else None,
             "mu_erd_contra_mean": round(float(np.mean(erds)), 1) if erds else None,
             "laterality_pp_mean": round(float(np.mean(lats)), 1) if lats else None,
+            "session_score": progress.get("session_score"),
+            "session_score_max": progress.get("session_score_max"),
+            "session_trials_done": progress.get("session_trials_done"),
+            "progress": dict(progress),
         })
 
     def _run_guidance(block_no: int) -> None:
@@ -409,47 +544,56 @@ def run_v3_session(
     try:
         progress["phase_step"] = "baseline"
         events.emit("v3_self_check_ok", phase="v3")
-        on_console("[v3] ✅ 自检通过：权重 + LSL 就绪")
+        on_console("[v3] OK 自检通过：权重 + LSL 就绪")
 
-        # —— 阶段 1：静息基线 ——
-        _wait_rest(
-            cfg.baseline_rest_s,
-            hud="静息基线",
-            sub=f"注视 +，{int(cfg.baseline_rest_s)}s，不做判定",
-        )
-        tail = buf.snapshot_tail(cfg.baseline_rest_s)
-        baseline_mu: List[float] = []
-        baseline_beta: List[float] = []
-        hat_check: Dict[str, Any] = {}
-        if tail is not None and tail.shape[0] >= int(FS):
-            filt = pre_feat.process_segment(tail)
-            mu, bl, bh = bandpowers_fft(filt, FS, cfg.standards())
-            tot = mu + bl + bh
-            baseline_feat = {"rest_mu_frac": float(np.mean(mu / (tot + 1e-12)))}
-            baseline_mu = [float(x) for x in mu]
-            baseline_beta = [float(x) for x in bl]
-            hat_check = summarize_baseline_hat_check(
-                tail,
-                fs=FS,
-                cfg=cfg.signal_quality_config(),
-                channel_names=list(CHANNEL_ORDER),
+        if skip_session_baseline:
+            on_console("[v3] 仿真：跳过 session 静息基线（Cue 前 Rest 作校准）")
+            events.emit("v3_baseline_skipped", phase="v3", sim=True)
+            markers.push("v3_baseline_skipped|sim")
+        else:
+            # —— 阶段 1：静息基线 ——
+            _wait_rest(
+                cfg.baseline_rest_s,
+                hud="静息基线",
+                sub=f"注视 +，{int(cfg.baseline_rest_s)}s，不做判定",
             )
-            baseline_feat["hat_check"] = hat_check
-            on_console(f"[v3] {hat_check.get('message', '帽检完成')}")
-        events.emit("v3_baseline_end", phase="v3", **baseline_feat)
-        if hat_check:
-            events.emit("v3_baseline_hat", phase="v3", **hat_check)
-        markers.push("v3_baseline_end")
-        if baseline_mu:
-            bridge.broadcast({
-                "type": "v3_baseline",
-                "baseline_mu": baseline_mu,
-                "baseline_beta": baseline_beta,
-                "rest_mu_frac": baseline_feat.get("rest_mu_frac"),
-                "hat_check": hat_check,
-                "hat_verdict": hat_check.get("verdict"),
-                "hat_message": hat_check.get("message"),
-            })
+            tail = buf.snapshot_tail(cfg.baseline_rest_s)
+            baseline_mu: List[float] = []
+            baseline_beta: List[float] = []
+            hat_check: Dict[str, Any] = {}
+            if tail is not None and tail.shape[0] >= int(FS):
+                filt = pre_feat.process_segment(tail)
+                n_erd_seed = extractor.seed_rest_from_segment(filt)
+                if n_erd_seed:
+                    on_console(f"[v3] 块前静息灌入 ERD 基线 {n_erd_seed} 窗")
+                    baseline_feat["erd_seed_windows"] = int(n_erd_seed)
+                mu, bl, bh = bandpowers_fft(filt, FS, cfg.standards())
+                tot = mu + bl + bh
+                baseline_feat = {"rest_mu_frac": float(np.mean(mu / (tot + 1e-12)))}
+                baseline_mu = [float(x) for x in mu]
+                baseline_beta = [float(x) for x in bl]
+                hat_check = summarize_baseline_hat_check(
+                    tail,
+                    fs=FS,
+                    cfg=cfg.signal_quality_config(),
+                    channel_names=list(CHANNEL_ORDER),
+                )
+                baseline_feat["hat_check"] = hat_check
+                on_console(f"[v3] {hat_check.get('message', '帽检完成')}")
+            events.emit("v3_baseline_end", phase="v3", **baseline_feat)
+            if hat_check:
+                events.emit("v3_baseline_hat", phase="v3", **hat_check)
+            markers.push("v3_baseline_end")
+            if baseline_mu:
+                bridge.broadcast({
+                    "type": "v3_baseline",
+                    "baseline_mu": baseline_mu,
+                    "baseline_beta": baseline_beta,
+                    "rest_mu_frac": baseline_feat.get("rest_mu_frac"),
+                    "hat_check": hat_check,
+                    "hat_verdict": hat_check.get("verdict"),
+                    "hat_message": hat_check.get("message"),
+                })
 
         trial_offset = 0
         current_cond = order[0]
@@ -479,14 +623,17 @@ def run_v3_session(
                 "phase": "begin",
             })
 
-            labels = build_calibration_schedule(rng)[: cfg.trials_per_block]
-            if len(labels) < cfg.trials_per_block:
-                while len(labels) < cfg.trials_per_block:
-                    labels.extend(build_calibration_schedule(rng))
-                labels = labels[: cfg.trials_per_block]
+            if trial_labels_by_block is not None and block_idx < len(trial_labels_by_block):
+                labels = [int(x) for x in trial_labels_by_block[block_idx]]
+            else:
+                labels = build_calibration_schedule(rng)[: cfg.trials_per_block]
+                if len(labels) < cfg.trials_per_block:
+                    while len(labels) < cfg.trials_per_block:
+                        labels.extend(build_calibration_schedule(rng))
+                    labels = labels[: cfg.trials_per_block]
 
             stub = TrialContextV2(trial_id=0, label=0, mode="probe", round_no=block_idx + 1)
-            on_stage("round_start", stub, {"mode": "probe", "cond": cond, "block": block_idx + 1})
+            on_stage("round_start", stub, {"mode": "probe", "cond": cond, "block": block_idx + 1, "round": block_idx + 1})
             for i, lab in enumerate(labels):
                 if bridge.should_abort():
                     raise SessionAbort("operator abort")
@@ -497,20 +644,24 @@ def run_v3_session(
                     round_no=block_idx + 1,
                     subblock=(i // 6) + 1,
                 )
+                if cfg.inter_trial_rest_s > 1e-6 and int(lab) != 0:
+                    sm.run_inter_trial_rest(ctx)
                 sm.run_trial(ctx)
-            on_stage("round_end", stub, {"mode": "probe", "cond": cond})
+            on_stage("round_end", stub, {"mode": "probe", "cond": cond, "round": block_idx + 1})
             trial_offset += len(labels)
 
             events.emit("v3_block_end", phase="v3", block=block_idx + 1, cond=cond)
             markers.push(f"v3_block_end|block={block_idx + 1}|cond={cond}")
 
-            if block_idx < len(order) - 1:
+            if block_idx < len(order) - 1 and not skip_block_gap:
                 progress["phase_step"] = "block_gap"
                 _wait_rest(
                     cfg.block_gap_s,
                     hud="块间休息",
                     sub=f"{int(cfg.block_gap_s)}s · 下一块：{order[block_idx + 1]}",
                 )
+            elif block_idx < len(order) - 1 and skip_block_gap:
+                on_console("[v3] 仿真：跳过块间休息")
 
         if not aborted:
             progress["phase_step"] = "report"
@@ -547,17 +698,21 @@ def run_v3_session(
         buf.close()
 
     summary = {
-        "phase_mode": "v3_session",
+        "phase_mode": "sim_v3_session" if sim_meta else "v3_session",
         "block_order": order,
         "frozen": fp_start == _weight_fingerprint(reg) if reg else False,
         "invalid_streak_max": invalid_streak_max,
         "n_trials": len(trial_records),
+        "session_score": progress.get("session_score"),
+        "session_score_max": progress.get("session_score_max"),
+        "session_trials_done": progress.get("session_trials_done"),
         "report": report,
         "v3_config_effective": cfg.to_dict(),
         "protocol_locked": protocol_locked,
         "seed": seed,
         "quality_tier": report.get("quality_tier") if not aborted else None,
         "aborted": aborted,
+        "sim_meta": sim_meta,
     }
     if aborted:
         on_console(f"[v3] 会话已中止（已完成 {len(trial_records)} 试次）")

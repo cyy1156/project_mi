@@ -98,6 +98,14 @@ experiment_game/data/epochs/*
 !experiment_game/data/epochs/sub03_ses01_20260723_185153/
 !experiment_game/data/epochs/sub03_ses01_20260723_185153/**
 
+# Local subject / sim dumps & FT weights (keep on disk, do not publish)
+experiment_game/data/sim_subjects/
+experiment_game/data/subjects/
+experiment_game/data/models/
+experiment_game/data/offline_replay/
+code/adapt_engine/results/
+**/*.log
+
 # ---- collect_data: source + docs only; no local EEG dumps / weights ----
 collect_data/**/data/recordings/**
 !collect_data/**/data/recordings/.gitkeep

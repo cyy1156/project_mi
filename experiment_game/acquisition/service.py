@@ -13,9 +13,9 @@ DEFAULT_CHANNEL_LABELS: List[str] = [
     "CZ",
     "CP3",
     "CP4",
-    "CPZ",
-    "FC3",
     "FC4",
+    "FC3",
+    "CPZ",
 ]
 
 LSL_CONNECT_ROOT = (
@@ -46,9 +46,10 @@ class AcquisitionFacade:
         serial_port: str = "COM3",
         channel_labels: Optional[Sequence[str]] = None,
         lsl_connect_root: Optional[Path] = None,
-        filter_enabled: bool = True,
+        filter_enabled: bool = False,
         bandpass_low_hz: float = 0.5,
         bandpass_high_hz: float = 45.0,
+        notch_enabled: bool = False,
         notch_low_hz: float = 49.0,
         notch_high_hz: float = 51.0,
     ) -> None:
@@ -59,6 +60,7 @@ class AcquisitionFacade:
         self._filter_enabled = filter_enabled
         self._bandpass_low_hz = float(bandpass_low_hz)
         self._bandpass_high_hz = float(bandpass_high_hz)
+        self._notch_enabled = bool(notch_enabled)
         self._notch_low_hz = float(notch_low_hz)
         self._notch_high_hz = float(notch_high_hz)
         self._mgr = None
@@ -136,6 +138,7 @@ class AcquisitionFacade:
                 filter_enabled=self._filter_enabled,
                 bandpass_low_hz=self._bandpass_low_hz,
                 bandpass_high_hz=self._bandpass_high_hz,
+                notch_enabled=self._notch_enabled,
                 notch_low_hz=self._notch_low_hz,
                 notch_high_hz=self._notch_high_hz,
             ),

@@ -246,6 +246,24 @@ def test_registry_ensemble_mean():
         assert np.allclose(got["p_three"], q, atol=1e-6)
 
 
+def test_train_with_early_stop():
+    model = TinyThree(seed=9)
+    fin = IncrementalFinetuner(model, FTRecipe(epochs=1, batch_size=8, seed=42))
+    X, y, _, _ = make_trials(6, seed=1)
+    acc = 0.0
+
+    def eval_fn():
+        nonlocal acc
+        acc += 0.05
+        return acc
+
+    rec = fin.train_with_early_stop(X, y, eval_fn, max_epochs=8, patience=2)
+    assert rec["early_stop"] is True
+    assert 1 <= rec["epochs_run"] <= 8
+    assert rec["best_epoch"] == rec["epochs_run"]
+    assert rec["best_heldout_acc"] >= 0.05
+
+
 if __name__ == "__main__":
     fns = [v for k, v in sorted(globals().items()) if k.startswith("test_")]
     for fn in fns:

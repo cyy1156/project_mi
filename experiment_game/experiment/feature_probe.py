@@ -156,9 +156,9 @@ def verdict_text_mi(
 
 def verdict_text_rest(*, warmup: bool, n_rest_windows_before: int, n_windows: int) -> str:
     if warmup:
-        return "Rest 预热：块内首个静息试次，基线尚未建立（不计 ERD 评级）"
+        return "ERD 基线预热：块前静息 seed 尚未灌入（不计 ERD 评级）"
     total = n_rest_windows_before + n_windows
-    return f"Rest 基线更新：本试次 +{n_windows} 窗，块内累计 {total} 个 Rest 窗"
+    return f"试次间 Rest 灌入基线：本段 +{n_windows} 窗，块内累计 {total} 窗"
 
 
 def score_side(m: SideMetrics, standards: Dict[str, Any]) -> Dict[str, Any]:
@@ -281,16 +281,54 @@ class TrialFeatureExtractor:
     LABEL_RIGHT = 2
     LABEL_REST = 0
 
-    def __init__(self, standards: Dict[str, Any], *, fs: float = FS):
+    def __init__(self, standards: Dict[str, Any], *, fs: float = FS, max_rest_windows: int = 63):
         self.standards = standards
         self.fs = fs
+        self.max_rest_windows = int(max_rest_windows)
+        self._seed_wins: List[np.ndarray] = []
         self.reset_block()
 
     def reset_block(self) -> None:
-        self._rest_wins: List[np.ndarray] = []
-        self._rest_trials: List[List[np.ndarray]] = []
-        self._mi_wins: List[np.ndarray] = []
-        self._mi_trials: List[List[np.ndarray]] = []
+        """清空本块 MI 累计；Rest 基线恢复为块前 seed（不要求先做静息试次）。"""
+        self._rest_wins = [w.copy() for w in getattr(self, "_seed_wins", [])]
+        self._rest_trials = [list(self._rest_wins)] if self._rest_wins else []
+        self._mi_wins = []
+        self._mi_trials = []
+        self._trim_rest_baseline()
+
+    def _trim_rest_baseline(self) -> None:
+        """保留最近 N 个 Rest 滑窗作 ERD 基线（块内滚动）。"""
+        if self.max_rest_windows <= 0 or len(self._rest_wins) <= self.max_rest_windows:
+            return
+        drop = len(self._rest_wins) - self.max_rest_windows
+        self._rest_wins = self._rest_wins[drop:]
+        kept = 0
+        new_trials: List[List[np.ndarray]] = []
+        for tr in self._rest_trials:
+            if kept + len(tr) > drop:
+                off = max(0, drop - kept)
+                if off < len(tr):
+                    new_trials.append(tr[off:])
+                break
+            kept += len(tr)
+        self._rest_trials = new_trials
+
+    def seed_rest_from_segment(
+        self,
+        seg_filtered_tc: np.ndarray,
+        *,
+        as_block_seed: bool = True,
+    ) -> int:
+        """块前/试次间静息：灌入已滤波 Rest 段。as_block_seed=True 时同时写入跨块 seed。"""
+        wins = segment_to_hop_windows(seg_filtered_tc, self.fs)
+        if not wins:
+            return 0
+        if as_block_seed:
+            self._seed_wins.extend([w.copy() for w in wins])
+        self._rest_wins.extend(wins)
+        self._rest_trials.append(wins)
+        self._trim_rest_baseline()
+        return len(wins)
 
     def add_trial_segment(self, label: int, seg_filtered_tc: np.ndarray) -> None:
         """seg_filtered_tc: cue 后 0–4s，已 8–30Hz 滤波 (T,8)。"""
@@ -300,6 +338,7 @@ class TrialFeatureExtractor:
         if label == self.LABEL_REST:
             self._rest_wins.extend(wins)
             self._rest_trials.append(wins)
+            self._trim_rest_baseline()
         elif label in (self.LABEL_LEFT, self.LABEL_RIGHT):
             self._mi_wins.extend(wins)
             self._mi_trials.append(wins)
@@ -347,7 +386,7 @@ class TrialFeatureExtractor:
         # —— MI 试次：单试次 ERD + 块累计 grade 分离 ——
         if not self._rest_wins:
             out["no_baseline"] = True
-            out["verdict_text"] = "块内尚无 Rest 基线，请先做静息试次"
+            out["verdict_text"] = "尚无 Rest 基线（块前静息未灌入）"
             out["trial_grade"] = empty_grade
             out["grade"] = empty_grade
             return out
@@ -406,7 +445,8 @@ class TrialFeatureExtractor:
             out["side_metrics"] = asdict(side)
             out["block_grade"] = score_side(side, self.standards)
             out["block_n_mi_trials"] = side.n_mi_trials
-            out["block_n_rest_trials"] = side.n_rest_trials
+            out["block_n_rest_segments"] = side.n_rest_trials
+            out["block_n_rest_trials"] = side.n_rest_trials  # 兼容旧键；语义=Rest 段数（非 label=0 试次）
         else:
             out["block_grade"] = out["trial_grade"]
 

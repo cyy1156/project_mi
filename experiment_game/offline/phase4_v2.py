@@ -1,8 +1,8 @@
-"""Phase4 v2 · 标定/静息试次 → 3s/hop100 窗（无反馈段 · MI 恒满 imagine_s）。
+"""Phase4 v2 · 标定试次 → OpenBMI-Align 3s/hop100（与 ft_subject_from_v3 / v3 在线同构）。
 
-- MI 段 = [t_mi_start, t_mi_end)；标定试次 mi_end = mi_start + 6s
-- 游戏试次见 phase4_v2_game.py（可变结束时刻）
-- 锚点 t0 ∈ [0.4, dur−3.0]，hop 0.1s；逐窗 z-score（与 openbmi_3s_hop100 同构）
+- Task：Left/Right · [t_cue, t_cue+4s) · Cue 前 0.5s 基线
+- Rest：试次间隔（iter_rest_sources_cue_before）
+- 跳过 label=0 想象试次（Rest 仅来自间隔段）
 
 用法：python -m experiment_game.offline.phase4_v2 <session_dir>
 """
@@ -20,13 +20,16 @@ _HERE = Path(__file__).resolve()
 sys.path.insert(0, str(_HERE.parents[2]))
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
+from experiment_game.offline.openbmi_align_cut import (  # noqa: E402
+    FROZEN,
+    FS,
+    cut_openbmi_align_from_table,
+)
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
-from src.common.steps.resample_zscore import trial_zscore  # noqa: E402
+from src.common.steps.slide_3s_hop100 import HOP_SEC, WIN_SEC  # noqa: E402
 
-FS = 250.0
-WIN, HOP, T0_MIN = 3.0, 0.1, 0.4
+WIN, HOP, T0_MIN = WIN_SEC, HOP_SEC, 0.0  # legacy 导出（replay 工具兼容）
 RAW_COLS = ["C3", "C4", "CZ", "CP3", "CP4", "CPZ", "FC3", "FC4"]
-FROZEN = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]
 REORDER = [RAW_COLS.index(c.upper()) for c in FROZEN]
 
 
@@ -65,19 +68,20 @@ def load_eeg(session_dir: Path):
 
 
 def cut_segment(x_filt, t_lsl, t_start, t_end):
-    """[t_start,t_end) → 锚点 t0∈[0.4, dur−3] 的 z-scored 窗列表 (8,750)。"""
-    i0 = int(np.searchsorted(t_lsl, t_start))
-    i1 = int(np.searchsorted(t_lsl, t_end))
-    dur = (i1 - i0) / FS
-    if dur < WIN + T0_MIN - 1e-6:
+    """legacy：按 mi 段切窗（旧脚本兼容）；新会话请用 openbmi_align_cut。"""
+    from experiment_game.offline.openbmi_align_cut import cue_time_from_row
+
+    row = {"t_cue": t_start, "t_mi_start": t_start}
+    t_cue = cue_time_from_row(row)
+    if t_cue is None:
         return []
-    outs = []
-    t0 = T0_MIN
-    while t0 + WIN <= dur + 1e-9:
-        w = trial_zscore(x_filt[i0 + int(round(t0 * FS)) : i0 + int(round((t0 + WIN) * FS))])
-        outs.append(w.T.astype(np.float32))
-        t0 = round(t0 + HOP, 3)
-    return outs
+    wins, _, _, _ = cut_openbmi_align_from_table(
+        x_filt,
+        t_lsl,
+        [{"trial_id": 0, "label": 1, "t_cue": t_cue, "t_mi_start": t_cue, "rejected": 0, "invalid": 0}],
+        include_rest_interval=False,
+    )
+    return wins
 
 
 def run(session_dir: str) -> Path:
@@ -86,45 +90,41 @@ def run(session_dir: str) -> Path:
     x = notch_and_bandpass(car_reference(X_raw), FS, l_freq=8.0, h_freq=30.0)
     rows = list(csv.DictReader(open(sd / "alignment" / "trial_table.csv", encoding="utf-8")))
 
-    wins, y_task, y_three, tids = [], [], [], []
-    for r in rows:
-        if r.get("rejected") == "1" or r.get("invalid") == "1":
-            continue
-        lab = int(r["label"])  # 0 静息 / 1 左 / 2 右
-        phase = r.get("phase", "")
-        if phase == "game":
-            continue  # 游戏试次走 phase4_v2_game
-        segs = []
-        if lab == 0:
-            # v2 静息试次：label=0 走 mi_start/mi_end（无 rest_start）
-            if r.get("t_mi_start") and r.get("t_mi_end"):
-                segs.append((float(r["t_mi_start"]), float(r["t_mi_end"]), 0))
-            elif r.get("t_rest_start") and r.get("t_rest_end"):
-                segs.append((float(r["t_rest_start"]), float(r["t_rest_end"]), 0))
-        elif lab in (1, 2) and r.get("t_mi_start") and r.get("t_mi_end"):
-            segs.append((float(r["t_mi_start"]), float(r["t_mi_end"]), lab))
-            if r.get("t_rest_start"):  # v1：同试次嵌入 Rest
-                segs.append((float(r["t_rest_start"]), float(r["t_rest_end"]), 0))
-        for t_a, t_b, lb in segs:
-            for w in cut_segment(x, t_lsl, t_a, t_b):
-                wins.append(w)
-                y_task.append(0 if lb == 0 else 1)
-                y_three.append(lb)
-                tids.append(int(r["trial_id"]))
+    cal_rows = [r for r in rows if r.get("phase") != "game"]
+    wins, y_task, y_three, tids = cut_openbmi_align_from_table(
+        x,
+        t_lsl,
+        cal_rows,
+        include_rest_interval=True,
+    )
 
     out = sd / "phase4_v2"
     out.mkdir(exist_ok=True)
-    X = np.stack(wins)[ :, None, :, : ] if wins else np.zeros((0, 1, 8, 750), np.float32)
+    X = np.stack(wins)[:, None, :, :] if wins else np.zeros((0, 1, 8, 750), np.float32)
     np.save(out / "X.npy", X)
     np.save(out / "y_task.npy", np.asarray(y_task, np.int64))
     np.save(out / "y_three.npy", np.asarray(y_three, np.int64))
     np.save(out / "trial_id.npy", np.asarray(tids, np.int64))
-    (out / "manifest.json").write_text(json.dumps({
-        "win_sec": WIN, "hop_sec": HOP, "t0_min": T0_MIN, "fs": FS,
-        "channels": FROZEN, "bandpass_hz": [8.0, 30.0], "zscore": "per-window",
-        "n_windows": len(wins), "note": "3s hop100 唯一输出（4s 固定窗已删除 · 2026-08-23）",
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
-    print(f"{sd.name}: {X.shape} 窗 · 类别 {dict(zip(*np.unique(y_three, return_counts=True)))}")
+    (out / "manifest.json").write_text(
+        json.dumps(
+            {
+                "protocol": "openbmi_align_v1",
+                "win_sec": WIN_SEC,
+                "hop_sec": HOP_SEC,
+                "baseline_before_cue_s": 0.5,
+                "task_sec": 4.0,
+                "fs": FS,
+                "channels": FROZEN,
+                "bandpass_hz": [8.0, 30.0],
+                "zscore": "per-window",
+                "n_windows": len(wins),
+            },
+            ensure_ascii=False,
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
+    print(f"{sd.name} [cal]: {X.shape} 窗")
     return out
 
 

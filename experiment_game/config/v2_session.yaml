@@ -1,58 +1,57 @@
-# v2 会话统一参数（唯一配置源 · 运行时可改，现场禁改由操作台流程约束）
+# v2 会话统一参数（OpenBMI-Align v1 · MI 多数票计分 · 与 v3 同构）
 # orchestrator / SessionRunner 在会话启动前加载；编辑后重开会话即生效。
-# 与 v1 Phase2Config 同理：各字段可在 min/max 范围内调整，不必改代码。
 
 cal_rounds_min: 4
 cal_rounds_max: 6
-trials_per_round: 18           # = ft_trials + quiz_trials
+trials_per_round: 18
 ft_trials_per_round: 12
 quiz_trials_per_round: 6
-subblock_size: 6              # 2L+2R+2Rest 置换
+subblock_size: 6
 cal_round_gap_s: 180.0
 
 gate_enter_three: 0.60
 gate_min_quiz_trials: 12
 
-game_rounds: 2              # 本场实际游戏轮数（须在 game_rounds_min..max 内）
+game_rounds: 2
 game_rounds_min: 2
 game_rounds_max: 3
 game_trials_per_round: 16
-# v2.1 在线判定（D8 · 规格见 v2_upgrade_plan §3.4）
-judgment_step_s: 0.6
-judgment_half_weight_until_s: 2.4
-score_early_stop: 5.0
-score_invalid_max: 3.0
-score_valid_min: 4.0
-wrong_class_abort: 5.0
-consecutive_invalid_abort: 5
+
+# MI 多数票计分：每窗记录 pred；MI 结束多数票 vs label → 正确 +1 / 错误 0；跑完全程
+primary_judge_mode: majority
 ft_min_valid_trials: 6
 
-arm_levels: 4               # 遗留；D8 用 score_early_stop / score_reach
-
 group_lr: 0.0001
-replay_ratio: 0.15
+replay_ratio: 0.10
 drift_patience: 2
-task_p_on: 0.6
+task_p_on: 0.0
 
-prep_s: 2.0                 # 准备段；之后 Cue 动画 cue_s 秒，MI 从 Cue 结束开始
-cue_s: 2.0
-imagine_s: 6.0              # MI 最长 6s；游戏试次可因 touch/reach 提前 mi_end
+# OpenBMI-Align v1（与 v3_session.yaml 一致）
+prep_s: 2.0
+cue_s: 0.0
+imagine_s: 4.0
 iti_s: 3.0
+inter_trial_rest_s: 4.0
+online_window_mode: openbmi_hop100
+win_s: 3.0
+win_hop_s: 0.1
+baseline_before_cue_s: 0.5
 
-# 适配引擎（增量微调）
 ft_epochs: 5
 ft_batch_size: 32
 ft_weight_decay: 0.0001
 
-# 模型与回放
-s3_task_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/task/fold0/best_task.pt"
-s3_three_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/three/fold0/best_three.pt"
+s3_task_ckpt: "experiment_game/data/models/fnz/best_task.pt"
+s3_three_ckpt: "experiment_game/data/models/fnz/best_three.pt"
 
-# 信号质量门控（空帽/断线/饱和时不计分、不进 FT）
-signal_quality_enabled: true
-signal_min_median_std_uv: 3.0
-signal_min_peak_to_peak_uv: 8.0
-signal_max_peak_uv: 1000.0
-signal_min_per_channel_std_uv: 2.0
-signal_min_active_channels: 3
-signal_max_channel_std_ratio: 20.0
+signal_quality_enabled: false
+signal_min_median_std_uv: 0.0
+signal_min_peak_to_peak_uv: 0.0
+signal_max_peak_uv: 1.0e9
+signal_min_per_channel_std_uv: 0.0
+signal_min_active_channels: 0
+signal_max_channel_std_ratio: 1.0e9
+signal_max_median_std_uv: 1.0e9
+signal_max_ptp_uv: 1.0e9
+signal_min_car_std_uv: 0.0
+signal_max_common_mode_ratio: 1.0e9

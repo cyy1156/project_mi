@@ -1,6 +1,6 @@
-import { WsClient } from "./ws_client.js?v=20260824prompt3";
-import { HomeDeskScene } from "./scene.js?v=20260823b";
-import { handleV2Stage, maybeDemo } from "./v2_bridge.js?v=20260824p2";
+import { WsClient } from "./ws_client.js?v=20260825arm1";
+import { HomeDeskScene } from "./scene.js?v=20260825arm1";
+import { handleV2Stage, maybeDemo, setSubjectFeedbackMode } from "./v2_bridge.js?v=20260827m";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
@@ -38,11 +38,13 @@ window.__miScene = scene;
 window.__v2scene = {
   fixation: () => scene.v2Fixation(),
   cue: (label) => scene.v2Cue(label),
-  calProgress: (p) => scene.v2CalProgress(p),
   gameLevel: (n, reach) => scene.v2GameLevel(n, reach),
   iti: () => scene.v2Iti(),
   idle: (text) => scene.v2Idle(text),
 };
+
+/** @type {"idle"|"phase2"|"v2_session"|"v3_session"|"v4_session"} */
+let sessionMode = "idle";
 let promptOpen = false;
 let promptAllowSubject = true;
 let sessionDone = false;
@@ -77,7 +79,7 @@ function setStatus(s) {
   } else if (paused) {
     setHelpTip("已暂停 — 操作者按 P 恢复");
   } else if (offline) {
-    setHelpTip("请先运行 open_induction.bat，再刷新本页");
+    setHelpTip("请先运行 open_operator.bat，再刷新本页");
   } else {
     setHelpTip("被试：空格确认 · 操作者：P/N/G/R/Esc");
   }
@@ -87,6 +89,56 @@ function setOffline(on) {
   if (!el.offline) return;
   el.offline.classList.toggle("hidden", !on);
   el.offline.setAttribute("aria-hidden", on ? "false" : "true");
+}
+
+function clearIdleOverlay() {
+  try {
+    scene._v2IdleEl?.remove();
+    scene._v2IdleEl = null;
+  } catch {
+    /* ignore */
+  }
+  document.getElementById("v2-idle-overlay")?.remove();
+  document.getElementById("v2ov")?.remove();
+}
+
+function resetSubjectScene(modeLabel) {
+  clearIdleOverlay();
+  if (el.text) el.text.textContent = modeLabel || "";
+  if (el.sub) el.sub.textContent = "";
+  if (el.cross) el.cross.classList.add("hidden");
+}
+
+function normalizePhaseMode(pm) {
+  const m = pm || "phase2_full";
+  if (m === "sim_v3_session") return "v3_session";
+  return m;
+}
+
+function applySessionMode(mode, label) {
+  const next = mode || "idle";
+  if (next !== sessionMode) {
+    sessionMode = next;
+    const titles = {
+      phase2: "Phase2 诱导",
+      v2_session: "v2 会话",
+      v3_session: "v3 探针",
+      v4_session: "v4 质量检测",
+      idle: "",
+    };
+    // 只改 HUD，不盖全屏遮罩（遮罩会挡住后续「静息基线」等真流程）
+    clearIdleOverlay();
+    if (el.text) el.text.textContent = label || titles[next] || "";
+    if (el.sub) el.sub.textContent = next === "idle" ? "" : "连接中…";
+    if (el.cross) el.cross.classList.add("hidden");
+    if (el.phase) el.phase.textContent = next === "idle" ? "" : next;
+  } else if (label && el.phase) {
+    el.phase.textContent = label;
+  }
+}
+
+function isV2Family() {
+  return sessionMode === "v2_session" || sessionMode === "v3_session";
 }
 
 function showPrompt(msg) {
@@ -332,13 +384,62 @@ if (maybeDemo()) {
 client = new WsClient(
   wsUrl,
   (msg) => {
-    if (msg.type === "v2_stage") { handleV2Stage(msg.stage, msg.ctx, msg.data); return; }
+    if (msg.type === "session_started") {
+      const pm = normalizePhaseMode(msg.phase_mode || "phase2_full");
+      const mapped =
+        pm === "v2_session" || pm === "v3_session" || pm === "v4_session"
+          ? pm
+          : "phase2";
+      applySessionMode(mapped, pm === "v3_session" && msg.phase_mode === "sim_v3_session" ? "仿真 v3" : undefined);
+      setSubjectFeedbackMode(msg.subject_feedback_mode || "none");
+      sessionDone = false;
+      setOffline(false);
+      setStatus("会话已启动");
+      return;
+    }
+    if (msg.type === "v2_stage") {
+      // v1 Phase2 的 stage 动画不得混入；仅 v2/v3 消费
+      if (sessionMode === "phase2") return;
+      if (sessionMode === "idle") applySessionMode("v2_session");
+      if (sessionMode === "v4_session") return;
+      clearIdleOverlay();
+      handleV2Stage(msg.stage, msg.ctx, msg.data);
+      return;
+    }
+    if (msg.type === "v4_start") {
+      applySessionMode("v4_session", "v4 质量检测");
+      clearIdleOverlay();
+      if (el.text) el.text.textContent = "数据质量检测";
+      if (el.sub) {
+        el.sub.textContent = "请静坐，等待操作台格子变绿";
+      }
+      if (el.cross) el.cross.classList.remove("hidden");
+      return;
+    }
+    if (msg.type === "v4_pass") {
+      clearIdleOverlay();
+      if (el.text) el.text.textContent = "质量达标";
+      if (el.sub) el.sub.textContent = "可开始 v3 / v2 正式实验";
+      return;
+    }
+    if (msg.type === "v4_summary") {
+      clearIdleOverlay();
+      if (el.text) el.text.textContent = "质量检测结束";
+      if (el.sub) {
+        el.sub.textContent = `结论：${msg.verdict || msg.rolling_verdict || "—"}`;
+      }
+      return;
+    }
     if (msg.type === "hud") {
+      clearIdleOverlay();
       if (el.text) el.text.textContent = msg.text || "";
       if (el.sub) el.sub.textContent = msg.subtext || "";
       if (el.cross) el.cross.classList.toggle("hidden", !msg.show_cross);
+      if (msg.text) setStatus("进行中");
     } else if (msg.type === "stage") {
-      // 流程已推进时收起残留弹窗（例如 G 已确认但前端未关）
+      // v2/v3/v4 会话忽略 v1 Phase2 舞台消息，避免画面串台
+      if (isV2Family() || sessionMode === "v4_session") return;
+      if (sessionMode === "idle") applySessionMode("phase2");
       if (promptOpen && msg.stage && msg.stage !== "idle") {
         hidePrompt();
       }
@@ -357,7 +458,6 @@ client = new WsClient(
             : "已提交，感谢配合";
         }
         setHelpTip(msg.path ? `问卷已保存：${msg.path}` : "问卷已提交");
-        // 成功后立即关闭；若仍卡住可用右上角 × /「关闭」
         hideQuestionnaire();
         if (sessionDone) setStatus("完成");
       } else {
@@ -377,18 +477,26 @@ client = new WsClient(
     } else if (msg.type === "operator_state") {
       updateOpState(msg);
     } else if (msg.type === "session") {
-      if (msg.status === "done") {
+      if (msg.status === "done" || msg.status === "aborted") {
         sessionDone = true;
         hidePrompt();
         if (el.text) el.text.textContent = "本会话结束";
         if (el.sub) el.sub.textContent = "可以关闭页面";
         setOffline(false);
         setStatus("完成");
+        applySessionMode("idle");
       } else if (msg.status === "error") {
         setStatus(`错误: ${msg.message || ""}`);
-      } else if (msg.status === "running") {
+      } else if (msg.status === "running" || msg.status === "gate") {
         sessionDone = false;
-        if (msg.phase && el.phase) el.phase.textContent = msg.phase;
+        const ph = normalizePhaseMode(msg.phase || "");
+        if (ph === "v2_session" || ph === "v3_session" || ph === "v4_session") {
+          applySessionMode(ph);
+        } else if (ph && sessionMode === "idle") {
+          applySessionMode("phase2", ph);
+        } else if (ph && el.phase) {
+          el.phase.textContent = msg.phase || ph;
+        }
       } else if (msg.phase && el.phase) {
         el.phase.textContent = msg.phase;
       }

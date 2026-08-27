@@ -1,31 +1,39 @@
-# v3 探针会话（零样本 · 全程冻结 · 引导 A/B）
+# v3 探针会话（OpenBMI-Align v1 · 零样本 · 全程冻结 · 引导 A/B · MI 多数票）
 blocks: 2
 trials_per_block: 18
-baseline_rest_s: 60
+baseline_rest_s: 30
 block_gap_s: 90
 guidance_timeout_s: 600
-judgment_step_s: 0.6
-judgment_half_weight_until_s: 2.4
-score_early_stop: 5.0
-score_invalid_max: 3.0
-score_valid_min: 4.0
-wrong_class_abort: 5.0
 primary_judge_s: 4.0
+primary_judge_mode: majority
 mu_hz: [8.0, 13.0]
 beta_l_hz: [13.0, 20.0]
 beta_h_hz: [20.0, 30.0]
+# OpenBMI-Align v1：Cue=MI onset，MI 固定 4s，试次间 Rest 4s
 prep_s: 2.0
-cue_s: 2.0
-imagine_s: 6.0
+cue_s: 0.0
+imagine_s: 4.0
 iti_s: 3.0
-task_p_on: 0.6
+inter_trial_rest_s: 4.0
+# 在线取窗：3s/hop100，Cue−0.5s 段级基线；判定点 = 窗尾 3.0…4.0s（11 档）
+online_window_mode: openbmi_hop100
+win_s: 3.0
+win_hop_s: 0.1
+baseline_before_cue_s: 0.5
+task_p_on: 0.0
 eeg_frame_interval_s: 0.3
 eeg_frame_window_s: 2.5
 save_trial_segments: true
-s3_task_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/task/fold0/best_task.pt"
-s3_three_ckpt: "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260822_094942/three/fold0/best_three.pt"
-# 信号质量上限（v3 帽检 / 试次门控）
-signal_max_median_std_uv: 60.0
-signal_max_ptp_uv: 400.0
-signal_min_car_std_uv: 2.0
-signal_max_common_mode_ratio: 0.85
+s3_task_ckpt: "experiment_game/data/models/fnz/best_task.pt"
+s3_three_ckpt: "experiment_game/data/models/fnz/best_three.pt"
+signal_quality_enabled: false
+signal_min_median_std_uv: 0.0
+signal_min_peak_to_peak_uv: 0.0
+signal_max_peak_uv: 1.0e9
+signal_min_per_channel_std_uv: 0.0
+signal_min_active_channels: 0
+signal_max_channel_std_ratio: 1.0e9
+signal_max_median_std_uv: 1.0e9
+signal_max_ptp_uv: 1.0e9
+signal_min_car_std_uv: 0.0
+signal_max_common_mode_ratio: 1.0e9

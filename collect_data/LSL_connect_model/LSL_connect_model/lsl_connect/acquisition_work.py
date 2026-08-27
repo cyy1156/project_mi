@@ -24,8 +24,9 @@ from lsl_connect.lsl_streams import (
 )
 from lsl_connect.preprocessing import (
     PreprocessConfig,
+    StreamingEegFilter,
+    counts_to_microvolts,
     preprocess_accel_batch,
-    preprocess_eeg_batch,
 )
 
 LinkEventCallback = Callable[[Dict[str, Any]], None]
@@ -90,6 +91,7 @@ class AcquisitionWorker:
         self._accel_channel: Optional[np.ndarray] = None
         self._ts_channel: Optional[int] = None
         self._ts_mapper = BoardToLslTimestampMapper()
+        self._stream_filter: Optional[StreamingEegFilter] = None
 
         self._stall_enabled = False
         self._last_data_at = 0.0
@@ -161,6 +163,9 @@ class AcquisitionWorker:
 
         self._ts_mapper.reset()
 
+        # 因果流式滤波：状态跨批保持，取代旧的按批零相位（避免块边界伪迹）
+        self._stream_filter = StreamingEegFilter.from_config(self._preprocess_config)
+
         n_eeg = len(self._eeg_channel)
         self._lsl_config.channel_count = n_eeg
         self._lsl_config.use_synthetic = self._board_config.use_synthetic
@@ -197,6 +202,7 @@ class AcquisitionWorker:
             self._board = None
 
         self._ts_mapper.reset()
+        self._stream_filter = None
         self._outlet_eeg = None
         self._outlet_accel = None
 
@@ -212,7 +218,10 @@ class AcquisitionWorker:
         lsl_ts = self._ts_mapper.to_lsl_uniform(board_ts, fs)
 
         eeg_counts = data[self._eeg_channel, :]
-        eeg_uv = preprocess_eeg_batch(eeg_counts, self._preprocess_config)
+        eeg_uv = counts_to_microvolts(eeg_counts)
+        if self._preprocess_config.filter_enabled and self._stream_filter is not None:
+            eeg_uv = self._stream_filter.process(eeg_uv)
+        eeg_uv = eeg_uv.astype(np.float32)
         n = push_eeg_chunk(self._outlet_eeg, eeg_uv, timepstamps=lsl_ts)
 
         accel_ch = self._accel_channel
@@ -282,6 +291,8 @@ class AcquisitionWorker:
             try:
                 self._board.connect()
                 self._ts_mapper.reset()
+                if self._stream_filter is not None:
+                    self._stream_filter.reset()
                 self._last_data_at = time.monotonic()
                 self._last_reconnect_at = self._last_data_at
                 with self._stats_lock:

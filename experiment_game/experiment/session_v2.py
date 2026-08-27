@@ -1,11 +1,7 @@
-"""v2 会话模式：动觉引导 → 4 轮标定（12FT+6小考，轮间增量微调）→ 准入 → 游戏协同。
+"""v2 会话模式：动觉引导 → 标定轮增量 FT → 准入建议（操作员确认）→ 游戏协同。
 
-组装 trial_v2 + inference_v2 + adapt_engine；常量从 config/v2_session.yaml 读（可改）。
-权重/LSL 缺失时自动降级为"流程演练"（无判定无微调），事件照常落盘，可合成板冒烟。
-
-D8：试次内 0.6s 栅格计分；连续无效熔断 → 可选 FT → v1 诱导/记录降级。
-
-调用：SessionRunner.run_v2_session() 或直接 run_v2_session(events, markers, bridge, on_console)。
+OpenBMI-Align v1（与 v3 同构）：Cue=MI onset · MI 4s · 试次间 Rest 4s · 在线 3s/hop100 + Cue−0.5s 基线 · MI 阶段多数票。
+准入：小考门控仅作参考（pass / weak_mi），进入游戏须操作员确认（G / 准入）。
 """
 
 from __future__ import annotations
@@ -136,6 +132,9 @@ def diagnose_v2_online_deps(
             pre,
             task_p_on=cfg.task_p_on,
             signal_quality=cfg.signal_quality_config(),
+            window_mode=cfg.online_window_mode,
+            mi_task_sec=cfg.imagine_s,
+            baseline_before_cue_s=cfg.baseline_before_cue_s,
         )
     except Exception as exc:
         reasons.append(f"InferenceService 初始化失败: {exc}")
@@ -248,6 +247,7 @@ def run_v2_session(
     skip_calibration: bool = False,
     skip_gate: bool = False,
     skip_game: bool = False,
+    subject_feedback_mode: str = "none",
 ) -> Dict:
     import random
 
@@ -263,7 +263,7 @@ def run_v2_session(
     on_console(
         f"[v2] 常量加载：轮数{cfg.cal_rounds_min}-{cfg.cal_rounds_max} "
         f"准入{cfg.gate_enter_three} lr={cfg.group_lr} "
-        f"D8栅格{len(cfg.judgment_times)}档"
+        f"在线窗 {cfg.online_window_mode} ×{len(cfg.judgment_times)}档"
         f"{' · locked' if protocol_locked else ' · debug'}"
         f"{f' · seed={seed}' if seed is not None else ''}"
     )
@@ -291,10 +291,16 @@ def run_v2_session(
 
     store = _SessionStore()
     window_cache: Dict[int, list] = {}
+    trial_times: Dict[int, Dict[str, float]] = {}
     mi_times: Dict[int, float] = {}
-    consecutive_invalid = 0
+    arm_peak_by_trial: Dict[int, int] = {}
     aborted = False
     abort_reason: Optional[str] = None
+    _score_max = 0
+    if not skip_calibration:
+        _score_max += int(cfg.cal_rounds_max) * int(cfg.trials_per_round)
+    if not skip_game:
+        _score_max += int(cfg.game_rounds) * int(cfg.game_trials_per_round)
     progress: Dict[str, object] = {
         "cal_round": 0,
         "cal_rounds_max": cfg.cal_rounds_max,
@@ -302,6 +308,9 @@ def run_v2_session(
         "game_rounds": cfg.game_rounds,
         "subblock": 0,
         "score": None,
+        "session_score": 0,
+        "session_trials_done": 0,
+        "session_score_max": _score_max,
         "ft_status": "idle",
         "phase_step": "guidance",
     }
@@ -309,10 +318,16 @@ def run_v2_session(
     def judgment_fn(mi_t: float, t_rel: float, ctx) -> Optional[Dict]:
         tid = getattr(ctx, "trial_id", -1)
         mi_times[tid] = mi_t
+        times = trial_times.setdefault(tid, {})
+        times["mi_t"] = mi_t
+        cue_t = times.get("cue_t")
+        if cue_t is None:
+            cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
+            times["cue_t"] = cue_t
         if infer is None:
             return None
         try:
-            j = infer.judge(mi_t, t_rel)
+            j = infer.judge(float(cue_t), t_rel)
             if j is not None and j.get("signal_bad"):
                 return j
             if j is not None and "window" in j:
@@ -322,14 +337,34 @@ def run_v2_session(
             return None
 
     def on_stage(stage: str, ctx, data) -> None:
+        from experiment_game.experiment.score_feedback import enrich_stage_data
+
+        if stage == "cue" and isinstance(data, dict) and "cue_t" in data:
+            tid = getattr(ctx, "trial_id", -1)
+            trial_times.setdefault(tid, {})["cue_t"] = float(data["cue_t"])
         if stage == "mi_start" and isinstance(data, dict) and "mi_t" in data:
-            mi_times[getattr(ctx, "trial_id", -1)] = float(data["mi_t"])
+            mi_t = float(data["mi_t"])
+            tid = getattr(ctx, "trial_id", -1)
+            cue_t = float(data.get("cue_t", mi_t - cfg.cue_s))
+            trial_times[tid] = {
+                "mi_t": mi_t,
+                "cue_t": cue_t,
+                "mi_end_t": mi_t + cfg.imagine_s,
+            }
+            mi_times[tid] = mi_t
         if stage == "round_start" and isinstance(data, dict):
             m = data.get("mode")
             if m == "calibration":
                 progress["phase_step"] = "calibration"
             elif m == "game":
                 progress["phase_step"] = "game"
+        if subject_feedback_mode == "arm_reach":
+            data = enrich_stage_data(
+                stage,
+                ctx,
+                data if isinstance(data, dict) else data,
+                peak_by_trial=arm_peak_by_trial,
+            )
         score = None
         if isinstance(data, dict):
             if data.get("score") is not None:
@@ -338,6 +373,19 @@ def run_v2_session(
                 score = data["summary"].get("score")
         if score is not None:
             progress["score"] = score
+        # 本场累计：多数票每试次 0/1，满分 = 计划试次数
+        if (
+            stage == "trial_end"
+            and ctx is not None
+            and not getattr(ctx, "rejected", False)
+            and isinstance(data, dict)
+        ):
+            summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
+            lab = getattr(ctx, "label", None)
+            if summary is not None and lab in (1, 2):
+                pts = float(summary.get("score") or 0.0)
+                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
         if ctx is not None and getattr(ctx, "subblock", None):
             progress["subblock"] = getattr(ctx, "subblock", 0)
         mode = getattr(ctx, "mode", None) if ctx is not None else None
@@ -345,12 +393,18 @@ def run_v2_session(
             progress["phase_step"] = "calibration"
         elif mode == "game":
             progress["phase_step"] = "game"
+        from experiment_game.experiment.class_labels import attach_judge_names, label_name
+
+        lab = getattr(ctx, "label", None) if ctx else None
+        if isinstance(data, dict):
+            data = attach_judge_names(data, label=lab)
         bridge.broadcast({
             "type": "v2_stage",
             "stage": stage,
             "ctx": {
                 "trial_id": getattr(ctx, "trial_id", None) if ctx else None,
-                "label": getattr(ctx, "label", None) if ctx else None,
+                "label": lab,
+                "label_name": label_name(lab),
                 "mode": mode,
                 "round": getattr(ctx, "round_no", None) if ctx else None,
                 "subblock": getattr(ctx, "subblock", None) if ctx else None,
@@ -358,21 +412,16 @@ def run_v2_session(
             "data": _ser(data),
             "progress": dict(progress),
             "score": score,
+            "session_score": progress.get("session_score"),
+            "session_score_max": progress.get("session_score_max"),
+            "session_trials_done": progress.get("session_trials_done"),
         })
 
     def on_trial_end(ctx, summary: Optional[Dict]) -> Optional[str]:
-        nonlocal consecutive_invalid
-        if getattr(ctx, "rejected", False):
-            return None
-        if summary is None:
+        if getattr(ctx, "rejected", False) or summary is None:
             return None
         if summary.get("valid"):
-            consecutive_invalid = 0
             store.valid_trials.add(ctx.trial_id)
-        else:
-            consecutive_invalid += 1
-            if consecutive_invalid >= cfg.consecutive_invalid_abort:
-                return "abort_session"
         return None
 
     timing = TrialTimingV2(
@@ -380,8 +429,8 @@ def run_v2_session(
         cue_s=cfg.cue_s,
         imagine_s=cfg.imagine_s,
         iti_s=cfg.iti_s,
+        inter_trial_rest_s=cfg.inter_trial_rest_s,
         judgment_times=cfg.judgment_times,
-        scoring=cfg.scoring_config(),
     )
     sm = TrialStateMachineV2(
         events,
@@ -456,6 +505,8 @@ def run_v2_session(
                     round_no=round_no,
                     subblock=(g_start // group_size) + 1,
                 )
+                if cfg.inter_trial_rest_s > 1e-6:
+                    sm.run_inter_trial_rest(ctx)
                 sm.run_trial(ctx)
             _commit_round_windows(chunk_ids)
             if fin is not None and drift is not None:
@@ -489,47 +540,6 @@ def run_v2_session(
             payload={"phase": "game", "event": "round_end"},
         )
         markers.push("round_end|phase=game")
-
-    def _handle_v2_abort(reason: str) -> None:
-        nonlocal aborted, abort_reason
-        aborted = True
-        abort_reason = reason
-        on_console(f"[v2] 会话熔断：{reason}（连续无效 {consecutive_invalid}）")
-        events.emit(
-            "v2_abort",
-            phase="v2",
-            reason=reason,
-            consecutive_invalid=consecutive_invalid,
-            valid_trials=len(store.valid_trials),
-        )
-        markers.push(f"v2_abort|reason={reason}")
-        bridge.broadcast({
-            "type": "v2_abort",
-            "reason": reason,
-            "consecutive_invalid": consecutive_invalid,
-            "valid_trials": len(store.valid_trials),
-        })
-
-        if fin is not None and len(store.valid_trials) >= cfg.ft_min_valid_trials:
-            import numpy as np
-
-            valid_ids = sorted(store.valid_trials)
-            X = np.concatenate([store.windows[t] for t in valid_ids if t in store.windows], axis=0)
-            y = np.concatenate([
-                [store.labels[t]] * len(store.windows[t])
-                for t in valid_ids
-                if t in store.windows
-            ])
-            if len(X):
-                rec = fin.train_round(X, y)
-                on_console(f"[v2] 熔断后增量 FT：n={len(valid_ids)} trial, loss={rec.get('loss')}")
-                events.emit("v2_abort_ft", phase="v2", n_trials=len(valid_ids), **{k: rec.get(k) for k in ("loss", "epochs")})
-        else:
-            on_console(
-                f"[v2] 有效 trial {len(store.valid_trials)} < K={cfg.ft_min_valid_trials}，跳过熔断 FT"
-            )
-
-        _run_v1_fallback_record(events, markers, bridge, on_console=on_console)
 
     def _early_abort_summary(reason: str, *, rounds: int = 0, gstatus: str = "pending") -> Dict:
         nonlocal aborted, abort_reason
@@ -583,20 +593,71 @@ def run_v2_session(
         })
         return _early_abort_summary(reason, rounds=rounds)
 
-    def _run_round_safe(*args, **kwargs) -> None:
-        try:
-            sm.run_round(*args, **kwargs)
-        except SessionAbort as exc:
-            if str(exc) == "consecutive_invalid_abort":
-                _handle_v2_abort("consecutive_invalid_5")
-            else:
-                raise
-
     # ============ 阶段 0：动觉引导（不采集） ============
     round_no, trial_offset = 0, 0
     gate_status = "degraded" if degraded else "pending"
+    gate_operator_confirmed = False
     drift_stats: List = []
     ctrl = gate = quiz = fin = drift = None
+
+    def _wait_operator_enter_game(
+        *,
+        advice: str,
+        status: str,
+        acc: Optional[float] = None,
+        n_quiz: Optional[int] = None,
+    ) -> None:
+        """准入门控仅作参考：进入游戏必须操作员确认（G / 准入按钮 / 弹窗）。"""
+        nonlocal gate_operator_confirmed
+        if skip_gate:
+            on_console("[v2] 调试跳过：准入确认")
+            gate_operator_confirmed = True
+            return
+        progress["phase_step"] = "gate"
+        acc_txt = f"{acc * 100:.1f}%" if acc is not None else "—"
+        n_txt = str(n_quiz) if n_quiz is not None else "—"
+        thr = cfg.gate_enter_three
+        body = (
+            f"【准入建议 · 仅供参考，不自动拦截】\n"
+            f"状态：{status}\n"
+            f"小考 Three：{acc_txt}（门槛 {thr:.0%}）· n={n_txt}\n"
+            f"标定轮次：{round_no}\n\n"
+            f"{advice}\n\n"
+            "请操作员确认后进入游戏；Esc 可中止会话。\n"
+            "操作：按 G、点「准入」、点「代确认」，或点本弹窗按钮。"
+        )
+        bridge.broadcast({
+            "type": "v2_gate",
+            "round": round_no,
+            "acc": acc,
+            "n_quiz": n_quiz,
+            "status": status,
+            "advisory": True,
+            "awaiting_operator": True,
+            "curve": [[p.k_ft, round(p.acc, 4)] for p in quiz.curve] if quiz else [],
+            "progress": dict(progress),
+        })
+        wait_prompt_continue(
+            bridge,
+            on_console,
+            prompt_id="v2_gate_confirm",
+            title="准入建议 · 操作员确认进入游戏",
+            body=body,
+            button="确认进入游戏",
+            allow_subject=False,
+            timeout_s=600.0,
+        )
+        gate_operator_confirmed = True
+        events.emit(
+            "v2_gate_operator_confirm",
+            phase="v2",
+            status=status,
+            acc=acc,
+            n_quiz=n_quiz,
+            rounds=round_no,
+        )
+        markers.push(f"v2_gate_operator_confirm|status={status}")
+        on_console(f"[v2] 操作员已确认进入游戏（建议 status={status}）")
 
     progress["phase_step"] = "adapt"
     wait_prompt_continue(
@@ -684,7 +745,7 @@ def run_v2_session(
             round_ids = [trial_offset + i + 1 for i in range(len(labels))]
             for i, lab in enumerate(labels):
                 store.labels[round_ids[i]] = int(lab)
-            _run_round_safe(labels, mode="calibration", round_no=round_no, trial_id_offset=trial_offset)
+            sm.run_round(labels, mode="calibration", round_no=round_no, trial_id_offset=trial_offset)
             trial_offset += len(labels)
             _commit_round_windows(round_ids)
             if ctrl is not None and predict_window is not None:
@@ -739,22 +800,48 @@ def run_v2_session(
                         phase="v2",
                         round=round_no,
                         acc=float(res["curve"].acc),
+                        advisory=True,
                     )
-                    markers.push(f"v2_gate_pass|round={round_no}")
+                    markers.push(f"v2_gate_pass|round={round_no}|advisory=1")
                     bridge.broadcast({
                         "type": "v2_stage",
                         "stage": "gate_pass",
                         "ctx": None,
-                        "data": {"round": round_no, "acc": float(res["curve"].acc)},
+                        "data": {
+                            "round": round_no,
+                            "acc": float(res["curve"].acc),
+                            "advisory": True,
+                            "awaiting_operator": True,
+                        },
                         "progress": dict(progress),
                     })
+                    try:
+                        _wait_operator_enter_game(
+                            advice=(
+                                f"建议：小考已达门槛（≥{cfg.gate_enter_three:.0%}），"
+                                "可进入游戏；亦可用 Esc 中止。"
+                            ),
+                            status="pass",
+                            acc=float(res["curve"].acc),
+                            n_quiz=int(res["curve"].n_quiz),
+                        )
+                    except TimeoutError:
+                        summary = _early_abort_summary(
+                            "gate_confirm_timeout",
+                            rounds=round_no,
+                            gstatus=gate_status,
+                        )
+                        on_console(f"[v2] 准入确认超时：{summary}")
+                        return summary
                     break
                 if skip_gate:
-                    on_console("[v2] 调试跳过：准入门槛，强制继续/结束标定")
+                    on_console("[v2] 调试跳过：准入门槛，强制结束标定")
+                    gate_operator_confirmed = True
                     break
             if aborted:
                 break
-            if round_no >= cfg.cal_rounds_min and gate_status == "pass":
+            # 未过线且未到上限：继续加轮；门控不自动进游戏
+            if gate_status == "weak_mi":
                 break
             bridge.broadcast({
                 "type": "v2_stage",
@@ -792,33 +879,76 @@ def run_v2_session(
         gate_status = "skipped"
 
     if gate_status == "weak_mi":
-        on_console(f"[v2] ⚠️ weak_mi：{round_no} 轮标定未达准入，将用当前权重继续游戏")
+        last_acc = float(quiz.curve[-1].acc) if quiz and quiz.curve else None
+        last_n = quiz.n_trials if quiz else 0
+        on_console(
+            f"[v2] ⚠️ weak_mi 建议：{round_no} 轮标定未达门槛 "
+            f"（{cfg.gate_enter_three:.0%}），等待操作员确认是否仍进入游戏"
+        )
         events.emit(
             "v2_weak_mi",
             phase="v2",
             rounds=round_no,
-            acc=float(quiz.curve[-1].acc) if quiz and quiz.curve else None,
+            acc=last_acc,
+            advisory=True,
         )
-        markers.push(f"v2_weak_mi|rounds={round_no}")
+        markers.push(f"v2_weak_mi|rounds={round_no}|advisory=1")
         bridge.broadcast({
             "type": "v2_stage",
             "stage": "weak_mi",
             "ctx": None,
-            "data": {"rounds": round_no, "gate_status": gate_status},
+            "data": {
+                "rounds": round_no,
+                "gate_status": gate_status,
+                "advisory": True,
+                "awaiting_operator": True,
+            },
             "progress": dict(progress),
         })
-        bridge.broadcast({
-            "type": "v2_gate",
-            "round": round_no,
-            "acc": float(quiz.curve[-1].acc) if quiz and quiz.curve else None,
-            "n_quiz": quiz.n_trials if quiz else 0,
-            "status": "weak_mi",
-            "curve": [[p.k_ft, round(p.acc, 4)] for p in quiz.curve] if quiz else [],
-            "progress": dict(progress),
-        })
+        if not gate_operator_confirmed:
+            try:
+                _wait_operator_enter_game(
+                    advice=(
+                        "建议：未达准入门槛。可标记 weak_mi 后仍进入游戏，"
+                        "或 Esc 中止会话。"
+                    ),
+                    status="weak_mi",
+                    acc=last_acc,
+                    n_quiz=last_n,
+                )
+            except TimeoutError:
+                summary = _early_abort_summary(
+                    "gate_confirm_timeout",
+                    rounds=round_no,
+                    gstatus=gate_status,
+                )
+                on_console(f"[v2] 准入确认超时：{summary}")
+                return summary
 
     # ============ 阶段 3：游戏协同（试次内推理冻结；组级 FT） ============
     if not aborted and not skip_game:
+        if not gate_operator_confirmed:
+            last_acc = float(quiz.curve[-1].acc) if quiz and quiz.curve else None
+            last_n = quiz.n_trials if quiz else None
+            try:
+                _wait_operator_enter_game(
+                    advice=(
+                        f"当前建议状态：{gate_status}。"
+                        "请操作员确认是否进入游戏。"
+                    ),
+                    status=gate_status,
+                    acc=last_acc,
+                    n_quiz=last_n,
+                )
+            except TimeoutError:
+                summary = _early_abort_summary(
+                    "gate_confirm_timeout",
+                    rounds=round_no,
+                    gstatus=gate_status,
+                )
+                on_console(f"[v2] 准入确认超时：{summary}")
+                return summary
+
         progress["phase_step"] = "game"
         on_console(f"[v2] 游戏 {cfg.game_rounds} 轮（可配 {cfg.game_rounds_min}–{cfg.game_rounds_max}）")
         for g_round in range(1, cfg.game_rounds + 1):
@@ -848,6 +978,9 @@ def run_v2_session(
         "aborted": aborted,
         "abort_reason": abort_reason,
         "valid_trials": len(store.valid_trials),
+        "session_score": progress.get("session_score"),
+        "session_score_max": progress.get("session_score_max"),
+        "session_trials_done": progress.get("session_trials_done"),
         "labels": {str(k): v for k, v in store.labels.items() if k in store.valid_trials},
         "drift_stats": drift_stats,
         "v2_config_effective": cfg.to_dict(),

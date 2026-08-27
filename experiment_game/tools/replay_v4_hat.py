@@ -12,6 +12,8 @@ from pathlib import Path
 import numpy as np
 
 _ROOT = Path(__file__).resolve().parents[1]
+_REPO = _ROOT.parent
+sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_ROOT))
 
 from experiment_game.experiment.signal_quality import diagnose_eeg_window, summarize_v4_session  # noqa: E402
@@ -67,6 +69,8 @@ def replay(path: Path, *, cfg: V4Config) -> dict:
         achieved_stable=mon.achieved_stable,
         time_to_stable_s=mon.time_to_stable_s,
         channel_names=names,
+        unused_channels=list(cfg.unused_channels),
+        scoring_channels=list(cfg.scoring_channels),
     )
     return {"summary": summary, "windows": history}
 

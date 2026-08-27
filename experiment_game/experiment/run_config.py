@@ -26,9 +26,10 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
         "sample_rate_hz": 250,
         "channel_labels": list(DEFAULT_CHANNEL_LABELS),
         "filter": {
-            "enabled": True,
+            "enabled": False,
             "bandpass_low_hz": 0.5,
             "bandpass_high_hz": 45.0,
+            "notch_enabled": False,
             "notch_low_hz": 49.0,
             "notch_high_hz": 51.0,
         },
@@ -67,6 +68,10 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
         "split": {
             "settle_s": 15.0,
         },
+        "ft_defaults": {
+            "use_replay": True,
+            "replay_ratio": 0.10,
+        },
     },
     "storage": {
         "save_root": "experiment_game/data/sessions",
@@ -84,6 +89,7 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
         "remember_last_config": True,
         "skip_setup_if_unchanged": False,
         "operator_hotkeys": True,
+        "subject_feedback_mode": "none",
     },
     "extensions": {},
 }
@@ -142,9 +148,12 @@ def validate_run_config(
     sub["session_id"] = sess
 
     acq = cfg["acquisition"]
+    exp = cfg["experiment"]
     mode = str(acq.get("board_mode") or "synthetic").lower()
-    if mode not in ("synthetic", "cyton"):
-        errors.append("board_mode 须为 synthetic 或 cyton")
+    phase_mode = str(exp.get("phase_mode") or "phase2_full")
+    allowed_board = ("synthetic", "cyton", "bci2a_replay")
+    if mode not in allowed_board:
+        errors.append("board_mode 须为 synthetic、cyton 或 bci2a_replay")
         mode = "synthetic"
     acq["board_mode"] = mode
     acq["enabled"] = bool(acq.get("enabled", True))
@@ -162,15 +171,18 @@ def validate_run_config(
 
     filt = acq.get("filter") if isinstance(acq.get("filter"), dict) else {}
     acq["filter"] = {
-        "enabled": bool(filt.get("enabled", True)),
+        "enabled": bool(filt.get("enabled", False)),
         "bandpass_low_hz": float(filt.get("bandpass_low_hz", 0.5)),
         "bandpass_high_hz": float(filt.get("bandpass_high_hz", 45.0)),
+        "notch_enabled": bool(filt.get("notch_enabled", False)),
         "notch_low_hz": float(filt.get("notch_low_hz", 49.0)),
         "notch_high_hz": float(filt.get("notch_high_hz", 51.0)),
     }
     if acq["filter"]["bandpass_low_hz"] >= acq["filter"]["bandpass_high_hz"]:
         errors.append("带通低频须小于高频")
-    if acq["filter"]["notch_low_hz"] >= acq["filter"]["notch_high_hz"]:
+    if acq["filter"]["notch_enabled"] and (
+        acq["filter"]["notch_low_hz"] >= acq["filter"]["notch_high_hz"]
+    ):
         errors.append("陷波低频须小于高频")
 
     storage = cfg["storage"]
@@ -205,7 +217,6 @@ def validate_run_config(
         except OSError as exc:
             errors.append(f"save_root 不可写: {root} ({exc})")
 
-    exp = cfg["experiment"]
     try:
         exp["acquire_trials"] = int(exp.get("acquire_trials", 40))
         if exp["acquire_trials"] < 1:
@@ -269,6 +280,56 @@ def validate_run_config(
                 errors.append("v3 探针会话必须开启采集（无演练模式）")
         except Exception as exc:  # noqa: BLE001
             errors.append(f"v3 配置加载失败: {exc}")
+    elif phase_mode == "sim_v3_session":
+        try:
+            from experiment_game.experiment.v3_config import V3Config
+
+            v3_path = exp.get("v3_config_path")
+            v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+            v3_cfg.apply_overrides(
+                exp["v3_overrides"], protocol_locked=exp["protocol_locked"]
+            )
+            errors.extend(v3_cfg.verify_errors())
+            if mode != "bci2a_replay":
+                errors.append("仿真会话 board_mode 须为 bci2a_replay")
+            exp["open_subject_page"] = True
+            cfg["ui"]["subject_feedback_mode"] = "arm_reach"
+            sim_ext = (cfg.get("extensions") or {}).get("sim") or {}
+            if not isinstance(sim_ext, dict):
+                sim_ext = {}
+            run_id = str(sim_ext.get("run_id") or sub.get("session_id") or "").strip().lower()
+            use_campaign_queue = bool(sim_ext.get("use_campaign_queue"))
+            has_campaign = bool(sim_ext.get("campaign_manifest"))
+            if not run_id.startswith("run"):
+                if not (use_campaign_queue and has_campaign):
+                    errors.append("仿真须指定 extensions.sim.run_id（如 run3）或启用 Campaign 队列")
+            n_trials = int(sim_ext.get("session_trials_total") or 36)
+            if n_trials < 6 or n_trials > 48:
+                errors.append("仿真 session_trials_total 须在 6–48")
+            sid_up = str(sub.get("subject_id") or "").upper()
+            if not sid_up.startswith("A") or len(sid_up) != 3:
+                errors.append("仿真被试须为 A01–A09")
+            run_id_val = run_id if run_id.startswith("run") else "run3"
+            if run_id_val.startswith("run"):
+                sub["session_id"] = run_id_val
+            if run_id_val.startswith("run") and sid_up.startswith("A"):
+                try:
+                    from experiment_game.experiment.sim.bci2a_catalog import resolve_mat_path
+                    from experiment_game.experiment.sim.bci2a_mat_loader import (
+                        count_run_capacity,
+                        load_bci2a_run,
+                    )
+
+                    rd = load_bci2a_run(resolve_mat_path(sid_up), run_id_val)
+                    _, _, _, n_max = count_run_capacity(rd)
+                    if n_trials > n_max:
+                        errors.append(
+                            f"run {run_id_val} 最多 {n_max} 试次（含 Rest/L/R），当前 {n_trials}"
+                        )
+                except Exception:
+                    pass
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"仿真配置加载失败: {exc}")
     elif phase_mode == "v4_session":
         try:
             from experiment_game.experiment.v4_config import V4Config

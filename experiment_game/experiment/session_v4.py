@@ -183,6 +183,8 @@ def run_v4_session(
         achieved_stable=monitor.achieved_stable,
         time_to_stable_s=monitor.time_to_stable_s,
         channel_names=names,
+        unused_channels=list(cfg.unused_channels),
+        scoring_channels=list(cfg.scoring_channels),
     )
     write_v4_report(session_path, summary, history=monitor.history)
     events.emit("v4_end", phase="v4", **summary)
