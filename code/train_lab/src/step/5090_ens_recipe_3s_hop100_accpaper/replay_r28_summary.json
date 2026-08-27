@@ -1,0 +1,253 @@
+{
+  "scheme": 28,
+  "arms": {
+    "R0": {
+      "arm": "R0",
+      "member_names": [
+        "shallow"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.0
+        ],
+        "weights": [
+          1.0
+        ],
+        "smooth_radius": 0,
+        "tau_conf": null,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.5774747474747475,
+      "test_acc_paper": 0.5840123456790124,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 0.011234567901241554,
+      "delta_test_pp_vs_E1f": -3.328765432098757,
+      "delta_test_pp_vs_E_uniform": -1.1787654320987606,
+      "threshold": "=0.5839±0.0005",
+      "verdict": "sanity_ok"
+    },
+    "R1": {
+      "arm": "R1",
+      "member_names": [
+        "shallow"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476
+        ],
+        "weights": [
+          1.0
+        ],
+        "smooth_radius": 2,
+        "tau_conf": null,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.5881818181818181,
+      "test_acc_paper": 0.5958641975308642,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 1.1964197530864196,
+      "delta_test_pp_vs_E1f": -2.143580246913579,
+      "delta_test_pp_vs_E_uniform": 0.006419753086417401,
+      "threshold": ">=0.598",
+      "verdict": "negative"
+    },
+    "R2": {
+      "arm": "R2",
+      "member_names": [
+        "shallow"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476
+        ],
+        "weights": [
+          1.0
+        ],
+        "smooth_radius": 2,
+        "tau_conf": 0.45,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.5955555555555555,
+      "test_acc_paper": 0.6025308641975309,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 1.8630864197530905,
+      "delta_test_pp_vs_E1f": -1.476913580246908,
+      "delta_test_pp_vs_E_uniform": 0.6730864197530884,
+      "threshold": null,
+      "verdict": "report"
+    },
+    "R3": {
+      "arm": "R3",
+      "member_names": [
+        "shallow",
+        "eegnet"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476,
+          1.1753753736050039
+        ],
+        "weights": [
+          0.8,
+          0.19999999999999996
+        ],
+        "smooth_radius": 2,
+        "tau_conf": null,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.591010101010101,
+      "test_acc_paper": 0.6029012345679012,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 1.900123456790126,
+      "delta_test_pp_vs_E1f": -1.4398765432098726,
+      "delta_test_pp_vs_E_uniform": 0.7101234567901238,
+      "threshold": null,
+      "verdict": "report"
+    },
+    "R4": {
+      "arm": "R4",
+      "member_names": [
+        "shallow",
+        "eegnet"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476,
+          1.1753753736050039
+        ],
+        "weights": [
+          0.8,
+          0.19999999999999996
+        ],
+        "smooth_radius": 2,
+        "tau_conf": 0.45,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.5993939393939394,
+      "test_acc_paper": 0.6078395061728395,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 2.3939506172839575,
+      "delta_test_pp_vs_E1f": -0.946049382716041,
+      "delta_test_pp_vs_E_uniform": 1.2039506172839554,
+      "threshold": ">=0.6143",
+      "verdict": "negative"
+    },
+    "R5": {
+      "arm": "R5",
+      "member_names": [
+        "shallow",
+        "conformer"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476,
+          2.4952981194854504
+        ],
+        "weights": [
+          0.7000000000000001,
+          0.29999999999999993
+        ],
+        "smooth_radius": 2,
+        "tau_conf": 0.45,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.5990909090909091,
+      "test_acc_paper": 0.6080864197530864,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 2.418641975308644,
+      "delta_test_pp_vs_E1f": -0.9213580246913544,
+      "delta_test_pp_vs_E_uniform": 1.228641975308642,
+      "threshold": null,
+      "verdict": "report"
+    },
+    "R6": {
+      "arm": "R6",
+      "member_names": [
+        "shallow",
+        "t_shallow",
+        "eegnet",
+        "conformer"
+      ],
+      "member_runs": [
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_123900\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three",
+        "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three"
+      ],
+      "config": {
+        "temperatures": [
+          1.951139545509476,
+          1.8879612863867319,
+          1.1753753736050039,
+          2.4952981194854504
+        ],
+        "weights": [
+          0.2,
+          0.2,
+          0.30000000000000004,
+          0.29999999999999993
+        ],
+        "smooth_radius": 1,
+        "tau_conf": 0.4,
+        "consist_c": null
+      },
+      "val_acc_paper": 0.6054545454545455,
+      "test_acc_paper": 0.6173456790123457,
+      "anchor_S3": 0.5839,
+      "anchor_E1f": 0.6173,
+      "anchor_E_uniform": 0.5958,
+      "delta_test_pp_vs_S3": 3.344567901234574,
+      "delta_test_pp_vs_E1f": 0.004567901234575622,
+      "delta_test_pp_vs_E_uniform": 2.154567901234572,
+      "threshold": "=0.6173±0.0005",
+      "verdict": "sanity_ok"
+    }
+  },
+  "decision_tree": {
+    "branch": "C",
+    "action": "维持 E1f 四成员；仅砍 T-shallow",
+    "R1_test": 0.5958641975308642,
+    "R1_line": 0.598,
+    "R4_test": 0.6078395061728395,
+    "R4_line": 0.6143
+  },
+  "attachments": {
+    "R2_minus_R1_pp": 0.666666666666671,
+    "R4_minus_R3_pp": 0.4938271604938316,
+    "R5_minus_R4_pp": 0.024691358024686583,
+    "R6_minus_anchor_E1f_pp": 0.004567901234575622
+  }
+}
