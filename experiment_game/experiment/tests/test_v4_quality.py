@@ -19,30 +19,107 @@ from experiment_game.experiment.v4_quality import V4QualityMonitor  # noqa: E402
 from experiment_game.experiment.v4_config import V4Config  # noqa: E402
 
 
-def test_diagnose_good_window():
-    rng = np.random.default_rng(0)
-    x = rng.normal(0, 12.0, (750, 8))
-    d = diagnose_eeg_window(x)
+def _openbmi_cfg() -> SignalQualityConfig:
+    """OpenBMI 量级回归：8 导全评、旧阈值。"""
+    return SignalQualityConfig(
+        min_median_std_uv=5.0,
+        min_peak_to_peak_uv=40.0,
+        max_peak_uv=800.0,
+        min_per_channel_std_uv=3.0,
+        min_active_channels=6,
+        max_channel_std_ratio=25.0,
+        max_median_std_uv=120.0,
+        max_ptp_uv=800.0,
+        min_car_std_uv=1.2,
+        max_common_mode_ratio=1.25,
+    )
+
+
+def _make_cyy_like_window(rng: np.random.Generator | None = None) -> np.ndarray:
+    """模拟 cyy 6 导帽：6 导 ~0.7µV std + 大 DC 偏置；Cz/CPz 卡轨。"""
+    rng = rng or np.random.default_rng(0)
+    x = np.zeros((750, 8), dtype=np.float64)
+    x[:, 0] = -4190.95263671875
+    x[:, 7] = -4190.95263671875
+    spec = [
+        (1, -340.0, 0.65),  # C3
+        (2, -48.0, 0.59),   # C4
+        (3, -538.0, 0.74),  # CP3
+        (4, -384.0, 0.78),  # FC4
+        (5, -37.0, 0.75),   # FC3
+        (6, -285.0, 0.68),  # CP4
+    ]
+    for idx, off, std in spec:
+        x[:, idx] = off + rng.normal(0, std, 750)
+    return x
+
+
+def test_diagnose_cyy_6ch_cap_passes():
+    cfg = V4Config.load_yaml()
+    sq = cfg.signal_quality_config()
+    d = diagnose_eeg_window(_make_cyy_like_window(), sq, channel_names=list(cfg.channel_labels))
     assert d["window_ok"] is True
-    assert all(d["per_channel_ok"])
+    # 大 DC 不进 peak_uv；AC peak 应远小于 max_peak
+    assert d["metrics"]["peak_uv"] < 50.0
+    assert d["metrics"]["peak_raw_uv"] > 400.0
+    cz = next(c for c in d["per_channel"] if c["name"] == "Cz")
+    cpz = next(c for c in d["per_channel"] if c["name"] == "CPz")
+    assert cz["reason"] == "unused_expected"
+    assert cpz["reason"] == "unused_expected"
 
 
-def test_diagnose_dead_channel_flags_channel():
+def test_large_dc_offset_does_not_saturate():
+    """导间数百 µV 直流偏置不应触发 saturation（peak 按 demean 后 AC）。"""
+    from experiment_game.experiment.signal_quality import assess_eeg_window
+
+    rng = np.random.default_rng(9)
+    x = _make_cyy_like_window(rng)
+    # 再加大 DC，模拟 141555 量级
+    x[:, 1] -= 800.0
+    x[:, 3] -= 600.0
+    cfg = V4Config.load_yaml()
+    r = assess_eeg_window(x, cfg.signal_quality_config())
+    assert r["ok"] is True
+    assert r["metrics"]["peak_raw_uv"] > 600.0
+    assert r["metrics"]["peak_uv"] < 50.0
+
+
+def test_diagnose_dead_channel_flags_scoring_channel():
     rng = np.random.default_rng(1)
-    x = rng.normal(0, 15.0, (750, 8))
-    x[:, 1] = x[:, [0, 2, 3, 4, 5, 6, 7]].mean(axis=1)
-    d = diagnose_eeg_window(x)
+    x = _make_cyy_like_window(rng)
+    x[:, 1] = x[:, [2, 3, 4, 5, 6]].mean(axis=1)
+    cfg = V4Config.load_yaml()
+    d = diagnose_eeg_window(x, cfg.signal_quality_config(), channel_names=list(cfg.channel_labels))
     assert d["window_ok"] is False
-    assert d["per_channel"][1]["reason"] == "dead_channel"
+    c3 = next(c for c in d["per_channel"] if c["name"] == "C3")
+    assert c3["reason"] == "dead_channel"
 
 
 def test_diagnose_common_mode_problems():
+    """近纯共模：CAR 后几乎无差分 → dead_channel。"""
     rng = np.random.default_rng(2)
     s = rng.normal(0, 40.0, (750, 1))
-    x = np.repeat(s, 8, axis=1) + rng.normal(0, 5.0, (750, 8))
-    d = diagnose_eeg_window(x)
+    x = np.repeat(s, 8, axis=1) + rng.normal(0, 0.3, (750, 8))
+    d = diagnose_eeg_window(x, _openbmi_cfg())
     assert d["window_ok"] is False
-    assert any(p["reason"] == "common_mode" for p in d["problems"])
+    assert any(p["reason"] in ("dead_channel", "common_mode") for p in d["problems"])
+
+
+def test_diagnose_very_flat_fails():
+    """极平信号（std≈0.3）应 FAIL。"""
+    rng = np.random.default_rng(3)
+    x = rng.normal(0, 0.3, (750, 8))
+    cfg = V4Config.load_yaml()
+    d = diagnose_eeg_window(x, cfg.signal_quality_config())
+    assert d["window_ok"] is False
+
+
+def test_diagnose_openbmi_like_passes():
+    """OpenBMI 采集滤波后典型幅值（med_std≈15–25）应 PASS（8 导旧阈值）。"""
+    rng = np.random.default_rng(4)
+    x = rng.normal(0, 18.0, (750, 8))
+    d = diagnose_eeg_window(x, _openbmi_cfg())
+    assert d["window_ok"] is True
 
 
 def test_v4_monitor_streak_pass():
@@ -67,12 +144,55 @@ def test_v4_monitor_streak_reset_on_fail():
 
 
 def test_summarize_v4_session_pass():
-    hist = [{"window_ok": True, "metrics": {"median_std_uv": 10.0, "common_mode_ratio": 0.2}}] * 5
+    hist = [{"window_ok": True, "metrics": {"median_std_uv": 0.7, "common_mode_ratio": 0.5}}] * 5
     s = summarize_v4_session(
         hist,
         duration_s=15.0,
         pass_streak_required=5,
         achieved_stable=True,
         time_to_stable_s=15.0,
+        unused_channels=["Cz", "CPz"],
+        scoring_channels=["C3", "C4", "CP3", "FC4", "FC3", "CP4"],
     )
     assert s["verdict"] == "pass"
+
+
+def _replay_pass_rate(session_name: str) -> tuple[int, int]:
+    import pandas as pd
+    from experiment_game.experiment.channel_layout import reorder_device_to_frozen
+
+    p = _ROOT / "data" / "sessions" / session_name / "eeg.csv"
+    if not p.is_file():
+        return 0, 0
+    cfg = V4Config.load_yaml()
+    sq = cfg.signal_quality_config()
+    names = list(cfg.channel_labels)
+    df = pd.read_csv(p)
+    cols = [c for c in df.columns if c != "lsl_time"]
+    X = reorder_device_to_frozen(df[cols].values.astype(np.float64))
+    win = 750
+    oks = total = 0
+    for s in range(0, len(X) - win + 1, win):
+        d = diagnose_eeg_window(X[s : s + win], sq, channel_names=names)
+        total += 1
+        if d["window_ok"]:
+            oks += 1
+    return oks, total
+
+
+def test_cyy_session_csv_replay_passes():
+    """cyy_ws01 真机 CSV 在 6 导 + demean peak 规则下应绝大多数窗 PASS。"""
+    oks, total = _replay_pass_rate("cyy_ws01_20260826_132838")
+    if total == 0:
+        return
+    assert total >= 25
+    assert oks / total >= 0.85
+
+
+def test_cyy_141555_high_dc_replay_passes():
+    """此前因 RAW peak 报红的会话，demean 后应 PASS。"""
+    oks, total = _replay_pass_rate("cyy_ws01_20260826_141555")
+    if total == 0:
+        return
+    assert total >= 10
+    assert oks / total >= 0.85

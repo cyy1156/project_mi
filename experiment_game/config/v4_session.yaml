@@ -1,4 +1,5 @@
-# v4 实验前数据质量检测（无模型）
+# v4 实验前数据质量检测（无模型 · 仅质检报告 · 不 gate 丢弃数据）
+# 阈值按 Cyton 6 导帽 cyy_ws01_20260826 真机 3s 窗标定；Cz/CPz 配置为不用
 duration_s: 90
 eval_interval_s: 3.0
 eval_window_s: 3.0
@@ -21,15 +22,29 @@ channel_labels:
   - CPz
 fs: 250
 
+# 仅以下 6 导参与 PASS/FAIL；Cz/CPz 卡轨为预期，不拖垮整窗
+scoring_channels:
+  - C3
+  - C4
+  - CP3
+  - FC4
+  - FC3
+  - CP4
+unused_channels:
+  - Cz
+  - CPz
+unused_allow_rail: true
+
 signal_quality_enabled: true
-signal_min_median_std_uv: 3.0
-signal_max_median_std_uv: 60.0
-signal_min_peak_to_peak_uv: 8.0
-signal_max_ptp_uv: 400.0
-signal_max_peak_uv: 1000.0
-signal_min_per_channel_std_uv: 2.0
-signal_max_per_channel_std_uv: 60.0
-signal_min_active_channels: 6
-signal_max_channel_std_ratio: 20.0
-signal_min_car_std_uv: 2.0
-signal_max_common_mode_ratio: 0.85
+signal_min_median_std_uv: 0.50
+signal_max_median_std_uv: 8.0
+# peak/ptp 为逐通道减窗均值后的 AC 量；min 关闭，靠 std/active 抓空帽
+signal_min_peak_to_peak_uv: 0.0
+signal_max_ptp_uv: 600.0
+signal_max_peak_uv: 600.0
+signal_min_per_channel_std_uv: 0.40
+signal_max_per_channel_std_uv: 150.0
+signal_min_active_channels: 5
+signal_max_channel_std_ratio: 3.0
+signal_min_car_std_uv: 0.10
+signal_max_common_mode_ratio: 1.45

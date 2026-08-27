@@ -662,6 +662,7 @@ class SessionRunner:
         skip_calibration: bool = False,
         skip_gate: bool = False,
         skip_game: bool = False,
+        subject_feedback_mode: str = "none",
     ) -> Dict:
         """v2 会话模式：委托 session_v2.run_v2_session，与 run_all 并列。"""
         from experiment_game.experiment.session_v2 import run_v2_session
@@ -679,6 +680,7 @@ class SessionRunner:
             skip_calibration=skip_calibration,
             skip_gate=skip_gate,
             skip_game=skip_game,
+            subject_feedback_mode=subject_feedback_mode,
         )
 
     def run_v3_session(
@@ -689,6 +691,13 @@ class SessionRunner:
         protocol_locked: bool = True,
         seed: Optional[int] = None,
         subject_id: str = "unknown",
+        subject_feedback_mode: str = "none",
+        deps: Optional[tuple] = None,
+        skip_session_baseline: bool = False,
+        skip_block_gap: bool = False,
+        block_order_override: Optional[List[str]] = None,
+        trial_labels_by_block: Optional[List[List[int]]] = None,
+        sim_meta: Optional[Dict] = None,
     ) -> Dict:
         """v3 探针会话：委托 session_v3.run_v3_session。"""
         from experiment_game.experiment.session_v3 import run_v3_session
@@ -703,6 +712,13 @@ class SessionRunner:
             protocol_locked=protocol_locked,
             seed=seed,
             subject_id=subject_id,
+            subject_feedback_mode=subject_feedback_mode,
+            deps=deps,
+            skip_session_baseline=skip_session_baseline,
+            skip_block_gap=skip_block_gap,
+            block_order_override=block_order_override,
+            trial_labels_by_block=trial_labels_by_block,
+            sim_meta=sim_meta,
         )
 
     def run_v4_session(

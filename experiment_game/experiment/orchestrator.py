@@ -48,6 +48,15 @@ from experiment_game.experiment.ws_bridge import WsBridge
 from experiment_game.offline.phase4_service import run_phase4_for_session
 
 _PKG_ROOT = Path(__file__).resolve().parents[1]
+
+
+def _subject_feedback_mode(cfg: Dict[str, Any]) -> str:
+    ui = cfg.get("ui")
+    if isinstance(ui, dict):
+        mode = str(ui.get("subject_feedback_mode") or "none").strip()
+        if mode in ("none", "arm_reach"):
+            return mode
+    return "none"
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 _WEB_ROOT = _PKG_ROOT / "web"
 
@@ -126,6 +135,12 @@ class OperatorService:
         self._link_monitor_thread: Optional[threading.Thread] = None
         self._link_prev_pushed = 0
         self._link_firmware = ""
+        # 被试登录 + 离线微调
+        self._active_subject: Optional[str] = None
+        self._active_subject_info: Optional[Dict[str, Any]] = None
+        self._active_sim_mode: bool = False
+        self._ft_busy = False
+        self._ft_worker: Optional[threading.Thread] = None
 
     @property
     def operator_url(self) -> str:
@@ -134,10 +149,36 @@ class OperatorService:
 
     @property
     def subject_url(self) -> str:
-        return (
-            f"http://127.0.0.1:{self.http_port}/"
-            f"?ws=ws://127.0.0.1:{self.ws_port}"
+        # 不强制 ?ws=127.0.0.1：页面按 location.hostname 自动连 WS，
+        # 本机与局域网监控端都能连上（需 open_operator_lan / --host 0.0.0.0）。
+        return f"http://127.0.0.1:{self.http_port}/"
+
+    def _model_presets_payload(self) -> Dict[str, Any]:
+        from experiment_game.experiment.model_presets import (
+            active_weights_from_yaml,
+            list_model_presets,
         )
+
+        return {
+            "model_presets": list_model_presets(
+                subject_id=self._active_subject,
+                sim_mode=self._active_sim_mode,
+            ),
+            "active_weights": active_weights_from_yaml(),
+        }
+
+    @staticmethod
+    def _weights_from_cfg(cfg_obj: Any) -> Dict[str, Any]:
+        from experiment_game.experiment.model_presets import match_preset_id, short_weight_label
+
+        task = getattr(cfg_obj, "s3_task_ckpt", "") or ""
+        three = getattr(cfg_obj, "s3_three_ckpt", "") or ""
+        return {
+            "task": task,
+            "three": three,
+            "preset_id": match_preset_id(task, three),
+            "label": short_weight_label(three or task),
+        }
 
     def start(self) -> None:
         busy = check_ports_free(
@@ -228,6 +269,24 @@ class OperatorService:
             self._handle_questionnaire_result(msg)
         elif mtype == "client_stats":
             self._handle_client_stats(msg)
+        elif mtype == "subject_login":
+            self._handle_subject_login(msg)
+        elif mtype == "subject_logout":
+            self._handle_subject_logout()
+        elif mtype == "subject_info":
+            self._handle_subject_info(msg)
+        elif mtype == "finetune_start":
+            self._handle_finetune_start(msg)
+        elif mtype == "finetune_promote":
+            self._handle_finetune_promote(msg)
+        elif mtype == "ramp_status":
+            self._handle_ramp_status(msg)
+        elif mtype == "sim_catalog":
+            self._handle_sim_catalog(msg)
+        elif mtype == "sim_campaign_create":
+            self._handle_sim_campaign_create(msg)
+        elif mtype == "sim_campaign_list":
+            self._handle_sim_campaign_list(msg)
         elif mtype == "operator_hello":
             file_defaults, warn = load_operator_defaults(
                 defaults_path(repo_pkg=_PKG_ROOT),
@@ -244,6 +303,9 @@ class OperatorService:
                     "defaults_path": str(defaults_path(repo_pkg=_PKG_ROOT)),
                     "defaults_warning": warn,
                     "serial_ports": list_serial_ports(),
+                    "active_subject": self._active_subject,
+                    "active_subject_info": self._active_subject_info,
+                    **self._model_presets_payload(),
                 }
             )
 
@@ -386,6 +448,282 @@ class OperatorService:
         except Exception:  # noqa: BLE001
             pass
 
+    def _handle_subject_login(self, msg: Dict[str, Any]) -> None:
+        sim_mode = bool(msg.get("sim_mode"))
+        try:
+            if sim_mode:
+                from experiment_game.experiment.sim.sim_registry import login_sim_subject
+
+                sid = str(msg.get("subject_id") or "").strip().upper()
+                info = login_sim_subject(sid, repo_root=self.repo_root)
+                info["sim_mode"] = True
+            else:
+                from experiment_game.experiment.subject_registry import login_subject
+
+                sid = str(msg.get("subject_id") or "").strip()
+                info = login_subject(
+                    sid,
+                    display_name=str(msg.get("display_name") or ""),
+                    notes=str(msg.get("notes") or ""),
+                    repo_root=self.repo_root,
+                )
+                info["sim_mode"] = False
+            self._active_subject = info["subject_id"]
+            self._active_subject_info = info
+            self._active_sim_mode = sim_mode
+            self.bridge.broadcast({
+                "type": "subject_login_ack",
+                "ok": True,
+                **info,
+                **self._model_presets_payload(),
+            })
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "subject_login_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _handle_subject_logout(self) -> None:
+        self._active_subject = None
+        self._active_subject_info = None
+        self._active_sim_mode = False
+        self.bridge.broadcast({"type": "subject_logout_ack", "ok": True})
+
+    def _handle_subject_info(self, msg: Dict[str, Any]) -> None:
+        sid = str(msg.get("subject_id") or self._active_subject or "").strip()
+        try:
+            if self._active_sim_mode:
+                from experiment_game.experiment.sim.sim_registry import (
+                    build_sim_index,
+                    current_sim_model_paths,
+                    list_campaigns,
+                    list_sim_sessions,
+                    validate_sim_subject_id,
+                )
+
+                sid = validate_sim_subject_id(sid)
+                info = {
+                    "subject_id": sid,
+                    "sim_mode": True,
+                    "sessions": list_sim_sessions(sid, repo_root=self.repo_root),
+                    "current_weights": current_sim_model_paths(sid, repo_root=self.repo_root),
+                    "index": build_sim_index(sid, repo_root=self.repo_root),
+                    "campaigns": list_campaigns(sid, repo_root=self.repo_root),
+                }
+            else:
+                from experiment_game.experiment.subject_registry import (
+                    build_index,
+                    current_model_paths,
+                    list_sessions,
+                    validate_subject_id,
+                )
+
+                sid = validate_subject_id(sid)
+                info = {
+                    "subject_id": sid,
+                    "sim_mode": False,
+                    "sessions": list_sessions(sid, repo_root=self.repo_root),
+                    "current_weights": current_model_paths(sid, repo_root=self.repo_root),
+                    "index": build_index(sid, repo_root=self.repo_root),
+                }
+            self.bridge.broadcast({"type": "subject_info_ack", "ok": True, **info})
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "subject_info_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _handle_finetune_start(self, msg: Dict[str, Any]) -> None:
+        if self._ft_busy:
+            self.bridge.broadcast(
+                {
+                    "type": "finetune_ack",
+                    "ok": False,
+                    "message": "已有微调任务在运行",
+                }
+            )
+            return
+        if self._busy:
+            self.bridge.broadcast(
+                {
+                    "type": "finetune_ack",
+                    "ok": False,
+                    "message": "采集会话进行中，请结束后再微调",
+                }
+            )
+            return
+
+        sid = str(msg.get("subject_id") or self._active_subject or "").strip()
+        paths_raw = msg.get("session_paths") or msg.get("sessions") or []
+        exclude_invalid = bool(msg.get("exclude_invalid"))
+        use_replay = msg.get("use_replay")
+        no_replay = bool(msg.get("no_replay"))
+        if use_replay is not None:
+            no_replay = not bool(use_replay)
+        replay_ratio = float(msg.get("replay_ratio", 0.10))
+        early_stop = bool(msg.get("early_stop", True))
+        if msg.get("no_early_stop"):
+            early_stop = False
+        max_epochs = int(msg.get("max_epochs", 20))
+        patience = int(msg.get("patience", 5))
+        deterministic = bool(msg.get("deterministic", True))
+        if msg.get("no_deterministic"):
+            deterministic = False
+        seed = msg.get("seed")
+        seed_i = int(seed) if seed is not None else 42
+        ft_epochs = int(msg.get("epochs", 5))
+        leave_next_mode = bool(msg.get("leave_next_mode"))
+        eval_run_id = str(msg.get("eval_run_id") or "").strip().lower()
+        campaign_manifest_path = msg.get("campaign_manifest")
+        use_ramp_replay = bool(msg.get("use_ramp_replay_defaults", leave_next_mode))
+
+        def _job() -> None:
+            self._ft_busy = True
+            try:
+                from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+
+                if self._active_sim_mode:
+                    from experiment_game.experiment.sim.sim_registry import (
+                        new_sim_ft_run_dir,
+                        validate_sim_subject_id,
+                    )
+
+                    subject_id = validate_sim_subject_id(sid)
+                    out_dir = new_sim_ft_run_dir(subject_id, repo_root=self.repo_root)
+                else:
+                    from experiment_game.experiment.subject_registry import (
+                        new_ft_run_dir,
+                        validate_subject_id,
+                    )
+
+                    subject_id = validate_subject_id(sid)
+                    out_dir = new_ft_run_dir(subject_id, repo_root=self.repo_root)
+                session_dirs = [Path(p) for p in paths_raw]
+                job_no_replay = no_replay
+                job_replay_ratio = replay_ratio
+                ramp_stage_i: Optional[int] = None
+                if leave_next_mode and campaign_manifest_path and eval_run_id:
+                    from experiment_game.experiment.sim.campaign import load_campaign
+                    from experiment_game.experiment.sim.ramp import (
+                        ft_replay_recommendation,
+                        leave_next_train_runs,
+                        ramp_stage,
+                    )
+
+                    manifest = load_campaign(campaign_manifest_path)
+                    train_pairs = leave_next_train_runs(manifest, eval_run_id)
+                    if not train_pairs:
+                        raise ValueError(
+                            f"Leave-Next：eval {eval_run_id} 之前无已完成 session 可训练"
+                        )
+                    session_dirs = [Path(p) for _, p in train_pairs]
+                    ramp_stage_i = ramp_stage(manifest, eval_run_id)
+                    if use_ramp_replay:
+                        rec = ft_replay_recommendation(ramp_stage_i)
+                        job_no_replay = not bool(rec.get("use_replay"))
+                        job_replay_ratio = float(rec.get("replay_ratio") or 0.0)
+                if not session_dirs:
+                    raise ValueError("未选择 session")
+                self.bridge.broadcast(
+                    {
+                        "type": "finetune_progress",
+                        "stage": "start",
+                        "out_dir": str(out_dir),
+                    }
+                )
+                result = run_subject_finetune(
+                    session_dirs,
+                    out_dir,
+                    exclude_invalid=exclude_invalid,
+                    no_replay=job_no_replay,
+                    replay_ratio=job_replay_ratio,
+                    epochs=ft_epochs,
+                    early_stop=early_stop,
+                    max_epochs=max_epochs,
+                    patience=patience,
+                    deterministic=deterministic,
+                    seed=seed_i,
+                    verbose=False,
+                )
+                self.bridge.broadcast(
+                    {
+                        "type": "finetune_done",
+                        "ok": True,
+                        "subject_id": subject_id,
+                        "out_dir": result["out_dir"],
+                        "release_gate": result["release_gate"],
+                        "release_pass": result["release_pass"],
+                        "three_heldout": result["three"]["acc_after_heldout"],
+                        "task_heldout": result["task"]["acc_after_heldout"],
+                        "three_ft": result["three"].get("ft"),
+                        "report_path": str(out_dir / "report.md"),
+                        "use_replay": not job_no_replay,
+                        "replay_ratio": 0.0 if job_no_replay else job_replay_ratio,
+                        "early_stop": early_stop,
+                        "max_epochs": max_epochs,
+                        "patience": patience,
+                        "deterministic": deterministic,
+                        "seed": seed_i,
+                        "fixed_epochs": ft_epochs,
+                        "leave_next_mode": leave_next_mode,
+                        "eval_run_id": eval_run_id or None,
+                        "ramp_stage": ramp_stage_i,
+                        "train_session_dirs": [str(p) for p in session_dirs],
+                        **self._model_presets_payload(),
+                    }
+                )
+            except Exception as exc:  # noqa: BLE001
+                self.bridge.broadcast(
+                    {"type": "finetune_done", "ok": False, "message": str(exc)}
+                )
+            finally:
+                self._ft_busy = False
+
+        self._ft_worker = threading.Thread(target=_job, name="finetune-job", daemon=True)
+        self._ft_worker.start()
+        self.bridge.broadcast({"type": "finetune_ack", "ok": True, "message": "微调已开始"})
+
+    def _handle_finetune_promote(self, msg: Dict[str, Any]) -> None:
+        try:
+            ft_dir = Path(str(msg.get("ft_run_dir") or msg.get("out_dir") or ""))
+            reason = str(msg.get("reason") or "operator_confirmed")
+            if self._active_sim_mode:
+                from experiment_game.experiment.sim.sim_registry import (
+                    login_sim_subject,
+                    promote_sim_ft_to_current,
+                    validate_sim_subject_id,
+                )
+
+                sid = validate_sim_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+                prom = promote_sim_ft_to_current(
+                    sid, ft_dir, repo_root=self.repo_root, reason=reason
+                )
+                if self._active_subject == sid:
+                    self._active_subject_info = login_sim_subject(sid, repo_root=self.repo_root)
+                    self._active_subject_info["sim_mode"] = True
+            else:
+                from experiment_game.experiment.subject_registry import (
+                    login_subject,
+                    promote_ft_to_current,
+                    validate_subject_id,
+                )
+
+                sid = validate_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+                prom = promote_ft_to_current(sid, ft_dir, repo_root=self.repo_root, reason=reason)
+                if self._active_subject == sid:
+                    self._active_subject_info = login_subject(sid, repo_root=self.repo_root)
+                    self._active_subject_info["sim_mode"] = False
+            self.bridge.broadcast(
+                {
+                    "type": "finetune_promote_ack",
+                    "ok": True,
+                    **prom,
+                    **self._model_presets_payload(),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "finetune_promote_ack", "ok": False, "message": str(exc)}
+            )
+
     def _handle_session_start(self, raw: Dict[str, Any]) -> None:
         with self._lock:
             if self._busy:
@@ -468,6 +806,9 @@ class OperatorService:
         if phase_mode == "v3_session":
             self._run_v3_session(cfg)
             return
+        if phase_mode == "sim_v3_session":
+            self._run_sim_v3_session(cfg)
+            return
         if phase_mode == "v4_session":
             self._run_v4_session(cfg)
             return
@@ -545,6 +886,7 @@ class OperatorService:
                     "acq_enabled": acq_on,
                     "board_mode": acq_cfg["board_mode"],
                     "serial_port": acq_cfg.get("serial_port"),
+                    "phase_mode": "phase2_full",
                     "acquire_trials": remaining,
                     "timing": timing.to_dict(),
                     "trial_total_s": round(timing.total_s, 2),
@@ -802,6 +1144,13 @@ class OperatorService:
         )
 
         weights_missing = probe_v2_weights_missing(v2_cfg)
+        skip_cal = bool(exp.get("skip_v2_calibration"))
+        skip_game = bool(exp.get("skip_v2_game"))
+        v2_score_max = 0
+        if not skip_cal:
+            v2_score_max += int(v2_cfg.cal_rounds_max) * int(v2_cfg.trials_per_round)
+        if not skip_game:
+            v2_score_max += int(v2_cfg.game_rounds) * int(v2_cfg.game_trials_per_round)
         update_session_meta(
             paths.meta_json,
             v2_config=str(v2_path or "config/v2_session.yaml"),
@@ -835,23 +1184,32 @@ class OperatorService:
                 "save_root": str(save_root),
                 "open_subject_page": exp.get("open_subject_page", True),
                 "segment": 1,
-                "protocol_locked": protocol_locked,
+            "protocol_locked": protocol_locked,
+            "subject_feedback_mode": _subject_feedback_mode(cfg),
+            "weights": self._weights_from_cfg(v2_cfg),
                 "timing": {
                     "prep_s": v2_cfg.prep_s,
                     "cue_s": v2_cfg.cue_s,
                     "mi_s": v2_cfg.imagine_s,
                     "iti_s": v2_cfg.iti_s,
+                    "inter_trial_rest_s": v2_cfg.inter_trial_rest_s,
                     "fixation_s": v2_cfg.prep_s,
                     "post_mi_hold_s": 0,
-                    "rest_s": 0,
+                    # rest_s = Cue前试次间 Rest（与操作台时间轴 rest_s 键对齐）
+                    "rest_s": v2_cfg.inter_trial_rest_s,
                     "transition_s": v2_cfg.iti_s,
                 },
                 "trial_total_s": v2_cfg.trial_total_s(),
+                "session_score": 0,
+                "session_score_max": v2_score_max,
+                "session_trials_done": 0,
                 "v2_config_effective": {
                     "cal_rounds_min": v2_cfg.cal_rounds_min,
                     "cal_rounds_max": v2_cfg.cal_rounds_max,
                     "game_rounds": v2_cfg.game_rounds,
                     "gate_enter_three": v2_cfg.gate_enter_three,
+                    "s3_task_ckpt": v2_cfg.s3_task_ckpt,
+                    "s3_three_ckpt": v2_cfg.s3_three_ckpt,
                 },
             }
         )
@@ -941,6 +1299,7 @@ class OperatorService:
             skip_calibration=bool(exp.get("skip_v2_calibration")),
             skip_gate=bool(exp.get("skip_v2_gate")),
             skip_game=bool(exp.get("skip_v2_game")),
+            subject_feedback_mode=_subject_feedback_mode(cfg),
         )
         self._runner = None
 
@@ -1097,22 +1456,31 @@ class OperatorService:
             "open_subject_page": exp.get("open_subject_page", True),
             "segment": 1,
             "protocol_locked": protocol_locked,
+            "subject_feedback_mode": _subject_feedback_mode(cfg),
             "v3_block_order": b_order,
+            "weights": self._weights_from_cfg(v3_cfg),
             "timing": {
                 "prep_s": v3_cfg.prep_s,
                 "cue_s": v3_cfg.cue_s,
                 "mi_s": v3_cfg.imagine_s,
                 "iti_s": v3_cfg.iti_s,
+                "inter_trial_rest_s": v3_cfg.inter_trial_rest_s,
                 "fixation_s": v3_cfg.prep_s,
                 "post_mi_hold_s": 0,
-                "rest_s": 0,
+                # rest_s = Cue前试次间 Rest（与操作台时间轴 rest_s 键对齐）
+                "rest_s": v3_cfg.inter_trial_rest_s,
                 "transition_s": v3_cfg.iti_s,
             },
             "trial_total_s": v3_cfg.trial_total_s(),
+            "session_score": 0,
+            "session_score_max": int(v3_cfg.blocks) * int(v3_cfg.trials_per_block),
+            "session_trials_done": 0,
             "v3_config_effective": {
                 "blocks": v3_cfg.blocks,
                 "trials_per_block": v3_cfg.trials_per_block,
                 "baseline_rest_s": v3_cfg.baseline_rest_s,
+                "s3_task_ckpt": v3_cfg.s3_task_ckpt,
+                "s3_three_ckpt": v3_cfg.s3_three_ckpt,
             },
         })
 
@@ -1165,6 +1533,7 @@ class OperatorService:
             protocol_locked=protocol_locked,
             seed=seed,
             subject_id=subject_id,
+            subject_feedback_mode=_subject_feedback_mode(cfg),
         )
         self._runner = None
 
@@ -1195,20 +1564,457 @@ class OperatorService:
 
         update_session_meta(paths.meta_json, v3_summary=summary)
         files = self._list_session_files(paths.root)
+        try:
+            from experiment_game.experiment.subject_registry import build_index
+
+            build_index(subject_id, repo_root=self.repo_root)
+        except Exception:  # noqa: BLE001
+            pass
         self.bridge.broadcast({
             "type": "session_saved",
             "root": str(paths.root),
             "files": files,
             "acq_enabled": acq_on,
-            "train_eligible": False,
+            "train_eligible": acq_on,
             "verify": verify,
             "v3_summary": summary,
             "phase_mode": "v3_session",
+            "subject_id": subject_id,
             "message": "v3 探针会话已结束",
         })
         self.bridge.broadcast({"type": "session", "status": "done"})
         self._emit_acq_status("stopped", "录制已停止")
         print(f"[operator] v3 会话目录: {paths.root}")
+
+    def _handle_sim_catalog(self, msg: Dict[str, Any]) -> None:
+        from experiment_game.experiment.sim.bci2a_catalog import list_subject_runs
+        from experiment_game.experiment.sim.sim_registry import validate_sim_subject_id
+
+        try:
+            sid = validate_sim_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+            runs = list_subject_runs(sid)
+            self.bridge.broadcast(
+                {"type": "sim_catalog_ack", "ok": True, "subject_id": sid, "runs": runs}
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "sim_catalog_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _handle_sim_campaign_create(self, msg: Dict[str, Any]) -> None:
+        from experiment_game.experiment.sim.bci2a_catalog import resolve_mat_path
+        from experiment_game.experiment.sim.bci2a_mat_loader import count_run_capacity, load_bci2a_run
+        from experiment_game.experiment.sim.campaign import create_campaign
+        from experiment_game.experiment.sim.sim_registry import validate_sim_subject_id
+
+        try:
+            sid = validate_sim_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+            queue = msg.get("session_queue") or msg.get("runs") or []
+            n_trials = int(msg.get("session_trials_total") or 36)
+            mat_path = resolve_mat_path(sid)
+            for rid in queue:
+                rd = load_bci2a_run(mat_path, str(rid).strip().lower())
+                _, _, _, n_max = count_run_capacity(rd)
+                if n_trials > n_max:
+                    raise ValueError(
+                        f"run {rid} 最多 {n_max} 试次（Rest+L/R），当前 {n_trials}"
+                    )
+            manifest = create_campaign(
+                sid,
+                list(queue),
+                session_trials_total=int(msg.get("session_trials_total") or 36),
+                replay_align=str(msg.get("replay_align") or "schedule_align"),
+                replay_speed=float(msg.get("replay_speed") or 4.0),
+                leave_next_mode=bool(msg.get("leave_next_mode", True)),
+                repo_root=self.repo_root,
+            )
+            self.bridge.broadcast(
+                {"type": "sim_campaign_ack", "ok": True, "manifest": manifest}
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "sim_campaign_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _handle_sim_campaign_list(self, msg: Dict[str, Any]) -> None:
+        from experiment_game.experiment.sim.sim_registry import list_campaigns, validate_sim_subject_id
+
+        try:
+            sid = validate_sim_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+            campaigns = list_campaigns(sid, repo_root=self.repo_root)
+            self.bridge.broadcast(
+                {"type": "sim_campaign_list_ack", "ok": True, "subject_id": sid, "campaigns": campaigns}
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "sim_campaign_list_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _handle_ramp_status(self, msg: Dict[str, Any]) -> None:
+        from experiment_game.experiment.sim.campaign import load_campaign
+        from experiment_game.experiment.sim.ramp import (
+            ft_replay_recommendation,
+            leave_next_train_runs,
+            next_eval_run,
+            ramp_stage,
+        )
+        from experiment_game.experiment.sim.sim_registry import validate_sim_subject_id
+
+        try:
+            sid = validate_sim_subject_id(str(msg.get("subject_id") or self._active_subject or ""))
+            manifest_path = msg.get("campaign_manifest")
+            eval_run = str(msg.get("eval_run_id") or "").strip().lower()
+            if not manifest_path:
+                raise ValueError("缺少 campaign_manifest")
+            manifest = load_campaign(manifest_path)
+            if not eval_run:
+                eval_run = str(next_eval_run(manifest) or "").strip().lower()
+                if not eval_run:
+                    done = manifest.get("sessions_completed") or []
+                    if done:
+                        eval_run = str(done[-1].get("run_id") or "").strip().lower()
+            stage = ramp_stage(manifest, eval_run) if eval_run else 0
+            train = leave_next_train_runs(manifest, eval_run) if eval_run else []
+            self.bridge.broadcast(
+                {
+                    "type": "ramp_status_ack",
+                    "ok": True,
+                    "subject_id": sid,
+                    "campaign_id": manifest.get("campaign_id"),
+                    "eval_run_id": eval_run or None,
+                    "ramp_stage": stage,
+                    "leave_next_train": [{"run_id": rid, "session_dir": p} for rid, p in train],
+                    "ft_replay_recommendation": ft_replay_recommendation(stage),
+                    "leave_next_mode": bool(manifest.get("leave_next_mode", True)),
+                }
+            )
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {"type": "ramp_status_ack", "ok": False, "message": str(exc)}
+            )
+
+    def _run_sim_v3_session(self, cfg: Dict[str, Any]) -> None:
+        """BCI2a 仿真 v3：回放 mat run，跳过 baseline/gap。"""
+        sub = cfg["subject"]
+        acq_cfg = cfg["acquisition"]
+        exp = cfg["experiment"]
+        storage = cfg["storage"]
+        sim_ext = (cfg.get("extensions") or {}).get("sim") or {}
+        if not isinstance(sim_ext, dict):
+            sim_ext = {}
+
+        subject_id = str(sub["subject_id"]).upper()
+        run_id = str(sim_ext.get("run_id") or sub.get("session_id") or "").strip().lower()
+        use_campaign_queue = bool(sim_ext.get("use_campaign_queue"))
+
+        from experiment_game.experiment.sim.bci2a_catalog import resolve_mat_path
+        from experiment_game.experiment.sim.bci2a_replay_source import Bci2aReplaySource
+        from experiment_game.experiment.sim.campaign import load_campaign, pop_next_run, save_campaign
+        from experiment_game.experiment.sim.campaign_summary import append_session_result, write_campaign_summary
+        from experiment_game.experiment.sim.run_to_session_map import build_sim_script
+        from experiment_game.experiment.sim.sim_script_io import write_sim_script
+        from experiment_game.experiment.sim.sim_registry import build_sim_index, storage_paths_for_sim
+        from experiment_game.experiment.v3_config import V3Config
+        from experiment_game.experiment.session_v3 import build_v3_deps_from_buffer
+        from experiment_game.experiment.inference_v2 import RingBuffer
+
+        save_root = Path(storage.get("save_root") or storage_paths_for_sim(subject_id, repo_root=self.repo_root)["save_root"])
+        if not save_root.is_absolute():
+            save_root = (self.repo_root / save_root).resolve()
+
+        campaign_manifest = None
+        manifest_path = sim_ext.get("campaign_manifest")
+        if manifest_path:
+            campaign_manifest = load_campaign(manifest_path)
+            if use_campaign_queue or not run_id:
+                nxt = pop_next_run(campaign_manifest)
+                if not nxt:
+                    raise RuntimeError("Campaign 队列已空")
+                run_id = nxt
+            else:
+                consumed = set(campaign_manifest.get("runs_consumed") or [])
+                if run_id in consumed:
+                    raise RuntimeError(f"run {run_id} 已在 Campaign 中使用")
+
+        if not run_id.startswith("run"):
+            raise RuntimeError("仿真须指定 run_id（如 run3）或启用 Campaign 队列")
+
+        protocol_locked = bool(exp.get("protocol_locked", True))
+        v3_overrides = dict(exp.get("v3_overrides") or {}) if isinstance(exp.get("v3_overrides"), dict) else {}
+        v3_path = exp.get("v3_config_path")
+        v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+        v3_cfg.apply_overrides(v3_overrides, protocol_locked=protocol_locked)
+
+        session_trials_total = int(
+            sim_ext.get("session_trials_total")
+            or (campaign_manifest or {}).get("session_trials_total")
+            or 36
+        )
+        replay_speed = float(
+            sim_ext.get("replay_speed")
+            or (campaign_manifest or {}).get("replay_speed")
+            or 4.0
+        )
+        replay_align = str(
+            sim_ext.get("replay_align")
+            or (campaign_manifest or {}).get("replay_align")
+            or "schedule_align"
+        )
+        mat_path = resolve_mat_path(subject_id)
+        # 先校验 run 容量（Rest+L+R），避免落盘空 session 目录
+        script = build_sim_script(
+            mat_path,
+            run_id,
+            session_trials_total=session_trials_total,
+            blocks=int(v3_cfg.blocks),
+            align_mode=replay_align,
+            seed=exp.get("seed"),
+            rest_s=float(v3_cfg.inter_trial_rest_s),
+        )
+
+        session_id = run_id
+        paths = create_session_dir(save_root, subject_id, session_id)
+        self._paths = paths
+        write_sim_script(paths.root, script)
+        (paths.root / "run_config.json").write_text(
+            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
+            encoding="utf-8",
+        )
+        self._maybe_persist_last_config(cfg)
+
+        v3_cfg.blocks = script.blocks
+        v3_cfg.trials_per_block = script.trials_per_block
+        verr = v3_cfg.verify_errors()
+        if verr:
+            raise RuntimeError("v3 配置无效: " + "; ".join(verr))
+
+        seed = exp.get("seed")
+        b_order = [f"sim_b{i + 1}" for i in range(script.blocks)]
+
+        meta = SessionMeta(
+            subject_id=subject_id,
+            session_id=session_id,
+            phase_mode="sim_v3_session",
+            use_synthetic=False,
+            trial_count=script.session_trials_total,
+            object="cup",
+            scene="home_desk",
+            notes=str(sub.get("notes") or "bci2a_sim_replay"),
+            channel_labels=list(acq_cfg.get("channel_labels") or DEFAULT_CHANNEL_LABELS),
+        )
+        write_session_meta(paths.meta_json, meta)
+        sim_meta = {
+            "sim_mode": True,
+            "source_mat": str(mat_path),
+            "source_run": run_id,
+            "campaign_id": (campaign_manifest or {}).get("campaign_id"),
+            "session_trials_total": script.session_trials_total,
+            "trials_unused": script.trials_unused,
+            "three_class": script.meta.get("three_class"),
+            "n_rest_used": script.meta.get("n_rest_used"),
+            "n_left_used": script.meta.get("n_left_used"),
+            "n_right_used": script.meta.get("n_right_used"),
+            "n_total_available": script.meta.get("n_total_available"),
+            "skip_session_baseline": True,
+            "skip_block_gap": True,
+            "replay_speed": replay_speed,
+            "replay_align": replay_align,
+        }
+        update_session_meta(
+            paths.meta_json,
+            v3_config=str(v3_path or "config/v3_session.yaml"),
+            v3_config_effective=v3_cfg.to_dict(),
+            protocol_locked=protocol_locked,
+            v3_block_order=b_order,
+            v3_seed=seed,
+            **sim_meta,
+        )
+
+        self.bridge.broadcast({
+            "type": "session_started",
+            "session_root": str(paths.root),
+            "subject_url": self.subject_url,
+            "acq_enabled": True,
+            "board_mode": "bci2a_replay",
+            "phase_mode": "sim_v3_session",
+            "degraded": False,
+            "save_root": str(save_root),
+            "open_subject_page": exp.get("open_subject_page", True),
+            "segment": 1,
+            "protocol_locked": protocol_locked,
+            "subject_feedback_mode": _subject_feedback_mode(cfg),
+            "v3_block_order": b_order,
+            "weights": self._weights_from_cfg(v3_cfg),
+            "timing": {
+                "prep_s": v3_cfg.prep_s,
+                "cue_s": v3_cfg.cue_s,
+                "mi_s": v3_cfg.imagine_s,
+                "iti_s": v3_cfg.iti_s,
+                "inter_trial_rest_s": v3_cfg.inter_trial_rest_s,
+                "fixation_s": v3_cfg.prep_s,
+                "post_mi_hold_s": 0,
+                "rest_s": v3_cfg.inter_trial_rest_s,
+                "transition_s": v3_cfg.iti_s,
+            },
+            "trial_total_s": v3_cfg.trial_total_s(),
+            "session_score": 0,
+            "session_score_max": script.session_trials_total,
+            "session_trials_done": 0,
+            "sim": sim_meta,
+            "v3_config_effective": {
+                "blocks": v3_cfg.blocks,
+                "trials_per_block": v3_cfg.trials_per_block,
+                "baseline_rest_s": v3_cfg.baseline_rest_s,
+                "s3_task_ckpt": v3_cfg.s3_task_ckpt,
+                "s3_three_ckpt": v3_cfg.s3_three_ckpt,
+            },
+        })
+
+        events = EventLogger(paths.events_jsonl)
+        self._events = events
+        markers = MarkerPublisher(enabled=bool(acq_cfg.get("markers_lsl", True)))
+        self._markers = markers
+        runner = SessionRunner(events, markers, self.bridge, on_console=print)
+        self._runner = runner
+
+        buf = RingBuffer(capacity_s=max(120.0, script.session_trials_total * 20.0))
+        replay: Optional[Bci2aReplaySource] = None
+        try:
+            deps = build_v3_deps_from_buffer(v3_cfg, buf, on_console=print)
+            replay = Bci2aReplaySource(
+                script,
+                buf,
+                eeg_csv_path=paths.eeg_csv,
+                speed=replay_speed,
+                align_mode=replay_align,
+                rest_s=float(v3_cfg.inter_trial_rest_s),
+                prep_s=float(v3_cfg.prep_s),
+                mi_s=float(v3_cfg.imagine_s),
+                iti_s=float(v3_cfg.iti_s),
+            )
+            self._emit_acq_status("connecting", f"仿真回放 {subject_id} · {run_id}…")
+            replay.start()
+            self._emit_acq_status("recording", f"仿真回放中 · {replay_speed}×")
+
+            events.emit("session_start", subject_id=subject_id, session_id=session_id, phase="sim_v3_session")
+            markers.push(f"session_start|subject={subject_id}|session={session_id}|phase=sim_v3_session|run={run_id}")
+            self.bridge.broadcast({"type": "session", "status": "running", "phase": "sim_v3_session"})
+
+            timeout = float(exp.get("ready_timeout_s") or 90)
+            print(f"[operator] 等待诱导页 ready（{timeout:.0f}s）…")
+            runner.wait_browser_ready(timeout=timeout)
+
+            summary = runner.run_v3_session(
+                config_path=v3_path,
+                v3_overrides={
+                    **v3_overrides,
+                    "blocks": script.blocks,
+                    "trials_per_block": script.trials_per_block,
+                },
+                protocol_locked=protocol_locked,
+                seed=seed,
+                subject_id=subject_id,
+                subject_feedback_mode=_subject_feedback_mode(cfg),
+                deps=deps,
+                skip_session_baseline=True,
+                skip_block_gap=True,
+                block_order_override=b_order,
+                trial_labels_by_block=script.labels_by_block,
+                sim_meta=sim_meta,
+            )
+        finally:
+            if replay is not None:
+                replay.stop()
+            self._runner = None
+
+        events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="sim_v3_session")
+        markers.push("session_end|phase=sim_v3_session")
+        self._shutdown_session_resources()
+
+        layout = str(storage.get("save_layout") or "phase_folders")
+        try:
+            finalize_session_layout(
+                paths.root,
+                save_layout=layout,
+                save_continuous=bool(storage.get("save_continuous_master", True)),
+                save_phase_slices=bool(
+                    storage.get("save_phase_slices") or layout == "phase_folders"
+                ),
+                acq_enabled=True,
+            )
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
+
+        verify = {}
+        try:
+            verify = write_alignment_bundle(paths.root, acq_enabled=True)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] alignment 失败: {exc}", file=sys.stderr)
+            verify = {"passed": False, "errors": [str(exc)]}
+
+        campaign_summary_path = None
+        campaign_next_run = None
+        if campaign_manifest is not None:
+            if not use_campaign_queue:
+                consumed = set(campaign_manifest.get("runs_consumed") or [])
+                if run_id not in consumed:
+                    consumed.add(run_id)
+                    campaign_manifest["runs_consumed"] = sorted(consumed)
+                    save_campaign(campaign_manifest)
+            append_session_result(
+                campaign_manifest,
+                session_dir=paths.root,
+                summary=summary,
+            )
+            campaign_summary_path = str(
+                write_campaign_summary(campaign_manifest, repo_root=self.repo_root)
+            )
+            campaign_manifest = load_campaign(campaign_manifest["manifest_path"])
+            remaining = [
+                r
+                for r in (campaign_manifest.get("session_queue") or [])
+                if r not in set(campaign_manifest.get("runs_consumed") or [])
+            ]
+            campaign_next_run = remaining[0] if remaining else None
+
+        sim_index = None
+        try:
+            sim_index = build_sim_index(subject_id, repo_root=self.repo_root)
+        except Exception:  # noqa: BLE001
+            pass
+
+        update_session_meta(paths.meta_json, v3_summary=summary, **sim_meta)
+        files = self._list_session_files(paths.root)
+        saved_payload: Dict[str, Any] = {
+            "type": "session_saved",
+            "root": str(paths.root),
+            "files": files,
+            "acq_enabled": True,
+            "train_eligible": True,
+            "verify": verify,
+            "v3_summary": summary,
+            "phase_mode": "sim_v3_session",
+            "subject_id": subject_id,
+            "sim": sim_meta,
+            "message": f"仿真 session 已结束 · {run_id}",
+        }
+        if campaign_manifest is not None:
+            saved_payload["campaign"] = {
+                "manifest": campaign_manifest,
+                "summary_path": campaign_summary_path,
+                "next_run": campaign_next_run,
+                "completed": campaign_manifest.get("status") == "completed"
+                or campaign_next_run is None,
+            }
+        if sim_index is not None:
+            saved_payload["sim_index"] = sim_index
+            saved_payload["suggest_session_id"] = sim_index.get("suggest_session_id")
+        if self._active_subject == subject_id:
+            saved_payload.update(self._model_presets_payload())
+        self.bridge.broadcast(saved_payload)
+        self.bridge.broadcast({"type": "session", "status": "done"})
+        self._emit_acq_status("stopped", "仿真回放已停止")
+        print(f"[operator] 仿真会话目录: {paths.root}")
 
     def _run_v4_session(self, cfg: Dict[str, Any]) -> None:
         """v4 实验前数据质量检测：无模型、连续帽检。"""
@@ -1273,7 +2079,7 @@ class OperatorService:
             "phase_mode": "v4_session",
             "degraded": False,
             "save_root": str(save_root),
-            "open_subject_page": False,
+            "open_subject_page": exp.get("open_subject_page", True),
             "v4_config_effective": {
                 "duration_s": v4_cfg.duration_s,
                 "pass_streak_required": v4_cfg.pass_streak_required,
@@ -1492,9 +2298,10 @@ class OperatorService:
             use_synthetic=use_synthetic,
             serial_port=str(acq_cfg.get("serial_port") or "COM5"),
             channel_labels=channel_labels,
-            filter_enabled=bool(filt.get("enabled", True)),
+            filter_enabled=bool(filt.get("enabled", False)),
             bandpass_low_hz=float(filt.get("bandpass_low_hz", 0.5)),
             bandpass_high_hz=float(filt.get("bandpass_high_hz", 45.0)),
+            notch_enabled=bool(filt.get("notch_enabled", False)),
             notch_low_hz=float(filt.get("notch_low_hz", 49.0)),
             notch_high_hz=float(filt.get("notch_high_hz", 51.0)),
         )

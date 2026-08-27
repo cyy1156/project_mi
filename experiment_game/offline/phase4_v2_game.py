@@ -1,8 +1,7 @@
-"""Phase4 v2 · 游戏试次 → 3s/hop100 窗（有反馈段 · 可变 MI 结束时刻）。
+"""Phase4 v2 · 游戏试次 → OpenBMI-Align 3s/hop100（MI 固定 4s · Cue 锚点）。
 
-- MI 段 = [t_mi_start, t_mi_end)；t_mi_end = touch/reach 时刻或满 6s（由 trial_v2 事件落盘）
-- 短于 3s+0.4s 的试次跳过（无法切出合规窗）
-- 输出目录：phase4_v2_game/（与 phase4_v2/ 并列，后处理可 merge）
+- Task：Left/Right · [t_cue, t_cue+4s)
+- 与标定 phase4_v2 同切窗逻辑，仅 phase=game
 
 用法：python -m experiment_game.offline.phase4_v2_game <session_dir>
 """
@@ -20,11 +19,12 @@ _HERE = Path(__file__).resolve()
 sys.path.insert(0, str(_HERE.parents[2]))
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
-from experiment_game.offline.phase4_v2 import (  # noqa: E402
-    FS, FROZEN, WIN, HOP, T0_MIN,
-    cut_segment, load_eeg,
-)
+from experiment_game.offline.openbmi_align_cut import FROZEN, FS, cut_openbmi_align_from_table  # noqa: E402
+from experiment_game.offline.phase4_v2 import load_eeg  # noqa: E402
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
+from src.common.steps.slide_3s_hop100 import HOP_SEC, WIN_SEC  # noqa: E402
+
+WIN, HOP, T0_MIN = WIN_SEC, HOP_SEC, 0.0
 
 
 def run(session_dir: str) -> Path:
@@ -32,22 +32,14 @@ def run(session_dir: str) -> Path:
     t_lsl, X_raw = load_eeg(sd)
     x = notch_and_bandpass(car_reference(X_raw), FS, l_freq=8.0, h_freq=30.0)
     rows = list(csv.DictReader(open(sd / "alignment" / "trial_table.csv", encoding="utf-8")))
+    game_rows = [r for r in rows if r.get("phase") == "game"]
 
-    wins, y_task, y_three, tids = [], [], [], []
-    for r in rows:
-        if r.get("rejected") == "1" or r.get("invalid") == "1":
-            continue
-        if r.get("phase") != "game":
-            continue
-        lab = int(r["label"])
-        if lab not in (1, 2) or not r.get("t_mi_start") or not r.get("t_mi_end"):
-            continue
-        t_a, t_b = float(r["t_mi_start"]), float(r["t_mi_end"])
-        for w in cut_segment(x, t_lsl, t_a, t_b):
-            wins.append(w)
-            y_task.append(1)
-            y_three.append(lab)
-            tids.append(int(r["trial_id"]))
+    wins, y_task, y_three, tids = cut_openbmi_align_from_table(
+        x,
+        t_lsl,
+        game_rows,
+        include_rest_interval=False,
+    )
 
     out = sd / "phase4_v2_game"
     out.mkdir(exist_ok=True)
@@ -56,12 +48,26 @@ def run(session_dir: str) -> Path:
     np.save(out / "y_task.npy", np.asarray(y_task, np.int64))
     np.save(out / "y_three.npy", np.asarray(y_three, np.int64))
     np.save(out / "trial_id.npy", np.asarray(tids, np.int64))
-    (out / "manifest.json").write_text(json.dumps({
-        "win_sec": WIN, "hop_sec": HOP, "t0_min": T0_MIN, "fs": FS,
-        "channels": FROZEN, "bandpass_hz": [8.0, 30.0], "zscore": "per-window",
-        "n_windows": len(wins),
-        "note": "游戏试次可变 MI 结束；与 phase4_v2（标定满 6s）并列",
-    }, ensure_ascii=False, indent=1), encoding="utf-8")
+    (out / "manifest.json").write_text(
+        json.dumps(
+            {
+                "protocol": "openbmi_align_v1",
+                "win_sec": WIN_SEC,
+                "hop_sec": HOP_SEC,
+                "baseline_before_cue_s": 0.5,
+                "task_sec": 4.0,
+                "fs": FS,
+                "channels": FROZEN,
+                "bandpass_hz": [8.0, 30.0],
+                "zscore": "per-window",
+                "n_windows": len(wins),
+                "note": "游戏试次 OpenBMI-Align；与 phase4_v2（标定）并列",
+            },
+            ensure_ascii=False,
+            indent=1,
+        ),
+        encoding="utf-8",
+    )
     print(f"{sd.name} [game]: {X.shape} 窗")
     return out
 

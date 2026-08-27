@@ -95,6 +95,7 @@ class RecorderWorker:
         self._meta.setdefault("channel_labels", labels)
         self._meta.setdefault("unit", "uV")
         self._meta.setdefault("filtered", True)
+        self._meta.setdefault("filter_kind", "streaming_causal_sos")
 
         csv_path = Path(csv_path)
         csv_path.parent.mkdir(parents=True, exist_ok=True)

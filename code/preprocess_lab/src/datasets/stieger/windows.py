@@ -4,6 +4,18 @@ from __future__ import annotations
 import numpy as np
 
 
+def cue_start_index(time_ms: np.ndarray) -> int:
+    """
+    time_ms: 1×nTime，相对目标呈现（ms）。
+    返回第一个 t >= 0 的样本下标（0-based）；官方 ITI 约 2 s → 常见下标 2000@1000Hz。
+    """
+    t = np.asarray(time_ms).reshape(-1)
+    idx = np.where(t >= -1e-6)[0]
+    if len(idx) == 0:
+        return 0
+    return int(idx[0])
+
+
 def feedback_start_index(time_ms: np.ndarray, feedback_t_ms: float = 2000.0) -> int:
     """
     time_ms: 1×nTime，相对目标呈现（ms）。

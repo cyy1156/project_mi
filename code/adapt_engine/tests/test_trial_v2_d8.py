@@ -1,4 +1,4 @@
-"""trial_v2 D8 接线冒烟（无真实等待 / 无 LSL）。"""
+"""trial_v2 MI 多数票计分冒烟（无真实等待 / 无 LSL）。"""
 
 from __future__ import annotations
 
@@ -7,30 +7,27 @@ import tempfile
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "experiment_game" / ".."))
 sys.path.insert(0, str(Path(__file__).resolve().parents[3]))
 
 from experiment_game.experiment import trial_v2 as tv2  # noqa: E402
 from experiment_game.experiment.events_log import EventLogger  # noqa: E402
 from experiment_game.experiment.markers import MarkerPublisher  # noqa: E402
-from experiment_game.experiment.trial_sm import SessionAbort  # noqa: E402
 from experiment_game.experiment.trial_v2 import (  # noqa: E402
     TrialContextV2,
     TrialStateMachineV2,
     TrialTimingV2,
 )
-from adapt_engine.scoring_v21 import ScoringConfig, build_judgment_times  # noqa: E402
+from adapt_engine.scoring_v21 import build_judgment_times  # noqa: E402
 
 
 def _fast_timing() -> TrialTimingV2:
-    sc = ScoringConfig()
     return TrialTimingV2(
         prep_s=0.001,
         cue_s=0.001,
         imagine_s=6.0,
         iti_s=0.001,
+        inter_trial_rest_s=0.0,
         judgment_times=build_judgment_times(0.6, 6.0),
-        scoring=sc,
     )
 
 
@@ -44,7 +41,8 @@ def _read_events(path: Path) -> list:
     return [json.loads(line) for line in path.read_text(encoding="utf-8").splitlines() if line.strip()]
 
 
-def test_trial_early_stop_score_reach():
+def test_trial_runs_full_mi_no_early_stop():
+    """错类全程仍跑完 MI；多数票错 → score=0，无 score_reach。"""
     tv2._wu = _noop_wait
     with tempfile.TemporaryDirectory() as td:
         events = EventLogger(Path(td) / "events.jsonl")
@@ -52,7 +50,7 @@ def test_trial_early_stop_score_reach():
         label = 1
 
         def judgment_fn(mi_t, t_rel, ctx):
-            return {"pred": label, "p_max": 0.9, "gated": False}
+            return {"pred": 2, "p_max": 0.9, "gated": False}
 
         sm = TrialStateMachineV2(
             events,
@@ -66,44 +64,38 @@ def test_trial_early_stop_score_reach():
 
         assert summary is not None
         assert summary["valid"] is True
-        assert summary["early_stop"] is True
+        assert summary["correct"] is False
+        assert summary["score"] == 0.0
+        assert summary["early_stop"] is False
         ev_names = [e["event"] for e in _read_events(events.path)]
-        assert "score_reach" in ev_names
-        assert "reach" not in ev_names
+        assert "score_reach" not in ev_names
+        assert "trial_invalid" not in ev_names
+        mi_end = [e for e in _read_events(events.path) if e["event"] == "mi_end"]
+        assert mi_end and mi_end[0].get("early") is False
 
 
-def test_consecutive_invalid_abort():
+def test_majority_correct_scores_one():
     tv2._wu = _noop_wait
     with tempfile.TemporaryDirectory() as td:
         events = EventLogger(Path(td) / "events.jsonl")
         markers = MarkerPublisher(enabled=False)
-        aborts = []
-
-        def on_trial_end(ctx, summary):
-            if summary and not summary.get("valid"):
-                aborts.append(ctx.trial_id)
-                if len(aborts) >= 5:
-                    return "abort_session"
-            return None
+        label = 1
+        calls = {"n": 0}
 
         def judgment_fn(mi_t, t_rel, ctx):
-            return {"pred": 2, "p_max": 0.9, "gated": False}
+            calls["n"] += 1
+            return {"pred": label, "p_max": 0.9, "gated": False}
 
         sm = TrialStateMachineV2(
             events,
             markers,
             _fast_timing(),
             judgment_fn=judgment_fn,
-            on_trial_end=on_trial_end,
         )
-        raised = False
-        for i in range(6):
-            ctx = TrialContextV2(trial_id=i + 1, label=1, mode="calibration", round_no=1)
-            try:
-                sm.run_trial(ctx)
-            except SessionAbort:
-                raised = True
-                break
+        ctx = TrialContextV2(trial_id=1, label=label, mode="calibration", round_no=1)
+        summary = sm.run_trial(ctx)
         events.close()
-        assert raised
-        assert len(aborts) == 5
+
+        assert summary["score"] == 1.0
+        assert summary["correct"] is True
+        assert calls["n"] == len(_fast_timing().judgment_times)

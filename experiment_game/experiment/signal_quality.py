@@ -1,6 +1,7 @@
 """EEG 信号质量门控：空帽/断线/饱和/大幅伪迹/共模时不进入模型计分。
 
 在 3s 判定窗的原始 µV 数据（LSL RingBuffer）上检查，不依赖阻抗 API。
+peak/ptp 在逐通道减窗均值后计算，避免导间直流偏置误报。
 """
 
 from __future__ import annotations
@@ -14,20 +15,33 @@ import numpy as np
 
 @dataclass(frozen=True)
 class SignalQualityConfig:
+    """默认阈值按 Cyton 6 导帽（cyy_ws01_20260826）3s 窗标定；Cz/CPz 配置为不用。
+
+    peak/ptp 在逐通道减窗均值后计算，避免导间直流偏置误报饱和。
+    6 导 scoring（cyy P50）：med_std≈0.70 / demean_ptp≈5 / car_min≈0.18 / cm_ratio≈0.88
+    仅对 scoring_channel_indices 计 PASS；unused 卡轨不参与 FAIL。
+    """
+
     enabled: bool = True
-    min_median_std_uv: float = 3.0
-    min_peak_to_peak_uv: float = 8.0
-    max_peak_uv: float = 1000.0
-    min_per_channel_std_uv: float = 2.0
-    min_active_channels: int = 3
-    max_channel_std_ratio: float = 20.0
+    min_median_std_uv: float = 0.50
+    # demean 后 AC 峰峰值仅数 µV；下限默认关闭（0），靠 std/active 抓空帽
+    min_peak_to_peak_uv: float = 0.0
+    max_peak_uv: float = 600.0
+    min_per_channel_std_uv: float = 0.40
+    min_active_channels: int = 5
+    max_channel_std_ratio: float = 3.0
     flatline_max_abs_uv: float = 0.5
     flatline_frac_max: float = 0.85
-    max_median_std_uv: float = 60.0
-    max_ptp_uv: float = 400.0
-    min_car_std_uv: float = 2.0
-    max_common_mode_ratio: float = 0.85
-    max_per_channel_std_uv: float = 60.0
+    max_median_std_uv: float = 8.0
+    max_ptp_uv: float = 600.0
+    min_car_std_uv: float = 0.10
+    max_common_mode_ratio: float = 1.45
+    max_per_channel_std_uv: float = 150.0
+    # v4 6 导帽：仅这些索引参与窗级 PASS；None = 全部通道
+    scoring_channel_indices: Optional[tuple[int, ...]] = None
+    unused_channel_indices: Optional[tuple[int, ...]] = None
+    unused_allow_rail: bool = True
+    rail_abs_uv: float = 4180.0
 
 
 def _normalize_tc(x: np.ndarray) -> tuple[Optional[np.ndarray], Optional[Dict]]:
@@ -45,6 +59,24 @@ def _normalize_tc(x: np.ndarray) -> tuple[Optional[np.ndarray], Optional[Dict]]:
     return x, None
 
 
+def _is_rail_stuck(ch: np.ndarray, *, rail_abs: float) -> bool:
+    ch = np.asarray(ch, dtype=np.float64)
+    peak = float(np.max(np.abs(ch)))
+    if peak >= rail_abs:
+        return True
+    return float(np.std(ch)) < 1e-9 and peak > 100.0
+
+
+def _scoring_slice(
+    x: np.ndarray,
+    cfg: SignalQualityConfig,
+) -> tuple[np.ndarray, list[int]]:
+    if cfg.scoring_channel_indices:
+        idx = list(cfg.scoring_channel_indices)
+        return x[:, idx], idx
+    return x, list(range(x.shape[1]))
+
+
 def assess_eeg_window(
     win_tc: np.ndarray,
     cfg: Optional[SignalQualityConfig] = None,
@@ -58,9 +90,13 @@ def assess_eeg_window(
     if err is not None:
         return err
 
+    x, scoring_idx = _scoring_slice(x, cfg)
+
     ch_std = np.std(x, axis=0)
-    peak = float(np.max(np.abs(x)))
-    ptp = float(np.max(x) - np.min(x))
+    # peak/ptp：逐通道减窗均值后再算，剔除导间直流偏置
+    x_ac = x - x.mean(axis=0, keepdims=True)
+    peak = float(np.max(np.abs(x_ac)))
+    ptp = float(np.max(np.ptp(x_ac, axis=0)))
     med_std = float(np.median(ch_std))
     active = int(np.sum(ch_std >= cfg.min_per_channel_std_uv))
 
@@ -78,11 +114,14 @@ def assess_eeg_window(
         "median_std_uv": round(med_std, 4),
         "peak_uv": round(peak, 4),
         "ptp_uv": round(ptp, 4),
+        "peak_raw_uv": round(float(np.max(np.abs(x))), 4),
+        "ptp_raw_uv": round(float(np.max(x) - np.min(x)), 4),
         "active_channels": active,
         "max_ch_std_uv": round(float(np.max(ch_std)), 4),
         "car_min_std_uv": round(car_min_std, 4),
-        "dead_channel_idx": dead_idx,
+        "dead_channel_idx": int(scoring_idx[dead_idx]) if scoring_idx else dead_idx,
         "common_mode_ratio": round(float(cm_ratio), 4),
+        "n_scoring_channels": len(scoring_idx),
     }
 
     flat_frac = float(np.mean(np.max(np.abs(x), axis=1) < cfg.flatline_max_abs_uv))
@@ -248,6 +287,7 @@ def _format_hat_message(
 
 
 _REASON_HINTS: Dict[str, str] = {
+    "unused_expected": "该通道已配置为不用；当前卡轨/无信号属预期",
     "common_mode": "参考电极接触不良：检查 SRB2 + Bias，轻压耳后/乳突",
     "dead_channel": "去共模后无信号：补胶/按紧该电极",
     "artifact": "大幅伪迹：减少头动/咬牙，检查导线拉扯",
@@ -269,6 +309,7 @@ def _channel_diagnose(
 ) -> List[Dict[str, Any]]:
     """逐通道健康检查（v4 热力图）。"""
     ch_std = np.std(x, axis=0)
+    x_ac = x - x.mean(axis=0, keepdims=True)
     x_car = x - x.mean(axis=1, keepdims=True)
     car_std = np.std(x_car, axis=0)
     med_std = float(np.median(ch_std)) if ch_std.size else 0.0
@@ -278,7 +319,7 @@ def _channel_diagnose(
         name = channel_names[i] if i < len(channel_names) else f"Ch{i}"
         std_uv = float(ch_std[i])
         car_uv = float(car_std[i])
-        peak_i = float(np.max(np.abs(x[:, i])))
+        peak_i = float(np.max(np.abs(x_ac[:, i])))
         flat_frac = float(np.mean(np.abs(x[:, i]) < cfg.flatline_max_abs_uv))
         reason: Optional[str] = None
         if peak_i > cfg.max_peak_uv:
@@ -311,9 +352,28 @@ def _build_problems(
     window_reason: Optional[str],
     per_channel: List[Dict[str, Any]],
     metrics: Dict[str, Any],
+    *,
+    scoring_set: Optional[set[int]] = None,
 ) -> List[Dict[str, str]]:
     problems: List[Dict[str, str]] = []
-    dead_names = [ch["name"] for ch in per_channel if ch.get("reason") == "dead_channel"]
+    scoring_set = scoring_set if scoring_set is not None else set(range(len(per_channel)))
+
+    unused = [ch for ch in per_channel if ch.get("reason") == "unused_expected"]
+    for ch in unused:
+        problems.append(
+            {
+                "channel": ch["name"],
+                "reason": "unused_expected",
+                "detail": "已配置不用；卡轨属预期",
+                "hint": _REASON_HINTS["unused_expected"],
+            }
+        )
+
+    dead_names = [
+        ch["name"]
+        for ch in per_channel
+        if ch.get("reason") == "dead_channel" and int(ch["idx"]) in scoring_set
+    ]
 
     if window_reason == "common_mode":
         cm = float(metrics.get("common_mode_ratio", 0.0))
@@ -353,7 +413,9 @@ def _build_problems(
 
     for ch in per_channel:
         r = ch.get("reason")
-        if not r or r == "dead_channel":
+        if not r or r in ("dead_channel", "unused_expected"):
+            continue
+        if int(ch["idx"]) not in scoring_set:
             continue
         problems.append(
             {
@@ -393,6 +455,27 @@ def live_channel_stats(
     return {"per_channel_live": per, "active_idx": active_idx}
 
 
+def _apply_unused_channel_rules(
+    per_channel: List[Dict[str, Any]],
+    x: np.ndarray,
+    cfg: SignalQualityConfig,
+) -> None:
+    """就地标记配置为不用的通道（如 Cz/CPz 卡轨）为 ok，不参与 FAIL。"""
+    if not cfg.unused_channel_indices:
+        return
+    unused = set(cfg.unused_channel_indices)
+    for ch in per_channel:
+        idx = int(ch["idx"])
+        if idx not in unused:
+            continue
+        if cfg.unused_allow_rail and _is_rail_stuck(x[:, idx], rail_abs=cfg.rail_abs_uv):
+            ch["ok"] = True
+            ch["reason"] = "unused_expected"
+            ch["unused"] = True
+        else:
+            ch["unused"] = True
+
+
 def diagnose_eeg_window(
     win_tc: np.ndarray,
     cfg: Optional[SignalQualityConfig] = None,
@@ -423,12 +506,21 @@ def diagnose_eeg_window(
         }
 
     per_channel = _channel_diagnose(x, cfg, names)
+    _apply_unused_channel_rules(per_channel, x, cfg)
+
+    scoring_set = set(cfg.scoring_channel_indices or range(len(per_channel)))
+    scoring_ok = all(ch["ok"] for ch in per_channel if int(ch["idx"]) in scoring_set)
     per_channel_ok = [bool(ch["ok"]) for ch in per_channel]
-    sat_n = sum(1 for ch in per_channel if ch.get("reason") == "saturation")
-    window_ok = bool(assess.get("ok")) and all(per_channel_ok)
+
+    sat_n = sum(
+        1
+        for ch in per_channel
+        if ch.get("reason") == "saturation" and int(ch["idx"]) in scoring_set
+    )
+    window_ok = bool(assess.get("ok")) and scoring_ok
     window_reason = assess.get("reason")
     if not window_ok and window_reason is None:
-        bad = next((ch for ch in per_channel if not ch["ok"]), None)
+        bad = next((ch for ch in per_channel if int(ch["idx"]) in scoring_set and not ch["ok"]), None)
         window_reason = bad["reason"] if bad else "channel_fail"
 
     med_std = float(metrics.get("median_std_uv", 0.0))
@@ -436,7 +528,7 @@ def diagnose_eeg_window(
     cm = float(metrics.get("common_mode_ratio", 0.0))
     active = int(metrics.get("active_channels", 0))
 
-    problems = _build_problems(window_reason, per_channel, metrics)
+    problems = _build_problems(window_reason, per_channel, metrics, scoring_set=scoring_set)
     if sat_n >= 4:
         problems.insert(
             0,
@@ -456,7 +548,7 @@ def diagnose_eeg_window(
         "window_reason": window_reason,
         "metrics": {
             **metrics,
-            "median_std_ok": 3.0 <= med_std <= cfg.max_median_std_uv,
+            "median_std_ok": cfg.min_median_std_uv <= med_std <= cfg.max_median_std_uv,
             "ptp_ok": cfg.min_peak_to_peak_uv <= ptp <= cfg.max_ptp_uv,
             "ch_ok": active >= cfg.min_active_channels,
             "cm_ok": cm <= cfg.max_common_mode_ratio,
@@ -475,9 +567,13 @@ def summarize_v4_session(
     achieved_stable: bool,
     time_to_stable_s: Optional[float],
     channel_names: Optional[List[str]] = None,
+    unused_channels: Optional[List[str]] = None,
+    scoring_channels: Optional[List[str]] = None,
 ) -> Dict[str, Any]:
     """v4 会话结束汇总。"""
     names = channel_names or [f"Ch{i}" for i in range(8)]
+    unused_set = set(unused_channels or [])
+    scoring_set = set(scoring_channels or names)
     total = len(history)
     pass_windows = sum(1 for h in history if h.get("window_ok"))
     fail_windows = total - pass_windows
@@ -500,11 +596,16 @@ def summarize_v4_session(
             if wr:
                 reason_counts[str(wr)] += 1
         for ch in h.get("per_channel") or []:
+            name = str(ch.get("name", "?"))
+            if name in unused_set:
+                continue
+            if name not in scoring_set:
+                continue
             r = ch.get("reason")
             if r == "dead_channel":
-                dead_hits[ch.get("name", "?")] += 1
+                dead_hits[name] += 1
             elif r in ("high_std", "imbalance", "saturation"):
-                hot_hits[ch.get("name", "?")] += 1
+                hot_hits[name] += 1
 
     chronic_dead = [n for n, c in dead_hits.items() if c >= max(2, total // 3)]
     chronic_hot = [n for n, c in hot_hits.items() if c >= max(2, total // 3)]
@@ -525,10 +626,12 @@ def summarize_v4_session(
         recommendation = "接近达标但不稳定：建议再修电极或延长检测"
     else:
         parts: List[str] = []
+        if unused_set:
+            parts.append("未用通道 " + "、".join(sorted(unused_set)) + "（不参与判定）")
         if reason_counts.get("common_mode"):
             parts.append("优先检查参考电极")
         if chronic_dead:
-            parts.append("死通道 " + "、".join(chronic_dead))
+            parts.append("弱信号通道 " + "、".join(chronic_dead))
         if chronic_hot:
             parts.append("高幅通道 " + "、".join(chronic_hot))
         recommendation = "未达标：" + ("；".join(parts) if parts else "请检查帽与电极")
@@ -552,5 +655,7 @@ def summarize_v4_session(
         "top_reasons": dict(reason_counts),
         "recommendation": recommendation,
         "channel_labels": list(names),
+        "scoring_channels": list(scoring_set),
+        "unused_channels": list(unused_set),
     }
 

@@ -13,6 +13,7 @@ __all__ = ["BoardConfig","CytonBoard","__version__"]
 from lsl_connect.preprocessing import (
     PreprocessConfig,
     SCALE_EEG,
+    StreamingEegFilter,
     preprocess_eeg_batch,
     apply_eeg_filters,
 )

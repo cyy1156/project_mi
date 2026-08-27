@@ -40,11 +40,15 @@ def _acc_at_primary(records: List[Dict], primary_s: float) -> Dict[str, Any]:
 
 
 def _primary_judge(record: Dict, primary_s: float) -> Optional[Dict]:
+    pj = record.get("primary_judge")
+    if pj:
+        return pj
     js = record.get("judgments") or []
     if not js:
         return None
-    best = min(js, key=lambda j: abs(float(j.get("t_rel", -1)) - primary_s))
-    return best
+    from experiment_game.experiment.judge_aggregate import primary_judge_from_judgments
+
+    return primary_judge_from_judgments(js, mode="majority", primary_s=primary_s)
 
 
 def _confusion(records: List[Dict], primary_s: float, *, gated: bool = False) -> List[List[int]]:
@@ -200,9 +204,9 @@ def _report_md(report: Dict[str, Any]) -> str:
         "",
         f"- 权重冻结：`{report.get('frozen')}`",
         f"- 块顺序：`{' → '.join(report.get('block_order') or [])}`",
-        f"- 主判定点：{report.get('primary_judge_s')}s",
+        f"- 主判定：MI 全程 **多数票**（rule=majority_vote；平票代表窗 tie-break @ {report.get('primary_judge_s')}s）",
         f"- 底座质量定级：**{report.get('quality_tier')}**",
-        "- 口径：特征卡/块统计的 ERD 相对块内滚动 Rest 基线；操作台功率条相对开场 60s 基线；信号质量不足的试次已从 acc/ERD 统计剔除",
+        "- 口径：特征卡 ERD 相对 **开场 30s seed**（换块保留）+ 试次间 Rest 滚动；操作台功率条相对同口径；信号质量不足的试次已从 acc/ERD 统计剔除",
         "",
         "## 分块准确率",
         "",

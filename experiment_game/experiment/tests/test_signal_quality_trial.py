@@ -12,18 +12,17 @@ from experiment_game.experiment import trial_v2 as tv2  # noqa: E402
 from experiment_game.experiment.events_log import EventLogger  # noqa: E402
 from experiment_game.experiment.markers import MarkerPublisher  # noqa: E402
 from experiment_game.experiment.trial_v2 import TrialContextV2, TrialStateMachineV2, TrialTimingV2  # noqa: E402
-from adapt_engine.scoring_v21 import ScoringConfig, build_judgment_times  # noqa: E402
+from adapt_engine.scoring_v21 import build_judgment_times  # noqa: E402
 
 
 def _fast_timing() -> TrialTimingV2:
-    sc = ScoringConfig()
     return TrialTimingV2(
         prep_s=0.001,
         cue_s=0.001,
         imagine_s=6.0,
         iti_s=0.001,
+        inter_trial_rest_s=0.0,
         judgment_times=build_judgment_times(0.6, 6.0),
-        scoring=sc,
     )
 
 
@@ -57,3 +56,37 @@ def test_signal_bad_skips_scoring():
         judges = [r for r in rows if r["event"] == "judge"]
         assert judges and all(r.get("signal_bad") for r in judges)
         assert not any(r.get("score") for r in judges if r.get("score"))
+        assert all(r.get("p_three") is None for r in judges)
+
+
+def test_judge_events_include_p_three():
+    tv2._wu = lambda t_end, **kw: None
+    with tempfile.TemporaryDirectory() as td:
+        events = EventLogger(Path(td) / "events.jsonl")
+        markers = MarkerPublisher(enabled=False)
+
+        def judgment_fn(mi_t, t_rel, ctx):
+            return {
+                "pred": 1,
+                "p_max": 0.8,
+                "gated": False,
+                "p_three": [0.1, 0.8, 0.1],
+            }
+
+        sm = TrialStateMachineV2(
+            events,
+            markers,
+            _fast_timing(),
+            judgment_fn=judgment_fn,
+        )
+        ctx = TrialContextV2(trial_id=2, label=1, mode="game", round_no=1)
+        sm.run_trial(ctx)
+        events.close()
+
+        import json
+
+        rows = [json.loads(l) for l in events.path.read_text(encoding="utf-8").splitlines() if l.strip()]
+        judges = [r for r in rows if r["event"] == "judge" and not r.get("signal_bad")]
+        assert judges
+        assert all(r.get("p_three") == [0.1, 0.8, 0.1] for r in judges)
+        assert all(r.get("pred") == 1 for r in judges)

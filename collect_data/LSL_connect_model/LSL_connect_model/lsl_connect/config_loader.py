@@ -109,6 +109,10 @@ def build_service_manager_config(
         _pick(filt,"启用","enabled","filter_enabled"),
         default=True,
     )
+    notch_enabled = _as_bool(
+        _pick(filt, "陷波启用", "notch_enabled"),
+        default=True,
+    )
 
     bandpass_low = float(_pick(filt, "带通低频_hz", "bandpass_low_hz", default=0.5))
     bandpass_high = float(_pick(filt, "带通高频_hz", "bandpass_high_hz", default=45.0))
@@ -142,6 +146,7 @@ def build_service_manager_config(
         filter_enabled=filter_enabled,
         bandpass_low_hz=bandpass_low,
         bandpass_high_hz=bandpass_high,
+        notch_enabled=notch_enabled,
         notch_low_hz=notch_low,
         notch_high_hz=notch_high,
     )
@@ -220,6 +225,7 @@ def save_default_config(
   启用: {'true' if pp.filter_enabled else 'false'}
   带通低频_hz: {pp.bandpass_low_hz}
   带通高频_hz: {pp.bandpass_high_hz}
+  陷波启用: {'true' if getattr(pp, 'notch_enabled', True) else 'false'}
   陷波低频_hz: {pp.notch_low_hz}
   陷波高频_hz: {pp.notch_high_hz}
 

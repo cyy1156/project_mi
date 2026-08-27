@@ -1,0 +1,33 @@
+# BCI Competition IV 2a — Cue 段 3s/hop100（实验 29 · 仅 T.mat）
+dataset: bci2a
+loader: load_bci2a_mat
+
+data_glob: "D:/MI/DATA/bci2a/A0*T.mat"
+
+subject_from: stem3
+
+label_map:
+  1: [1, 1]
+  2: [1, 2]
+drop_codes: [3, 4]
+make_rest: true
+rest_balance: min_left_right
+
+window_mode: slide_3s_hop100
+win_sec: 3.0
+hop_ms: 100
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+# 每人 T 内带标签 run 按顺序 3 配对 → S1/S2/S3（A04 为 run1–6，其余多为 run3–8）
+exp29_pseudo_sessions:
+  S1: runs[-6:-4]
+  S2: runs[-4:-2]
+  S3: runs[-2:]
+
+exp29_subjects: [A01, A02, A03, A04, A05, A06, A07, A08, A09]
+
+out_dir: "out/bci2a_3s_hop100"
+save_full: true
+save_split: false

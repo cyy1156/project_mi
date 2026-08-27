@@ -204,6 +204,8 @@ class WsBridge:
             self.port,
             ping_interval=20,
             ping_timeout=20,
+            # 允许局域网监控端跨主机连接（否则偶发握手被拒）
+            origins=None,
         )
 
     async def _shutdown(self) -> None:

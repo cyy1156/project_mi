@@ -21,9 +21,9 @@ if not exist "%PY%" (
 )
 
 echo.
-echo === MI induction page ===
-echo Browser: http://127.0.0.1:8080/
-echo Keep this window open. Close it to stop the server.
+echo === Subject induction page ===
+echo Prerequisite: open_operator.bat must already be running.
+echo This script only opens http://127.0.0.1:8080/  (does NOT start Phase2).
 echo.
 
 "%PY%" -m experiment_game.tools.open_induction %*

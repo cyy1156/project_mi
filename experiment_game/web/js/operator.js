@@ -3,8 +3,47 @@ const WS_URL =
   `ws://${location.hostname || "127.0.0.1"}:8765`;
 
 const STORAGE_KEY = "experiment_game_operator_defaults_v1";
+const SUBJECT_LOGIN_KEY = "experiment_game_subject_login_v1";
 
 const el = {
+  login: document.getElementById("view-login"),
+  loginForm: document.getElementById("login-form"),
+  loginError: document.getElementById("login-error"),
+  loginLast: document.getElementById("login-last"),
+  subjectBar: document.getElementById("subject-bar"),
+  subjectBarId: document.getElementById("subject-bar-id"),
+  subjectBarSession: document.getElementById("subject-bar-session"),
+  subjectBarWeights: document.getElementById("subject-bar-weights"),
+  setupSubjectId: document.getElementById("setup-subject-id"),
+  setupSessionId: document.getElementById("setup-session-id"),
+  ftPanel: document.getElementById("ft-panel"),
+  ftCurrentWeights: document.getElementById("ft-current-weights"),
+  ftSessionList: document.getElementById("ft-session-list"),
+  ftExcludeInvalid: document.getElementById("ft-exclude-invalid"),
+  ftUseReplay: document.getElementById("ft-use-replay"),
+  ftLeaveNext: document.getElementById("ft-leave-next"),
+  ftRampHint: document.getElementById("ft-ramp-hint"),
+  ftReplayRatio: document.getElementById("ft-replay-ratio"),
+  ftReplayHint: document.getElementById("ft-replay-hint"),
+  btnFtReplayAdopt: document.getElementById("btn-ft-replay-adopt"),
+  ftEarlyStop: document.getElementById("ft-early-stop"),
+  ftMaxEpochs: document.getElementById("ft-max-epochs"),
+  ftPatience: document.getElementById("ft-patience"),
+  ftFixedEpochs: document.getElementById("ft-fixed-epochs"),
+  ftDeterministic: document.getElementById("ft-deterministic"),
+  ftSeed: document.getElementById("ft-seed"),
+  setupFtReplayHint: document.getElementById("setup-ft-replay-hint"),
+  btnSetupReplayAdopt: document.getElementById("btn-setup-replay-adopt"),
+  ftResult: document.getElementById("ft-result"),
+  ftStatus: document.getElementById("ft-status"),
+  btnFtStart: document.getElementById("btn-ft-start"),
+  btnFtPromote: document.getElementById("btn-ft-promote"),
+  btnFtKeep: document.getElementById("btn-ft-keep"),
+  btnNextSession: document.getElementById("btn-next-session"),
+  simRunQueue: document.getElementById("sim-run-queue"),
+  simCampaignSelect: document.getElementById("sim-campaign-select"),
+  simCampaignStatus: document.getElementById("sim-campaign-status"),
+  btnSimCampaignCreate: document.getElementById("btn-sim-campaign-create"),
   wsStatus: document.getElementById("ws-status"),
   setup: document.getElementById("view-setup"),
   run: document.getElementById("view-run"),
@@ -50,15 +89,27 @@ const el = {
   btnV2Guidance: document.getElementById("btn-v2-guidance"),
   setupTimelineV2: document.getElementById("setup-timeline-v2"),
   timingHintV2: document.getElementById("timing-hint-v2"),
+  setupTimelineV3: document.getElementById("setup-timeline-v3"),
+  timingHintV3: document.getElementById("timing-hint-v3"),
   phaseStepsV2: document.getElementById("phase-steps-v2"),
   stV2Round: document.getElementById("st-v2-round"),
   stV2Score: document.getElementById("st-v2-score"),
+  stSessionScoreWrap: document.getElementById("st-session-score-wrap"),
+  stSessionScore: document.getElementById("st-session-score"),
+  stWeights: document.getElementById("st-weights"),
+  modelPreset: document.getElementById("model-preset"),
+  s3TaskCkpt: document.getElementById("s3_task_ckpt"),
+  s3ThreeCkpt: document.getElementById("s3_three_ckpt"),
+  modelWeightHint: document.getElementById("model-weight-hint"),
   v2CalProg: document.getElementById("v2-cal-prog"),
   v2GameProg: document.getElementById("v2-game-prog"),
   v2Subblock: document.getElementById("v2-subblock"),
   v2FtStatus: document.getElementById("v2-ft-status"),
   v2ScoreNum: document.getElementById("v2-score-num"),
   v2ScoreFill: document.getElementById("v2-score-fill"),
+  v2SessionScoreNum: document.getElementById("v2-session-score-num"),
+  v2SessionScoreFill: document.getElementById("v2-session-score-fill"),
+  v2SessionScoreHint: document.getElementById("v2-session-score-hint"),
   v2WeakMi: document.getElementById("v2-weak-mi"),
   v2AcceptDetail: document.getElementById("v2-accept-detail"),
   p4SummaryV2: document.getElementById("p4-summary-v2"),
@@ -68,6 +119,9 @@ const el = {
   v3BlockProg: document.getElementById("v3-block-prog"),
   v3TrialProg: document.getElementById("v3-trial-prog"),
   v3Cond: document.getElementById("v3-cond"),
+  v3SessionScoreNum: document.getElementById("v3-session-score-num"),
+  v3SessionScoreFill: document.getElementById("v3-session-score-fill"),
+  v3SessionScoreHint: document.getElementById("v3-session-score-hint"),
   v3Eeg: document.getElementById("v3-eeg"),
   v3PowerBars: document.getElementById("v3-power-bars"),
   v3FeatureCards: document.getElementById("v3-feature-cards"),
@@ -98,6 +152,312 @@ const el = {
 };
 
 const V3_LABEL_NAMES = { 0: "静息", 1: "左手", 2: "右手" };
+const LIVE_LABEL_NAMES = { 0: "Rest", 1: "Left", 2: "Right" };
+const LIVE_TRIAL_VOTES = { v2: { 0: 0, 1: 0, 2: 0 }, v3: { 0: 0, 1: 0, 2: 0 } };
+const SESSION_TRIAL_VOTES = {
+  v2: { history: [], view: "live" },
+  v3: { history: [], view: "live" },
+};
+
+function _voteCountFromMap(vc, cls) {
+  if (!vc || typeof vc !== "object") return 0;
+  const n = vc[cls] ?? vc[String(cls)];
+  return Number.isFinite(Number(n)) ? Number(n) : 0;
+}
+
+function _labelTag(label, name) {
+  if (label == null) return name || "—";
+  const nm = name || LIVE_LABEL_NAMES[label] || String(label);
+  return `${nm} (${label})`;
+}
+
+function resetSessionVoteHistory() {
+  for (const prefix of ["v2", "v3"]) {
+    SESSION_TRIAL_VOTES[prefix] = { history: [], view: "live" };
+    LIVE_TRIAL_VOTES[prefix] = { 0: 0, 1: 0, 2: 0 };
+    renderVotePanel(prefix);
+  }
+}
+
+function recordTrialVoteHistory(prefix, ctx, summary) {
+  if (!summary?.vote_counts) return;
+  const vc = summary.vote_counts;
+  const state = SESSION_TRIAL_VOTES[prefix];
+  const label = summary.label ?? ctx?.label;
+  const pred = summary.pred;
+  const rec = {
+    trial_id: ctx?.trial_id ?? state.history.length + 1,
+    label,
+    label_name: ctx?.label_name || LIVE_LABEL_NAMES[label] || String(label ?? "—"),
+    pred,
+    pred_name: pred != null ? LIVE_LABEL_NAMES[pred] ?? String(pred) : "—",
+    correct: summary.correct,
+    vote_counts: {
+      0: _voteCountFromMap(vc, 0),
+      1: _voteCountFromMap(vc, 1),
+      2: _voteCountFromMap(vc, 2),
+    },
+  };
+  const dup = state.history.findIndex((h) => h.trial_id === rec.trial_id);
+  if (dup >= 0) state.history[dup] = rec;
+  else state.history.push(rec);
+  state.view = "live";
+  applyTrialVotesFromSummary(prefix, summary);
+  renderVotePanel(prefix);
+}
+
+function navigateVoteHistory(prefix, delta) {
+  const state = SESSION_TRIAL_VOTES[prefix];
+  const n = state.history.length;
+  if (n === 0) return;
+  if (state.view === "live") {
+    if (delta < 0) state.view = n - 1;
+    else return;
+  } else {
+    const next = state.view + delta;
+    if (next < 0) return;
+    if (next >= n) state.view = "live";
+    else state.view = next;
+  }
+  renderVotePanel(prefix);
+}
+
+function renderVotePanel(prefix) {
+  const state = SESSION_TRIAL_VOTES[prefix];
+  const hist = state.history;
+  const viewing = state.view !== "live" ? hist[state.view] : null;
+  const votes = viewing ? viewing.vote_counts : LIVE_TRIAL_VOTES[prefix] || { 0: 0, 1: 0, 2: 0 };
+  let total = 0;
+  for (let i = 0; i < 3; i++) {
+    const n = votes[i] || 0;
+    total += n;
+    const cell = document.getElementById(`${prefix}-v${i}-votes`);
+    if (cell) cell.textContent = String(n);
+  }
+  const head = document.getElementById(`${prefix}-votes-total`);
+  if (head) head.textContent = `共 ${total} 窗`;
+
+  const navLabel = document.getElementById(`${prefix}-votes-nav-label`);
+  const prevBtn = document.getElementById(`${prefix}-votes-prev`);
+  const nextBtn = document.getElementById(`${prefix}-votes-next`);
+  const meta = document.getElementById(`${prefix}-votes-meta`);
+  const box = document.querySelector(`#${prefix}-live-judge .live-judge-votes`);
+
+  if (state.view === "live") {
+    if (navLabel) navLabel.textContent = hist.length ? `当前试次 · 已完成 ${hist.length}` : "当前试次";
+    if (prevBtn) prevBtn.disabled = hist.length === 0;
+    if (nextBtn) nextBtn.disabled = true;
+    if (meta) meta.innerHTML = "";
+    box?.classList.remove("is-history");
+  } else if (viewing) {
+    const pos = Number(state.view) + 1;
+    if (navLabel) navLabel.textContent = `回看 ${pos}/${hist.length}`;
+    if (prevBtn) prevBtn.disabled = state.view <= 0;
+    if (nextBtn) nextBtn.disabled = false;
+    const ok = viewing.correct === true;
+    const fail = viewing.correct === false;
+    const mark = ok ? '<span class="vote-meta-correct">✓</span>' : fail ? '<span class="vote-meta-wrong">✗</span>' : "";
+    if (meta) {
+      meta.innerHTML =
+        `试次 ${viewing.trial_id} ${mark}<br>` +
+        `正式 ${_labelTag(viewing.label, viewing.label_name)} · ` +
+        `预测 ${_labelTag(viewing.pred, viewing.pred_name)}`;
+    }
+    box?.classList.add("is-history");
+  }
+}
+
+function resetTrialVotes(prefix) {
+  LIVE_TRIAL_VOTES[prefix] = { 0: 0, 1: 0, 2: 0 };
+  SESSION_TRIAL_VOTES[prefix].view = "live";
+  renderVotePanel(prefix);
+}
+
+function renderTrialVotes(prefix) {
+  if (SESSION_TRIAL_VOTES[prefix]?.view !== "live") return;
+  renderVotePanel(prefix);
+}
+
+function applyTrialVotesFromSummary(prefix, summary) {
+  if (!summary?.vote_counts) return;
+  const vc = summary.vote_counts;
+  LIVE_TRIAL_VOTES[prefix] = {
+    0: _voteCountFromMap(vc, 0),
+    1: _voteCountFromMap(vc, 1),
+    2: _voteCountFromMap(vc, 2),
+  };
+  if (SESSION_TRIAL_VOTES[prefix].view === "live") renderVotePanel(prefix);
+}
+
+function bindVoteHistorySwipe(prefix) {
+  const box = document.querySelector(`#${prefix}-live-judge .live-judge-votes`);
+  if (!box || box.dataset.swipeBound) return;
+  box.dataset.swipeBound = "1";
+  let x0 = null;
+  box.addEventListener(
+    "touchstart",
+    (e) => {
+      x0 = e.changedTouches[0]?.clientX ?? null;
+    },
+    { passive: true },
+  );
+  box.addEventListener(
+    "touchend",
+    (e) => {
+      if (x0 == null) return;
+      const x1 = e.changedTouches[0]?.clientX ?? x0;
+      const dx = x1 - x0;
+      x0 = null;
+      if (Math.abs(dx) < 40) return;
+      navigateVoteHistory(prefix, dx < 0 ? 1 : -1);
+    },
+    { passive: true },
+  );
+}
+
+function _liveJudgeEls(prefix) {
+  return {
+    label: document.getElementById(`${prefix}-live-label`),
+    pred: document.getElementById(`${prefix}-live-pred`),
+    correct: document.getElementById(`${prefix}-live-correct`),
+    trel: document.getElementById(`${prefix}-live-trel`),
+    fills: [0, 1, 2].map((i) => document.getElementById(`${prefix}-p${i}-fill`)),
+    pcts: [0, 1, 2].map((i) => document.getElementById(`${prefix}-p${i}-pct`)),
+    rows: document.querySelectorAll(`#${prefix}-live-judge .live-prob-row`),
+  };
+}
+
+function resetLiveJudge(prefix) {
+  const box = _liveJudgeEls(prefix);
+  if (box.label) box.label.textContent = "—";
+  if (box.pred) box.pred.textContent = "—";
+  if (box.correct) {
+    box.correct.textContent = "";
+    box.correct.className = "live-judge-correct";
+  }
+  if (box.trel) box.trel.textContent = "";
+  box.fills.forEach((f) => {
+    if (f) f.style.width = "0%";
+  });
+  box.pcts.forEach((p) => {
+    if (p) p.textContent = "—";
+  });
+  box.rows.forEach((r) => r.classList.remove("is-pred"));
+  resetTrialVotes(prefix);
+}
+
+function updateLiveJudge(prefix, msg) {
+  const box = _liveJudgeEls(prefix);
+  if (!box.label) return;
+  const ctx = msg.ctx || {};
+  const data = msg.data || {};
+  const stage = msg.stage;
+
+  if (stage === "trial_start" || stage === "iti") {
+    if (stage === "trial_start") resetLiveJudge(prefix);
+  }
+
+  if (stage === "trial_end") {
+    const sum = data.summary;
+    if (sum?.vote_counts) recordTrialVoteHistory(prefix, ctx, sum);
+  }
+
+  const lab = ctx.label;
+  const labName =
+    ctx.label_name ||
+    (lab != null ? LIVE_LABEL_NAMES[lab] ?? String(lab) : null);
+  if (labName != null) {
+    box.label.textContent =
+      lab != null ? `${labName} (${lab})` : labName;
+  }
+  if (msg.ctx?.label != null && el.stLabel) {
+    const zh = V3_LABEL_NAMES[lab] || labName;
+    el.stLabel.textContent = `${zh} (${lab})`;
+  }
+
+  if (stage !== "judge") return;
+
+  if (data.signal_bad) {
+    if (box.pred) box.pred.textContent = "信号差";
+    if (box.correct) {
+      box.correct.textContent = "";
+      box.correct.className = "live-judge-correct";
+    }
+    if (box.trel && data.t_rel != null) {
+      box.trel.textContent = `t=${Number(data.t_rel).toFixed(1)}s`;
+    }
+    box.fills.forEach((f) => {
+      if (f) f.style.width = "0%";
+    });
+    box.pcts.forEach((p) => {
+      if (p) p.textContent = "—";
+    });
+    box.rows.forEach((r) => r.classList.remove("is-pred"));
+    return;
+  }
+
+  const votePred =
+    data.gated_pred != null && data.gated_pred !== ""
+      ? Number(data.gated_pred)
+      : data.pred != null
+        ? Number(data.pred)
+        : NaN;
+  if (Number.isFinite(votePred) && votePred >= 0 && votePred <= 2) {
+    const bucket = LIVE_TRIAL_VOTES[prefix] || { 0: 0, 1: 0, 2: 0 };
+    bucket[votePred] = (bucket[votePred] || 0) + 1;
+    LIVE_TRIAL_VOTES[prefix] = bucket;
+    renderTrialVotes(prefix);
+  }
+
+  const pred = data.pred;
+  const predName =
+    data.pred_name ||
+    (pred != null ? LIVE_LABEL_NAMES[pred] ?? String(pred) : null);
+  if (box.pred) {
+    box.pred.textContent =
+      predName != null
+        ? pred != null
+          ? `${predName} (${pred})`
+          : predName
+        : "—";
+  }
+  if (box.correct) {
+    if (data.correct === true) {
+      box.correct.textContent = "✓ 正确";
+      box.correct.className = "live-judge-correct chk-ok";
+    } else if (data.correct === false) {
+      box.correct.textContent = "✗ 错误";
+      box.correct.className = "live-judge-correct chk-fail";
+    } else {
+      box.correct.textContent = "";
+      box.correct.className = "live-judge-correct";
+    }
+  }
+  if (box.trel) {
+    box.trel.textContent =
+      data.t_rel != null ? `t=${Number(data.t_rel).toFixed(1)}s` : "";
+  }
+
+  const pThree = Array.isArray(data.p_three) ? data.p_three : null;
+  for (let i = 0; i < 3; i++) {
+    const p = pThree != null ? Number(pThree[i]) : NaN;
+    const pct = Number.isFinite(p) ? Math.max(0, Math.min(100, p * 100)) : null;
+    if (box.fills[i]) box.fills[i].style.width = pct != null ? `${pct}%` : "0%";
+    if (box.pcts[i]) {
+      box.pcts[i].textContent = pct != null ? `${pct.toFixed(0)}%` : "—";
+    }
+    if (box.rows[i]) {
+      box.rows[i].classList.toggle("is-pred", pred != null && Number(pred) === i);
+    }
+  }
+}
+
+function updateLiveJudgePanels(msg) {
+  const v3Active = !el.v3Panel?.classList.contains("hidden");
+  const v2Active = !el.v2Panel?.classList.contains("hidden");
+  if (v2Active) updateLiveJudge("v2", msg);
+  if (v3Active) updateLiveJudge("v3", msg);
+}
 const V3_MU_ERD_OK = -15;
 const V3_LAT_OK = 8;
 const V3_CH = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"];
@@ -127,6 +487,46 @@ const V3_EEG_STATE = {
 };
 let V3_POWER_ROWS = null;
 let V3_POWER_NOTE = null;
+
+/** 本场累计得分（多数票：每试次 0/1，满分 = 计划试次数） */
+const SESSION_SCORE = { score: 0, max: null, done: 0 };
+
+function resetSessionScore(max) {
+  SESSION_SCORE.score = 0;
+  SESSION_SCORE.max = max != null && Number.isFinite(Number(max)) ? Number(max) : null;
+  SESSION_SCORE.done = 0;
+  renderSessionScore();
+}
+
+function applySessionScore(msg) {
+  if (!msg) return;
+  const prog = msg.progress && typeof msg.progress === "object" ? msg.progress : null;
+  const src = prog || msg;
+  if (src.session_score_max != null) SESSION_SCORE.max = Number(src.session_score_max);
+  if (msg.session_score_max != null) SESSION_SCORE.max = Number(msg.session_score_max);
+  if (src.session_score != null) SESSION_SCORE.score = Number(src.session_score);
+  if (msg.session_score != null) SESSION_SCORE.score = Number(msg.session_score);
+  if (src.session_trials_done != null) SESSION_SCORE.done = Number(src.session_trials_done);
+  if (msg.session_trials_done != null) SESSION_SCORE.done = Number(msg.session_trials_done);
+  renderSessionScore();
+}
+
+function renderSessionScore() {
+  const { score, max, done } = SESSION_SCORE;
+  const maxTxt = max != null ? String(max) : "—";
+  const scoreInt = Math.round(Number(score) || 0);
+  const scoreTxt = `${scoreInt}/${maxTxt}`;
+  if (el.stSessionScore) el.stSessionScore.textContent = scoreTxt;
+  if (el.v2SessionScoreNum) el.v2SessionScoreNum.textContent = scoreTxt;
+  if (el.v3SessionScoreNum) el.v3SessionScoreNum.textContent = scoreTxt;
+  const pct = max > 0 ? (scoreInt / max) * 100 : 0;
+  const w = `${Math.min(100, Math.max(0, pct))}%`;
+  if (el.v2SessionScoreFill) el.v2SessionScoreFill.style.width = w;
+  if (el.v3SessionScoreFill) el.v3SessionScoreFill.style.width = w;
+  const hint = max != null ? `已完成 ${done}/${max} 试次` : "";
+  if (el.v2SessionScoreHint) el.v2SessionScoreHint.textContent = hint;
+  if (el.v3SessionScoreHint) el.v3SessionScoreHint.textContent = hint;
+}
 
 function resetV3EegState() {
   V3_EEG_STATE.times = [];
@@ -388,6 +788,15 @@ function v3SignalNoteText(msg) {
   return `${base}${tail}，功率条仅供参考${baselineNote}`;
 }
 
+function v3BaselineRestS() {
+  return Number(el.form?.elements?.namedItem("v3_baseline_rest_s")?.value) || 30;
+}
+
+function v3BaselineWaitHtml() {
+  const s = v3BaselineRestS();
+  return `<div class="v3-pbar-wait">基线采集中…（块前 ${s}s 静息结束后显示 ERD%）</div>`;
+}
+
 function renderV3PowerBars(msg) {
   if (!el.v3PowerBars) return;
   const sigOk = msg.signal_ok !== false;
@@ -395,7 +804,7 @@ function renderV3PowerBars(msg) {
     V3_POWER_ROWS = null;
     V3_POWER_NOTE = null;
     const note = sigOk ? "" : `<div class="v3-pbar-signal">${v3SignalNoteText(msg)}，基线可能无效</div>`;
-    el.v3PowerBars.innerHTML = note + `<div class="v3-pbar-wait">基线采集中…（前 60s 静息阶段结束后显示 ERD%）</div>`;
+    el.v3PowerBars.innerHTML = note + v3BaselineWaitHtml();
     return;
   }
   if (!V3_POWER_ROWS) {
@@ -539,10 +948,10 @@ function appendV3FeatureCard(msg) {
       `<div class="v3-fcard-head">试次 ${msg.trial_id} · ${V3_LABEL_NAMES[label] || label} · ${msg.cond || ""}${msg.valid === false ? " · 无效" : ""}</div>`,
       `<div class="v3-trial-row">模型：<strong>${predName}</strong> ${pred != null ? (correct ? '<span class="chk-ok">✓ 正确</span>' : '<span class="chk-fail">✗ 错误</span>') : ""}</div>`,
       pBars ? `<div class="v3-pthree">${pBars}</div>` : "",
-      `<div class="v3-erd-grid-label">各通道 mu ERD%（vs 块内 Rest 基线）</div>`,
+      `<div class="v3-erd-grid-label">各通道 mu ERD%（vs 开场 30s seed / 试次间 Rest 基线）</div>`,
       `<div class="v3-erd-grid">${chCells}</div>`,
       `<div class="v3-lat-row">偏侧 ${lat != null ? lat.toFixed(1) : "—"}pp <span class="v3-thr">（≥${V3_LAT_OK}pp）</span> <span class="${latCls}">${lat != null && lat >= V3_LAT_OK ? "✓" : ""}</span></div>`,
-      `<div class="v3-block-grade"><span class="v3-block-label">块累计</span> ${bg.grade || "—"} · n=${f.block_n_mi_trials ?? "—"} MI / ${f.block_n_rest_trials ?? "—"} Rest</div>`,
+      `<div class="v3-block-grade"><span class="v3-block-label">块累计</span> ${bg.grade || "—"} · n=${f.block_n_mi_trials ?? "—"} MI / ${f.block_n_rest_segments ?? f.block_n_rest_trials ?? "—"} Rest段</div>`,
       `<div class="v3-checks">${renderV3Checks(bg.checks)}</div>`,
     ].join("");
   }
@@ -557,6 +966,7 @@ function updateV3Block(msg) {
   if (el.v3BlockProg) el.v3BlockProg.textContent = `${msg.block_idx ?? "—"}/${msg.blocks_total ?? 2}`;
   if (el.v3TrialProg) el.v3TrialProg.textContent = `${msg.trial_done ?? 0}/${msg.trials_per_block ?? "—"}`;
   if (el.v3Cond) el.v3Cond.textContent = msg.cond || "—";
+  applySessionScore(msg);
   if (el.v3BlockNvalid) {
     let txt = String(msg.n_valid ?? "—");
     if (msg.n_signal_bad) txt += ` · 信号剔除 ${msg.n_signal_bad}`;
@@ -610,7 +1020,148 @@ const V3_OVERRIDE_KEYS = [
   ["v3_cue_s", "cue_s", "float"],
   ["v3_imagine_s", "imagine_s", "float"],
   ["v3_iti_s", "iti_s", "float"],
+  ["v3_inter_trial_rest_s", "inter_trial_rest_s", "float"],
 ];
+
+/** @type {Array<{id:string,label:string,task:string,three:string,ok?:boolean}>} */
+let MODEL_PRESETS = [];
+
+function fillModelPresets(presets, active) {
+  MODEL_PRESETS = Array.isArray(presets) ? presets.slice() : [];
+  const sel = el.modelPreset;
+  if (!sel) return;
+  const cur = sel.value;
+  sel.innerHTML = "";
+  for (const p of MODEL_PRESETS) {
+    const opt = document.createElement("option");
+    opt.value = p.id;
+    opt.textContent = p.ok === false ? `${p.label}（缺文件）` : p.label;
+    opt.disabled = p.ok === false;
+    sel.appendChild(opt);
+  }
+  const custom = document.createElement("option");
+  custom.value = "custom";
+  custom.textContent = "自定义路径…";
+  sel.appendChild(custom);
+
+  const task = active?.task || el.s3TaskCkpt?.value || "";
+  const three = active?.three || el.s3ThreeCkpt?.value || "";
+  if (el.s3TaskCkpt && task) el.s3TaskCkpt.value = task;
+  if (el.s3ThreeCkpt && three) el.s3ThreeCkpt.value = three;
+  const match =
+    active?.preset_id ||
+    MODEL_PRESETS.find(
+      (p) => p.task === task && p.three === three
+    )?.id ||
+    cur ||
+    "custom";
+  const okId = MODEL_PRESETS.some((p) => p.id === match) || match === "custom";
+  sel.value = okId ? match : "custom";
+  updateWeightsStatusFromInputs();
+}
+
+function findLatestPresetForCampaign(campaignId) {
+  const cid = String(campaignId || "").trim();
+  if (!cid) return null;
+  const fts = MODEL_PRESETS.filter(
+    (p) => p.kind === "ft_run" && p.campaign_id === cid && p.ok,
+  );
+  if (!fts.length) return null;
+  const passed = fts.filter((p) => p.release_pass === true);
+  return (passed.length ? passed : fts)[0];
+}
+
+function applyCampaignLatestWeights() {
+  if (!activeCampaign?.campaign_id) return;
+  const hit = findLatestPresetForCampaign(activeCampaign.campaign_id);
+  if (!hit) return;
+  if (el.modelPreset) el.modelPreset.value = hit.id;
+  applyModelPreset(hit.id);
+}
+
+function refreshModelPresetsFromServer(msg) {
+  if (!msg?.model_presets?.length) return;
+  let active = null;
+  const outNorm = String(msg.out_dir || "").replace(/\\/g, "/");
+  if (outNorm) {
+    const hit = msg.model_presets.find((p) => {
+      const t = String(p.task || "").replace(/\\/g, "/");
+      return t && outNorm.includes(t.replace(/\/best_task\.pt$/, ""));
+    });
+    if (hit) active = { preset_id: hit.id, task: hit.task, three: hit.three };
+  }
+  if (!active && msg.weights?.task && msg.weights?.three) {
+    active = {
+      preset_id: msg.weights.preset_id,
+      task: msg.weights.task,
+      three: msg.weights.three,
+    };
+  }
+  if (!active && msg.active_weights?.task && msg.active_weights?.three) {
+    active = msg.active_weights;
+  }
+  fillModelPresets(msg.model_presets, active);
+  if (!active && activeCampaign?.campaign_id) {
+    applyCampaignLatestWeights();
+  }
+}
+
+function applyModelPreset(id) {
+  const p = MODEL_PRESETS.find((x) => x.id === id);
+  if (!p) return;
+  if (el.s3TaskCkpt) el.s3TaskCkpt.value = p.task;
+  if (el.s3ThreeCkpt) el.s3ThreeCkpt.value = p.three;
+  updateWeightsStatusFromInputs();
+}
+
+function shortWeightLabel(path) {
+  const p = String(path || "").replace(/\\/g, "/");
+  if (!p) return "—";
+  const parts = p.split("/");
+  const i = parts.indexOf("models");
+  if (i >= 0 && parts[i + 1]) return parts[i + 1];
+  if (/openbmi|5070_baseline/i.test(p)) return "openbmi_baseline";
+  return parts.length >= 2 ? parts[parts.length - 2] : parts[parts.length - 1];
+}
+
+function updateWeightsStatusFromInputs() {
+  const task = el.s3TaskCkpt?.value?.trim() || "";
+  const three = el.s3ThreeCkpt?.value?.trim() || "";
+  const label = shortWeightLabel(three || task);
+  if (el.stWeights) {
+    el.stWeights.textContent = three || task ? `${label}\nT: ${task}\n3: ${three}` : "—";
+  }
+  if (el.modelWeightHint) {
+    el.modelWeightHint.textContent = `当前预设短名：${label} · 路径相对仓库根目录；v2/v3 共用。`;
+  }
+  // 若路径与某预设一致，自动同步下拉
+  if (el.modelPreset && el.modelPreset.value !== "custom") {
+    const hit = MODEL_PRESETS.find((p) => p.task === task && p.three === three);
+    if (hit) el.modelPreset.value = hit.id;
+  }
+}
+
+function setWeightsDisplay(weights) {
+  if (!weights) {
+    updateWeightsStatusFromInputs();
+    return;
+  }
+  const label = weights.label || shortWeightLabel(weights.three || weights.task);
+  const task = weights.task || "";
+  const three = weights.three || "";
+  if (el.stWeights) {
+    el.stWeights.textContent = `${label}\nT: ${task}\n3: ${three}`;
+  }
+}
+
+function readWeightOverrides() {
+  const task = String(el.s3TaskCkpt?.value || "").trim();
+  const three = String(el.s3ThreeCkpt?.value || "").trim();
+  const out = {};
+  if (task) out.s3_task_ckpt = task;
+  if (three) out.s3_three_ckpt = three;
+  return out;
+}
 
 let guidanceTimer = null;
 
@@ -677,10 +1228,13 @@ function startGuidanceCountdown(totalSec) {
   guidanceTimer = setInterval(tick, 1000);
 }
 
-const V2_TIMING_PRESETS = {
-  standard: { prep_s: 2, cue_s: 2, imagine_s: 6, iti_s: 3 },
-  debug4: { prep_s: 2, cue_s: 2, imagine_s: 4, iti_s: 2 },
+const V23_TIMING_PRESETS = {
+  openbmi: { prep_s: 2, cue_s: 0, imagine_s: 4, iti_s: 3, inter_trial_rest_s: 4 },
+  legacy: { prep_s: 2, cue_s: 2, imagine_s: 6, iti_s: 3, inter_trial_rest_s: 0 },
 };
+
+/** @deprecated use V23_TIMING_PRESETS */
+const V2_TIMING_PRESETS = V23_TIMING_PRESETS;
 
 const V2_OVERRIDE_KEYS = [
   ["v2_cal_rounds_min", "cal_rounds_min", "int"],
@@ -694,32 +1248,349 @@ const V2_OVERRIDE_KEYS = [
   ["v2_cue_s", "cue_s", "float"],
   ["v2_imagine_s", "imagine_s", "float"],
   ["v2_iti_s", "iti_s", "float"],
+  ["v2_inter_trial_rest_s", "inter_trial_rest_s", "float"],
   ["v2_gate_enter_three", "gate_enter_three", "float"],
   ["v2_gate_min_quiz_trials", "gate_min_quiz_trials", "int"],
-  ["v2_judgment_step_s", "judgment_step_s", "float"],
-  ["v2_judgment_half_weight_until_s", "judgment_half_weight_until_s", "float"],
-  ["v2_score_early_stop", "score_early_stop", "float"],
-  ["v2_score_invalid_max", "score_invalid_max", "float"],
-  ["v2_wrong_class_abort", "wrong_class_abort", "float"],
-  ["v2_consecutive_invalid_abort", "consecutive_invalid_abort", "int"],
   ["v2_ft_min_valid_trials", "ft_min_valid_trials", "int"],
   ["v2_group_lr", "group_lr", "float"],
-  ["v2_replay_ratio", "replay_ratio", "float"],
   ["v2_drift_patience", "drift_patience", "int"],
   ["v2_task_p_on", "task_p_on", "float"],
   ["v2_ft_epochs", "ft_epochs", "int"],
   ["v2_ft_batch_size", "ft_batch_size", "int"],
 ];
 
-function readV2TimingFromForm() {
+const DEFAULT_FT_REPLAY_RATIO = 0.10;
+
+/** Exp29 启发式：~300 窗/run，约 4 run 在线 trial acc 可达 60% */
+const REPLAY_ADVICE = {
+  WINDOWS_PER_RUN: 300,
+  RUNS_REPLAY_OFF: 4,
+  RUNS_REPLAY_ON: 2,
+  TOTAL_WINDOWS_OFF: 1200,
+  TOTAL_WINDOWS_ON: 600,
+  PRIMARY_ACC_OFF: 0.55,
+};
+
+let ftSessionCatalog = [];
+/** 本场 session_saved 后一次性用于 FT 列表自动勾选（仅该路径） */
+let lastFtAutoSelectRoot = null;
+let replayAdviceManualOverride = { setup: false, panel: false };
+let lastReplayAdvice = { setup: null, panel: null };
+
+function normSessionPath(p) {
+  return String(p || "")
+    .trim()
+    .replace(/\\/g, "/")
+    .replace(/\/+$/, "")
+    .toLowerCase();
+}
+
+function sortFtSessionsForPanel(sessions, autoSelectRoot) {
+  const autoNorm = autoSelectRoot ? normSessionPath(autoSelectRoot) : "";
+  return (sessions || []).slice().sort((a, b) => {
+    if (autoNorm) {
+      const am = normSessionPath(a.path) === autoNorm;
+      const bm = normSessionPath(b.path) === autoNorm;
+      if (am !== bm) return am ? -1 : 1;
+    }
+    return String(b.dir || "").localeCompare(String(a.dir || ""));
+  });
+}
+
+function sessionWindowEstimate(s) {
+  if (!s) return REPLAY_ADVICE.WINDOWS_PER_RUN;
+  if (s.n_windows != null && Number.isFinite(Number(s.n_windows))) {
+    return Number(s.n_windows);
+  }
+  if (s.n_windows_est != null && Number.isFinite(Number(s.n_windows_est))) {
+    return Number(s.n_windows_est);
+  }
+  if (s.n_trials != null && Number.isFinite(Number(s.n_trials))) {
+    return Number(s.n_trials) * 11;
+  }
+  return REPLAY_ADVICE.WINDOWS_PER_RUN;
+}
+
+function estimatePlannedSessionWindows() {
+  if (isV3Mode()) {
+    const blocks = Number(el.form.elements.namedItem("v3_blocks")?.value) || 2;
+    const tpb = Number(el.form.elements.namedItem("v3_trials_per_block")?.value) || 18;
+    return blocks * tpb * 11;
+  }
+  if (isV2Mode()) {
+    const rounds = Number(el.form.elements.namedItem("v2_cal_rounds_max")?.value) || 6;
+    const ftTrials = Number(el.form.elements.namedItem("v2_ft_trials_per_round")?.value) || 12;
+    const gameR = Number(el.form.elements.namedItem("v2_game_rounds")?.value) || 2;
+    const gameT = Number(el.form.elements.namedItem("v2_game_trials_per_round")?.value) || 16;
+    return (rounds * ftTrials + gameR * gameT) * 11;
+  }
+  return REPLAY_ADVICE.WINDOWS_PER_RUN;
+}
+
+function computeReplayAdvice(selectedSessions, { includePlanned = false } = {}) {
+  const sessions = Array.isArray(selectedSessions) ? selectedSessions : [];
+  let totalWindows = sessions.reduce((sum, s) => sum + sessionWindowEstimate(s), 0);
+  const nSel = sessions.length;
+  if (includePlanned) {
+    totalWindows += estimatePlannedSessionWindows();
+  }
+  const nTotal = nSel + (includePlanned ? 1 : 0);
+
+  const accs = sessions
+    .map((s) => s.primary_acc)
+    .filter((v) => v != null && Number.isFinite(Number(v)))
+    .map(Number);
+  const avgAcc = accs.length ? accs.reduce((a, b) => a + b, 0) / accs.length : null;
+
+  let recommend = true;
+  let level = "optional";
+  let reason = "";
+
+  if (
+    nTotal >= REPLAY_ADVICE.RUNS_REPLAY_OFF ||
+    totalWindows >= REPLAY_ADVICE.TOTAL_WINDOWS_OFF
+  ) {
+    recommend = false;
+    level = "off";
+    reason =
+      `已选 ${nTotal} 个 session、约 ${Math.round(totalWindows)} 训练窗` +
+      "（Exp29：~300 窗/run × 4 run 可达 60%）→ 建议关闭 replay，纯被试窗 FT";
+  } else if (
+    nTotal <= REPLAY_ADVICE.RUNS_REPLAY_ON &&
+    totalWindows < REPLAY_ADVICE.TOTAL_WINDOWS_ON
+  ) {
+    recommend = true;
+    level = "on";
+    reason =
+      `约 ${Math.round(totalWindows)} 窗 / ${nTotal} session` +
+      " → 数据偏少，建议开启 T0 replay（0.10）";
+  } else {
+    recommend = true;
+    level = "optional";
+    reason =
+      `约 ${Math.round(totalWindows)} 窗 / ${nTotal} session` +
+      " → 默认可开 replay；若在线 acc 已稳定 ≥55% 可试关";
+  }
+
+  if (
+    avgAcc != null &&
+    avgAcc >= REPLAY_ADVICE.PRIMARY_ACC_OFF &&
+    nTotal >= 3
+  ) {
+    recommend = false;
+    level = "off";
+    reason +=
+      `；valid-primary 均值 ${(avgAcc * 100).toFixed(0)}% 偏高，更倾向关 replay`;
+  }
+
   return {
-    fixation_s: Number(el.form.elements.namedItem("v2_prep_s")?.value) || 0,
-    cue_s: Number(el.form.elements.namedItem("v2_cue_s")?.value) || 0,
-    mi_s: Number(el.form.elements.namedItem("v2_imagine_s")?.value) || 0,
-    post_mi_hold_s: 0,
-    rest_s: 0,
-    transition_s: Number(el.form.elements.namedItem("v2_iti_s")?.value) || 0,
+    recommend_use_replay: recommend,
+    level,
+    reason,
+    total_windows: totalWindows,
+    n_sessions: nTotal,
+    avg_primary_acc: avgAcc,
   };
+}
+
+function renderReplayAdviceHint(hintEl, advice) {
+  if (!hintEl || !advice) return;
+  hintEl.textContent = advice.reason;
+  hintEl.classList.remove("replay-advice-on", "replay-advice-off", "replay-advice-optional");
+  hintEl.classList.add(
+    advice.level === "off"
+      ? "replay-advice-off"
+      : advice.level === "on"
+        ? "replay-advice-on"
+        : "replay-advice-optional",
+  );
+}
+
+function applyReplayAdvice(advice, scope, { force = false } = {}) {
+  if (!advice) return;
+  const key = scope === "panel" ? "panel" : "setup";
+  if (!force && replayAdviceManualOverride[key]) return;
+  const useReplay = advice.recommend_use_replay;
+  if (scope === "panel") {
+    if (el.ftUseReplay) el.ftUseReplay.checked = useReplay;
+  } else {
+    const setupUse = el.form?.querySelector('[name="ft_use_replay"]');
+    if (setupUse) setupUse.checked = useReplay;
+    if (el.ftUseReplay) el.ftUseReplay.checked = useReplay;
+  }
+  syncFtReplayRatioUi();
+}
+
+function updateReplayAdvice(scope, { autoApply = null } = {}) {
+  const isPanel = scope === "panel";
+  if (autoApply === null) autoApply = isPanel;
+  let advice;
+  if (isPanel) {
+    const selected = collectSelectedFtSessions();
+    advice = computeReplayAdvice(selected, { includePlanned: false });
+    lastReplayAdvice.panel = advice;
+    renderReplayAdviceHint(el.ftReplayHint, advice);
+    if (el.btnFtReplayAdopt) el.btnFtReplayAdopt.classList.remove("hidden");
+    if (autoApply) applyReplayAdvice(advice, "panel");
+  } else {
+    const past = (activeSubjectInfo?.sessions || []).filter((s) => s.ft_eligible);
+    advice = computeReplayAdvice(past, { includePlanned: true });
+    lastReplayAdvice.setup = advice;
+    renderReplayAdviceHint(el.setupFtReplayHint, advice);
+    if (el.btnSetupReplayAdopt) el.btnSetupReplayAdopt.classList.remove("hidden");
+    if (autoApply) applyReplayAdvice(advice, "setup");
+  }
+}
+
+function readFtAdvancedOptions() {
+  const setupEarly = el.form?.querySelector('[name="ft_early_stop"]');
+  const setupMax = el.form?.elements?.namedItem("ft_max_epochs");
+  const setupPat = el.form?.elements?.namedItem("ft_patience");
+  const setupFixed = el.form?.elements?.namedItem("ft_fixed_epochs");
+  const setupDet = el.form?.querySelector('[name="ft_deterministic"]');
+  const setupSeed = el.form?.elements?.namedItem("ft_seed");
+
+  const earlyStop = el.ftEarlyStop ? el.ftEarlyStop.checked : Boolean(setupEarly?.checked ?? true);
+  const maxEpochs = Number(
+    el.ftMaxEpochs?.value ?? setupMax?.value ?? 20,
+  );
+  const patience = Number(el.ftPatience?.value ?? setupPat?.value ?? 5);
+  const fixedEpochs = Number(el.ftFixedEpochs?.value ?? setupFixed?.value ?? 5);
+  const deterministic = el.ftDeterministic
+    ? el.ftDeterministic.checked
+    : Boolean(setupDet?.checked ?? true);
+  const seed = Number(el.ftSeed?.value ?? setupSeed?.value ?? 42);
+
+  return {
+    early_stop: earlyStop,
+    max_epochs: Number.isFinite(maxEpochs) ? maxEpochs : 20,
+    patience: Number.isFinite(patience) ? patience : 5,
+    fixed_epochs: Number.isFinite(fixedEpochs) ? fixedEpochs : 5,
+    deterministic,
+    seed: Number.isFinite(seed) ? seed : 42,
+  };
+}
+
+function syncFtAdvancedUi() {
+  const adv = readFtAdvancedOptions();
+  const disFixed = adv.early_stop;
+  if (el.ftFixedEpochs) el.ftFixedEpochs.disabled = disFixed;
+  const setupFixed = el.form?.elements?.namedItem("ft_fixed_epochs");
+  if (setupFixed) setupFixed.disabled = disFixed;
+  if (el.ftMaxEpochs) el.ftMaxEpochs.disabled = !adv.early_stop;
+  if (el.ftPatience) el.ftPatience.disabled = !adv.early_stop;
+  const setupMax = el.form?.elements?.namedItem("ft_max_epochs");
+  const setupPat = el.form?.elements?.namedItem("ft_patience");
+  if (setupMax) setupMax.disabled = !adv.early_stop;
+  if (setupPat) setupPat.disabled = !adv.early_stop;
+}
+
+function applyFtAdvancedDefaults(ftDefaults) {
+  const d = ftDefaults || {};
+  const earlyStop = d.early_stop !== false;
+  const maxEp = d.max_epochs != null ? Number(d.max_epochs) : 20;
+  const pat = d.patience != null ? Number(d.patience) : 5;
+  const fixed = d.fixed_epochs != null ? Number(d.fixed_epochs) : 5;
+  const det = d.deterministic !== false;
+  const seed = d.seed != null ? Number(d.seed) : 42;
+
+  if (el.ftEarlyStop) el.ftEarlyStop.checked = earlyStop;
+  if (el.ftMaxEpochs) el.ftMaxEpochs.value = String(maxEp);
+  if (el.ftPatience) el.ftPatience.value = String(pat);
+  if (el.ftFixedEpochs) el.ftFixedEpochs.value = String(fixed);
+  if (el.ftDeterministic) el.ftDeterministic.checked = det;
+  if (el.ftSeed) el.ftSeed.value = String(seed);
+
+  const setupEarly = el.form?.querySelector('[name="ft_early_stop"]');
+  const setupMax = el.form?.elements?.namedItem("ft_max_epochs");
+  const setupPat = el.form?.elements?.namedItem("ft_patience");
+  const setupFixed = el.form?.elements?.namedItem("ft_fixed_epochs");
+  const setupDet = el.form?.querySelector('[name="ft_deterministic"]');
+  const setupSeed = el.form?.elements?.namedItem("ft_seed");
+  if (setupEarly) setupEarly.checked = earlyStop;
+  if (setupMax) setupMax.value = String(maxEp);
+  if (setupPat) setupPat.value = String(pat);
+  if (setupFixed) setupFixed.value = String(fixed);
+  if (setupDet) setupDet.checked = det;
+  if (setupSeed) setupSeed.value = String(seed);
+  syncFtAdvancedUi();
+}
+
+function readFtReplayOptions(scope) {
+  if (scope === el.form) {
+    const useNode = scope.querySelector('[name="ft_use_replay"]');
+    const ratioNode = scope.elements?.namedItem("ft_replay_ratio");
+    const useReplay = useNode ? useNode.checked : true;
+    const ratioRaw = ratioNode ? Number(ratioNode.value) : DEFAULT_FT_REPLAY_RATIO;
+    const ratio = Number.isFinite(ratioRaw) ? ratioRaw : DEFAULT_FT_REPLAY_RATIO;
+    return {
+      use_replay: useReplay,
+      replay_ratio: useReplay ? ratio : 0,
+    };
+  }
+  const useReplay = el.ftUseReplay ? el.ftUseReplay.checked : true;
+  const ratioRaw = el.ftReplayRatio ? Number(el.ftReplayRatio.value) : DEFAULT_FT_REPLAY_RATIO;
+  const ratio = Number.isFinite(ratioRaw) ? ratioRaw : DEFAULT_FT_REPLAY_RATIO;
+  return {
+    use_replay: useReplay,
+    replay_ratio: useReplay ? ratio : 0,
+  };
+}
+
+function syncFtReplayRatioUi() {
+  const setup = readFtReplayOptions(el.form);
+  const setupRatio = el.form?.elements?.namedItem("ft_replay_ratio");
+  if (setupRatio) setupRatio.disabled = !setup.use_replay;
+  if (el.ftReplayRatio) el.ftReplayRatio.disabled = !readFtReplayOptions(null).use_replay;
+}
+
+function applyFtReplayDefaults(ftDefaults) {
+  const d = ftDefaults || {};
+  const useReplay = d.use_replay !== false;
+  const ratio =
+    d.replay_ratio != null && Number.isFinite(Number(d.replay_ratio))
+      ? Number(d.replay_ratio)
+      : DEFAULT_FT_REPLAY_RATIO;
+  const setupUse = el.form?.querySelector('[name="ft_use_replay"]');
+  const setupRatio = el.form?.elements?.namedItem("ft_replay_ratio");
+  if (setupUse) setupUse.checked = useReplay;
+  if (setupRatio) setupRatio.value = String(ratio);
+  if (el.ftUseReplay) el.ftUseReplay.checked = useReplay;
+  if (el.ftReplayRatio) el.ftReplayRatio.value = String(ratio);
+  syncFtReplayRatioUi();
+}
+
+function readV23TimingFromForm(prefix) {
+  const prep = Number(el.form.elements.namedItem(`${prefix}_prep_s`)?.value) || 0;
+  const cue = Number(el.form.elements.namedItem(`${prefix}_cue_s`)?.value) || 0;
+  const mi = Number(el.form.elements.namedItem(`${prefix}_imagine_s`)?.value) || 0;
+  const iti = Number(el.form.elements.namedItem(`${prefix}_iti_s`)?.value) || 0;
+  const rest = Number(el.form.elements.namedItem(`${prefix}_inter_trial_rest_s`)?.value) || 0;
+  return {
+    fixation_s: prep,
+    cue_s: cue,
+    mi_s: mi,
+    post_mi_hold_s: 0,
+    rest_s: rest,
+    transition_s: iti,
+  };
+}
+
+function readV2TimingFromForm() {
+  return readV23TimingFromForm("v2");
+}
+
+function readV3TimingFromForm() {
+  return readV23TimingFromForm("v3");
+}
+
+function applyV23TimingPreset(prefix, presetName) {
+  const p = V23_TIMING_PRESETS[presetName];
+  if (!p) return;
+  for (const [k, v] of Object.entries(p)) {
+    const node = el.form.elements.namedItem(`${prefix}_${k}`);
+    if (node) node.value = v;
+  }
 }
 
 function readV3Overrides() {
@@ -731,6 +1602,7 @@ function readV3Overrides() {
     if (!Number.isFinite(n)) continue;
     o[key] = typ === "int" ? Math.round(n) : n;
   }
+  Object.assign(o, readWeightOverrides());
   return o;
 }
 
@@ -752,7 +1624,20 @@ function readV2Overrides() {
     o.cal_rounds_min = o.cal_rounds_max;
     o.cal_rounds_max = t;
   }
+  const ftRep = readFtReplayOptions(el.form);
+  o.replay_ratio = ftRep.replay_ratio;
+  Object.assign(o, readWeightOverrides());
   return o;
+}
+
+function applyV3OverridesToForm(ov) {
+  if (!ov) return;
+  for (const [formName, key] of V3_OVERRIDE_KEYS) {
+    if (ov[key] == null) continue;
+    const node = el.form.elements.namedItem(formName);
+    if (node) node.value = ov[key];
+  }
+  renderSetupTimelineV3();
 }
 
 function applyV2OverridesToForm(ov) {
@@ -762,6 +1647,14 @@ function applyV2OverridesToForm(ov) {
     const node = el.form.elements.namedItem(formName);
     if (node) node.value = ov[key];
   }
+  if (ov.replay_ratio != null) {
+    const useReplay = Number(ov.replay_ratio) > 0;
+    const setupUse = el.form?.querySelector('[name="ft_use_replay"]');
+    const setupRatio = el.form?.elements?.namedItem("ft_replay_ratio");
+    if (setupUse) setupUse.checked = useReplay;
+    if (setupRatio) setupRatio.value = String(ov.replay_ratio);
+  }
+  syncFtReplayRatioUi();
   renderSetupTimelineV2();
 }
 
@@ -781,7 +1674,7 @@ function updateV2TrialComposeHint() {
 
 function renderSetupTimelineV2() {
   const t = readV2TimingFromForm();
-  const { total } = renderTimeline(el.setupTimelineV2, t) || { total: 0 };
+  const { total } = renderTimeline(el.setupTimelineV2, t, V23_TIMELINE_SEGMENTS) || { total: 0 };
   updateV2TrialComposeHint();
   if (el.timingHintV2) {
     const calMin = Number(el.form.elements.namedItem("v2_cal_rounds_min")?.value) || 4;
@@ -791,9 +1684,26 @@ function renderSetupTimelineV2() {
     const perGame = Number(el.form.elements.namedItem("v2_game_trials_per_round")?.value) || 16;
     const trials = calMax * perCal + gameR * perGame;
     const est = trials * total;
+    const cue = Number(el.form.elements.namedItem("v2_cue_s")?.value) || 0;
     el.timingHintV2.textContent =
-      `单 trial = ${total}s（建议 ≤13）· 标定 ${calMin}–${calMax} 轮×${perCal} + 游戏 ${gameR}×${perGame}` +
-      ` · 纯试次 ≈ ${Math.round(est / 60)} 分钟（任务书口径约 60–75 min 含间隙）`;
+      `单 trial = ${total}s（OpenBMI-Align${cue <= 0 ? " · Cue=MI onset" : ""}）· 标定 ${calMin}–${calMax} 轮×${perCal} + 游戏 ${gameR}×${perGame}` +
+      ` · 纯试次 ≈ ${Math.round(est / 60)} 分钟（含 ITI/试次间 Rest，不含块间休息）`;
+  }
+}
+
+function renderSetupTimelineV3() {
+  const t = readV3TimingFromForm();
+  const { total } = renderTimeline(el.setupTimelineV3, t, V23_TIMELINE_SEGMENTS) || { total: 0 };
+  if (el.timingHintV3) {
+    const blocks = Number(el.form.elements.namedItem("v3_blocks")?.value) || 2;
+    const tpb = Number(el.form.elements.namedItem("v3_trials_per_block")?.value) || 18;
+    const baseline = v3BaselineRestS();
+    const gap = Number(el.form.elements.namedItem("v3_block_gap_s")?.value) || 90;
+    const trials = blocks * tpb;
+    const cue = Number(el.form.elements.namedItem("v3_cue_s")?.value) || 0;
+    el.timingHintV3.textContent =
+      `单 trial = ${total}s（OpenBMI-Align${cue <= 0 ? " · Cue=MI onset" : ""}）· ${blocks} 块×${tpb} 试次` +
+      ` · 块间 ${gap}s + 开场基线 ${baseline}s · 纯试次 ≈ ${Math.round((trials * total) / 60)} 分钟`;
   }
 }
 
@@ -812,8 +1722,15 @@ function isV2Mode() {
   return (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "v2_session";
 }
 
+function isSimV3Mode() {
+  return (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "sim_v3_session";
+}
+
 function isV3Mode() {
-  return (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "v3_session";
+  return (
+    (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "v3_session" ||
+    isSimV3Mode()
+  );
 }
 
 function isV4Mode() {
@@ -993,13 +1910,62 @@ function setV4RunPanel(on) {
   document.querySelector(".tl-block")?.classList.toggle("hidden", on);
   document.getElementById("st-object-wrap")?.classList.toggle("hidden", on || isV2Mode());
   document.getElementById("st-scene-wrap")?.classList.toggle("hidden", on || isV2Mode());
-  document.getElementById("btn-gate")?.classList.toggle("hidden", on || isV2Mode());
+  document.getElementById("btn-gate")?.classList.toggle("hidden", on);
   document.getElementById("btn-split")?.classList.toggle("hidden", on || isV2Mode());
+}
+
+function syncWorkModeUi() {
+  const simWorkspace = Boolean(activeSimMode);
+  const simSession = simWorkspace || isSimV3Mode();
+  document.querySelectorAll(".exp-only").forEach((node) => {
+    node.classList.toggle("hidden", simSession);
+  });
+  document.querySelectorAll(".exp-phase-only").forEach((node) => {
+    node.classList.toggle("hidden", simWorkspace);
+  });
+  document.querySelectorAll(".sim-phase-only").forEach((node) => {
+    node.classList.toggle("hidden", !simWorkspace);
+  });
+  document.querySelectorAll(".sim-workspace-only").forEach((node) => {
+    node.classList.toggle("hidden", !simWorkspace);
+  });
+  if (simWorkspace) {
+    const simRadio = el.form?.querySelector('input[name="phase_mode"][value="sim_v3_session"]');
+    if (simRadio) simRadio.checked = true;
+    const acq = el.form?.querySelector('[name="acq_enabled"]');
+    if (acq) acq.checked = true;
+    const openPage = el.form?.querySelector('[name="open_subject_page"]');
+    if (openPage) {
+      openPage.checked = true;
+      openPage.disabled = true;
+    }
+    const fb = el.form?.querySelector('[name="subject_feedback_mode"]');
+    if (fb) {
+      fb.value = "arm_reach";
+      fb.disabled = true;
+    }
+    if (el.setupSessionId) {
+      el.setupSessionId.disabled = true;
+      el.setupSessionId.title = "仿真模式：会话编号与 run 一致，跑完自动切换";
+    }
+    refreshSimRunSuggestion();
+  } else {
+    const openPage = el.form?.querySelector('[name="open_subject_page"]');
+    if (openPage) openPage.disabled = false;
+    const fb = el.form?.querySelector('[name="subject_feedback_mode"]');
+    if (fb) fb.disabled = false;
+    if (el.setupSessionId) {
+      el.setupSessionId.disabled = false;
+      el.setupSessionId.title = "";
+    }
+  }
+  syncPhaseModeUi();
 }
 
 function syncPhaseModeUi() {
   const v2 = isV2Mode();
   const v3 = isV3Mode();
+  const sim = isSimV3Mode();
   const v4 = isV4Mode();
   document.querySelectorAll(".phase2-only").forEach((node) => {
     node.classList.toggle("hidden", v2 || v3 || v4);
@@ -1008,14 +1974,22 @@ function syncPhaseModeUi() {
     node.classList.toggle("hidden", !v2);
   });
   document.querySelectorAll(".v3-only").forEach((node) => {
-    node.classList.toggle("hidden", !v3);
+    node.classList.toggle("hidden", !v3 || sim);
+  });
+  document.querySelectorAll(".sim-only").forEach((node) => {
+    node.classList.toggle("hidden", !sim);
+  });
+  document.querySelectorAll(".v23-only").forEach((node) => {
+    node.classList.toggle("hidden", !(v2 || v3));
   });
   document.querySelectorAll(".v4-only").forEach((node) => {
     node.classList.toggle("hidden", !v4);
   });
   syncProtocolLockUi();
   if (v2) renderSetupTimelineV2();
-  else if (!v3 && !v4) renderSetupTimeline();
+  else if (v3) renderSetupTimelineV3();
+  else if (!v4) renderSetupTimeline();
+  if (v2 || v3) updateReplayAdvice("setup", { autoApply: false });
 }
 
 function setV3RunPanel(on) {
@@ -1029,8 +2003,7 @@ function setV3RunPanel(on) {
       el.v3HatCheck.className = "v3-hat-check hidden";
     }
     if (el.v3PowerBars) {
-      el.v3PowerBars.innerHTML =
-        '<div class="v3-pbar-wait">基线采集中…（前 60s 静息阶段结束后显示 ERD%）</div>';
+      el.v3PowerBars.innerHTML = v3BaselineWaitHtml();
     }
     V3_POWER_ROWS = null;
     V3_POWER_NOTE = null;
@@ -1043,9 +2016,10 @@ function setV3RunPanel(on) {
   document.getElementById("st-scene-wrap")?.classList.toggle("hidden", on || isV2Mode());
   document.getElementById("st-v2-round-wrap")?.classList.toggle("hidden", true);
   document.getElementById("st-v2-score-wrap")?.classList.toggle("hidden", true);
+  document.getElementById("st-session-score-wrap")?.classList.toggle("hidden", !on);
   document.getElementById("p4-summary-v1")?.classList.toggle("hidden", on || isV2Mode());
   el.p4SummaryV2?.classList.toggle("hidden", true);
-  document.getElementById("btn-gate")?.classList.toggle("hidden", on || isV2Mode());
+  document.getElementById("btn-gate")?.classList.toggle("hidden", on);
   document.getElementById("btn-split")?.classList.toggle("hidden", on || isV2Mode());
   if (!on) {
     resetV3EegState();
@@ -1084,9 +2058,10 @@ function setV2RunPanel(on) {
   document.getElementById("st-scene-wrap")?.classList.toggle("hidden", on);
   document.getElementById("st-v2-round-wrap")?.classList.toggle("hidden", !on);
   document.getElementById("st-v2-score-wrap")?.classList.toggle("hidden", !on);
+  document.getElementById("st-session-score-wrap")?.classList.toggle("hidden", !on);
   document.getElementById("p4-summary-v1")?.classList.toggle("hidden", on);
   el.p4SummaryV2?.classList.toggle("hidden", !on);
-  document.getElementById("btn-gate")?.classList.toggle("hidden", on);
+  document.getElementById("btn-gate")?.classList.toggle("hidden", !on);
   document.getElementById("btn-split")?.classList.toggle("hidden", on);
   if (!on) stopGuidanceCountdown();
 }
@@ -1103,7 +2078,7 @@ function setPhaseStepV2(step) {
   });
 }
 
-function updateV2Progress(prog, score) {
+function updateV2Progress(prog, score, msg) {
   if (!prog) return;
   if (el.v2CalProg) {
     el.v2CalProg.textContent = `${prog.cal_round ?? 0}/${prog.cal_rounds_max ?? "—"}`;
@@ -1117,13 +2092,22 @@ function updateV2Progress(prog, score) {
     el.stV2Round.textContent =
       `标定 ${prog.cal_round ?? 0}/${prog.cal_rounds_max ?? "—"} · 游戏 ${prog.game_round ?? 0}/${prog.game_rounds ?? "—"}`;
   }
-  const sc = score != null ? score : prog.score;
-  if (sc != null) {
-    const n = Number(sc);
-    if (el.stV2Score) el.stV2Score.textContent = n.toFixed(1);
-    if (el.v2ScoreNum) el.v2ScoreNum.textContent = n.toFixed(1);
-    if (el.v2ScoreFill) el.v2ScoreFill.style.width = `${Math.min(100, (n / 5) * 100)}%`;
+  // 本试次：多数票 0/1（仅 trial_end 更新，避免 judge 窗内 arm 分干扰）
+  let trialSc = null;
+  if (msg?.stage === "trial_end") {
+    const sum = msg.data?.summary;
+    if (sum?.score != null) trialSc = sum.score;
+    else if (score != null) trialSc = score;
+    else if (prog?.score != null) trialSc = prog.score;
   }
+  if (trialSc != null) {
+    const n = Number(trialSc);
+    const txt = Number.isInteger(n) ? String(n) : String(Math.round(n));
+    if (el.stV2Score) el.stV2Score.textContent = txt;
+    if (el.v2ScoreNum) el.v2ScoreNum.textContent = txt;
+    if (el.v2ScoreFill) el.v2ScoreFill.style.width = n >= 1 ? "100%" : "0%";
+  }
+  applySessionScore(msg || { progress: prog });
   if (prog.phase_step) setPhaseStepV2(prog.phase_step);
 }
 
@@ -1132,18 +2116,38 @@ function updateV2Gate(msg) {
     el.v2GateAcc.textContent =
       msg.acc != null ? `${(Number(msg.acc) * 100).toFixed(1)}%` : "—";
   }
-  if (el.v2GateStatus) el.v2GateStatus.textContent = msg.status || "—";
+  if (el.v2GateStatus) {
+    const adv = msg.advisory || msg.awaiting_operator ? "（建议）" : "";
+    el.v2GateStatus.textContent = `${msg.status || "—"}${adv}`;
+  }
   if (el.v2GateN) el.v2GateN.textContent = String(msg.n_quiz ?? 0);
   if (el.v2GateCurve && Array.isArray(msg.curve)) {
     el.v2GateCurve.textContent = msg.curve.map(([k, a]) => `k=${k}: ${(a * 100).toFixed(1)}%`).join("\n");
   }
   el.v2WeakMi?.classList.toggle("hidden", msg.status !== "weak_mi");
-  if (msg.progress) updateV2Progress(msg.progress);
+  if (msg.progress) updateV2Progress(msg.progress, msg.score, msg);
+  else applySessionScore(msg);
   setPhaseStepV2("gate");
+  if (msg.awaiting_operator) {
+    showRunAlert("等待操作员确认准入（G / 准入按钮）", "gate-pass");
+  }
 }
 
 el.form.querySelectorAll('input[name="phase_mode"]').forEach((r) => {
   r.addEventListener("change", syncPhaseModeUi);
+});
+el.modelPreset?.addEventListener("change", () => {
+  const id = el.modelPreset.value;
+  if (id && id !== "custom") applyModelPreset(id);
+  else updateWeightsStatusFromInputs();
+});
+el.s3TaskCkpt?.addEventListener("input", () => {
+  if (el.modelPreset) el.modelPreset.value = "custom";
+  updateWeightsStatusFromInputs();
+});
+el.s3ThreeCkpt?.addEventListener("input", () => {
+  if (el.modelPreset) el.modelPreset.value = "custom";
+  updateWeightsStatusFromInputs();
 });
 el.form.querySelector('[name="protocol_locked"]')?.addEventListener("change", (ev) => {
   if (!ev.target.checked) {
@@ -1158,15 +2162,26 @@ el.form.querySelector('[name="protocol_locked"]')?.addEventListener("change", (e
 
 document.querySelectorAll("[data-v2-timing-preset]").forEach((btn) => {
   btn.addEventListener("click", () => {
-    const p = V2_TIMING_PRESETS[btn.dataset.v2TimingPreset];
-    if (!p) return;
-    for (const [k, v] of Object.entries(p)) {
-      const node = el.form.elements.namedItem(`v2_${k}`);
-      if (node) node.value = v;
-    }
+    applyV23TimingPreset("v2", btn.dataset.v2TimingPreset);
     renderSetupTimelineV2();
   });
 });
+
+document.querySelectorAll("[data-v3-timing-preset]").forEach((btn) => {
+  btn.addEventListener("click", () => {
+    applyV23TimingPreset("v3", btn.dataset.v3TimingPreset);
+    renderSetupTimelineV3();
+  });
+});
+
+// 与 trial_v2 / session 执行序一致：Cue前 Rest → prep → cue → MI → ITI
+const V23_TIMELINE_SEGMENTS = [
+  { key: "rest_s", zh: "Cue前 Rest", cls: "tl-rest" },
+  { key: "fixation_s", zh: "prep", cls: "tl-fixation" },
+  { key: "cue_s", zh: "Cue", cls: "tl-cue" },
+  { key: "mi_s", zh: "MI", cls: "tl-mi" },
+  { key: "transition_s", zh: "ITI", cls: "tl-transition" },
+];
 
 const TIMING_KEYS = [
   ["t_fixation_s", "fixation_s", "注视", "tl-fixation"],
@@ -1201,10 +2216,26 @@ function setTimingToForm(timing) {
   renderSetupTimeline();
 }
 
-/** 渲染时间轴：按各阶段秒数比例着色分段；container 为空则跳过 */
-function renderTimeline(container, timing) {
+/** 渲染时间轴：按各阶段秒数比例着色分段；segments 默认 phase2 TIMING_KEYS */
+function renderTimeline(container, timing, segments) {
   if (!container) return null;
-  const order = TIMING_KEYS.map(([, key, zh, cls]) => ({ key, zh, cls, s: Number(timing[key]) || 0 }));
+  let order;
+  if (segments && segments.length && segments[0].key) {
+    order = segments.map(({ key, zh, cls }) => ({
+      key,
+      zh,
+      cls,
+      s: Number(timing[key]) || 0,
+    }));
+  } else {
+    const keys = segments || TIMING_KEYS;
+    order = keys.map(([, key, zh, cls]) => ({
+      key,
+      zh,
+      cls,
+      s: Number(timing[key]) || 0,
+    }));
+  }
   const total = order.reduce((a, b) => a + b.s, 0);
   container.innerHTML = "";
   if (total <= 0) return { total };
@@ -1267,12 +2298,460 @@ let starting = false;
 let restartAfterAbort = false;
 let hotkeysEnabled = true;
 let lockedConfig = null;
+let activeSubject = null;
+let activeSubjectInfo = null;
+let activeSimMode = false;
+let simCatalogRuns = [];
+let simCampaigns = [];
+let activeCampaign = null;
+let lastFtRunDir = null;
+let ftBusy = false;
+
+function loadSubjectLoginLocal() {
+  try {
+    return JSON.parse(localStorage.getItem(SUBJECT_LOGIN_KEY) || "null");
+  } catch {
+    return null;
+  }
+}
+
+function saveSubjectLoginLocal(info) {
+  if (!info?.subject_id) return;
+  localStorage.setItem(
+    SUBJECT_LOGIN_KEY,
+    JSON.stringify({
+      subject_id: info.subject_id,
+      display_name: info.subject?.display_name || "",
+      sim_mode: Boolean(info.sim_mode),
+    }),
+  );
+}
+
+function campaignNextRun(manifest) {
+  if (!manifest) return null;
+  const consumed = new Set(manifest.runs_consumed || []);
+  for (const r of manifest.session_queue || []) {
+    if (!consumed.has(r)) return r;
+  }
+  return null;
+}
+
+function resolveSimRunId(useCampaignQueue = false) {
+  if (activeCampaign) {
+    const nxt = campaignNextRun(activeCampaign);
+    if (nxt) return nxt;
+    if (useCampaignQueue) return "";
+  }
+  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim().toLowerCase();
+  if (sug.startsWith("run")) return sug;
+  const runInp = el.form?.querySelector('[name="sim_run_id"]');
+  const fromInput = String(runInp?.value || "").trim().toLowerCase();
+  if (fromInput.startsWith("run")) return fromInput;
+  return "run3";
+}
+
+function applySimRunToForm(runId) {
+  const rid = String(runId || "").trim().toLowerCase();
+  if (!rid.startsWith("run")) return;
+  const runInp = el.form?.querySelector('[name="sim_run_id"]');
+  if (runInp) runInp.value = rid;
+  if (el.setupSessionId) el.setupSessionId.value = rid;
+}
+
+function syncSimRunFromCampaignOrSuggest() {
+  if (!activeSimMode && !isSimV3Mode()) return;
+  const useQueue = Boolean(el.form?.querySelector('[name="sim_use_campaign_queue"]')?.checked);
+  const runInp = el.form?.querySelector('[name="sim_run_id"]');
+  const nxt = activeCampaign ? campaignNextRun(activeCampaign) : null;
+  const rid = nxt || activeSubjectInfo?.suggest_session_id || null;
+  if (rid) applySimRunToForm(rid);
+  if (runInp) runInp.disabled = Boolean(useQueue && activeCampaign);
+}
+
+function refreshSimRunSuggestion() {
+  if (!activeSimMode && !isSimV3Mode()) return;
+  syncSimRunFromCampaignOrSuggest();
+  if (activeCampaign) updateSimCampaignStatus();
+  else if (el.simCampaignStatus) el.simCampaignStatus.textContent = "";
+}
+
+function requestSimCatalog() {
+  if (!activeSimMode || !activeSubject) return;
+  send({ type: "sim_catalog", subject_id: activeSubject });
+}
+
+function requestSimCampaignList() {
+  if (!activeSimMode || !activeSubject) return;
+  send({ type: "sim_campaign_list", subject_id: activeSubject });
+}
+
+function renderSimRunQueue(runs, consumed = []) {
+  if (!el.simRunQueue) return;
+  const used = new Set(consumed || []);
+  const list = runs || [];
+  if (!list.length) {
+    el.simRunQueue.textContent = "暂无 run（检查 DATA/bci2a/AxxT.mat）";
+    return;
+  }
+  el.simRunQueue.innerHTML = list
+    .map((r) => {
+      const rid = r.run_id || r;
+      const done = used.has(rid);
+      const shard = r.shard_ok ? "shard✓" : "shard—";
+      const total = r.n_total_trials ?? r.n_lr_trials;
+      const detail = r.n_rest_trials != null
+        ? `Rest${r.n_rest_trials} L${r.n_left ?? "—"} R${r.n_right ?? "—"} · 共${total}`
+        : `${r.n_lr_trials ?? "—"} L/R`;
+      return `<label class="check sim-run-row${done ? " muted" : ""}">
+        <input type="checkbox" class="sim-run-cb" value="${rid}" ${done ? "disabled" : ""} />
+        ${rid} · ${detail} · ${shard}${done ? " · 已用" : ""}
+      </label>`;
+    })
+    .join("");
+}
+
+function sortCampaignsNewestFirst(campaigns) {
+  return [...(campaigns || [])].sort((a, b) =>
+    String(b.campaign_id || "").localeCompare(String(a.campaign_id || "")),
+  );
+}
+
+function fillSimCampaignSelect(campaigns, selectedId = "") {
+  if (!el.simCampaignSelect) return;
+  const prev = selectedId || el.simCampaignSelect.value || activeCampaign?.campaign_id || "";
+  el.simCampaignSelect.innerHTML = '<option value="">— 单场 run —</option>';
+  for (const c of sortCampaignsNewestFirst(campaigns)) {
+    const opt = document.createElement("option");
+    opt.value = c.campaign_id || "";
+    opt.dataset.manifestPath = c.manifest_path || "";
+    const rem = (c.session_queue || []).filter((r) => !(c.runs_consumed || []).includes(r));
+    opt.textContent = `${c.campaign_id} · 剩余 ${rem.length}/${(c.session_queue || []).length}`;
+    el.simCampaignSelect.appendChild(opt);
+  }
+  if (prev) {
+    el.simCampaignSelect.value = prev;
+    onSimCampaignSelectChange();
+  }
+}
+
+function updateSimCampaignStatus() {
+  if (!activeCampaign) {
+    if (el.simCampaignStatus) el.simCampaignStatus.textContent = "";
+    syncSimRunFromCampaignOrSuggest();
+    return;
+  }
+  const consumed = activeCampaign.runs_consumed || [];
+  const nxt = campaignNextRun(activeCampaign);
+  if (el.simCampaignStatus) {
+    el.simCampaignStatus.textContent =
+      `Campaign ${activeCampaign.campaign_id} · 已用 ${consumed.join(", ") || "—"} · 下一场 ${nxt || "（已完成）"}`;
+  }
+  renderSimRunQueue(simCatalogRuns, consumed);
+  syncSimRunFromCampaignOrSuggest();
+}
+
+function onSimCampaignSelectChange() {
+  const sel = el.simCampaignSelect;
+  if (!sel || sel.value === "") {
+    activeCampaign = null;
+    updateSimCampaignStatus();
+    return;
+  }
+  activeCampaign = (simCampaigns || []).find((c) => c.campaign_id === sel.value) || null;
+  updateSimCampaignStatus();
+  applyCampaignLatestWeights();
+}
+
+function onSimCatalogAck(msg) {
+  if (!msg.ok) {
+    if (el.simRunQueue) el.simRunQueue.textContent = msg.message || "加载 run 失败";
+    return;
+  }
+  simCatalogRuns = msg.runs || [];
+  if (activeCampaign) updateSimCampaignStatus();
+  else renderSimRunQueue(simCatalogRuns, []);
+}
+
+function onSimCampaignAck(msg) {
+  if (!msg.ok) {
+    alert(msg.message || "创建 Campaign 失败");
+    return;
+  }
+  activeCampaign = msg.manifest || null;
+  if (activeCampaign) {
+    simCampaigns = [activeCampaign, ...simCampaigns.filter((c) => c.campaign_id !== activeCampaign.campaign_id)];
+    fillSimCampaignSelect(simCampaigns, activeCampaign.campaign_id);
+    const useQ = el.form?.querySelector('[name="sim_use_campaign_queue"]');
+    if (useQ) useQ.checked = true;
+    updateSimCampaignStatus();
+  }
+}
+
+function onSimCampaignListAck(msg) {
+  if (!msg.ok) return;
+  simCampaigns = msg.campaigns || [];
+  fillSimCampaignSelect(simCampaigns, activeCampaign?.campaign_id || "");
+}
+
+function clearSubjectLoginLocal() {
+  localStorage.removeItem(SUBJECT_LOGIN_KEY);
+}
+
+function updateSubjectBar() {
+  if (!el.subjectBar) return;
+  if (!activeSubject) {
+    el.subjectBar.classList.add("hidden");
+    return;
+  }
+  el.subjectBar.classList.remove("hidden");
+  if (el.subjectBarId) el.subjectBarId.textContent = activeSubject;
+  const sug = activeSubjectInfo?.suggest_session_id || "";
+  if (el.subjectBarSession) {
+    el.subjectBarSession.textContent = sug ? `建议 session ${sug}` : "";
+  }
+  const w = activeSubjectInfo?.current_weights;
+  if (el.subjectBarWeights) {
+    el.subjectBarWeights.textContent = w?.ok
+      ? `权重 current (${w.release_pass === true ? "gate PASS" : w.release_pass === false ? "gate FAIL" : "—"})`
+      : "权重：OpenBMI 底座";
+  }
+}
+
+function applySubjectToSetup(info) {
+  if (!info) return;
+  const sid = info.subject_id || info.subject?.subject_id;
+  if (el.setupSubjectId) el.setupSubjectId.value = sid || "";
+  if (info.sim_mode) {
+    // 仿真：会话编号 = run_id，优先服务端 suggest（跑完 run3 → run4）
+    refreshSimRunSuggestion();
+  } else if (info.suggest_session_id && el.setupSessionId) {
+    el.setupSessionId.value = info.suggest_session_id;
+  }
+  const paths = info.sim_mode
+    ? {
+        save_root: info.sessions_dir || `experiment_game/data/sim_subjects/${sid}/sessions`,
+        subject_root: info.subject_root,
+      }
+    : info.subject_root
+      ? {
+          save_root: `experiment_game/data/subjects/${sid}/sessions`,
+          subject_root: info.subject_root,
+        }
+      : null;
+  activeSimMode = Boolean(info.sim_mode);
+  if (info.sim_mode) {
+    simCampaigns = info.campaigns || [];
+    fillSimCampaignSelect(simCampaigns);
+    requestSimCatalog();
+  }
+  syncWorkModeUi();
+  if (paths) {
+    const saveRootInput = el.form?.querySelector("[name=save_root]");
+    if (saveRootInput) saveRootInput.value = paths.save_root;
+  }
+  const cw = info.current_weights;
+  if (cw?.ok && cw.task_ckpt && cw.three_ckpt) {
+    if (el.s3TaskCkpt) el.s3TaskCkpt.value = cw.task_ckpt;
+    if (el.s3ThreeCkpt) el.s3ThreeCkpt.value = cw.three_ckpt;
+    if (el.modelPreset) {
+      const hit = MODEL_PRESETS.find((p) => p.task === cw.task_ckpt && p.three === cw.three_ckpt);
+      el.modelPreset.value = hit ? hit.id : "custom";
+    }
+    updateWeightsStatusFromInputs();
+  } else if (cw?.ok === false) {
+    applyModelPreset("openbmi_baseline");
+  }
+  updateSubjectBar();
+  updateReplayAdvice("setup", { autoApply: false });
+}
+
+function renderFtSessionList(sessions) {
+  if (!el.ftSessionList) return;
+  el.ftSessionList.innerHTML = "";
+  const autoSelectRoot = lastFtAutoSelectRoot;
+  lastFtAutoSelectRoot = null;
+  const autoNorm = autoSelectRoot ? normSessionPath(autoSelectRoot) : "";
+  const list = sortFtSessionsForPanel(sessions, autoSelectRoot);
+  ftSessionCatalog = list.slice();
+  if (!list.length) {
+    el.ftSessionList.textContent = "暂无历史 session";
+    updateReplayAdvice("panel");
+    updateFtRampHint();
+    return;
+  }
+  for (const s of list) {
+    const row = document.createElement("div");
+    const isThisRun = autoNorm && normSessionPath(s.path) === autoNorm;
+    const isCurrentRun = isThisRun && Boolean(s.ft_eligible);
+    row.className =
+      "ft-session-row" +
+      (s.electrode_ok ? "" : " warn") +
+      (isThisRun ? " ft-session-current" : "");
+    const cb = document.createElement("input");
+    cb.type = "checkbox";
+    cb.checked = isCurrentRun;
+    cb.dataset.path = s.path || "";
+    cb.dataset.runId = String(s.session_id || s.run_id || "").toLowerCase();
+    cb.addEventListener("change", () => {
+      replayAdviceManualOverride.panel = false;
+      updateReplayAdvice("panel");
+    });
+    const meta = document.createElement("div");
+    const wa = s.window_acc != null ? `${(s.window_acc * 100).toFixed(0)}%` : "—";
+    const pa = s.primary_acc != null ? `${(s.primary_acc * 100).toFixed(0)}%` : "—";
+    const nw = sessionWindowEstimate(s);
+    meta.textContent = `${s.dir} · ~${nw} 窗 · 窗acc ${wa} · valid-primary ${pa}`;
+    const warn = document.createElement("div");
+    warn.className = "muted";
+    warn.textContent = s.electrode_ok ? "电极 OK" : (s.electrode_warnings || []).join(" · ") || "电极 ⚠";
+    row.appendChild(cb);
+    row.appendChild(meta);
+    row.appendChild(warn);
+    el.ftSessionList.appendChild(row);
+  }
+  replayAdviceManualOverride.panel = false;
+  applyLeaveNextFtSelection(autoNorm);
+  updateReplayAdvice("panel");
+  updateFtRampHint();
+}
+
+/** Leave-Next：勾选 eval run 之前的已完成 queue session，排除当前 eval。 */
+function applyLeaveNextFtSelection(evalSessionPathNorm) {
+  if (!el.ftLeaveNext?.checked || !activeSimMode || !activeCampaign) return;
+  const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
+  const done = {};
+  for (const item of activeCampaign.sessions_completed || []) {
+    const rid = String(item.run_id || "").toLowerCase();
+    if (rid && item.session_dir) done[rid] = normSessionPath(item.session_dir);
+  }
+  let evalRun = resolveFtEvalRunId(evalSessionPathNorm);
+  if (!evalRun || !queue.includes(evalRun)) return;
+  const idx = queue.indexOf(evalRun);
+  const trainRuns = new Set(queue.slice(0, idx));
+  const trainPaths = new Set(
+    [...trainRuns].map((rid) => done[rid]).filter(Boolean),
+  );
+  el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    const p = normSessionPath(cb.dataset.path || "");
+    cb.checked = trainPaths.has(p);
+  });
+}
+
+function resolveFtEvalRunId(evalSessionPathNorm) {
+  const fromRoot = evalSessionPathNorm || (lastFtAutoSelectRoot ? normSessionPath(lastFtAutoSelectRoot) : "");
+  if (fromRoot && activeSubjectInfo?.sessions) {
+    const hit = (activeSubjectInfo.sessions || []).find(
+      (s) => normSessionPath(s.path) === fromRoot,
+    );
+    const sid = String(hit?.session_id || hit?.run_id || "").toLowerCase();
+    if (sid.startsWith("run")) return sid;
+  }
+  if (sessionRoot && activeSubjectInfo?.sessions) {
+    const hit = (activeSubjectInfo.sessions || []).find(
+      (s) => normSessionPath(s.path) === normSessionPath(sessionRoot),
+    );
+    const sid = String(hit?.session_id || hit?.run_id || "").toLowerCase();
+    if (sid.startsWith("run")) return sid;
+  }
+  const runInp = el.form?.querySelector('[name="sim_run_id"]');
+  const v = String(runInp?.value || el.setupSessionId?.value || "").trim().toLowerCase();
+  if (v.startsWith("run")) return v;
+  return null;
+}
+
+function updateFtRampHint() {
+  if (!el.ftRampHint) return;
+  if (!activeSimMode || !el.ftLeaveNext?.checked || !activeCampaign) {
+    el.ftRampHint.textContent = activeSimMode
+      ? "Leave-Next 关：手动勾选 FT session"
+      : "—";
+    return;
+  }
+  const evalRun = resolveFtEvalRunId();
+  const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
+  if (!evalRun || !queue.includes(evalRun)) {
+    el.ftRampHint.textContent = "Leave-Next：等待确定 eval run…";
+    return;
+  }
+  const rStage = queue.indexOf(evalRun);
+  const train = queue.slice(0, rStage);
+  const replayOn = rStage >= 1 && rStage < 4;
+  el.ftRampHint.textContent =
+    `R${rStage} · eval=${evalRun} · FT train=[${train.join(", ") || "—"}]` +
+    (rStage === 0
+      ? " · R0 不 FT（仅底座评估）"
+      : ` · replay 建议 ${replayOn ? "开 0.10" : "关"}`);
+  if (activeCampaign.manifest_path) {
+    send({
+      type: "ramp_status",
+      subject_id: activeSubject,
+      campaign_manifest: activeCampaign.manifest_path,
+      eval_run_id: evalRun,
+    });
+  }
+}
+
+function collectSelectedFtSessions() {
+  const paths = new Set(collectFtSessionPaths());
+  return ftSessionCatalog.filter((s) => paths.has(s.path));
+}
+
+function resetFtPanel() {
+  lastFtRunDir = null;
+  ftBusy = false;
+  if (el.ftResult) {
+    el.ftResult.classList.add("hidden");
+    el.ftResult.textContent = "";
+  }
+  if (el.ftStatus) el.ftStatus.textContent = "";
+  if (el.btnFtStart) {
+    el.btnFtStart.disabled = false;
+    el.btnFtStart.textContent = "开始微调";
+  }
+  if (el.btnFtPromote) el.btnFtPromote.classList.add("hidden");
+  if (el.btnFtKeep) el.btnFtKeep.classList.add("hidden");
+  const skip = document.querySelector('input[name="ft_mode"][value="skip"]');
+  if (skip) skip.checked = true;
+  if (el.ftExcludeInvalid) el.ftExcludeInvalid.checked = false;
+  replayAdviceManualOverride.panel = false;
+  applyFtReplayDefaults(lockedConfig?.experiment?.ft_defaults);
+  applyFtAdvancedDefaults(lockedConfig?.experiment?.ft_defaults);
+  updateReplayAdvice("panel");
+}
+
+function showFtPanel(msg) {
+  if (!el.ftPanel) return;
+  el.ftPanel.classList.remove("hidden");
+  resetFtPanel();
+  lastFtAutoSelectRoot = msg?.root || sessionRoot || null;
+  const cw = activeSubjectInfo?.current_weights;
+  if (el.ftCurrentWeights) {
+    el.ftCurrentWeights.textContent = cw?.ok
+      ? `当前 current：${cw.path || "—"}`
+      : "当前无被试 current 权重（将使用 OpenBMI 底座）";
+  }
+  if (!msg?.train_eligible && !msg?.acq_enabled) {
+    if (el.ftStatus) el.ftStatus.textContent = "本次未采集 EEG，不可微调";
+    if (el.btnFtStart) el.btnFtStart.disabled = true;
+  }
+  send({ type: "subject_info", subject_id: activeSubject || msg?.subject_id });
+}
+
+function collectFtSessionPaths() {
+  const paths = [];
+  if (!el.ftSessionList) return paths;
+  el.ftSessionList.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    if (cb.checked && cb.dataset.path) paths.push(cb.dataset.path);
+  });
+  return paths;
+}
 
 function showView(name) {
+  if (el.login) el.login.classList.toggle("hidden", name !== "login");
   el.setup.classList.toggle("hidden", name !== "setup");
   el.run.classList.toggle("hidden", name !== "run");
   el.summary.classList.toggle("hidden", name !== "summary");
-  location.hash = name;
+  if (name !== "login") location.hash = name;
 }
 
 /** 清空运行页残留（再开一场 / 新开 session 前必须调用） */
@@ -1315,8 +2794,7 @@ function resetRunView() {
     el.v3HatCheck.className = "v3-hat-check hidden";
   }
   if (el.v3PowerBars) {
-    el.v3PowerBars.innerHTML =
-      '<div class="v3-pbar-wait">基线采集中…（前 60s 静息阶段结束后显示 ERD%）</div>';
+    el.v3PowerBars.innerHTML = v3BaselineWaitHtml();
   }
   if (el.v3BlockProg) el.v3BlockProg.textContent = "—";
   if (el.v3TrialProg) el.v3TrialProg.textContent = "—";
@@ -1362,6 +2840,8 @@ function resetRunView() {
   if (el.btnV2Guidance) el.btnV2Guidance.disabled = false;
   if (el.stV2Round) el.stV2Round.textContent = "—";
   if (el.stV2Score) el.stV2Score.textContent = "—";
+  resetSessionScore(null);
+  resetSessionVoteHistory();
 }
 
 function setWsStatus(text, cls) {
@@ -1378,17 +2858,27 @@ function send(msg) {
 function formToRunConfig() {
   const fd = new FormData(el.form);
   const seedRaw = String(fd.get("seed") || "").trim();
-  const board =
-    fd.get("board_mode") ||
-    (el.form.querySelector('input[name="board_mode"]:checked') || {}).value ||
-    "synthetic";
-  const acqEnabled = el.form.querySelector('[name="acq_enabled"]').checked;
+  const sim = isSimV3Mode();
+  const useCampaignQueue = Boolean(el.form.querySelector('[name="sim_use_campaign_queue"]')?.checked);
+  const simRunId = sim ? resolveSimRunId(useCampaignQueue) : "";
+  const replayAlign =
+    String(
+      (el.form.querySelector('input[name="sim_replay_align"]:checked') || {}).value || "schedule_align",
+    ).trim() || "schedule_align";
+  const board = sim
+    ? "bci2a_replay"
+    : fd.get("board_mode") ||
+      (el.form.querySelector('input[name="board_mode"]:checked') || {}).value ||
+      "synthetic";
+  const acqEnabled = sim ? true : el.form.querySelector('[name="acq_enabled"]').checked;
   const layout = fd.get("save_layout") || "phase_folders";
   return {
     schema_version: 2,
     subject: {
       subject_id: String(fd.get("subject_id") || "").trim(),
-      session_id: String(fd.get("session_id") || "").trim(),
+      session_id: sim
+        ? (simRunId || resolveSimRunId(false))
+        : String(fd.get("session_id") || "").trim(),
       notes: String(fd.get("notes") || ""),
     },
     acquisition: {
@@ -1398,9 +2888,10 @@ function formToRunConfig() {
       sample_rate_hz: 250,
       markers_lsl: acqEnabled,
       filter: {
-        enabled: el.form.querySelector('[name="filter_enabled"]')?.checked !== false,
+        enabled: el.form.querySelector('[name="filter_enabled"]')?.checked === true,
         bandpass_low_hz: Number(fd.get("bandpass_low_hz") || 0.5),
         bandpass_high_hz: Number(fd.get("bandpass_high_hz") || 45),
+        notch_enabled: el.form.querySelector('[name="notch_enabled"]')?.checked === true,
         notch_low_hz: Number(fd.get("notch_low_hz") || 49),
         notch_high_hz: Number(fd.get("notch_high_hz") || 51),
       },
@@ -1417,11 +2908,16 @@ function formToRunConfig() {
         if (isV2Mode()) return v2Seed === "" ? null : Number(v2Seed);
         return v1Seed === "" ? null : Number(v1Seed);
       })(),
-      open_subject_page: isV4Mode() ? false : el.form.querySelector('[name="open_subject_page"]').checked,
+      open_subject_page: sim
+        ? true
+        : isV4Mode()
+          ? false
+          : el.form.querySelector('[name="open_subject_page"]').checked,
       skip_adapt: el.form.querySelector('[name="skip_adapt"]')?.checked || false,
       skip_learn: el.form.querySelector('[name="skip_learn"]')?.checked || false,
       skip_gate: el.form.querySelector('[name="skip_gate"]')?.checked || false,
       protocol_locked: el.form.querySelector('[name="protocol_locked"]')?.checked !== false,
+      ft_defaults: { ...readFtReplayOptions(el.form), ...readFtAdvancedOptions() },
       v2_overrides: readV2Overrides(),
       v3_overrides: readV3Overrides(),
       skip_v2_guidance: el.form.querySelector('[name="skip_v2_guidance"]')?.checked || false,
@@ -1451,8 +2947,27 @@ function formToRunConfig() {
       remember_last_config: el.form.querySelector('[name="remember_last_config"]')?.checked !== false,
       skip_setup_if_unchanged: el.form.querySelector('[name="skip_setup_if_unchanged"]')?.checked || false,
       operator_hotkeys: el.form.querySelector('[name="operator_hotkeys"]')?.checked !== false,
+      subject_feedback_mode: sim
+        ? "arm_reach"
+        : String(fd.get("subject_feedback_mode") || "none").trim() === "arm_reach"
+          ? "arm_reach"
+          : "none",
     },
-    extensions: {},
+    extensions: sim
+      ? {
+          sim: {
+            run_id: useCampaignQueue
+              ? ""
+              : (simRunId || resolveSimRunId(false)),
+            session_trials_total: Number(fd.get("sim_trials_total") || 36),
+            include_rest: true,
+            replay_speed: Number(fd.get("sim_replay_speed") || 4),
+            replay_align: replayAlign,
+            use_campaign_queue: useCampaignQueue,
+            campaign_manifest: activeCampaign?.manifest_path || null,
+          },
+        }
+      : {},
   };
 }
 
@@ -1493,22 +3008,35 @@ function applyConfigToForm(cfg) {
   set("skip_v2_game", cfg.experiment?.skip_v2_game);
   set("v2_seed", cfg.experiment?.seed ?? "");
   applyV2OverridesToForm(cfg.experiment?.v2_overrides || {});
+  applyV3OverridesToForm(cfg.experiment?.v3_overrides || {});
+  applyFtReplayDefaults(cfg.experiment?.ft_defaults);
+  applyFtAdvancedDefaults(cfg.experiment?.ft_defaults);
+  // v3 overrides 里的权重也回填（与 v2 共用表单字段）
+  const wOv = {
+    ...(cfg.experiment?.v2_overrides || {}),
+    ...(cfg.experiment?.v3_overrides || {}),
+  };
+  if (wOv.s3_task_ckpt && el.s3TaskCkpt) el.s3TaskCkpt.value = wOv.s3_task_ckpt;
+  if (wOv.s3_three_ckpt && el.s3ThreeCkpt) el.s3ThreeCkpt.value = wOv.s3_three_ckpt;
+  updateWeightsStatusFromInputs();
   const pm = cfg.experiment?.phase_mode || "phase2_full";
   for (const r of el.form.querySelectorAll('input[name="phase_mode"]')) {
     r.checked = r.value === pm;
   }
-  syncPhaseModeUi();
+  syncWorkModeUi();
   syncProtocolLockUi();
   set("save_root", cfg.storage?.save_root);
   set("save_layout", cfg.storage?.save_layout || "phase_folders");
   set("auto_phase4", cfg.storage?.auto_phase4);
   set("remember_last_config", cfg.ui?.remember_last_config !== false);
+  set("subject_feedback_mode", cfg.ui?.subject_feedback_mode || "none");
   set("skip_setup_if_unchanged", cfg.ui?.skip_setup_if_unchanged);
   set("operator_hotkeys", cfg.ui?.operator_hotkeys !== false);
   const filt = cfg.acquisition?.filter || {};
-  set("filter_enabled", filt.enabled !== false);
+  set("filter_enabled", filt.enabled === true);
   set("bandpass_low_hz", filt.bandpass_low_hz ?? 0.5);
   set("bandpass_high_hz", filt.bandpass_high_hz ?? 45);
+  set("notch_enabled", filt.notch_enabled === true);
   set("notch_low_hz", filt.notch_low_hz ?? 49);
   set("notch_high_hz", filt.notch_high_hz ?? 51);
   setTimingToForm(cfg.experiment?.timing || {});
@@ -1529,21 +3057,28 @@ function applyConfigToForm(cfg) {
   if (runHop) runHop.value = p4.hop_ms ?? 100;
   hotkeysEnabled = cfg.ui?.operator_hotkeys !== false;
   syncAcqUi();
+  updateReplayAdvice("setup", { autoApply: false });
 }
 
 function syncAcqUi() {
-  const acqOn = el.form.querySelector('[name="acq_enabled"]').checked;
+  const simSession = activeSimMode || isSimV3Mode();
+  const acqOn = simSession ? true : el.form.querySelector('[name="acq_enabled"]').checked;
   const cyton = el.form.querySelector('input[name="board_mode"]:checked')?.value === "cyton";
-  el.acqWarn.classList.toggle("hidden", acqOn);
-  el.guiHint.classList.toggle("hidden", !cyton);
-  el.deviceFs.disabled = !acqOn || !cyton;
+  if (el.acqWarn) el.acqWarn.classList.toggle("hidden", acqOn || simSession);
+  if (el.guiHint) el.guiHint.classList.toggle("hidden", !cyton || simSession);
+  if (el.deviceFs) el.deviceFs.disabled = !acqOn || !cyton || simSession;
   const layout = el.form.querySelector('[name="save_layout"]')?.value || "flat";
   if (el.saveHint) {
-    el.saveHint.textContent = acqOn
-      ? layout === "phase_folders"
-        ? "将写入 continuous/ + by_phase/ + alignment/（EEG 与 Marker 同一 LSL 时钟）"
-        : "扁平落盘：会话根 eeg.csv + events.jsonl + session.meta.json；并写 alignment/"
-      : "仅 events + meta，无脑电，不能 Phase4 训练";
+    if (simSession) {
+      el.saveHint.textContent =
+        "仿真回放：mat → RingBuffer → eeg.csv + alignment/（固定开启，无需采集开关）";
+    } else {
+      el.saveHint.textContent = acqOn
+        ? layout === "phase_folders"
+          ? "将写入 continuous/ + by_phase/ + alignment/（EEG 与 Marker 同一 LSL 时钟）"
+          : "扁平落盘：会话根 eeg.csv + events.jsonl + session.meta.json；并写 alignment/"
+        : "仅 events + meta，无脑电，不能 Phase4 训练";
+    }
   }
 }
 
@@ -1637,20 +3172,19 @@ function updateRunLockSummary(msg) {
         `<div><span class="k">正式 trials</span>${msg.acquire_trials}</div>`,
         `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
       ].join("");
-  // 本场锁定的时序构成
+  // 本场锁定的时序构成（v2/v3 与执行序一致：Cue前 Rest → prep → MI → ITI）
   if (msg.timing) {
-    renderTimeline(el.runTimeline, msg.timing);
+    const isV23 = msg.phase_mode === "v2_session" || msg.phase_mode === "v3_session";
+    renderTimeline(el.runTimeline, msg.timing, isV23 ? V23_TIMELINE_SEGMENTS : undefined);
     if (el.runTimingHint) {
-      if (msg.phase_mode === "v3_session") {
+      if (isV23) {
+        const rest = msg.timing.rest_s ?? msg.timing.inter_trial_rest_s ?? 0;
+        const prep = msg.timing.fixation_s ?? msg.timing.prep_s ?? 0;
+        const iti = msg.timing.transition_s ?? msg.timing.iti_s ?? 0;
         el.runTimingHint.textContent =
-          `prep ${msg.timing.fixation_s ?? msg.timing.prep_s}s → cue ${msg.timing.cue_s}s → ` +
-          `MI ${msg.timing.mi_s}s → ITI ${msg.timing.transition_s ?? msg.timing.iti_s}s` +
-          (msg.trial_total_s ? ` · 合计 ${msg.trial_total_s}s` : "");
-      } else if (msg.phase_mode === "v2_session") {
-        el.runTimingHint.textContent =
-          `prep ${msg.timing.fixation_s ?? msg.timing.prep_s}s → cue ${msg.timing.cue_s}s → ` +
-          `MI ${msg.timing.mi_s}s → ITI ${msg.timing.transition_s ?? msg.timing.iti_s}s` +
-          (msg.trial_total_s ? ` · 合计 ${msg.trial_total_s}s` : "");
+          `Cue前 Rest ${rest}s → prep ${prep}s → cue ${msg.timing.cue_s}s → ` +
+          `MI ${msg.timing.mi_s}s → ITI ${iti}s` +
+          (msg.trial_total_s != null ? ` · 合计 ${msg.trial_total_s}s` : "");
       } else {
         el.runTimingHint.textContent =
           `注视 ${msg.timing.fixation_s}s → 提示 ${msg.timing.cue_s}s → ` +
@@ -1724,11 +3258,153 @@ function handleMessage(msg) {
     defaultsFromServer = msg.defaults || null;
     builtinDefaults = msg.builtin_defaults || defaultsFromServer;
     const local = loadLocalDefaults();
+    fillModelPresets(msg.model_presets || [], msg.active_weights || null);
     // 优先：服务端文件默认 > 浏览器 localStorage > 内置
     applyConfigToForm(defaultsFromServer || local || builtinDefaults);
+    if (msg.active_weights && !(defaultsFromServer?.experiment?.v3_overrides?.s3_task_ckpt)) {
+      fillModelPresets(msg.model_presets || MODEL_PRESETS, msg.active_weights);
+    }
     fillSerialPorts(msg.serial_ports || []);
     maybeShowReuseBar(defaultsFromServer || local);
     if (msg.defaults_warning) showErrors([msg.defaults_warning]);
+    if (msg.active_subject && msg.active_subject_info) {
+      activeSubject = msg.active_subject;
+      activeSubjectInfo = msg.active_subject_info;
+      saveSubjectLoginLocal(msg.active_subject_info);
+      applySubjectToSetup(msg.active_subject_info);
+      showView("setup");
+    } else {
+      const saved = loadSubjectLoginLocal();
+      if (saved?.subject_id) {
+        send({
+          type: "subject_login",
+          subject_id: saved.subject_id,
+          display_name: saved.display_name || "",
+          sim_mode: Boolean(saved.sim_mode),
+        });
+      } else {
+        showView("login");
+        if (el.loginLast && saved) {
+          el.loginLast.textContent = `上次：${saved.subject_id}`;
+        }
+      }
+    }
+  } else if (t === "subject_login_ack") {
+    if (!msg.ok) {
+      if (el.loginError) {
+        el.loginError.textContent = msg.message || "登录失败";
+        el.loginError.classList.remove("hidden");
+      }
+      return;
+    }
+    if (el.loginError) el.loginError.classList.add("hidden");
+    activeSubject = msg.subject_id;
+    activeSubjectInfo = msg;
+    activeSimMode = Boolean(msg.sim_mode);
+    saveSubjectLoginLocal(msg);
+    if (msg.sim_mode) {
+      const simRadio = el.form?.querySelector('input[name="phase_mode"][value="sim_v3_session"]');
+      if (simRadio) simRadio.checked = true;
+      syncWorkModeUi();
+    }
+    fillModelPresets(msg.model_presets || MODEL_PRESETS, msg.active_weights || null);
+    applySubjectToSetup(msg);
+    if (msg.sim_mode) requestSimCatalog();
+    showView("setup");
+  } else if (t === "subject_logout_ack") {
+    activeSubject = null;
+    activeSubjectInfo = null;
+    activeSimMode = false;
+    clearSubjectLoginLocal();
+    updateSubjectBar();
+    syncWorkModeUi();
+    showView("login");
+  } else if (t === "subject_info_ack") {
+    if (!msg.ok) return;
+    if (msg.subject_id === activeSubject) {
+      activeSubjectInfo = { ...activeSubjectInfo, ...msg, sessions: msg.sessions };
+      if (msg.sim_mode) {
+        simCampaigns = msg.campaigns || simCampaigns;
+        fillSimCampaignSelect(simCampaigns, activeCampaign?.campaign_id || "");
+        refreshSimRunSuggestion();
+      }
+      renderFtSessionList(msg.sessions);
+      updateReplayAdvice("setup", { autoApply: false });
+      updateSubjectBar();
+    }
+  } else if (t === "sim_catalog_ack") {
+    onSimCatalogAck(msg);
+  } else if (t === "sim_campaign_ack") {
+    onSimCampaignAck(msg);
+  } else if (t === "sim_campaign_list_ack") {
+    onSimCampaignListAck(msg);
+  } else if (t === "ramp_status_ack") {
+    if (!msg.ok || !el.ftRampHint) return;
+    const train = (msg.leave_next_train || []).map((x) => x.run_id).join(", ") || "—";
+    const rec = msg.ft_replay_recommendation || {};
+    el.ftRampHint.textContent =
+      `R${msg.ramp_stage} · eval=${msg.eval_run_id || "—"} · FT train=[${train}]` +
+      ` · ${rec.reason || ""}`;
+    if (el.ftLeaveNext?.checked && rec.use_replay != null) {
+      if (el.ftUseReplay) el.ftUseReplay.checked = Boolean(rec.use_replay);
+      if (el.ftReplayRatio && rec.replay_ratio != null) {
+        el.ftReplayRatio.value = String(rec.replay_ratio);
+      }
+      syncFtReplayRatioUi();
+    }
+  } else if (t === "finetune_ack") {
+    if (!msg.ok && el.ftStatus) el.ftStatus.textContent = msg.message || "微调失败";
+  } else if (t === "finetune_progress") {
+    if (el.ftStatus) el.ftStatus.textContent = `微调中… ${msg.out_dir || ""}`;
+    ftBusy = true;
+    if (el.btnFtStart) {
+      el.btnFtStart.disabled = true;
+      el.btnFtStart.textContent = "微调中…";
+    }
+  } else if (t === "finetune_done") {
+    ftBusy = false;
+    if (el.btnFtStart) {
+      el.btnFtStart.disabled = false;
+      el.btnFtStart.textContent = "开始微调";
+    }
+    if (!msg.ok) {
+      if (el.ftStatus) el.ftStatus.textContent = msg.message || "微调失败";
+      return;
+    }
+    lastFtRunDir = msg.out_dir;
+    const gate = msg.release_gate || {};
+    const pass = msg.release_pass;
+    const ftRec = msg.three_ft || {};
+    const esLine = msg.early_stop
+      ? `早停 · best@${ftRec.best_epoch ?? "—"}/${msg.max_epochs ?? 20} epoch · patience ${msg.patience ?? 5}`
+      : `固定 ${msg.fixed_epochs ?? ftRec.epochs_run ?? 5} epoch`;
+    const detLine = msg.deterministic ? `seed ${msg.seed ?? 42}` : "非确定性";
+    if (el.ftResult) {
+      el.ftResult.classList.remove("hidden");
+      const repLine = msg.use_replay
+        ? `replay T0 @ ${((msg.replay_ratio ?? 0.1) * 100).toFixed(0)}%`
+        : "replay 关闭（纯被试窗）";
+      el.ftResult.innerHTML = [
+        `<div>${repLine} · ${esLine} · ${detLine}</div>`,
+        `<div>three heldout <strong>${(msg.three_heldout * 100).toFixed(1)}%</strong> · task <strong>${(msg.task_heldout * 100).toFixed(1)}%</strong>（参考）</div>`,
+        `<div>门控（参考）：${pass ? "PASS" : "FAIL"} · pred ${JSON.stringify(gate.pred_labels || {})}</div>`,
+        `<div class="muted">已保存 ${msg.out_dir}</div>`,
+      ].join("");
+    }
+    if (el.ftStatus) el.ftStatus.textContent = "微调完成；请确认是否替换 current";
+    if (el.btnFtPromote) el.btnFtPromote.classList.remove("hidden");
+    if (el.btnFtKeep) el.btnFtKeep.classList.remove("hidden");
+    refreshModelPresetsFromServer(msg);
+  } else if (t === "finetune_promote_ack") {
+    if (msg.ok) {
+      if (el.ftStatus) el.ftStatus.textContent = `已替换 current：${msg.current_dir || ""}`;
+      refreshModelPresetsFromServer(msg);
+      activeSubjectInfo = { ...activeSubjectInfo, current_weights: msg.weights };
+      applySubjectToSetup(activeSubjectInfo);
+      if (el.btnFtPromote) el.btnFtPromote.classList.add("hidden");
+    } else if (el.ftStatus) {
+      el.ftStatus.textContent = msg.message || "晋升失败";
+    }
   } else if (t === "serial_ports") {
     fillSerialPorts(msg.ports || []);
     if (!msg.ok && msg.message) showErrors([msg.message]);
@@ -1755,25 +3431,28 @@ function handleMessage(msg) {
       if (el.reuseBar) el.reuseBar.classList.add("hidden");
       showView("run");
       if (!isV4Mode()) el.popupWarn.classList.remove("hidden");
-      if (!isV4Mode()) tryOpenSubject();
+      // v4 也可打开被试页展示 HUD；是否打开跟 Setup「打开诱导页」勾选一致
+      tryOpenSubject();
     }
   } else if (t === "session_started") {
     if (msg.subject_url) subjectUrl = msg.subject_url;
     sessionRoot = msg.session_root || "";
     const v2 = msg.phase_mode === "v2_session";
-    const v3 = msg.phase_mode === "v3_session";
+    const v3 = msg.phase_mode === "v3_session" || msg.phase_mode === "sim_v3_session";
     const v4 = msg.phase_mode === "v4_session";
+    const sim = msg.phase_mode === "sim_v3_session";
     setV2RunPanel(v2);
     setV3RunPanel(v3);
     setV4RunPanel(v4);
+    setWeightsDisplay(msg.weights);
     if (v4) {
       showRunAlert("");
       onV4Start(msg);
       if (el.stPhase) el.stPhase.textContent = "v4";
       if (el.stStage) el.stStage.textContent = "质量检测";
     } else if (v3) {
-      showRunAlert("");
-      setPhaseStepV3("baseline");
+      showRunAlert(sim ? `仿真 · ${msg.sim?.source_run || ""} · 回放` : "");
+      setPhaseStepV3(sim ? "block" : "baseline");
       if (msg.v3_block_order) {
         updateV3Block({
           block_idx: 0,
@@ -1793,6 +3472,14 @@ function handleMessage(msg) {
     if (v2 && el.v2StageHint) {
       el.v2StageHint.textContent = "v2 会话已启动；轮间请点「确认动觉引导完成」";
       setPhaseStepV2("guidance");
+    }
+    if (v3) {
+      const v3Max =
+        msg.session_score_max ??
+        (msg.v3_config_effective?.blocks ?? 2) * (msg.v3_config_effective?.trials_per_block ?? 18);
+      resetSessionScore(v3Max);
+    } else if (v2) {
+      resetSessionScore(msg.session_score_max ?? null);
     }
     updateRunLockSummary(msg);
     // 诱导页已在 config_ack 打开；此处不再重复（避免多窗口）
@@ -1840,7 +3527,7 @@ function handleMessage(msg) {
   } else if (t === "v2_abort") {
     const reason = msg.reason || "unknown";
     const kind = msg.kind === "guidance_timeout" ? "guidance_timeout" : reason;
-    showRunAlert(`v2 中止/熔断：${kind}${msg.consecutive_invalid != null ? `（连续无效 ${msg.consecutive_invalid}）` : ""}`, "abort");
+    showRunAlert(`v2 中止：${kind}`, "abort");
     playAlertBeep("alert");
     stopGuidanceCountdown();
     if (el.v2StageHint) el.v2StageHint.textContent = `v2 已中止 · ${reason}`;
@@ -1848,13 +3535,19 @@ function handleMessage(msg) {
     updateV2Gate(msg);
   } else if (t === "v2_stage") {
     const v3Active = !el.v3Panel?.classList.contains("hidden");
+    updateLiveJudgePanels(msg);
     if (v3Active) {
       markV3StageEvent(msg.stage);
       el.stPhase.textContent = msg.progress?.phase_step || msg.stage || "—";
       el.stStage.textContent = msg.stage || "—";
       if (msg.ctx?.trial_id != null) el.stTrial.textContent = msg.ctx.trial_id;
-      if (msg.ctx?.label != null) el.stLabel.textContent = msg.ctx.label;
       if (msg.progress?.phase_step) setPhaseStepV3(msg.progress.phase_step);
+      applySessionScore(msg);
+      if (msg.stage === "trial_end" && msg.data?.summary?.score != null) {
+        const n = Number(msg.data.summary.score);
+        const txt = Number.isInteger(n) ? String(n) : String(Math.round(n));
+        if (el.stV2Score) el.stV2Score.textContent = txt;
+      }
       if (msg.stage === "guidance_begin") {
         el.btnV3Guidance?.classList.remove("hidden");
         if (el.btnV3Guidance) el.btnV3Guidance.disabled = false;
@@ -1873,8 +3566,8 @@ function handleMessage(msg) {
       el.stPhase.textContent = msg.progress?.phase_step || msg.stage || "—";
       el.stStage.textContent = msg.stage || "—";
       if (msg.ctx?.trial_id != null) el.stTrial.textContent = msg.ctx.trial_id;
-      if (msg.ctx?.label != null) el.stLabel.textContent = msg.ctx.label;
-      updateV2Progress(msg.progress, msg.score);
+      updateV2Progress(msg.progress, msg.score, msg);
+      applySessionScore(msg);
       if (msg.stage === "guidance_begin" && el.btnV2Guidance) {
         el.btnV2Guidance.disabled = false;
         const timeout = msg.data?.timeout_s ?? msg.data?.gap_s ?? (msg.data?.round === 0 ? 600 : 180);
@@ -1885,13 +3578,14 @@ function handleMessage(msg) {
         if (el.btnV2Guidance) el.btnV2Guidance.disabled = true;
       }
       if (msg.stage === "gate_pass") {
-        showRunAlert("准入通过，即将进入游戏环节", "gate-pass");
+        showRunAlert("准入建议：已过线 · 请操作员按 G /「准入」确认后进入游戏", "gate-pass");
         playAlertBeep("guidance");
-        setPhaseStepV2("game");
+        setPhaseStepV2("gate");
       }
       if (msg.stage === "weak_mi") {
-        showRunAlert("weak_mi：标定未完全达标，仍将进入游戏（全程标记）", "degraded");
+        showRunAlert("准入建议：weak_mi · 请操作员确认是否仍进入游戏（Esc 可中止）", "degraded");
         el.v2WeakMi?.classList.remove("hidden");
+        setPhaseStepV2("gate");
       }
     }
   } else if (t === "acq_status") {
@@ -1949,6 +3643,53 @@ function handleMessage(msg) {
     sessionRoot = msg.root || sessionRoot;
     el.summaryRoot.textContent = sessionRoot || "—";
     el.summaryMsg.textContent = msg.message || "会话已结束";
+    const ss = msg.v2_summary?.session_score ?? msg.v3_summary?.session_score;
+    const ssMax = msg.v2_summary?.session_score_max ?? msg.v3_summary?.session_score_max;
+    if (ss != null && ssMax != null) {
+      el.summaryMsg.textContent += ` · 本场得分 ${Math.round(Number(ss))}/${ssMax}`;
+    }
+    if (activeSubject || msg.subject_id) {
+      if (!activeSubject && msg.subject_id) activeSubject = msg.subject_id;
+      showFtPanel(msg);
+    }
+    if (msg.campaign) {
+      activeCampaign = msg.campaign.manifest || activeCampaign;
+      simCampaigns = simCampaigns.map((c) =>
+        c.campaign_id === activeCampaign?.campaign_id ? activeCampaign : c,
+      );
+      fillSimCampaignSelect(simCampaigns, activeCampaign?.campaign_id || "");
+      updateSimCampaignStatus();
+      const campLine = msg.campaign.summary_path
+        ? ` · Campaign 汇总 ${msg.campaign.summary_path}`
+        : "";
+      const nxt = msg.campaign.next_run;
+      if (nxt) {
+        applySimRunToForm(nxt);
+        el.summaryMsg.textContent += ` · 下一场 ${nxt}`;
+      } else if (msg.campaign.completed) {
+        el.summaryMsg.textContent += " · Campaign 已完成";
+      }
+      if (campLine) el.summaryMsg.textContent += campLine;
+    }
+    if (activeSimMode) requestSimCampaignList();
+    if (msg.model_presets) refreshModelPresetsFromServer(msg);
+    if (msg.sim_index) {
+      activeSubjectInfo = {
+        ...activeSubjectInfo,
+        index: msg.sim_index,
+        suggest_session_id: msg.suggest_session_id || msg.sim_index?.suggest_session_id,
+        current_weights: msg.sim_index?.current_model || activeSubjectInfo?.current_weights,
+      };
+      updateSubjectBar();
+      if (activeSimMode) {
+        const nxtRun =
+          msg.campaign?.next_run ||
+          msg.suggest_session_id ||
+          msg.sim_index?.suggest_session_id;
+        if (nxtRun) applySimRunToForm(nxtRun);
+        else refreshSimRunSuggestion();
+      }
+    }
     el.summaryFiles.innerHTML = "";
     for (const f of msg.files || []) {
       const li = document.createElement("li");
@@ -1969,7 +3710,7 @@ function handleMessage(msg) {
             .map((g) => `${g.ok ? "✓" : "✗"} ${g.detail}`)
             .join(" · ");
         }
-      } else if (msg.phase_mode === "v3_session" && msg.v3_summary) {
+      } else if (msg.phase_mode === "v3_session" || msg.phase_mode === "sim_v3_session") {
         badge.textContent = `v3 ${msg.v3_summary.quality_tier || "—"}`;
         badge.className = msg.v3_summary.frozen ? "pass" : "warn";
         if (el.v3SummaryDetail) {
@@ -2061,7 +3802,9 @@ function handleMessage(msg) {
 let subjectPageOpened = false;
 
 function tryOpenSubject(force = false) {
-  const cfgOpen = el.form.querySelector('[name="open_subject_page"]')?.checked !== false;
+  const sim = activeSimMode || isSimV3Mode();
+  const cfgOpen =
+    sim || el.form.querySelector('[name="open_subject_page"]')?.checked !== false;
   if (!cfgOpen) return;
   if (subjectPageOpened && !force) return;
   const w = window.open(subjectUrl, "_blank");
@@ -2101,9 +3844,35 @@ function startSession() {
 
 el.form.addEventListener("change", () => {
   syncAcqUi();
-  syncPhaseModeUi();
-  if (isV2Mode()) renderSetupTimelineV2();
-  else renderSetupTimeline();
+  syncWorkModeUi();
+  syncFtReplayRatioUi();
+  if (isV2Mode() || isV3Mode()) {
+    replayAdviceManualOverride.setup = false;
+    updateReplayAdvice("setup", { autoApply: false });
+    if (isV2Mode()) renderSetupTimelineV2();
+    else renderSetupTimelineV3();
+  } else {
+    renderSetupTimeline();
+  }
+});
+el.form.querySelector('[name="ft_use_replay"]')?.addEventListener("change", (ev) => {
+  replayAdviceManualOverride.setup = true;
+  syncFtReplayRatioUi();
+  const ftRep = readFtReplayOptions(el.form);
+  if (el.ftUseReplay) el.ftUseReplay.checked = ftRep.use_replay;
+  if (el.ftReplayRatio) el.ftReplayRatio.value = String(ftRep.replay_ratio || DEFAULT_FT_REPLAY_RATIO);
+});
+el.ftUseReplay?.addEventListener("change", () => {
+  replayAdviceManualOverride.panel = true;
+  syncFtReplayRatioUi();
+});
+el.btnSetupReplayAdopt?.addEventListener("click", () => {
+  replayAdviceManualOverride.setup = false;
+  applyReplayAdvice(lastReplayAdvice.setup, "setup", { force: true });
+});
+el.btnFtReplayAdopt?.addEventListener("click", () => {
+  replayAdviceManualOverride.panel = false;
+  applyReplayAdvice(lastReplayAdvice.panel, "panel", { force: true });
 });
 el.form.addEventListener("submit", (e) => {
   e.preventDefault();
@@ -2261,8 +4030,177 @@ document.getElementById("btn-again").addEventListener("click", () => {
   resetRunView();
   lockedConfig = null;
   sessionRoot = "";
+  resetFtPanel();
   showView("setup");
   maybeShowReuseBar(defaultsFromServer || loadLocalDefaults());
+});
+
+el.loginForm?.addEventListener("submit", (e) => {
+  e.preventDefault();
+  const fd = new FormData(el.loginForm);
+  const workMode = String(fd.get("login_work_mode") || "experiment");
+  const simMode = workMode === "sim";
+  const sid = simMode
+    ? String(fd.get("login_sim_subject") || "A01").trim().toUpperCase()
+    : String(fd.get("login_subject_id") || "").trim().toLowerCase();
+  const display = String(fd.get("login_display_name") || "").trim();
+  if (!sid) return;
+  send({ type: "subject_login", subject_id: sid, display_name: display, sim_mode: simMode });
+});
+
+document.querySelectorAll('input[name="login_work_mode"]').forEach((r) => {
+  r.addEventListener("change", () => {
+    const sim = document.querySelector('input[name="login_work_mode"]:checked')?.value === "sim";
+    document.querySelectorAll(".login-exp").forEach((n) => n.classList.toggle("hidden", sim));
+    document.querySelectorAll(".login-sim").forEach((n) => n.classList.toggle("hidden", !sim));
+    const inp = document.getElementById("login-subject-id");
+    if (inp) inp.required = !sim;
+  });
+});
+
+document.getElementById("btn-subject-logout")?.addEventListener("click", () => {
+  send({ type: "subject_logout" });
+});
+
+el.btnSimCampaignCreate?.addEventListener("click", () => {
+  if (!activeSimMode || !activeSubject) {
+    alert("请先登录仿真被试");
+    return;
+  }
+  const checked = [];
+  el.simRunQueue?.querySelectorAll(".sim-run-cb:checked").forEach((cb) => {
+    if (cb.value) checked.push(cb.value);
+  });
+  if (!checked.length) {
+    alert("请勾选至少一个 run");
+    return;
+  }
+  const fd = new FormData(el.form);
+  const replayAlign =
+    String(
+      (el.form.querySelector('input[name="sim_replay_align"]:checked') || {}).value || "schedule_align",
+    ).trim() || "schedule_align";
+  send({
+    type: "sim_campaign_create",
+    subject_id: activeSubject,
+    session_queue: checked,
+    session_trials_total: Number(fd.get("sim_trials_total") || 36),
+    replay_align: replayAlign,
+    replay_speed: Number(fd.get("sim_replay_speed") || 4),
+    leave_next_mode: Boolean(el.form?.querySelector('[name="sim_leave_next_mode"]')?.checked),
+  });
+});
+
+el.simCampaignSelect?.addEventListener("change", onSimCampaignSelectChange);
+el.form?.querySelector('[name="sim_use_campaign_queue"]')?.addEventListener("change", updateSimCampaignStatus);
+el.form?.querySelector('[name="sim_run_id"]')?.addEventListener("input", () => {
+  if (!activeSimMode && !isSimV3Mode()) return;
+  const v = String(el.form?.querySelector('[name="sim_run_id"]')?.value || "").trim().toLowerCase();
+  if (v.startsWith("run") && el.setupSessionId) el.setupSessionId.value = v;
+});
+
+function bindFtAdvancedUi() {
+  const onCh = () => syncFtAdvancedUi();
+  el.ftEarlyStop?.addEventListener("change", onCh);
+  el.form?.querySelector('[name="ft_early_stop"]')?.addEventListener("change", onCh);
+}
+bindFtAdvancedUi();
+syncFtAdvancedUi();
+
+el.ftLeaveNext?.addEventListener("change", () => {
+  applyLeaveNextFtSelection();
+  updateFtRampHint();
+  updateReplayAdvice("panel");
+});
+
+el.btnFtStart?.addEventListener("click", () => {
+  const mode = document.querySelector('input[name="ft_mode"]:checked')?.value;
+  if (mode !== "run") {
+    if (el.ftStatus) el.ftStatus.textContent = "已跳过微调";
+    return;
+  }
+  const leaveNext = Boolean(el.ftLeaveNext?.checked) && Boolean(activeSimMode);
+  const paths = collectFtSessionPaths();
+  if (!leaveNext && !paths.length) {
+    alert("请至少勾选一个 session");
+    return;
+  }
+  if (leaveNext && !activeCampaign?.manifest_path) {
+    alert("Leave-Next 需要先选择 Campaign");
+    return;
+  }
+  const evalRun = resolveFtEvalRunId();
+  if (leaveNext && !evalRun) {
+    alert("Leave-Next 无法确定 eval run（请确认刚结束的 session 或 run_id）");
+    return;
+  }
+  if (leaveNext && activeCampaign?.session_queue) {
+    const q = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
+    const rStage = q.indexOf(evalRun);
+    if (rStage === 0) {
+      alert("R0 仅底座评估，不 FT（Leave-Next：eval 之前无 train session）");
+      return;
+    }
+    if (rStage < 0) {
+      alert(`eval run ${evalRun} 不在 Campaign 队列`);
+      return;
+    }
+  }
+  const ftRep = readFtReplayOptions(null);
+  const ftAdv = readFtAdvancedOptions();
+  send({
+    type: "finetune_start",
+    subject_id: activeSubject,
+    session_paths: paths,
+    exclude_invalid: Boolean(el.ftExcludeInvalid?.checked),
+    use_replay: ftRep.use_replay,
+    no_replay: !ftRep.use_replay,
+    replay_ratio: ftRep.replay_ratio,
+    early_stop: ftAdv.early_stop,
+    max_epochs: ftAdv.max_epochs,
+    patience: ftAdv.patience,
+    epochs: ftAdv.fixed_epochs,
+    deterministic: ftAdv.deterministic,
+    seed: ftAdv.seed,
+    leave_next_mode: leaveNext,
+    eval_run_id: leaveNext ? evalRun : null,
+    campaign_manifest: leaveNext ? activeCampaign?.manifest_path || null : null,
+    use_ramp_replay_defaults: leaveNext,
+  });
+});
+
+el.btnFtPromote?.addEventListener("click", () => {
+  if (!lastFtRunDir) return;
+  send({
+    type: "finetune_promote",
+    subject_id: activeSubject,
+    ft_run_dir: lastFtRunDir,
+    reason: "operator_summary_confirm",
+  });
+});
+
+el.btnFtKeep?.addEventListener("click", () => {
+  if (el.ftStatus) el.ftStatus.textContent = "已保留旧 current；FT 快照仍在 ft_runs";
+  if (el.btnFtPromote) el.btnFtPromote.classList.add("hidden");
+  if (el.btnFtKeep) el.btnFtKeep.classList.add("hidden");
+});
+
+el.btnNextSession?.addEventListener("click", () => {
+  if (ftBusy) {
+    alert("微调进行中，请稍候");
+    return;
+  }
+  starting = false;
+  resetRunView();
+  lockedConfig = null;
+  sessionRoot = "";
+  resetFtPanel();
+  if (activeSimMode) {
+    refreshSimRunSuggestion();
+  } else if (activeSubjectInfo?.suggest_session_id && el.setupSessionId) {
+    el.setupSessionId.value = activeSubjectInfo.suggest_session_id;
+  }
+  showView("setup");
 });
 
 window.addEventListener("keydown", (e) => {
@@ -2281,9 +4219,26 @@ window.addEventListener("keydown", (e) => {
   }
 });
 
-const hash = (location.hash || "#setup").replace("#", "");
-showView(["setup", "run", "summary"].includes(hash) ? hash : "setup");
+for (const prefix of ["v2", "v3"]) {
+  document.getElementById(`${prefix}-votes-prev`)?.addEventListener("click", () => {
+    navigateVoteHistory(prefix, -1);
+  });
+  document.getElementById(`${prefix}-votes-next`)?.addEventListener("click", () => {
+    navigateVoteHistory(prefix, 1);
+  });
+  bindVoteHistorySwipe(prefix);
+}
+
+const hash = (location.hash || "").replace("#", "");
+const views = ["login", "setup", "run", "summary"];
+if (hash && views.includes(hash) && hash !== "login") {
+  showView(hash);
+} else if (!loadSubjectLoginLocal()) {
+  showView("login");
+}
 syncAcqUi();
-syncPhaseModeUi();
+syncWorkModeUi();
+syncFtReplayRatioUi();
+updateReplayAdvice("setup", { autoApply: false });
 renderSetupTimeline();
 connect();

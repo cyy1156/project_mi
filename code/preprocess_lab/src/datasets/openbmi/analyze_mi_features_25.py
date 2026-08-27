@@ -45,7 +45,8 @@ from src.datasets.openbmi.load_mat import load_openbmi_mat, parse_sess_subj, sub
 CHANS = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]
 IX = {n: i for i, n in enumerate(CHANS)}
 FS_OUT = 250.0
-MAT_GLOB = Path(r"D:/cyy/MI/DATA/openbmi/openbmi/openbmi")
+# 原始 mat：{REPO}/DATA/openbmi/sess*_subj*_EEG_MI.mat（与 batch_3s_hop100 一致）
+MAT_GLOB = REPO / "DATA" / "openbmi"
 
 STANDARDS = {
     "name": "OpenBMI_MI_feature_v2_hop100",

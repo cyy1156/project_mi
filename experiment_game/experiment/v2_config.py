@@ -26,6 +26,8 @@ PROTOCOL_LOCKED_ALLOW: Set[str] = {
     "trials_per_round",
     "ft_trials_per_round",
     "quiz_trials_per_round",
+    "s3_task_ckpt",
+    "s3_three_ckpt",
 }
 
 
@@ -51,13 +53,14 @@ def _load_yaml_raw(path: Path) -> Dict[str, Any]:
         return _fallback_parse(path)
 
 
-def _build_judgment_times(step_s: float, imagine_s: float) -> Tuple[float, ...]:
-    out = []
-    t = float(step_s)
-    while t <= float(imagine_s) + 1e-9:
-        out.append(round(t, 6))
-        t += float(step_s)
-    return tuple(out)
+from experiment_game.experiment.openbmi_align_config import (
+    BASELINE_BEFORE_CUE_S,
+    HOP_S,
+    MI_TASK_SEC_DEFAULT,
+    ONLINE_WINDOW_MODE_OPENBMI,
+    WIN_S,
+    rebuild_judgment_times,
+)
 
 
 @dataclass
@@ -78,27 +81,25 @@ class V2Config:
     game_rounds_max: int = 3
     game_trials_per_round: int = 16
     judgment_times: tuple = field(default_factory=tuple)
-    arm_levels: int = 4  # 遗留；D8 用 score_early_stop
 
-    # D8 · v2.1 在线判定
-    judgment_step_s: float = 0.6
-    judgment_half_weight_until_s: float = 2.4
-    score_early_stop: float = 5.0
-    score_invalid_max: float = 3.0
-    score_valid_min: float = 4.0
-    wrong_class_abort: float = 5.0
-    consecutive_invalid_abort: int = 5
+    primary_judge_mode: str = "majority"
     ft_min_valid_trials: int = 6
 
     group_lr: float = 1e-4
-    replay_ratio: float = 0.15
+    replay_ratio: float = 0.10
     drift_patience: int = 2
-    task_p_on: float = 0.6
+    # 0 = 关闭串行门控，three 头预测一律采用
+    task_p_on: float = 0.0
 
     prep_s: float = 2.0
-    cue_s: float = 2.0
-    imagine_s: float = 6.0
+    cue_s: float = 0.0
+    imagine_s: float = MI_TASK_SEC_DEFAULT
     iti_s: float = 3.0
+    inter_trial_rest_s: float = 4.0
+    online_window_mode: str = ONLINE_WINDOW_MODE_OPENBMI
+    win_s: float = WIN_S
+    win_hop_s: float = HOP_S
+    baseline_before_cue_s: float = BASELINE_BEFORE_CUE_S
 
     ft_epochs: int = 5
     ft_batch_size: int = 32
@@ -107,14 +108,18 @@ class V2Config:
     s3_task_ckpt: str = ""
     s3_three_ckpt: str = ""
 
-    # 信号质量门控（空帽/断线/饱和 → 不计分、不进 FT）
-    signal_quality_enabled: bool = True
-    signal_min_median_std_uv: float = 3.0
-    signal_min_peak_to_peak_uv: float = 8.0
-    signal_max_peak_uv: float = 1000.0
-    signal_min_per_channel_std_uv: float = 2.0
-    signal_min_active_channels: int = 3
-    signal_max_channel_std_ratio: float = 20.0
+    # 关闭信号质量门控：所有判定窗进入模型
+    signal_quality_enabled: bool = False
+    signal_min_median_std_uv: float = 0.0
+    signal_min_peak_to_peak_uv: float = 0.0
+    signal_max_peak_uv: float = 1.0e9
+    signal_min_per_channel_std_uv: float = 0.0
+    signal_min_active_channels: int = 0
+    signal_max_channel_std_ratio: float = 1.0e9
+    signal_max_median_std_uv: float = 1.0e9
+    signal_max_ptp_uv: float = 1.0e9
+    signal_min_car_std_uv: float = 0.0
+    signal_max_common_mode_ratio: float = 1.0e9
 
     def signal_quality_config(self):
         from experiment_game.experiment.signal_quality import SignalQualityConfig
@@ -127,18 +132,10 @@ class V2Config:
             min_per_channel_std_uv=self.signal_min_per_channel_std_uv,
             min_active_channels=self.signal_min_active_channels,
             max_channel_std_ratio=self.signal_max_channel_std_ratio,
-        )
-
-    def scoring_config(self):
-        from adapt_engine.scoring_v21 import ScoringConfig
-        return ScoringConfig(
-            judgment_step_s=self.judgment_step_s,
-            judgment_half_weight_until_s=self.judgment_half_weight_until_s,
-            imagine_s=self.imagine_s,
-            score_early_stop=self.score_early_stop,
-            score_invalid_max=self.score_invalid_max,
-            score_valid_min=self.score_valid_min,
-            wrong_class_abort=self.wrong_class_abort,
+            max_median_std_uv=self.signal_max_median_std_uv,
+            max_ptp_uv=self.signal_max_ptp_uv,
+            min_car_std_uv=self.signal_min_car_std_uv,
+            max_common_mode_ratio=self.signal_max_common_mode_ratio,
         )
 
     def to_dict(self) -> Dict[str, Any]:
@@ -147,7 +144,9 @@ class V2Config:
         return d
 
     def trial_total_s(self) -> float:
-        return float(self.prep_s + self.cue_s + self.imagine_s + self.iti_s)
+        return float(
+            self.prep_s + self.cue_s + self.imagine_s + self.iti_s + self.inter_trial_rest_s
+        )
 
     def apply_overrides(
         self,
@@ -185,7 +184,7 @@ class V2Config:
     def verify_errors(self) -> List[str]:
         """范围校验，返回错误文案（空=通过）。不抛异常。"""
         errs: List[str] = []
-        self.judgment_times = _build_judgment_times(self.judgment_step_s, self.imagine_s)
+        rebuild_judgment_times(self)
         if self.ft_trials_per_round + self.quiz_trials_per_round != self.trials_per_round:
             errs.append(
                 f"ft({self.ft_trials_per_round})+quiz({self.quiz_trials_per_round})"
@@ -202,26 +201,22 @@ class V2Config:
                 f"game_rounds={self.game_rounds} 须在 "
                 f"[{self.game_rounds_min}, {self.game_rounds_max}]"
             )
-        if self.judgment_step_s <= 0:
-            errs.append("judgment_step_s 须 > 0")
-        if self.score_valid_min <= self.score_invalid_max:
-            errs.append("score_valid_min 须 > score_invalid_max")
         if not (0.0 < self.gate_enter_three <= 1.0):
             errs.append("gate_enter_three 须在 (0, 1]")
         if not (1e-6 <= self.group_lr <= 1e-2):
             errs.append("group_lr 须在 [1e-6, 1e-2]（推荐 1e-4）")
         if not (0.0 <= self.replay_ratio <= 0.5):
             errs.append("replay_ratio 须在 [0, 0.5]")
-        if self.prep_s < 0.5 or self.cue_s < 0.5 or self.imagine_s < 1.0 or self.iti_s < 0.5:
-            errs.append("时序过短：prep/cue≥0.5s、MI≥1s、ITI≥0.5s")
+        if self.prep_s < 0 or self.cue_s < 0 or self.imagine_s < 1.0 or self.iti_s < 0:
+            errs.append("时序无效：prep/cue/iti≥0、MI≥1s")
+        if self.inter_trial_rest_s < 0 or self.inter_trial_rest_s > 10:
+            errs.append("inter_trial_rest_s 须在 0–10")
         if self.trial_total_s() > 20.0:
-            errs.append(f"单 trial 合计 {self.trial_total_s():.1f}s 过长（建议 ≤13s）")
+            errs.append(f"单 trial 合计 {self.trial_total_s():.1f}s 过长（建议 ≤15s）")
         if self.ft_epochs < 1 or self.ft_epochs > 50:
             errs.append("ft_epochs 须在 1–50")
         if self.ft_batch_size < 1 or self.ft_batch_size > 256:
             errs.append("ft_batch_size 须在 1–256")
-        if self.consecutive_invalid_abort < 1:
-            errs.append("consecutive_invalid_abort 须 ≥ 1")
         return errs
 
     def verify(self) -> None:
@@ -238,6 +233,7 @@ class V2Config:
             _apply_yaml_dict(cfg, _load_yaml_raw(_PROD_CONFIG_PATH))
         if p.is_file():
             _apply_yaml_dict(cfg, _load_yaml_raw(p))
+        rebuild_judgment_times(cfg)
         cfg.verify()
         return cfg
 

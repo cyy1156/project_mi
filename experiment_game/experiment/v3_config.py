@@ -14,6 +14,8 @@ PROTOCOL_LOCKED_ALLOW: Set[str] = {
     "trials_per_block",
     "baseline_rest_s",
     "block_gap_s",
+    "s3_task_ckpt",
+    "s3_three_ckpt",
 }
 
 
@@ -42,41 +44,49 @@ def _load_yaml_raw(path: Path) -> Dict[str, Any]:
         return {}
 
 
-def _build_judgment_times(step_s: float, imagine_s: float) -> Tuple[float, ...]:
-    out = []
-    t = float(step_s)
-    while t <= float(imagine_s) + 1e-9:
-        out.append(round(t, 6))
-        t += float(step_s)
-    return tuple(out)
+from experiment_game.experiment.openbmi_align_config import (  # noqa: E402
+    BASELINE_BEFORE_CUE_S,
+    HOP_S,
+    MI_TASK_SEC_DEFAULT,
+    ONLINE_WINDOW_MODE_D8,
+    ONLINE_WINDOW_MODE_OPENBMI,
+    WIN_S,
+    build_d8_judgment_times,
+    build_openbmi_judgment_times,
+    rebuild_judgment_times,
+)
 
 
 @dataclass
 class V3Config:
     blocks: int = 2
     trials_per_block: int = 18
-    baseline_rest_s: float = 60.0
+    baseline_rest_s: float = 30.0
     block_gap_s: float = 90.0
     guidance_timeout_s: float = 600.0
 
-    judgment_step_s: float = 0.6
-    judgment_half_weight_until_s: float = 2.4
-    score_early_stop: float = 5.0
-    score_invalid_max: float = 3.0
-    score_valid_min: float = 4.0
-    wrong_class_abort: float = 5.0
     primary_judge_s: float = 4.0
+    primary_judge_mode: str = "majority"
     judgment_times: tuple = field(default_factory=tuple)
+
+    # 在线取窗：openbmi_hop100 = 与离线 preprocess 同构（3s/hop100 + Cue−0.5s 基线）
+    online_window_mode: str = ONLINE_WINDOW_MODE_OPENBMI
+    win_s: float = WIN_S
+    win_hop_s: float = HOP_S
+    baseline_before_cue_s: float = BASELINE_BEFORE_CUE_S
 
     mu_hz: tuple = (8.0, 13.0)
     beta_l_hz: tuple = (13.0, 20.0)
     beta_h_hz: tuple = (20.0, 30.0)
 
     prep_s: float = 2.0
-    cue_s: float = 2.0
-    imagine_s: float = 6.0
+    cue_s: float = 0.0
+    imagine_s: float = 4.0
     iti_s: float = 3.0
-    task_p_on: float = 0.6
+    inter_trial_rest_s: float = 4.0
+    forward_window: bool = True
+    # 0 = 关闭串行门控，three 头预测一律采用
+    task_p_on: float = 0.0
 
     eeg_frame_interval_s: float = 0.3
     eeg_frame_window_s: float = 2.5
@@ -85,17 +95,18 @@ class V3Config:
     s3_task_ckpt: str = ""
     s3_three_ckpt: str = ""
 
-    signal_quality_enabled: bool = True
-    signal_min_median_std_uv: float = 3.0
-    signal_min_peak_to_peak_uv: float = 8.0
-    signal_max_peak_uv: float = 1000.0
-    signal_min_per_channel_std_uv: float = 2.0
-    signal_min_active_channels: int = 3
-    signal_max_channel_std_ratio: float = 20.0
-    signal_max_median_std_uv: float = 60.0
-    signal_max_ptp_uv: float = 400.0
-    signal_min_car_std_uv: float = 2.0
-    signal_max_common_mode_ratio: float = 0.85
+    # 关闭信号质量门控：所有判定窗进入模型
+    signal_quality_enabled: bool = False
+    signal_min_median_std_uv: float = 0.0
+    signal_min_peak_to_peak_uv: float = 0.0
+    signal_max_peak_uv: float = 1.0e9
+    signal_min_per_channel_std_uv: float = 0.0
+    signal_min_active_channels: int = 0
+    signal_max_channel_std_ratio: float = 1.0e9
+    signal_max_median_std_uv: float = 1.0e9
+    signal_max_ptp_uv: float = 1.0e9
+    signal_min_car_std_uv: float = 0.0
+    signal_max_common_mode_ratio: float = 1.0e9
 
     def signal_quality_config(self):
         from experiment_game.experiment.signal_quality import SignalQualityConfig
@@ -112,19 +123,6 @@ class V3Config:
             max_ptp_uv=self.signal_max_ptp_uv,
             min_car_std_uv=self.signal_min_car_std_uv,
             max_common_mode_ratio=self.signal_max_common_mode_ratio,
-        )
-
-    def scoring_config(self):
-        from adapt_engine.scoring_v21 import ScoringConfig
-
-        return ScoringConfig(
-            judgment_step_s=self.judgment_step_s,
-            judgment_half_weight_until_s=self.judgment_half_weight_until_s,
-            imagine_s=self.imagine_s,
-            score_early_stop=self.score_early_stop,
-            score_invalid_max=self.score_invalid_max,
-            score_valid_min=self.score_valid_min,
-            wrong_class_abort=self.wrong_class_abort,
         )
 
     def standards(self) -> Dict[str, Any]:
@@ -150,7 +148,9 @@ class V3Config:
         return d
 
     def trial_total_s(self) -> float:
-        return float(self.prep_s + self.cue_s + self.imagine_s + self.iti_s)
+        return float(
+            self.prep_s + self.cue_s + self.imagine_s + self.iti_s + self.inter_trial_rest_s
+        )
 
     def apply_overrides(
         self,
@@ -188,7 +188,7 @@ class V3Config:
 
     def verify_errors(self) -> List[str]:
         errs: List[str] = []
-        self.judgment_times = _build_judgment_times(self.judgment_step_s, self.imagine_s)
+        rebuild_judgment_times(self)
         if self.blocks < 1 or self.blocks > 4:
             errs.append("blocks 须在 1–4")
         if self.trials_per_block < 6 or self.trials_per_block > 36:
@@ -197,8 +197,10 @@ class V3Config:
             errs.append("baseline_rest_s 须在 10–300")
         if self.block_gap_s < 30 or self.block_gap_s > 300:
             errs.append("block_gap_s 须在 30–300")
-        if self.prep_s < 0.5 or self.cue_s < 0.5 or self.imagine_s < 1.0 or self.iti_s < 0.5:
-            errs.append("时序过短：prep/cue≥0.5s、MI≥1s、ITI≥0.5s")
+        if self.prep_s < 0 or self.cue_s < 0 or self.imagine_s < 1.0 or self.iti_s < 0:
+            errs.append("时序无效：prep/cue/iti≥0、MI≥1s")
+        if self.inter_trial_rest_s < 0 or self.inter_trial_rest_s > 10:
+            errs.append("inter_trial_rest_s 须在 0–10")
         task = Path(__file__).resolve().parents[2] / self.s3_task_ckpt
         three = Path(__file__).resolve().parents[2] / self.s3_three_ckpt
         if not task.is_file():
@@ -214,5 +216,5 @@ class V3Config:
         if p.resolve() != _PROD_CONFIG_PATH.resolve() and _PROD_CONFIG_PATH.is_file():
             _apply_yaml_dict(cfg, _load_yaml_raw(_PROD_CONFIG_PATH))
         _apply_yaml_dict(cfg, _load_yaml_raw(p))
-        cfg.judgment_times = _build_judgment_times(cfg.judgment_step_s, cfg.imagine_s)
+        rebuild_judgment_times(cfg)
         return cfg

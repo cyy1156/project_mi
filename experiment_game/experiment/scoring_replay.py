@@ -1,4 +1,4 @@
-"""从 events.jsonl 离线回放 D8 计分（与在线 trial_v2 同规则）。
+"""MI 多数票离线回放（与在线 trial_v2 / MiTrialTracker 同规则）。
 
 用法：
   python -m experiment_game.experiment.scoring_replay path/to/events.jsonl
@@ -8,16 +8,10 @@ from __future__ import annotations
 
 import argparse
 import json
-import sys
 from pathlib import Path
 from typing import Dict, List, Optional
 
-_ROOT = Path(__file__).resolve().parents[2]
-if str(_ROOT / "code") not in sys.path:
-    sys.path.insert(0, str(_ROOT / "code"))
-
-from adapt_engine.scoring_v21 import ScoringConfig, score_trial_from_judgments  # noqa: E402
-from experiment_game.experiment.v2_config import V2Config  # noqa: E402
+from experiment_game.experiment.trial_scoring import MiTrialTracker
 
 
 def load_judge_rows(events_path: Path) -> Dict[int, List[dict]]:
@@ -29,41 +23,43 @@ def load_judge_rows(events_path: Path) -> Dict[int, List[dict]]:
         row = json.loads(line)
         if row.get("event") != "judge":
             continue
+        if row.get("signal_bad"):
+            by_trial.setdefault(int(row["trial_id"]), []).append({"signal_bad": True})
+            continue
         tid = int(row["trial_id"])
         by_trial.setdefault(tid, []).append({
-            "t": float(row.get("t_rel", 0.0)),
+            "t_rel": float(row.get("t_rel", 0.0)),
             "pred": int(row.get("pred", 0)),
-            "p_max": row.get("p_max"),
-            "gated": row.get("gated"),
+            "p_max": float(row.get("p_max", 0.0)),
+            "gated": bool(row.get("gated", False)),
+            "p_three": row.get("p_three"),
+            "win_start_rel": row.get("win_start_rel"),
+            "win_end_rel": row.get("win_end_rel"),
         })
     for tid in by_trial:
-        by_trial[tid].sort(key=lambda x: x["t"])
+        by_trial[tid].sort(key=lambda x: x.get("t_rel", 0.0))
     return by_trial
 
 
-def replay_trial(
-    trial_id: int,
-    label: int,
-    judgments: List[dict],
-    cfg: ScoringConfig,
-    *,
-    ended_early: bool = False,
-    end_reason: Optional[str] = None,
-) -> dict:
-    verdict = score_trial_from_judgments(
-        label, judgments, cfg, ended_early=ended_early, end_reason=end_reason
-    )
-    out = verdict.to_dict()
+def replay_trial(trial_id: int, label: int, judgments: List[dict]) -> dict:
+    tracker = MiTrialTracker(label)
+    signal_bad_ticks = 0
+    good_ticks = 0
+    for j in judgments:
+        if j.get("signal_bad"):
+            signal_bad_ticks += 1
+            continue
+        good_ticks += 1
+        tracker.add_window(float(j.get("t_rel", 0.0)), j)
+    signal_bad_trial = bool(good_ticks == 0 and signal_bad_ticks > 0)
+    out = tracker.finalize(signal_bad_trial=signal_bad_trial)
     out["trial_id"] = trial_id
     return out
 
 
-def replay_session(events_path: Path, config_path: Optional[str] = None) -> List[dict]:
-    v2cfg = V2Config.load_yaml(config_path)
-    sc = v2cfg.scoring_config()
+def replay_session(events_path: Path) -> List[dict]:
     judges = load_judge_rows(events_path)
     labels: Dict[int, int] = {}
-    mi_ends: Dict[int, dict] = {}
     for line in events_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
@@ -75,40 +71,30 @@ def replay_session(events_path: Path, config_path: Optional[str] = None) -> List
         tid = int(tid)
         if ev in ("trial_start", "cue") and "label" in row:
             labels[tid] = int(row["label"])
-        if ev == "mi_end":
-            mi_ends[tid] = {
-                "early": bool(row.get("early", False)),
-                "reason": row.get("reason"),
-            }
 
     results = []
     for tid, jrows in sorted(judges.items()):
         lab = labels.get(tid)
         if lab is None:
             continue
-        end = mi_ends.get(tid, {})
-        results.append(replay_trial(
-            tid, lab, jrows, sc,
-            ended_early=bool(end.get("early")),
-            end_reason=end.get("reason"),
-        ))
+        results.append(replay_trial(tid, lab, jrows))
     return results
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description="D8 离线计分回放")
+    ap = argparse.ArgumentParser(description="MI 多数票离线计分回放")
     ap.add_argument("events_jsonl")
-    ap.add_argument("--config", default=None, help="v2_session.yaml 路径")
     args = ap.parse_args()
     path = Path(args.events_jsonl)
-    rows = replay_session(path, args.config)
+    rows = replay_session(path)
     n_valid = sum(1 for r in rows if r.get("valid"))
-    print(f"{path.name}: {len(rows)} trials, valid={n_valid}")
+    n_correct = sum(1 for r in rows if r.get("correct"))
+    print(f"{path.name}: {len(rows)} trials, valid={n_valid}, correct={n_correct}")
     for r in rows:
         print(
-            f"  trial {r['trial_id']:3d}  score={r['score']:.1f}  "
-            f"valid={r['valid']}  early={r['early_stop']}  "
-            f"reason={r.get('invalid_reason') or r.get('early_stop_reason') or '-'}"
+            f"  trial {r['trial_id']:3d}  score={r['score']:.0f}  "
+            f"valid={r['valid']}  correct={r.get('correct')}  "
+            f"pred={r.get('pred')}  reason={r.get('invalid_reason') or '-'}"
         )
     return 0
 

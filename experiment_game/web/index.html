@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>MI 诱导 · Phase 3</title>
-  <link rel="stylesheet" href="./css/style.css?v=20260824p1" />
+  <title>MI 诱导 · 被试屏</title>
+  <link rel="stylesheet" href="./css/style.css?v=20260825mode1" />
 </head>
 <body>
   <div id="app">
@@ -59,10 +59,14 @@
       <div class="offline-card">
         <h1>未连接到实验服务</h1>
         <p>
-          请先双击运行 <code>experiment_game\open_induction.bat</code>，
-          保持黑色命令窗口不要关闭，再刷新本页。
+          请先双击运行 <code>experiment_game\open_operator.bat</code>（操作台），
+          保持黑色命令窗口不要关闭，再打开或刷新本页
+          （<code>http://127.0.0.1:8080/</code>）。
         </p>
-        <p class="offline-note">本页是「观看诱导」，不会用按键直接操控双手。</p>
+        <p class="offline-note">
+          不要单独用 <code>open_induction.bat</code> 起实验——它只会打开本页，
+          真正的 v2/v3/v4 流程在操作台选择后开始。
+        </p>
       </div>
     </div>
     <div id="helpbar">
@@ -77,6 +81,6 @@
     }
   }
   </script>
-  <script type="module" src="./js/main.js?v=20260824prompt3"></script>
+  <script type="module" src="./js/main.js?v=20260827m"></script>
 </body>
 </html>

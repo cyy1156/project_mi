@@ -417,6 +417,9 @@ export class HomeDeskScene {
     this._v2ProgressEl = null;
     this._v2IdleEl = null;
     this._v2GameLabel = 0;
+    this._v2ArmLevel = 0;
+    this._v2ArmLevelTarget = 0;
+    this._v2LastT = 0;
 
     this.renderer = new THREE.WebGLRenderer({
       canvas,
@@ -1118,11 +1121,45 @@ export class HomeDeskScene {
       this._lerpArmPose(arm, rest, soft, Math.min(1, t));
       setGrasp(arm, 0);
       this._resetCup();
+    } else if (mode === "v2_grasp") {
+      // 满分：抓住杯子并略抬起（不侧移取走）
+      const reach = this._poseReach(side);
+      const lift = this._poseLift(side);
+      if (u < 0.3) {
+        this._setArmPose(arm, reach);
+        setGrasp(arm, u / 0.3);
+        this._attachCupToHand(arm);
+      } else if (u < 0.7) {
+        const t2 = (u - 0.3) / 0.4;
+        this._lerpArmPose(arm, reach, lift, t2);
+        setGrasp(arm, 1);
+      } else {
+        this._setArmPose(arm, lift);
+        setGrasp(arm, 1);
+      }
     }
+  }
+
+  _applyV2ArmLevel(arm, side, level01) {
+    const rest = { pos: arm.userData.rest.pos, rot: arm.userData.rest.rot };
+    const deep = this._poseReach(side);
+    const t = Math.max(0, Math.min(1, level01));
+    // 档位 0 也略微前伸，避免「完全不动」看不出启动
+    const reachT = t <= 0 ? 0.06 : 0.12 + t * 0.88;
+    arm.position.lerpVectors(rest.pos, deep.pos, reachT);
+    arm.rotation.set(
+      THREE.MathUtils.lerp(rest.rot.x, deep.rot.x, reachT),
+      THREE.MathUtils.lerp(rest.rot.y, deep.rot.y, reachT),
+      THREE.MathUtils.lerp(rest.rot.z, deep.rot.z, reachT)
+    );
+    setGrasp(arm, Math.min(0.55, t * 0.45));
+    if (!this.cup.userData.held) this._resetCup();
   }
 
   update() {
     const t = this.clock.getElapsedTime();
+    const dt = this._v2LastT > 0 ? Math.min(0.05, Math.max(0, t - this._v2LastT)) : 0.016;
+    this._v2LastT = t;
 
     if (this.cup.userData.highlight && !this.cup.userData.held) {
       const s = 1 + Math.sin(t * 6) * 0.03;
@@ -1131,7 +1168,20 @@ export class HomeDeskScene {
       this.cup.scale.setScalar(1);
     }
 
-    if (this.anim !== "none" && this.handSide !== "none") {
+    if (this.anim === "v2_level" && this.handSide !== "none") {
+      const target = Math.max(this._v2ArmLevelTarget || 0, this._v2ArmLevel || 0);
+      this._v2ArmLevelTarget = target;
+      const tau = 0.22;
+      const k = 1 - Math.exp(-dt / tau);
+      this._v2ArmLevel += (target - this._v2ArmLevel) * k;
+      const hand = this.handSide === "left" ? this.handL : this.handR;
+      const other = this.handSide === "left" ? this.handR : this.handL;
+      other.position.copy(other.userData.rest.pos);
+      other.rotation.copy(other.userData.rest.rot);
+      setGrasp(other, 0);
+      this._applyV2ArmLevel(hand, this.handSide, this._v2ArmLevel);
+      this._animProgress = this._v2ArmLevel;
+    } else if (this.anim !== "none" && this.handSide !== "none") {
       const u = Math.min(1, (t - this.animT0) / this.animDur);
       const hand = this.handSide === "left" ? this.handL : this.handR;
       const other = this.handSide === "left" ? this.handR : this.handL;
@@ -1186,6 +1236,8 @@ export class HomeDeskScene {
   v2Fixation() {
     this.handSide = "none";
     this.anim = "none";
+    this._v2ArmLevel = 0;
+    this._v2ArmLevelTarget = 0;
     this._resetHands();
     this._resetCup();
     this.setHudHighlight(false);
@@ -1197,24 +1249,20 @@ export class HomeDeskScene {
 
   v2Cue(label) {
     this._v2GameLabel = Number(label) || 0;
+    this._v2ArmLevel = 0;
+    this._v2ArmLevelTarget = 0;
     this._v2ProgressEl?.remove();
     this._v2ProgressEl = null;
     this._v2IdleEl?.remove();
     this._v2IdleEl = null;
-    if (label === 1) {
-      this.handSide = "left";
-      this.anim = "full_grasp";
-      this.animT0 = this.clock.getElapsedTime();
-      this.animDur = 2;
-      this.setHudHighlight(true);
-      if (!this.cup.userData.held) this._resetCup();
-    } else if (label === 2) {
-      this.handSide = "right";
-      this.anim = "reach";
-      this.animT0 = this.clock.getElapsedTime();
-      this.animDur = 2;
-      this.setHudHighlight(true);
+    // cue 仅提示侧别与杯子高亮，不按得分伸出（得分由 judge 驱动）
+    if (label === 1 || label === 2) {
+      this.handSide = label === 2 ? "right" : "left";
+      this.anim = "none";
+      this._resetHands();
       this._resetCup();
+      this.setHudHighlight(true);
+      this.cup.userData.highlight = true;
     } else {
       this.v2Fixation();
     }
@@ -1242,31 +1290,33 @@ export class HomeDeskScene {
 
   v2GameLevel(level, reach) {
     const label = this._v2GameLabel;
+    if (!label || label === 0) {
+      this.v2Fixation();
+      return;
+    }
     const side = label === 2 ? "right" : "left";
     this.handSide = side;
     this.setHudHighlight(true);
+    this.cup.userData.highlight = true;
+    this._v2ProgressEl?.remove();
+    this._v2ProgressEl = null;
+
     if (reach) {
-      this.anim = "full_grasp";
-      this.animT0 = this.clock.getElapsedTime() - this.animDur * 0.35;
-      this.animDur = 2.2;
-      this.cup.userData.highlight = true;
+      this._v2ArmLevelTarget = 1;
+      this._v2ArmLevel = Math.max(this._v2ArmLevel || 0, 0.85);
+      this.anim = "v2_grasp";
+      this.animT0 = this.clock.getElapsedTime();
+      this.animDur = 1.0;
       return;
     }
+
     const lv = Math.max(0, Math.min(4, Number(level) || 0));
-    this.anim = "reach";
-    this.animT0 = this.clock.getElapsedTime();
-    this.animDur = 0.9;
-    const arm = side === "left" ? this.handL : this.handR;
-    const rest = { pos: arm.userData.rest.pos, rot: arm.userData.rest.rot };
-    const deep = this._poseReach(side);
-    const t = lv / 4;
-    arm.position.lerpVectors(rest.pos, deep.pos, t * 0.55 + 0.15);
-    arm.rotation.set(
-      THREE.MathUtils.lerp(rest.rot.x, deep.rot.x, t),
-      THREE.MathUtils.lerp(rest.rot.y, deep.rot.y, t),
-      THREE.MathUtils.lerp(rest.rot.z, deep.rot.z, t)
-    );
-    setGrasp(arm, Math.min(1, t * 0.5));
+    const target = lv / 4;
+    // 同试次只前进不回缩
+    this._v2ArmLevelTarget = Math.max(this._v2ArmLevelTarget || 0, target);
+    if (this.anim !== "v2_grasp") {
+      this.anim = "v2_level";
+    }
   }
 
   v2Iti() {
@@ -1284,6 +1334,8 @@ export class HomeDeskScene {
     this._v2IdleEl = null;
     this.handSide = "none";
     this.anim = "none";
+    this._v2ArmLevel = 0;
+    this._v2ArmLevelTarget = 0;
     this._resetHands();
     this._resetCup();
     this.setHudHighlight(false);

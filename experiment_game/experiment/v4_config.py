@@ -36,20 +36,43 @@ class V4Config:
     lsl_timeout_s: float = 8.0
 
     channel_labels: Tuple[str, ...] = tuple(CHANNEL_ORDER)
+    scoring_channels: Tuple[str, ...] = ("C3", "C4", "CP3", "FC4", "FC3", "CP4")
+    unused_channels: Tuple[str, ...] = ("Cz", "CPz")
+    unused_allow_rail: bool = True
     fs: int = 250
 
     signal_quality_enabled: bool = True
-    signal_min_median_std_uv: float = 3.0
-    signal_max_median_std_uv: float = 60.0
-    signal_min_peak_to_peak_uv: float = 8.0
-    signal_max_ptp_uv: float = 400.0
-    signal_max_peak_uv: float = 1000.0
-    signal_min_per_channel_std_uv: float = 2.0
-    signal_max_per_channel_std_uv: float = 60.0
-    signal_min_active_channels: int = 6
-    signal_max_channel_std_ratio: float = 20.0
-    signal_min_car_std_uv: float = 2.0
-    signal_max_common_mode_ratio: float = 0.85
+    signal_min_median_std_uv: float = 0.50
+    signal_max_median_std_uv: float = 8.0
+    signal_min_peak_to_peak_uv: float = 0.0
+    signal_max_ptp_uv: float = 600.0
+    signal_max_peak_uv: float = 600.0
+    signal_min_per_channel_std_uv: float = 0.40
+    signal_max_per_channel_std_uv: float = 150.0
+    signal_min_active_channels: int = 5
+    signal_max_channel_std_ratio: float = 3.0
+    signal_min_car_std_uv: float = 0.10
+    signal_max_common_mode_ratio: float = 1.45
+
+    def _label_indices(self, labels: Tuple[str, ...]) -> Tuple[int, ...]:
+        idx: List[int] = []
+        for name in labels:
+            key = str(name)
+            for i, ch in enumerate(self.channel_labels):
+                if ch.upper() == key.upper():
+                    idx.append(i)
+                    break
+            else:
+                raise ValueError(f"通道 {name} 不在 channel_labels {self.channel_labels}")
+        return tuple(idx)
+
+    def scoring_indices(self) -> Tuple[int, ...]:
+        return self._label_indices(self.scoring_channels)
+
+    def unused_indices(self) -> Tuple[int, ...]:
+        if not self.unused_channels:
+            return ()
+        return self._label_indices(self.unused_channels)
 
     def signal_quality_config(self):
         from experiment_game.experiment.signal_quality import SignalQualityConfig
@@ -67,11 +90,16 @@ class V4Config:
             min_car_std_uv=self.signal_min_car_std_uv,
             max_common_mode_ratio=self.signal_max_common_mode_ratio,
             max_per_channel_std_uv=self.signal_max_per_channel_std_uv,
+            scoring_channel_indices=self.scoring_indices(),
+            unused_channel_indices=self.unused_indices(),
+            unused_allow_rail=self.unused_allow_rail,
         )
 
     def to_dict(self) -> Dict[str, Any]:
         d = asdict(self)
         d["channel_labels"] = list(self.channel_labels)
+        d["scoring_channels"] = list(self.scoring_channels)
+        d["unused_channels"] = list(self.unused_channels)
         return d
 
     def apply_overrides(self, overrides: Optional[Dict[str, Any]]) -> List[str]:
@@ -111,8 +139,11 @@ class V4Config:
             errs.append("eval_interval_s 过小")
         if self.pass_streak_required < 1 or self.pass_streak_required > 20:
             errs.append("pass_streak_required 须在 1–20")
-        if self.signal_min_active_channels < 1 or self.signal_min_active_channels > 8:
-            errs.append("signal_min_active_channels 须在 1–8")
+        if self.signal_min_active_channels < 1 or self.signal_min_active_channels > len(self.scoring_channels):
+            errs.append("signal_min_active_channels 须在 1–scoring_channels 数量内")
+        for name in self.scoring_channels:
+            if name not in self.channel_labels and name.upper() not in {c.upper() for c in self.channel_labels}:
+                errs.append(f"scoring_channels 含未知通道 {name}")
         return errs
 
     @classmethod
@@ -123,7 +154,7 @@ class V4Config:
         for k, v in raw.items():
             if not hasattr(cfg, k):
                 continue
-            if k == "channel_labels" and isinstance(v, list):
+            if k in ("channel_labels", "scoring_channels", "unused_channels") and isinstance(v, list):
                 v = tuple(str(x) for x in v)
             try:
                 setattr(cfg, k, type(getattr(cfg, k))(v) if not isinstance(v, (list, tuple)) else v)

@@ -1,8 +1,9 @@
-"""v2 试次引擎（6s 范式 + 标定/游戏双模式 + D8 加权判定）。
+"""v2 试次引擎（OpenBMI-Align v1 · MI 多数票计分 + 全程跑完）。
 
-范式（v2.1 · D8）：
-  0–2s 准备 → 2s Cue → mi_start → MI ≤6s（0.6s 栅格判分）→ ITI 3s
-  早停：真标签加权分 ≥5；错类加权 ≥5 → 无效；否则满 6s 后 Score≤3 无效。
+范式（OpenBMI-Align v1）：
+  【每试次 Cue 前 4s Rest】→ prep → Cue=mi_start → MI 固定 4s → ITI
+  无 label=0「静息想象」试次；静息 = 块前 30s seed + 每试次 Cue 前 4s。
+  计分：每窗记录 pred；MI 结束多数票 vs label → 正确 +1 / 错误 0。
 """
 
 from __future__ import annotations
@@ -18,46 +19,49 @@ from pylsl import local_clock
 
 from experiment_game.experiment.events_log import EventLogger
 from experiment_game.experiment.markers import MarkerPublisher, format_payload
+from experiment_game.experiment.trial_scoring import MiTrialTracker
 from experiment_game.experiment.trial_sm import SessionAbort, wait_until as _wu  # noqa: F401
 
 _ADAPT_ENGINE_ROOT = str(Path(__file__).resolve().parents[2] / "code")
 if _ADAPT_ENGINE_ROOT not in sys.path:
     sys.path.insert(0, _ADAPT_ENGINE_ROOT)
 
-from adapt_engine.scoring_v21 import OnlineScoreTracker, ScoringConfig, build_judgment_times  # noqa: E402
-
 LABEL_REST, LABEL_LEFT, LABEL_RIGHT = 0, 1, 2
-CUE_KIND = {LABEL_LEFT: "anim_ball_grasp", LABEL_RIGHT: "anim_writing", LABEL_REST: "icon_rest"}
+CUE_KIND = {
+    LABEL_LEFT: "anim_ball_grasp",
+    LABEL_RIGHT: "anim_ball_grasp",
+    LABEL_REST: "icon_rest",
+}
 
 
 @dataclass(frozen=True)
 class TrialTimingV2:
     prep_s: float = 2.0
-    cue_s: float = 2.0
-    imagine_s: float = 6.0
+    cue_s: float = 0.0
+    imagine_s: float = 4.0
     iti_s: float = 3.0
+    inter_trial_rest_s: float = 4.0
     judgment_times: tuple = ()
-    scoring: ScoringConfig = ScoringConfig()
-
-    def __post_init__(self):
-        if not self.judgment_times:
-            object.__setattr__(
-                self,
-                "judgment_times",
-                build_judgment_times(self.scoring.judgment_step_s, self.imagine_s),
-            )
 
     @property
     def total_s(self) -> float:
-        return self.prep_s + self.cue_s + self.imagine_s + self.iti_s
+        # 含每试次 Cue 前 Rest
+        return (
+            self.inter_trial_rest_s
+            + self.prep_s
+            + self.cue_s
+            + self.imagine_s
+            + self.iti_s
+        )
 
 
 DEFAULT_TIMING_V2 = TrialTimingV2()
 
 
-# —— 排程器 ——
-def _permute_subblock(rng: random.Random) -> List[int]:
-    block = [LABEL_LEFT, LABEL_LEFT, LABEL_RIGHT, LABEL_RIGHT, LABEL_REST, LABEL_REST]
+# —— 排程器（仅 Left/Right；无 Rest 想象试次）——
+def _permute_lr_subblock(rng: random.Random) -> List[int]:
+    """6 试次：3L+3R，避免同侧连续 ≥3。"""
+    block = [LABEL_LEFT] * 3 + [LABEL_RIGHT] * 3
     for _ in range(50):
         rng.shuffle(block)
         if all(not (block[i] == block[i + 1] == block[i + 2]) for i in range(len(block) - 2)):
@@ -66,18 +70,20 @@ def _permute_subblock(rng: random.Random) -> List[int]:
 
 
 def build_calibration_schedule(rng: Optional[random.Random] = None) -> List[int]:
+    """标定/探针块：默认 18 = 3×(3L+3R)。"""
     rng = rng or random.Random()
     out: List[int] = []
     for _ in range(3):
-        out.extend(_permute_subblock(rng))
+        out.extend(_permute_lr_subblock(rng))
     return out
 
 
 def build_game_schedule(n: int = 16, rng: Optional[random.Random] = None) -> List[int]:
+    """游戏轮：仅 Left/Right 均衡，无 Rest 试次。"""
     rng = rng or random.Random()
-    base = [LABEL_LEFT] * (n // 3 + (1 if n % 3 >= 1 else 0))
-    base += [LABEL_RIGHT] * (n // 3 + (1 if n % 3 >= 2 else 0))
-    base += [LABEL_REST] * (n - len(base))
+    n_left = n // 2
+    n_right = n - n_left
+    base = [LABEL_LEFT] * n_left + [LABEL_RIGHT] * n_right
     for _ in range(50):
         rng.shuffle(base)
         if all(not (base[i] == base[i + 1] == base[i + 2]) for i in range(len(base) - 2)):
@@ -114,6 +120,7 @@ class TrialStateMachineV2:
         should_abort: Optional[Callable[[], bool]] = None,
         is_rejected: Optional[Callable[[], bool]] = None,
         touch_pending: Optional[Callable[[], bool]] = None,
+        time_scale: float = 1.0,
     ) -> None:
         self.events = events
         self.markers = markers
@@ -124,10 +131,14 @@ class TrialStateMachineV2:
         self.is_paused = is_paused
         self.should_abort = should_abort
         self.is_rejected = is_rejected
-        self.touch_pending = touch_pending
+        self.touch_pending = touch_pending  # legacy hook; 不再触发 MI 早停
+        self.time_scale = max(1e-6, float(time_scale))
 
     def _wait(self, t_end: float) -> None:
         _wu(t_end, is_paused=self.is_paused, should_abort=self.should_abort)
+
+    def _wait_after(self, t_start: float, duration_s: float) -> None:
+        self._wait(float(t_start) + float(duration_s) * self.time_scale)
 
     def _emit(self, event: str, ctx: TrialContextV2, extra: Optional[dict] = None) -> dict:
         payload = format_payload(
@@ -153,38 +164,31 @@ class TrialStateMachineV2:
 
     def run_trial(self, ctx: TrialContextV2) -> Optional[Dict]:
         t = self.timing
-        sc = t.scoring
         self._notify("trial_start", ctx)
         self._emit("trial_start", ctx, extra={"subblock": ctx.subblock})
 
         self._notify("prep", ctx)
         row = self._emit("prep_start", ctx)
-        self._wait(row["t_lsl"] + t.prep_s)
+        self._wait_after(row["t_lsl"], t.prep_s)
 
-        self._notify("cue", ctx)
         row = self._emit("cue", ctx, extra={"cue_kind": CUE_KIND.get(ctx.label, "icon_rest")})
         cue_t = row["t_lsl"]
-        self._wait(cue_t + t.cue_s)
+        self._notify("cue", ctx, {"cue_t": cue_t})
+
+        if t.cue_s > 1e-6:
+            self._wait_after(cue_t, t.cue_s)
 
         self._notify("mi", ctx)
         row = self._emit("mi_start", ctx)
         mi_t = row["t_lsl"]
-        self._notify("mi_start", ctx, {"mi_t": mi_t})
+        self._notify("mi_start", ctx, {"mi_t": mi_t, "cue_t": cue_t})
 
-        tracker = OnlineScoreTracker(ctx.label, sc)
-        mi_end_early = False
-        end_reason: Optional[str] = None
+        tracker = MiTrialTracker(ctx.label)
         signal_bad_ticks = 0
+        good_ticks = 0
 
         for t_rel in t.judgment_times:
-            if mi_end_early:
-                break
-            if self.touch_pending is not None and self.touch_pending():
-                mi_end_early = True
-                end_reason = "touch"
-                self._emit("touch", ctx, extra={"t_rel": t_rel})
-                break
-            self._wait(mi_t + t_rel)
+            self._wait_after(mi_t, t_rel)
             if self.judgment_fn is None:
                 continue
             j = self.judgment_fn(mi_t, t_rel, ctx)
@@ -192,99 +196,95 @@ class TrialStateMachineV2:
                 continue
             if j.get("signal_bad"):
                 signal_bad_ticks += 1
-                self._emit(
-                    "judge", ctx,
-                    extra={
-                        "t_rel": t_rel,
-                        "signal_bad": True,
-                        "signal_reason": j.get("reason"),
-                        "signal_metrics": j.get("signal_metrics"),
-                    },
-                )
-                self._notify("judge", ctx, j)
+                bad_payload = {
+                    "t_rel": t_rel,
+                    "signal_bad": True,
+                    "signal_reason": j.get("reason"),
+                    "signal_metrics": j.get("signal_metrics"),
+                    "p_three": None,
+                    "pred": None,
+                }
+                self._emit("judge", ctx, extra=bad_payload)
+                self._notify("judge", ctx, {**j, **bad_payload})
                 continue
+
+            good_ticks += 1
             j = dict(j)
-            tick = tracker.apply_tick(t_rel, int(j.get("pred", 0)), extra={
-                "p_max": j.get("p_max"),
-                "gated": j.get("gated"),
-            })
-            j.update(tick)
+            from experiment_game.experiment.class_labels import normalize_p_three
+
+            p_three = normalize_p_three(j.get("p_three"))
+            j["p_three"] = p_three
+            win = tracker.add_window(t_rel, j)
+            j.update(win)
             j["t_rel"] = t_rel
             j["is_game"] = ctx.mode == "game"
+            j["score"] = tracker.running_arm_score()
             self._emit(
-                "judge", ctx,
+                "judge",
+                ctx,
                 extra={
                     "t_rel": t_rel,
                     "pred": j.get("pred"),
+                    "gated_pred": win.get("gated_pred"),
                     "p_max": round(float(j.get("p_max", 0.0)), 4),
                     "gated": bool(j.get("gated", False)),
-                    "weight": j.get("weight"),
-                    "score": round(float(j.get("score", 0.0)), 4),
+                    "p_three": p_three,
+                    "win_start_rel": j.get("win_start_rel"),
+                    "win_end_rel": j.get("win_end_rel"),
                 },
             )
             self._notify("judge", ctx, j)
 
-            if tick.get("invalid_wrong_race"):
-                mi_end_early = True
-                end_reason = "trial_invalid_wrong_race"
-                break
-            if tick.get("early_stop"):
-                mi_end_early = True
-                end_reason = "score_5"
-                self._emit("score_reach", ctx, extra={"t_rel": t_rel, "score": tick["score"]})
-                self._notify("score_reach", ctx, {"t_rel": t_rel, "score": tick["score"]})
-                break
+        self._wait_after(mi_t, t.imagine_s)
+        end_reason = "full_mi"
 
-        if not mi_end_early:
-            self._wait(mi_t + t.imagine_s)
-            end_reason = end_reason or "full_6s"
-
-        self._emit("mi_end", ctx, extra={"early": mi_end_early, "reason": end_reason})
+        self._emit("mi_end", ctx, extra={"early": False, "reason": end_reason})
 
         self._notify("iti", ctx)
         row = self._emit("iti_start", ctx)
-        self._wait(row["t_lsl"] + t.iti_s)
+        self._wait_after(row["t_lsl"], t.iti_s)
 
         if self.is_rejected is not None and self.is_rejected():
             ctx.rejected = True
         if ctx.rejected:
             self._emit("trial_reject", ctx, extra={"reason": "operator_reject"})
 
-        summary_dict: Optional[Dict] = None
-        if tracker.judgments:
-            verdict = tracker.finalize(ended_early=mi_end_early, end_reason=end_reason)
-            summary_dict = verdict.to_dict()
-            if verdict.invalid and not ctx.rejected:
-                self._emit(
-                    "trial_invalid", ctx,
-                    extra={"reason": verdict.invalid_reason, "score": verdict.score},
-                )
-        elif signal_bad_ticks > 0 and not ctx.rejected:
-            summary_dict = {
-                "label": ctx.label,
-                "score": 0.0,
-                "valid": False,
-                "invalid_reason": "trial_invalid_signal_quality",
-                "signal_bad_ticks": signal_bad_ticks,
-                "early_stop": False,
-            }
+        signal_bad_trial = bool(good_ticks == 0 and signal_bad_ticks > 0)
+        summary_dict: Optional[Dict] = tracker.finalize(signal_bad_trial=signal_bad_trial)
+        if signal_bad_trial and not ctx.rejected:
             self._emit(
-                "trial_invalid", ctx,
+                "trial_invalid",
+                ctx,
                 extra={
-                    "reason": "trial_invalid_signal_quality",
-                    "score": 0.0,
+                    "reason": summary_dict.get("invalid_reason"),
+                    "score": summary_dict.get("score"),
                     "signal_bad_ticks": signal_bad_ticks,
                 },
             )
-        self._emit("trial_end", ctx, extra={"score_v21": summary_dict})
+
+        self._emit("trial_end", ctx, extra={
+            "trial_score": summary_dict,
+            "score_v21": summary_dict,
+        })
         self._notify("trial_end", ctx, {"summary": summary_dict})
 
         if self.on_trial_end is not None and not ctx.rejected:
-            action = self.on_trial_end(ctx, summary_dict)
-            if action == "abort_session":
-                raise SessionAbort("consecutive_invalid_abort")
+            self.on_trial_end(ctx, summary_dict)
 
         return summary_dict
+
+    def run_inter_trial_rest(self, ctx: TrialContextV2) -> None:
+        """每试次 Cue 前 Rest（OpenBMI 间隔段 / ERD 基线）；事件挂在本试次 trial_id。"""
+        dur = self.timing.inter_trial_rest_s
+        if dur <= 1e-6:
+            return
+        self._notify("inter_trial_rest", ctx)
+        row = self._emit("rest_start", ctx, extra={"label": 0, "role": "pre_cue_rest"})
+        rest_t = row["t_lsl"]
+        self._notify("rest_start", ctx, {"rest_t": rest_t, "duration_s": dur})
+        self._wait_after(rest_t, dur)
+        self._emit("rest_end", ctx)
+        self._notify("rest_end", ctx, {"rest_t": rest_t, "duration_s": dur})
 
     def run_round(
         self,
@@ -309,6 +309,9 @@ class TrialStateMachineV2:
                 round_no=round_no,
                 subblock=(i // per_sub) + 1 if mode == "calibration" else 0,
             )
+            # 每试次（含块内首试）Cue 前 4s 静息；不跑 label=0 Rest 想象试次
+            if self.timing.inter_trial_rest_s > 1e-6:
+                self.run_inter_trial_rest(ctx)
             self.run_trial(ctx)
         self._notify("round_end", stub, {"mode": mode, "round": round_no})
         self.events.emit("round_end", phase=mode, round=round_no, payload=format_payload("round_end", phase=mode))

@@ -387,6 +387,9 @@ class ServiceManager:
             "sample_rate_hz": self._config.preprocess.sample_rate,
             "channel_count": self._config.lsl.channel_count,
             "filtered": self._config.preprocess.filter_enabled,
+            "filter_kind": "streaming_causal_sos"
+            if self._config.preprocess.filter_enabled
+            else "none",
             "use_synthetic": self._config.board_config.use_synthetic,
             "serial_port": self._config.board_config.serial_port,
             "csv_file": str(csv_path),

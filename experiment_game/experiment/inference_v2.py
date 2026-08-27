@@ -19,6 +19,10 @@ if _PREPROCESS_ROOT not in sys.path:
 
 FS = 250.0
 N_TIMES_3S = 750
+WIN_SEC_3S = 3.0
+HOP_SEC_100 = 0.1
+BASELINE_BEFORE_CUE_S = 0.5
+MI_TASK_SEC = 4.0
 
 from experiment_game.experiment.channel_layout import (  # noqa: E402
     FROZEN_CHANNEL_ORDER,
@@ -59,9 +63,13 @@ class RingBuffer:
             if sample is not None:
                 row = np.asarray(sample, dtype=np.float64)[: self.n_ch]
                 row = reorder_device_to_frozen(row.reshape(1, -1))[0]
-                self.push(row)
+                self.push(row.reshape(1, -1))
 
     def push(self, sample_tc: np.ndarray) -> None:
+        sample_tc = np.asarray(sample_tc, dtype=np.float64)
+        if sample_tc.ndim == 1:
+            # 单样本 (C,) → (1, C)；否则 len()=C 会把一行广播成 C 行相同数据
+            sample_tc = sample_tc.reshape(1, -1)
         with self._lock:
             n = len(sample_tc)
             pos = self._n % self.cap
@@ -139,6 +147,42 @@ class OnlinePreprocessor:
         x = self._car(np.asarray(raw_tc, dtype=np.float64))
         return self._filt(x, FS, l_freq=self.l_freq, h_freq=self.h_freq)
 
+    def process_openbmi_task_window(
+        self,
+        raw_tail_tc: np.ndarray,
+        *,
+        seg_len_s: float,
+        win_start_rel: float,
+        win_end_rel: float,
+        baseline_sec: float = BASELINE_BEFORE_CUE_S,
+        zscore: bool = True,
+    ) -> Optional[np.ndarray]:
+        """OpenBMI 对齐：段 [Cue−baseline, Cue+win_end] 滤波后减 Cue 前基线，取 3s 窗 z-score。
+
+        raw_tail_tc 须覆盖整段且尾样本对齐 Cue+win_end_rel。
+        win_start_rel / win_end_rel 相对 Cue（秒）。
+        """
+        seg_n = int(round(seg_len_s * FS))
+        if raw_tail_tc.shape[0] < seg_n:
+            return None
+        x = self._car(np.asarray(raw_tail_tc, dtype=np.float64))
+        x = self._filt(x, FS, l_freq=self.l_freq, h_freq=self.h_freq)
+        x_seg = x[-seg_n:]
+        n_base = int(round(baseline_sec * FS))
+        if n_base <= 0 or x_seg.shape[0] < n_base + N_TIMES_3S:
+            return None
+        i0 = n_base + int(round(win_start_rel * FS))
+        i1 = n_base + int(round(win_end_rel * FS))
+        if i1 - i0 != N_TIMES_3S:
+            i1 = i0 + N_TIMES_3S
+        if i0 < n_base or i1 > x_seg.shape[0]:
+            return None
+        base = x_seg[:n_base].mean(axis=0, keepdims=True)
+        win_tc = x_seg[i0:i1] - base
+        if zscore:
+            return self._zs(win_tc).T.astype(np.float32)
+        return win_tc.T.astype(np.float32)
+
 
 class InferenceService:
     """判定服务：judge(t_cue_lsl, t_rel) → {"pred","p_max","gated"} 或 signal_bad。
@@ -155,6 +199,10 @@ class InferenceService:
         task_p_on: float = 0.6,
         tail_s: float = 12.0,
         signal_quality=None,
+        forward_window: bool = False,
+        window_mode: str = "legacy",
+        mi_task_sec: float = MI_TASK_SEC,
+        baseline_before_cue_s: float = BASELINE_BEFORE_CUE_S,
     ):
         self.buffer = buffer
         self.registry = registry
@@ -162,19 +210,93 @@ class InferenceService:
         self.task_p_on = task_p_on
         self.tail_s = tail_s
         self.signal_quality = signal_quality
+        self.forward_window = forward_window
+        self.window_mode = window_mode
+        self.mi_task_sec = float(mi_task_sec)
+        self.baseline_before_cue_s = float(baseline_before_cue_s)
 
     def judge(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
+        if self.window_mode == "openbmi_hop100":
+            return self.judge_openbmi_hop100(t_cue_lsl, t_rel)
+        return self._judge_legacy(t_cue_lsl, t_rel)
+
+    def judge_openbmi_hop100(self, t_cue_lsl: float, t_win_end_rel: float) -> Optional[Dict]:
+        """OpenBMI 3s/hop100：t_win_end_rel 为窗尾（相对 Cue）；窗 [end−3, end] ⊆ [0, MI]。"""
+        from pylsl import local_clock
+
+        from adapt_engine.readout import serial_gating
+        from experiment_game.experiment.signal_quality import assess_eeg_window
+
+        win_end = float(t_win_end_rel)
+        win_start = win_end - WIN_SEC_3S
+        if win_start < -1e-9 or win_end > self.mi_task_sec + 1e-9:
+            return None
+
+        t_seg_end = t_cue_lsl + win_end
+        seg_len_s = self.baseline_before_cue_s + win_end
+        now = local_clock()
+
+        tail_s = max(self.tail_s, seg_len_s + 2.0)
+        tail_n = int(round(tail_s * FS))
+        tail_raw = self.buffer.window_ending_at(t_seg_end, tail_n, t_now_lsl=now)
+        if tail_raw is None:
+            return None
+
+        window = self.pre.process_openbmi_task_window(
+            tail_raw,
+            seg_len_s=seg_len_s,
+            win_start_rel=win_start,
+            win_end_rel=win_end,
+            baseline_sec=self.baseline_before_cue_s,
+        )
+        if window is None:
+            return None
+
+        if self.signal_quality is not None and getattr(self.signal_quality, "enabled", True):
+            qa = assess_eeg_window(window.T, self.signal_quality)
+            if not qa["ok"]:
+                return {
+                    "signal_bad": True,
+                    "reason": qa["reason"],
+                    "signal_metrics": qa.get("metrics") or {},
+                    "t_rel": win_end,
+                    "win_start_rel": win_start,
+                    "win_end_rel": win_end,
+                }
+
+        heads = self.registry.forward_heads(window)
+        p_task = heads["p_task"]
+        p_three = heads["p_three"]
+        out = serial_gating(p_task, p_three, task_p_on=self.task_p_on)
+        out["window"] = window
+        out["p_three"] = [float(x) for x in np.asarray(p_three).ravel()]
+        out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
+        out["t_rel"] = win_end
+        out["win_start_rel"] = win_start
+        out["win_end_rel"] = win_end
+        pred = int(out["pred"])
+        if pred < len(out["p_three"]):
+            others = [out["p_three"][i] for i in range(len(out["p_three"])) if i != pred]
+            out["margin"] = float(out["p_three"][pred] - max(others or [0.0]))
+        else:
+            out["margin"] = float(out.get("p_max", 0.0))
+        return out
+
+    def _judge_legacy(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
         from pylsl import local_clock
 
         from adapt_engine.readout import serial_gating
         from experiment_game.experiment.signal_quality import assess_eeg_window
 
         t_end = t_cue_lsl + t_rel
+        if self.forward_window:
+            t_end += N_TIMES_3S / FS
         win_tc = self.buffer.window_ending_at(t_end, N_TIMES_3S, t_now_lsl=local_clock())
         if win_tc is None:
             return None
 
-        if self.signal_quality is not None and self.signal_quality.enabled:
+        # signal_quality.enabled=False 时跳过：所有窗进入模型，不因质量剔除
+        if self.signal_quality is not None and getattr(self.signal_quality, "enabled", True):
             qa = assess_eeg_window(win_tc, self.signal_quality)
             if not qa["ok"]:
                 return {
