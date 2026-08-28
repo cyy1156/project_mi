@@ -113,6 +113,8 @@ powershell -File .\run_all_28_5090.ps1 -From all
 | 3 | E1f 回放 | ❌ | `replay_e1f.json` · test **0.6173** |
 | 4 | fold0 部署权重（可选） | — | `fold0/best_three.pt`（四成员 fold0 已入库） |
 
+**Task 头说明**：方案 24 四成员均 `--three-only` 训练（`meta.json` 中 `"task": null`），磁盘上**无** `best_task.pt` / `task/` 目录——**不是漏传，是未训练**。E1f（0.6173）与 prob 回放均只用 Three 头；5070 在线若需 Task 二分类须另训 Task 头。
+
 **5070 拉取后快检（~10s，不重训）：**
 
 ```powershell
