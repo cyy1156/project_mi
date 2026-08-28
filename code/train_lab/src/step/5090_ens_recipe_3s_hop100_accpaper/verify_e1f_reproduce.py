@@ -38,6 +38,22 @@ EXPECTED_E1F_CONFIG = {
 }
 
 
+def _check_no_task_head() -> None:
+    """方案 24 四成员均为 --three-only；E1f 链只用 Three 头。"""
+    for name in MEMBER_NAMES:
+        run_root = DEFAULT_MEMBERS.as_dict()[name].parent
+        meta_path = run_root / "meta.json"
+        task_ckpts = list(run_root.rglob("best_task.pt"))
+        task_dir = run_root / "task"
+        if meta_path.is_file():
+            meta = json.loads(meta_path.read_text(encoding="utf-8"))
+            task_block = meta.get("task")
+            assert task_block is None, f"{name}: meta.task should be null (three-only run)"
+        assert not task_ckpts, f"{name}: unexpected best_task.pt under {run_root}"
+        assert not task_dir.is_dir(), f"{name}: unexpected task/ dir under {run_root}"
+        print(f"OK task head {name}: not trained (three-only · E1f 不需要 Task 权重)")
+
+
 def _check_dumps(*, full_merge: bool = False) -> None:
     run_dirs = member_run_dirs(list(MEMBER_NAMES))
     for name, run_dir in zip(MEMBER_NAMES, run_dirs):
@@ -141,6 +157,8 @@ def main() -> None:
 
     print("=== Phase 1 · 方案 24 四成员 prob dump ===")
     _check_dumps(full_merge=args.full_dumps)
+    print("=== Phase 1a · Task 头（应为空 · three-only） ===")
+    _check_no_task_head()
     print("=== Phase 1b · 单成员 summary（本地有则核对） ===")
     _check_member_summaries()
     print(f"=== Phase 2 · 方案 26 E1f 融合（锚点 E 均匀={ANCHOR_E_UNIFORM} · E1f={ANCHOR_E1F}） ===")
