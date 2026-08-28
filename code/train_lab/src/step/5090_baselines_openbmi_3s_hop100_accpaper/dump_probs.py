@@ -21,12 +21,17 @@ PRE_ROOT = CODE_ROOT / "preprocess_lab"
 HOP100 = STEP_DIR / "baselines_2s_hop100"
 OLD_BASELINES = STEP_DIR / "baselines_single"
 
-for p in (STEP_DIR, PRE_ROOT, HOP100, OLD_BASELINES):
+for p in (STEP_DIR, PRE_ROOT, OLD_BASELINES):
     sp = str(p)
     if sp not in sys.path:
         sys.path.insert(0, sp)
-if str(HERE) not in sys.path:
-    sys.path.insert(0, str(HERE))
+_hop = str(HOP100)
+if _hop not in sys.path:
+    sys.path.append(_hop)
+_here = str(HERE)
+if _here in sys.path:
+    sys.path.remove(_here)
+sys.path.insert(0, _here)
 
 from data_paths import resolve_data
 from perf_loader import apply_runtime_threads, configure_cuda_backends, make_loader
@@ -123,6 +128,8 @@ def dump_run(
     x_npy = data_dir / f"{prefix}_X.npy"
     X = np.load(x_npy, mmap_mode="r")
     y_three = np.load(data_dir / f"{prefix}_y_three.npy")
+    y_task = np.load(data_dir / f"{prefix}_y_task.npy")
+    y_labels = y_three if stage == "three" else y_task
     subjects = np.load(data_dir / f"{prefix}_subjects.npy", allow_pickle=True)
     trial_ids = np.load(data_dir / f"{prefix}_trial_id.npy")
     if x_path is None:
@@ -150,7 +157,7 @@ def dump_run(
             mask = info["masks"][key]
             indices = _indices_from_mask(mask)
             loader = make_loader(
-                IndexArrayDataset(None, y_three, indices, input_kind="time", x_path=x_path),
+                IndexArrayDataset(None, y_labels, indices, input_kind="time", x_path=x_path),
                 batch_size=hp.batch_eval,
                 shuffle=False,
                 **_loader_kwargs(hp),
@@ -164,7 +171,7 @@ def dump_run(
                     split=split,
                     subjects=subjects,
                     trial_ids=trial_ids,
-                    y=y_three,
+                    y=y_labels,
                     indices=indices,
                     t0_all=t0_all,
                     non_blocking=hp.non_blocking,

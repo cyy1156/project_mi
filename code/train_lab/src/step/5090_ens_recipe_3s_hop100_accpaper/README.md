@@ -112,8 +112,16 @@ powershell -File .\run_all_28_5090.ps1 -From all
 | 2 | prob dump 五折 | ckpt dump | `fold*/prob_dump_three.csv`（已入库 GitHub） |
 | 3 | E1f 回放 | ❌ | `replay_e1f.json` · test **0.6173** |
 | 4 | fold0 部署权重（可选） | — | `fold0/best_three.pt`（四成员 fold0 已入库） |
+| 5 | **Task 头补训**（2026-08-29） | ✅ skip-three | `task/fold0/best_task.pt` + `prob_dump_task.csv`（已入库） |
 
-**Task 头说明**：方案 24 四成员均 `--three-only` 训练（`meta.json` 中 `"task": null`），磁盘上**无** `best_task.pt` / `task/` 目录——**不是漏传，是未训练**。E1f（0.6173）与 prob 回放均只用 Three 头；5070 在线若需 Task 二分类须另训 Task 头。
+**Task 头说明**：原方案 24 四成员为 `--three-only`（E1f **0.6173** 只用 Three prob）。2026-08-29 已补 Task 五折 + dump，供 5070 Task 二分类 / 跨机同步；**E1f 回放不受影响**。
+
+| 成员 | Task Acc_paper | run |
+|------|----------------|-----|
+| shallow | **0.7424±0.032** | `run_20260823_095327` |
+| T-shallow | **0.7403±0.032** | `run_20260823_123900` |
+| eegnet | **0.7240±0.029** | `run_20260823_131435` |
+| conformer | **0.7597±0.031** | `run_20260823_135213` |
 
 **5070 拉取后快检（~10s，不重训）：**
 

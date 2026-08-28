@@ -1410,7 +1410,12 @@ def run_baseline_main(
         "task": sum_task,
         "three": sum_three,
     }
-    (out_root / "meta.json").write_text(
+    meta_path = out_root / "meta.json"
+    if meta_path.is_file() and resume_three_dir is not None and args.skip_three:
+        prev = json.loads(meta_path.read_text(encoding="utf-8"))
+        if prev.get("three") is not None and sum_three is None:
+            meta["three"] = prev["three"]
+    meta_path.write_text(
         json.dumps(meta, indent=2, ensure_ascii=False, default=str), encoding="utf-8"
     )
     log_line(log_path, "done")
