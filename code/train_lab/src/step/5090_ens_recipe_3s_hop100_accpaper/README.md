@@ -99,3 +99,33 @@ powershell -File .\run_all_28_5090.ps1 -From all
 `replay_e1.py` 亦支持 `--members shallow,eegnet`（复用 E1a–E1f 流程）。
 
 详细方案：`资料/模型训练/28_旁路_集成成员经济性_回放消融_openbmi_accpaper/方案.md`
+
+---
+
+## E1f（0.6173）复现链 · 5090 训练 + 零训练融合
+
+两条线：**方案 24** 四成员 5-fold 训练 + dump → **方案 26 E1f** 在 prob 上 val 搜参融合（不重训）。
+
+| 步骤 | 内容 | 训练？ | 产物 |
+|------|------|--------|------|
+| 1 | 四成员 OpenBMI 5-fold | ✅ | `5090_alg_incr.../run_20260823_*/three/` |
+| 2 | prob dump 五折 | ckpt dump | `fold*/prob_dump_three.csv`（已入库 GitHub） |
+| 3 | E1f 回放 | ❌ | `replay_e1f.json` · test **0.6173** |
+| 4 | fold0 部署权重（可选） | — | `fold0/best_three.pt`（四成员 fold0 已入库） |
+
+**5070 拉取后快检（~10s，不重训）：**
+
+```powershell
+cd F:\Cyy\MI\code\train_lab\src\step\5090_ens_recipe_3s_hop100_accpaper
+python verify_e1f_reproduce.py
+powershell -File .\run_verify_e1f.ps1
+```
+
+**重跑 E1f 融合验证（~90min，仍不重训）：**
+
+```powershell
+python verify_e1f_reproduce.py --replay
+powershell -File .\run_verify_e1f.ps1 -Replay
+```
+
+E1f 配置：四成员 · 温度 + val 权重 0.2/0.2/0.3/0.3 · smooth=1 · τ_conf=0.4
