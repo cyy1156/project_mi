@@ -70,12 +70,23 @@ code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/*.pt
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_123900/**/fold0/best_three.pt
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_131435/**/fold0/best_three.pt
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_135213/**/fold0/best_three.pt
+# 5090→5070：四成员 Task 头 fold0 checkpoint（2026-08-29 补训）
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_095327/**/task/fold0/best_task.pt
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_123900/**/task/fold0/best_task.pt
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_131435/**/task/fold0/best_task.pt
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_135213/**/task/fold0/best_task.pt
 code/train_lab/out/**/prob_dump_three.csv
 # 5090→5070：方案 24/26/28 四成员融合 prob dump（仅正式 run · fold0–4）
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_095327/**/prob_dump_three.csv
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_123900/**/prob_dump_three.csv
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_131435/**/prob_dump_three.csv
 !code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_135213/**/prob_dump_three.csv
+code/train_lab/out/**/prob_dump_task.csv
+# 5090→5070：四成员 Task prob dump（fold0–4 · 2026-08-29 补训）
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_095327/**/prob_dump_task.csv
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_123900/**/prob_dump_task.csv
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_131435/**/prob_dump_task.csv
+!code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/**/run_20260823_135213/**/prob_dump_task.csv
 code/train_lab/out/**/_cache_*.npy
 **/*.pid
 **/System.Collections.Specialized.OrderedDictionary

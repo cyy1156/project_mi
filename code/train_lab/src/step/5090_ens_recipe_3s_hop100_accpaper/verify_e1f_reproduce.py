@@ -38,20 +38,32 @@ EXPECTED_E1F_CONFIG = {
 }
 
 
-def _check_no_task_head() -> None:
-    """方案 24 四成员均为 --three-only；E1f 链只用 Three 头。"""
+def _check_task_heads() -> None:
+    """2026-08-29 补 Task 头；E1f 融合链仍只用 Three prob。"""
+    task_anchor = {
+        "shallow": 0.7424,
+        "t_shallow": 0.7403,
+        "eegnet": 0.7240,
+        "conformer": 0.7597,
+    }
     for name in MEMBER_NAMES:
         run_root = DEFAULT_MEMBERS.as_dict()[name].parent
-        meta_path = run_root / "meta.json"
-        task_ckpts = list(run_root.rglob("best_task.pt"))
         task_dir = run_root / "task"
-        if meta_path.is_file():
-            meta = json.loads(meta_path.read_text(encoding="utf-8"))
-            task_block = meta.get("task")
-            assert task_block is None, f"{name}: meta.task should be null (three-only run)"
-        assert not task_ckpts, f"{name}: unexpected best_task.pt under {run_root}"
-        assert not task_dir.is_dir(), f"{name}: unexpected task/ dir under {run_root}"
-        print(f"OK task head {name}: not trained (three-only · E1f 不需要 Task 权重)")
+        assert task_dir.is_dir(), f"{name}: missing task/ under {run_root}"
+        summary_path = task_dir / "summary.json"
+        assert summary_path.is_file(), f"{name}: missing {summary_path}"
+        summary = json.loads(summary_path.read_text(encoding="utf-8"))
+        test_mean = float(summary["test_acc_paper_mean"])
+        anchor = task_anchor[name]
+        flag = "OK" if abs(test_mean - anchor) <= 0.003 else "WARN"
+        dumps = sorted(task_dir.glob("fold*/prob_dump_task.csv"))
+        assert len(dumps) >= 5, f"{name}: need 5 task prob dumps, got {len(dumps)}"
+        fold0_pt = task_dir / "fold0" / "best_task.pt"
+        pt_note = "OK" if fold0_pt.is_file() else "missing"
+        print(
+            f"{flag} task head {name}: test={test_mean:.4f} anchor={anchor:.4f} "
+            f"dumps={len(dumps)} fold0_pt={pt_note}"
+        )
 
 
 def _check_dumps(*, full_merge: bool = False) -> None:
@@ -157,8 +169,8 @@ def main() -> None:
 
     print("=== Phase 1 · 方案 24 四成员 prob dump ===")
     _check_dumps(full_merge=args.full_dumps)
-    print("=== Phase 1a · Task 头（应为空 · three-only） ===")
-    _check_no_task_head()
+    print("=== Phase 1a · Task 头（5090 补训 · E1f 仍只用 Three） ===")
+    _check_task_heads()
     print("=== Phase 1b · 单成员 summary（本地有则核对） ===")
     _check_member_summaries()
     print(f"=== Phase 2 · 方案 26 E1f 融合（锚点 E 均匀={ANCHOR_E_UNIFORM} · E1f={ANCHOR_E1F}） ===")
