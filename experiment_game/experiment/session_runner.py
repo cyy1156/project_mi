@@ -665,15 +665,14 @@ class SessionRunner(SessionRunnerBase):
         skip_gate: bool = False,
         skip_game: bool = False,
         subject_feedback_mode: str = "none",
+        deps: Optional[tuple] = None,
+        close_buffer: bool = True,
     ) -> Dict:
-        """v2 会话模式：委托 session_v2.run_v2_session，与 run_all 并列。"""
-        from experiment_game.experiment.session_v2 import run_v2_session
+        """v2：经 V2SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V2SessionRunner
 
-        return run_v2_session(
-            self.events,
-            self.markers,
-            self.bridge,
-            on_console=self.on_console,
+        return V2SessionRunner(
+            self.services,
             config_path=config_path,
             v2_overrides=v2_overrides,
             protocol_locked=protocol_locked,
@@ -683,7 +682,9 @@ class SessionRunner(SessionRunnerBase):
             skip_gate=skip_gate,
             skip_game=skip_game,
             subject_feedback_mode=subject_feedback_mode,
-        )
+            deps=deps,
+            close_buffer=close_buffer,
+        ).run()
 
     def run_v3_session(
         self,
@@ -702,15 +703,13 @@ class SessionRunner(SessionRunnerBase):
         sim_meta: Optional[Dict] = None,
         use_synthetic: bool = False,
         auto_confirm_guidance: Optional[bool] = None,
+        close_buffer: bool = True,
     ) -> Dict:
-        """v3 探针会话：委托 session_v3.run_v3_session。"""
-        from experiment_game.experiment.session_v3 import run_v3_session
+        """v3：经 V3SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V3SessionRunner
 
-        return run_v3_session(
-            self.events,
-            self.markers,
-            self.bridge,
-            on_console=self.on_console,
+        return V3SessionRunner(
+            self.services,
             config_path=config_path,
             v3_overrides=v3_overrides,
             protocol_locked=protocol_locked,
@@ -725,7 +724,8 @@ class SessionRunner(SessionRunnerBase):
             sim_meta=sim_meta,
             use_synthetic=use_synthetic,
             auto_confirm_guidance=auto_confirm_guidance,
-        )
+            close_buffer=close_buffer,
+        ).run()
 
     def run_v4_session(
         self,
@@ -735,16 +735,13 @@ class SessionRunner(SessionRunnerBase):
         v4_overrides: Optional[Dict] = None,
         session_dir: Optional[Path] = None,
     ) -> Dict:
-        """v4 质量检测：委托 session_v4.run_v4_session。"""
-        from experiment_game.experiment.session_v4 import run_v4_session
+        """v4：经 V4SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V4SessionRunner
 
-        return run_v4_session(
-            self.events,
-            self.markers,
-            self.bridge,
+        return V4SessionRunner(
+            self.services,
             buf,
-            on_console=self.on_console,
             config_path=config_path,
             v4_overrides=v4_overrides,
             session_dir=session_dir,
-        )
+        ).run()

@@ -178,6 +178,9 @@ def finalize_session_layout(
             meta_side = session_root / "eeg.csv.meta.json"
             if meta_side.is_file():
                 _copy_file(meta_side, cont / "eeg.csv.meta.json")
+            eeg_meta = session_root / "eeg.meta.json"
+            if eeg_meta.is_file():
+                _copy_file(eeg_meta, cont / "eeg.meta.json")
         manifest["files"]["continuous"] = "continuous/"
 
     if save_phase_slices or save_layout == "phase_folders":

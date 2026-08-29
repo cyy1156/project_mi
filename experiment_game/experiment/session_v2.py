@@ -68,12 +68,14 @@ def diagnose_v2_online_deps(
     require_lsl: bool = True,
     lsl_timeout_s: float = 5.0,
     on_console: Optional[Callable[[str], None]] = None,
+    buffer: Optional["RingBuffer"] = None,
 ) -> Tuple[Optional[tuple], List[str]]:
     """检查在线判定/微调依赖。
 
     返回 (deps_or_None, reasons)。
     deps = (registry, buffer, pre, infer)；失败时 deps 为 None。
     require_lsl=False 时只检查权重（会话开始前、采集尚未推 LSL 时用）。
+    ``buffer`` 若给定则复用（LiveEegCapture 单 Inlet），不再新建 attach_lsl。
     """
     log = on_console or (lambda _m: None)
     reasons: List[str] = []
@@ -107,20 +109,28 @@ def diagnose_v2_online_deps(
         reasons.append(f"注册表加载失败: {exc}")
         return None, reasons
 
-    if not require_lsl:
+    if not require_lsl and buffer is None:
         log("[v2] 权重就绪（LSL 待采集启动后再挂）")
         return (reg, None, None, None), []
 
-    buf = RingBuffer()
-    try:
-        buf.attach_lsl("OpenBCI_EEG", timeout_s=lsl_timeout_s)
-    except Exception as exc:
-        reasons.append(f"LSL OpenBCI_EEG 不可用: {exc}")
+    owns_buf = False
+    if buffer is not None:
+        buf = buffer
+    else:
+        if not require_lsl:
+            log("[v2] 权重就绪（LSL 待采集启动后再挂）")
+            return (reg, None, None, None), []
+        buf = RingBuffer()
+        owns_buf = True
         try:
-            buf.close()
-        except Exception:
-            pass
-        return None, reasons
+            buf.attach_lsl("OpenBCI_EEG", timeout_s=lsl_timeout_s)
+        except Exception as exc:
+            reasons.append(f"LSL OpenBCI_EEG 不可用: {exc}")
+            try:
+                buf.close()
+            except Exception:
+                pass
+            return None, reasons
 
     try:
         pre = OnlinePreprocessor()
@@ -136,10 +146,11 @@ def diagnose_v2_online_deps(
         )
     except Exception as exc:
         reasons.append(f"InferenceService 初始化失败: {exc}")
-        try:
-            buf.close()
-        except Exception:
-            pass
+        if owns_buf:
+            try:
+                buf.close()
+            except Exception:
+                pass
         return None, reasons
 
     log("[v2] 在线依赖就绪：权重 + LSL OpenBCI_EEG")
@@ -246,6 +257,8 @@ def run_v2_session(
     skip_gate: bool = False,
     skip_game: bool = False,
     subject_feedback_mode: str = "none",
+    deps: Optional[tuple] = None,
+    close_buffer: bool = True,
 ) -> Dict:
     import random
 
@@ -266,26 +279,42 @@ def run_v2_session(
         f"{f' · seed={seed}' if seed is not None else ''}"
     )
 
-    deps = _try_imports(cfg, on_console=on_console)
-    degraded = deps is None
-    if degraded:
-        on_console("[v2] ⚠️ 权重或 LSL 不可用 → 流程演练模式（无判定/无微调）")
-        bridge.broadcast({
-            "type": "v2_online_status",
-            "degraded": True,
-            "reason": "weights_or_lsl_unavailable",
-            "message": "演练模式：权重或 LSL 不可用，无在线判定/微调",
-        })
-        reg = buf = infer = None
-    else:
+    if deps is not None:
         reg, buf, _, infer = deps
-        on_console("[v2] ✅ 在线判定/微调已启用")
-        bridge.broadcast({
-            "type": "v2_online_status",
-            "degraded": False,
-            "reason": "ok",
-            "message": "在线判定与微调已启用",
-        })
+        if reg is None or buf is None or infer is None:
+            degraded = True
+            reg = buf = infer = None
+            on_console("[v2] ⚠️ 注入 deps 不完整 → 流程演练模式")
+        else:
+            degraded = False
+            on_console("[v2] ✅ 在线判定/微调已启用（注入 deps）")
+            bridge.broadcast({
+                "type": "v2_online_status",
+                "degraded": False,
+                "reason": "ok",
+                "message": "在线判定与微调已启用",
+            })
+    else:
+        deps_loaded = _try_imports(cfg, on_console=on_console)
+        degraded = deps_loaded is None
+        if degraded:
+            on_console("[v2] ⚠️ 权重或 LSL 不可用 → 流程演练模式（无判定/无微调）")
+            bridge.broadcast({
+                "type": "v2_online_status",
+                "degraded": True,
+                "reason": "weights_or_lsl_unavailable",
+                "message": "演练模式：权重或 LSL 不可用，无在线判定/微调",
+            })
+            reg = buf = infer = None
+        else:
+            reg, buf, _, infer = deps_loaded
+            on_console("[v2] ✅ 在线判定/微调已启用")
+            bridge.broadcast({
+                "type": "v2_online_status",
+                "degraded": False,
+                "reason": "ok",
+                "message": "在线判定与微调已启用",
+            })
 
     store = _SessionStore()
     window_cache: Dict[int, list] = {}
@@ -621,7 +650,7 @@ def run_v2_session(
         aborted = True
         abort_reason = reason
         progress["phase_step"] = "end"
-        if buf:
+        if buf and close_buffer:
             buf.close()
         return {
             "gate_status": gstatus,
@@ -1081,7 +1110,7 @@ def run_v2_session(
 
     progress["phase_step"] = "end"
     bridge.broadcast({"type": "session", "status": "done" if not aborted else "aborted", "phase": "end"})
-    if buf:
+    if buf and close_buffer:
         buf.close()
     summary = {
         "gate_status": gate_status,

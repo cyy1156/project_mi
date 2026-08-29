@@ -143,6 +143,7 @@ def run_v3_session(
     sim_meta: Optional[Dict[str, Any]] = None,
     use_synthetic: bool = False,
     auto_confirm_guidance: Optional[bool] = None,
+    close_buffer: bool = True,
 ) -> Dict[str, Any]:
     import random
 
@@ -902,7 +903,8 @@ def run_v3_session(
 
     finally:
         eeg_pub.stop()
-        buf.close()
+        if close_buffer:
+            buf.close()
 
     summary = {
         "phase_mode": "sim_v3_session" if sim_meta else "v3_session",

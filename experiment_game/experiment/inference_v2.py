@@ -95,9 +95,12 @@ class RingBuffer:
             sample, ts = self._inlet.pull_sample(timeout=0.1)
             if sample is not None:
                 row = np.asarray(sample, dtype=np.float64)[: self.n_ch]
-                self.push(row.reshape(1, -1))
+                t_lsl = None
+                if ts is not None:
+                    t_lsl = np.asarray([float(ts)], dtype=np.float64)
+                self.push(row.reshape(1, -1), t_lsl=t_lsl)
 
-    def push(self, sample_tc: np.ndarray) -> None:
+    def push(self, sample_tc: np.ndarray, t_lsl: Optional[np.ndarray] = None) -> None:
         sample_tc = np.asarray(sample_tc, dtype=np.float64)
         if sample_tc.ndim == 1:
             # 单样本 (C,) → (1, C)；否则 len()=C 会把一行广播成 C 行相同数据
@@ -116,7 +119,11 @@ class RingBuffer:
         bus = self._bus
         if bus is not None:
             try:
-                bus.note_push(n)
+                if t_lsl is not None:
+                    # 扇出订户（CSV 等）；count=True 更新健康（替代单独 note_push）
+                    bus.publish(np.asarray(t_lsl, dtype=np.float64), sample_tc, count=True)
+                else:
+                    bus.note_push(n)
             except Exception:  # noqa: BLE001
                 pass
 

@@ -1,0 +1,27 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "experiment-game"
+version = "0.2.0"
+description = "MI experiment_game: acquisition, sessions, offline pipeline"
+requires-python = ">=3.10"
+dependencies = [
+  "numpy",
+  "PyYAML",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["experiment_game*"]
+
+[tool.pytest.ini_options]
+testpaths = [
+  "experiment_game/experiment/tests",
+  "experiment_game/tests",
+]
+pythonpath = ["."]

@@ -58,6 +58,8 @@ class AcquisitionFacade:
         self._notch_high_hz = float(notch_high_hz)
         self._mgr = None
         self._link_event_callback = None
+        self._record_csv = True
+        self._eeg_csv_path: Optional[Path] = None
 
     @property
     def manager(self):
@@ -145,7 +147,14 @@ class AcquisitionFacade:
             raise RuntimeError(f"设置通道标签失败: {msg}")
         return self
 
-    def start(self, eeg_csv_path: Path) -> None:
+    def start(self, eeg_csv_path: Path, *, record_csv: bool = True) -> None:
+        """启动板卡 LSL。
+
+        ``record_csv=True``：经 lsl_connect Recorder 写盘（旧路径）。
+        ``record_csv=False``：仅推流，由 experiment.live_capture.LiveEegCapture / Bus CSV 订户写盘。
+        """
+        self._record_csv = bool(record_csv)
+        self._eeg_csv_path = Path(eeg_csv_path)
         mgr = self.manager
         try:
             ok = mgr.start_acquisition()
@@ -166,10 +175,11 @@ class AcquisitionFacade:
                     "请关闭 OpenBCI GUI 的 Serial/直播，核对设备管理器 COM 口后重试"
                 )
             raise RuntimeError(f"启动采集失败: {err}{hint}")
-        ok, msg = mgr.start_recording(str(eeg_csv_path))
-        if not ok:
-            mgr.stop_acquisition()
-            raise RuntimeError(f"启动录制失败: {msg}")
+        if self._record_csv:
+            ok, msg = mgr.start_recording(str(eeg_csv_path))
+            if not ok:
+                mgr.stop_acquisition()
+                raise RuntimeError(f"启动录制失败: {msg}")
 
     def health_check(
         self,
@@ -281,9 +291,12 @@ class AcquisitionFacade:
         report_dict = {}
         ok, msg = False, ""
         try:
-            ok, msg, report = mgr.stop_recording()
-            if report is not None:
-                report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
+            if getattr(self, "_record_csv", True):
+                ok, msg, report = mgr.stop_recording()
+                if report is not None:
+                    report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
+            else:
+                ok, msg = True, "csv_via_eeg_bus"
         finally:
             try:
                 mgr.stop_acquisition()
