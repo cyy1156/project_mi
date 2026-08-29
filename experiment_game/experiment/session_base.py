@@ -1,8 +1,8 @@
 """会话公共底座（总册 W6 · SessionRunner 基类）。
 
-``session_runner.SessionRunner`` 已继承本基类（Phase2）；v2/v3/v4 仍以函数入口为主，
-经本模块的 ``SessionServices`` / ``attach_eeg_health`` 共用服务与看门狗。
-完整三会话类合并仍属后续战役。
+- ``session_runner.SessionRunner``（Phase2）已继承本基类
+- ``session_runners.V2/V3/V4SessionRunner`` 薄封装对应函数入口
+- ``attach_eeg_health`` / ``SessionServices`` 为三会话共用
 """
 
 from __future__ import annotations

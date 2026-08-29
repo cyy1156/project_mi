@@ -142,6 +142,9 @@ class OperatorService:
         self._worker: Optional[threading.Thread] = None
         self._acq: Optional[AcquisitionFacade] = None
         self._last_acq_quality: Dict[str, Any] = {}
+        self._live_capture = None  # experiment.live_capture.LiveEegCapture：Bus CSV 单写
+        self._v2_injected_deps = None
+        self._v3_injected_deps = None
         self._events: Optional[EventLogger] = None
         self._markers: Optional[MarkerPublisher] = None
         self._paths: Optional[SessionPaths] = None
@@ -307,7 +310,7 @@ class OperatorService:
         return 0
 
     def _on_ws_message(self, msg: Dict[str, Any]) -> None:
-        """WS 入站路由（W6：dispatch table，替代长 elif 链）。"""
+        """WS 入站路由（W6：dispatch table 在 ws_dispatch 模块）。"""
         mtype = msg.get("type")
         if not mtype or not isinstance(mtype, str):
             return
@@ -317,72 +320,17 @@ class OperatorService:
             self._handle_split_request()
             return
 
-        handlers = self._ws_dispatch_table()
-        handler = handlers.get(mtype)
+        from experiment_game.experiment.ws_dispatch import build_ws_dispatch_table
+
+        handler = build_ws_dispatch_table(self).get(mtype)
         if handler is None:
             return
         handler(msg)
 
     def _ws_dispatch_table(self) -> Dict[str, Callable[[Dict[str, Any]], None]]:
-        return {
-            "config_validate": self._ws_config_validate,
-            "session_start": lambda m: self._handle_session_start(m.get("run_config") or {}),
-            "open_folder": lambda m: self._open_folder(str(m.get("path") or "")),
-            "open_subject_page": lambda m: self._open_subject_page(),
-            "list_serial_ports": lambda m: self._list_serial_ports(),
-            "save_defaults": lambda m: self._save_defaults(m.get("run_config") or {}),
-            "run_phase4": lambda m: self._handle_run_phase4(str(m.get("path") or ""), m),
-            "questionnaire_open": lambda m: self._handle_questionnaire_open(),
-            "questionnaire_result": self._handle_questionnaire_result,
-            "client_stats": self._handle_client_stats,
-            "subject_login": self._handle_subject_login,
-            "subject_logout": lambda m: self._handle_subject_logout(),
-            "subject_info": self._handle_subject_info,
-            "finetune_start": self._handle_finetune_start,
-            "finetune_promote": self._handle_finetune_promote,
-            "session_exclude_record": self._handle_session_exclude_record,
-            "ramp_status": self._handle_ramp_status,
-            "sim_catalog": self._handle_sim_catalog,
-            "sim_campaign_create": self._handle_sim_campaign_create,
-            "sim_campaign_list": self._handle_sim_campaign_list,
-            "operator_hello": self._ws_operator_hello,
-        }
+        from experiment_game.experiment.ws_dispatch import build_ws_dispatch_table
 
-    def _ws_config_validate(self, msg: Dict[str, Any]) -> None:
-        cfg, errors = validate_run_config(
-            msg.get("run_config") or {},
-            repo_root=self.repo_root,
-        )
-        self.bridge.broadcast(
-            {
-                "type": "config_ack",
-                "ok": not errors,
-                "errors": errors,
-                "run_config": cfg if not errors else None,
-            }
-        )
-
-    def _ws_operator_hello(self, msg: Dict[str, Any]) -> None:
-        file_defaults, warn = load_operator_defaults(
-            defaults_path(repo_pkg=_PKG_ROOT),
-            repo_root=self.repo_root,
-        )
-        self.bridge.broadcast(
-            {
-                "type": "operator_hello",
-                "message": "operator_connected",
-                "operator_url": self.operator_url,
-                "subject_url": self.subject_url,
-                "defaults": file_defaults,
-                "builtin_defaults": merge_run_config(None),
-                "defaults_path": str(defaults_path(repo_pkg=_PKG_ROOT)),
-                "defaults_warning": warn,
-                "serial_ports": list_serial_ports(),
-                "active_subject": self._active_subject,
-                "active_subject_info": self._active_subject_info,
-                **self._model_presets_payload(),
-            }
-        )
+        return build_ws_dispatch_table(self)
 
     def _handle_split_request(self) -> None:
         """操作台 B 键：会话中 = 请求换场；换场等待中 = 开始下一段。"""
@@ -1500,15 +1448,16 @@ class OperatorService:
                     paths, meta, acq_cfg, use_synthetic
                 )
                 # 采集已推 LSL：再确认在线依赖（纠正 session_started 的 pending 状态）
+                live_buf = self._live_capture.buf if self._live_capture is not None else None
                 deps, reasons = diagnose_v2_online_deps(
-                    v2_cfg, require_lsl=True, lsl_timeout_s=8.0, on_console=print
+                    v2_cfg,
+                    require_lsl=True,
+                    lsl_timeout_s=8.0,
+                    on_console=print,
+                    buffer=live_buf,
                 )
                 online_ok = deps is not None
-                if deps is not None and deps[1] is not None:
-                    try:
-                        deps[1].close()
-                    except Exception:
-                        pass
+                self._v2_injected_deps = deps if online_ok else None
                 update_session_meta(
                     paths.meta_json,
                     v2_degraded=not online_ok,
@@ -1573,7 +1522,10 @@ class OperatorService:
             skip_gate=bool(exp.get("skip_v2_gate")),
             skip_game=bool(exp.get("skip_v2_game")),
             subject_feedback_mode=_subject_feedback_mode(cfg),
+            deps=getattr(self, "_v2_injected_deps", None),
+            close_buffer=False,
         )
+        self._v2_injected_deps = None
         self._runner = None
 
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v2_session")
@@ -1776,7 +1728,15 @@ class OperatorService:
             self._start_acquisition_pipeline(
                 paths, meta, acq_cfg, use_synthetic
             )
-            deps, reasons = diagnose_v3_deps(v3_cfg, lsl_timeout_s=8.0, on_console=print)
+            from experiment_game.experiment.session_v2 import diagnose_v2_online_deps
+            live_buf = self._live_capture.buf if self._live_capture is not None else None
+            deps, reasons = diagnose_v2_online_deps(
+                v3_cfg,  # type: ignore[arg-type]
+                require_lsl=True,
+                lsl_timeout_s=8.0,
+                on_console=print,
+                buffer=live_buf,
+            )
             if deps is None:
                 msg = (
                     "v3 自检失败（权重或 LSL 不可用）："
@@ -1784,11 +1744,7 @@ class OperatorService:
                     + "\n请确认 open_operator.bat、采集已开、ckpt 路径正确。"
                 )
                 raise RuntimeError(msg)
-            if deps[1] is not None:
-                try:
-                    deps[1].close()
-                except Exception:
-                    pass
+            self._v3_injected_deps = deps
             update_session_meta(paths.meta_json, v3_online_ready=True)
         except Exception as exc:  # noqa: BLE001
             msg = str(exc)
@@ -1816,7 +1772,10 @@ class OperatorService:
             subject_id=subject_id,
             subject_feedback_mode=_subject_feedback_mode(cfg),
             use_synthetic=use_synthetic,
+            deps=getattr(self, "_v3_injected_deps", None),
+            close_buffer=False,
         )
+        self._v3_injected_deps = None
         self._runner = None
 
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v3_session")
@@ -2421,10 +2380,9 @@ class OperatorService:
         buf = None
         try:
             self._start_acquisition_pipeline(paths, meta, acq_cfg, use_synthetic)
-            buf, reasons = diagnose_v4_lsl(v4_cfg, on_console=print)
-            if buf is None:
-                msg = "v4 LSL 挂接失败：" + ("；".join(reasons) if reasons else "未知")
-                raise RuntimeError(msg)
+            if self._live_capture is None:
+                raise RuntimeError("v4 LiveEegCapture 未启动")
+            buf = self._live_capture.buf
             update_session_meta(paths.meta_json, v4_lsl_ready=True)
         except Exception as exc:  # noqa: BLE001
             msg = str(exc)
@@ -2443,11 +2401,7 @@ class OperatorService:
                 session_dir=paths.root,
             )
         finally:
-            if buf is not None:
-                try:
-                    buf.close()
-                except Exception:
-                    pass
+            pass  # live_capture 由 _shutdown_session_resources 关闭
         self._runner = None
 
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v4_session")
@@ -2590,23 +2544,36 @@ class OperatorService:
 
     def _shutdown_session_resources(self) -> None:
         self._stop_link_monitor()
+        live = self._live_capture
+        self._live_capture = None
+        if live is not None:
+            try:
+                meta = live.stop()
+                quality = meta.get("quality") if isinstance(meta, dict) else None
+                if isinstance(quality, dict) and quality:
+                    self._last_acq_quality = quality
+                    print(
+                        f"[operator] Bus CSV 停止: rows={meta.get('samples_written')} "
+                        f"drop_rate_pct={quality.get('drop_rate_pct')} "
+                        f"timeline={quality.get('timeline', '?')}"
+                    )
+                else:
+                    rows = meta.get("samples_written") if isinstance(meta, dict) else "?"
+                    print(f"[operator] Bus CSV 停止: rows={rows}")
+            except Exception as exc:  # noqa: BLE001
+                print(f"[operator] Bus CSV 停止异常: {exc}", file=sys.stderr)
+
         acq = self._acq
         self._acq = None
         if acq is not None:
             try:
                 report = acq.stop()
-                print(f"[operator] 录制停止: {report.get('message')}")
+                print(f"[operator] 采集停止: {report.get('message')}")
                 quality = report.get("quality")
-                if isinstance(quality, dict) and quality:
+                if isinstance(quality, dict) and quality and not self._last_acq_quality:
                     self._last_acq_quality = quality
-                    q_msg = quality.get("drop_rate_pct")
-                    if q_msg is not None:
-                        print(
-                            f"[operator] 录制质量: drop_rate_pct={q_msg} "
-                            f"severity={quality.get('severity', '?')}"
-                        )
             except Exception as exc:  # noqa: BLE001
-                print(f"[operator] 停止录制异常: {exc}", file=sys.stderr)
+                print(f"[operator] 停止采集异常: {exc}", file=sys.stderr)
             try:
                 acq.shutdown()
             except Exception:  # noqa: BLE001
@@ -2633,7 +2600,6 @@ class OperatorService:
                 )
             except Exception:  # noqa: BLE001
                 pass
-
     def _build_acquisition_facade(
         self,
         acq_cfg: Dict[str, Any],
@@ -2704,8 +2670,20 @@ class OperatorService:
 
         self._emit_acq_status("connecting", "正在启动采集…")
         self._acq.create(on_link_event=self._on_acq_link_event)
-        self._acq.start(paths.eeg_csv)
+        # Bus CSV 单写：板卡只推 LSL，不启 lsl_connect Recorder
+        self._acq.start(paths.eeg_csv, record_csv=False)
         self._acq.health_check()
+        from experiment_game.experiment.live_capture import LiveEegCapture
+
+        self._live_capture = LiveEegCapture(
+            paths.eeg_csv,
+            channel_labels=list(meta.channel_labels or DEFAULT_CHANNEL_LABELS),
+            use_synthetic=use_synthetic,
+            serial_port=str(acq_cfg.get("serial_port") or ""),
+            sample_rate_hz=float(acq_cfg.get("sample_rate_hz") or 250),
+        )
+        self._live_capture.start(lsl_timeout_s=8.0)
+        print("[operator] EEGBus CSV 订户已挂接（替代 Recorder 双轨）")
         self._emit_acq_status("recording", "录制中")
         self._start_link_monitor()
 

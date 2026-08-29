@@ -1,9 +1,7 @@
 """EEGBus 单总线多订阅 + 流健康看门狗（总册 §2.2 / §5.2）。
 
-现网双消费链（LSL Recorder + RingBuffer）迁移期：
-- RingBuffer.attach_bus(bus) 在 push 时通知总线；
-- 会话侧 poll_health / maybe_emit_stall 发 WS ``health`` 与 ``eeg_stall``；
-- 全量「单写多订」替换 Recorder 仍属后续战役接线。
+真机/合成：``LiveEegCapture`` 经 RingBuffer.push(t_lsl=…) → publish → CsvRecorderSubscriber。
+仿真：``Bci2aReplaySource`` 同样经 Bus 写 CSV。
 """
 
 from __future__ import annotations

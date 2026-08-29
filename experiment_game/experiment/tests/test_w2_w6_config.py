@@ -86,3 +86,16 @@ def test_session_runner_inherits_base():
     from experiment_game.experiment.session_runner import SessionRunner
 
     assert issubclass(SessionRunner, SessionRunnerBase)
+
+
+def test_v_session_runners_inherit_base():
+    from experiment_game.experiment.session_base import SessionRunnerBase
+    from experiment_game.experiment.session_runners import (
+        V2SessionRunner,
+        V3SessionRunner,
+        V4SessionRunner,
+    )
+
+    assert issubclass(V2SessionRunner, SessionRunnerBase)
+    assert issubclass(V3SessionRunner, SessionRunnerBase)
+    assert issubclass(V4SessionRunner, SessionRunnerBase)
