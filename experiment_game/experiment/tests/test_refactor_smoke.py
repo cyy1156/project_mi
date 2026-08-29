@@ -36,3 +36,6 @@ def test_crash_finalize_writes_aborted(tmp_path: Path):
     meta = json.loads((root / "session.meta.json").read_text(encoding="utf-8"))
     assert meta.get("aborted") is True
     assert meta.get("abort_reason") == "smoke_test"
+    assert (root / "session_integrity.json").is_file()
+    integ = json.loads((root / "session_integrity.json").read_text(encoding="utf-8"))
+    assert integ.get("event") == "session_integrity"

@@ -34,7 +34,7 @@ def _wire_implementations(svc: OperatorService) -> None:
     from experiment_game.offline.phase4_service import run_phase4_for_session
     from experiment_game.offline.phase4_v2 import run as run_p4_cal
     from experiment_game.offline.phase4_v2_game import run as run_p4_game
-    from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+    from experiment_game.pipeline.finetune import run_subject_finetune
 
     svc._phase4_runner = run_phase4_for_session  # noqa: SLF001
     svc._phase4_v2_pair_runner = (run_p4_cal, run_p4_game)  # noqa: SLF001

@@ -55,8 +55,16 @@
 
 另有服务端回执：`phase4_ack`（`ok`, `epochs_dir`, `summary`, `pointer`）。
 
+## 协议增补（v2 草案 · 2026-08-29）
+
+| type | 方向 | 字段 | 说明 |
+|------|------|------|------|
+| `health` | S→C | `eeg_state`(ok/stall/lost), `last_gap_s`, `n_samples` | EEGBus 健康广播（接口见 `runtime.eeg_bus.health_ws_payload`；全量接线战役期） |
+| `integrity` | S→C | `manifest_ok`, `missing[]` | 会话收尾完整性；现网先写 `session_integrity.json` |
+
 ## 原则
 
 - 阶段到达时刻以 Python `pylsl.local_clock()` 打标为准；WS 仅同步 UI。  
 - 正式 `acquire` 的 `mi`/`rest` 必须 `anim=none`。  
 - 暂停时控制器冻结 trial 时钟；reject 在 `trial_end` 前写入 `trial_reject`。
+- 非 dict 消息应跳过并计数（勿断连）；重连指数退避，会话未 `done` 不放弃。

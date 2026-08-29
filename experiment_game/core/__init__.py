@@ -5,6 +5,6 @@
 - 依赖方向由 experiment/tests/test_dep_directions.py 用 AST 锁死。
 """
 
-from experiment_game.core import atomic_io, channel_layout, jsonl, windowing  # noqa: F401
+from experiment_game.core import atomic_io, channel_layout, jsonl, paths, windowing  # noqa: F401
 
-__all__ = ["atomic_io", "channel_layout", "jsonl", "windowing"]
+__all__ = ["atomic_io", "channel_layout", "jsonl", "paths", "windowing"]

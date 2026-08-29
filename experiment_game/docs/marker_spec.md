@@ -145,3 +145,22 @@ C3, C4, CZ, CP3, CP4, CPZ, FC3, FC4
 5. `t_lsl` 序列无系统性倒退  
 
 工具：`tools/run_phase1_block.py`、`tools/verify_phase1_alignment.py`
+
+---
+
+## 6. 事件字典增补（v0.3 · 2026-08-29）
+
+在 v0.2 基础上登记现行已用事件，并预留断流/完整性：
+
+| event | 何时 | 附加字段 |
+|-------|------|----------|
+| `prep_start` | cue 前准备段 | trial_id, label |
+| `iti_start` | MI 后 ITI | trial_id, label |
+| `judge` | 每个在线判定窗 | trial_id, t_rel, pred, gated_pred, p_three[], …；规划 `buf_age_s` |
+| `v3_baseline_end` / `v3_block_begin` / `v3_block_end` | v3 块结构 | block, cond |
+| `v3_self_check_ok` | 开场自检 | — |
+| `eeg_stale` | 推理缓冲陈旧（现网已推 marker） | age |
+| `eeg_stall` / `eeg_resume` | **规划**：总线断流告警/恢复（EEGBus 接线后） | last_sample_t, gap_s |
+| `session_integrity` | 收尾完整性 | 落盘为 `session_integrity.json` + meta 字段 |
+
+通道序以 [`框架冻结确认_20260829.md`](框架冻结确认_20260829.md) / `core.channel_layout` 为准（**FC3…CP4**）；上文 §4 旧序仅 Phase1 历史。
