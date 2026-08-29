@@ -65,3 +65,24 @@ def test_ws_dispatch_table_keys():
         "sim_catalog",
     ):
         assert key in table
+
+
+def test_run_config_eats_protocol():
+    from experiment_game.experiment.run_config import merge_run_config
+
+    cfg = merge_run_config(None)
+    assert cfg["experiment"]["timing"]["mi_s"] == 4.0
+    assert cfg["acquisition"]["channel_labels"][0] == "FC3"
+    assert cfg["acquisition"]["sample_rate_hz"] == 250
+    assert cfg.get("extensions", {}).get("protocol_id") == "openbmi_align_v1"
+
+    overridden = merge_run_config({"experiment": {"timing": {"mi_s": 3.5}}})
+    assert overridden["experiment"]["timing"]["mi_s"] == 3.5
+    assert overridden["experiment"]["timing"]["rest_s"] == 4.0
+
+
+def test_session_runner_inherits_base():
+    from experiment_game.experiment.session_base import SessionRunnerBase
+    from experiment_game.experiment.session_runner import SessionRunner
+
+    assert issubclass(SessionRunner, SessionRunnerBase)

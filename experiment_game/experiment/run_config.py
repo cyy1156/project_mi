@@ -1,4 +1,7 @@
-"""操作台 run_config schema 校验与默认值（UI-1）。"""
+"""操作台 run_config schema 校验与默认值（UI-1）。
+
+默认值优先级：操作台 partial > ``protocol.yaml`` 种子 > ``DEFAULT_RUN_CONFIG``。
+"""
 
 from __future__ import annotations
 
@@ -12,6 +15,14 @@ from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
 from experiment_game.experiment.timing import timing_from_dict, validate_timing_dict
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]+$")
+_TIMING_KEYS = (
+    "fixation_s",
+    "cue_s",
+    "mi_s",
+    "post_mi_hold_s",
+    "rest_s",
+    "transition_s",
+)
 
 DEFAULT_RUN_CONFIG: Dict[str, Any] = {
     "schema_version": 2,
@@ -97,16 +108,61 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
 }
 
 
-def default_run_config() -> Dict[str, Any]:
-    return deepcopy(DEFAULT_RUN_CONFIG)
+def protocol_seed(*, root: Optional[Path] = None) -> Dict[str, Any]:
+    """从 ``config/protocol.yaml``（及机位/env）抽出可写入 run_config 的种子。
+
+    仅映射 phase2 timing / 通道序 / 采样率；v3 timing、windowing、watchdog
+    仍由各会话 YAML/硬编码消费，避免误改现网语义。
+    """
+    try:
+        from experiment_game.core.config import load_layered_config
+
+        proto = load_layered_config(root=root)
+    except Exception:  # noqa: BLE001
+        return {}
+
+    seed: Dict[str, Any] = {}
+    ch = proto.get("channels") if isinstance(proto.get("channels"), dict) else {}
+    order = ch.get("order") if isinstance(ch, dict) else None
+    if isinstance(order, list) and len(order) == 8:
+        seed.setdefault("acquisition", {})["channel_labels"] = [str(x) for x in order]
+        fs = ch.get("fs_hz")
+        if fs is not None and fs != "":
+            try:
+                seed["acquisition"]["sample_rate_hz"] = int(fs)
+            except (TypeError, ValueError):
+                pass
+
+    timing_raw = proto.get("timing_phase2")
+    if isinstance(timing_raw, dict):
+        timing: Dict[str, float] = {}
+        for k in _TIMING_KEYS:
+            if k not in timing_raw or timing_raw[k] is None or timing_raw[k] == "":
+                continue
+            try:
+                timing[k] = float(timing_raw[k])
+            except (TypeError, ValueError):
+                continue
+        if timing:
+            seed.setdefault("experiment", {})["timing"] = timing
+
+    pid = proto.get("protocol_id")
+    if pid:
+        seed.setdefault("extensions", {})["protocol_id"] = str(pid)
+    return seed
 
 
-def merge_run_config(partial: Optional[Dict[str, Any]]) -> Dict[str, Any]:
-    """浅合并分组；未知顶层键进 extensions（前向兼容）。"""
-    base = default_run_config()
-    if not partial:
-        return base
-    known = {"schema_version", "subject", "acquisition", "experiment", "storage", "ui", "extensions"}
+def _apply_partial(base: Dict[str, Any], partial: Dict[str, Any]) -> Dict[str, Any]:
+    """浅合并分组到 base（就地）；未知顶层键进 extensions。"""
+    known = {
+        "schema_version",
+        "subject",
+        "acquisition",
+        "experiment",
+        "storage",
+        "ui",
+        "extensions",
+    }
     for key, value in partial.items():
         if key == "schema_version":
             base["schema_version"] = value
@@ -119,6 +175,12 @@ def merge_run_config(partial: Optional[Dict[str, Any]]) -> Dict[str, Any]:
                 merged_acq = dict(value)
                 merged_acq["filter"] = filt
                 base["acquisition"].update(merged_acq)
+            elif key == "experiment" and isinstance(value.get("timing"), dict):
+                timing = dict(base["experiment"].get("timing") or {})
+                timing.update(value["timing"])
+                merged_exp = dict(value)
+                merged_exp["timing"] = timing
+                base["experiment"].update(merged_exp)
             else:
                 base[key].update(value)
         elif key == "extensions" and isinstance(value, dict):
@@ -126,6 +188,30 @@ def merge_run_config(partial: Optional[Dict[str, Any]]) -> Dict[str, Any]:
         elif key not in known:
             base["extensions"][key] = value
     return base
+
+
+def default_run_config(*, root: Optional[Path] = None) -> Dict[str, Any]:
+    """硬编码默认 + protocol 种子（protocol 覆盖同名字段）。"""
+    base = deepcopy(DEFAULT_RUN_CONFIG)
+    seed = protocol_seed(root=root)
+    if seed:
+        _apply_partial(base, seed)
+    return base
+
+
+def merge_run_config(
+    partial: Optional[Dict[str, Any]],
+    *,
+    root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    """浅合并分组；未知顶层键进 extensions（前向兼容）。
+
+    优先级：partial > protocol.yaml > DEFAULT_RUN_CONFIG。
+    """
+    base = default_run_config(root=root)
+    if not partial:
+        return base
+    return _apply_partial(base, partial)
 
 
 def validate_run_config(
