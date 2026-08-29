@@ -63,12 +63,27 @@ class EEGBus:
             state="ok",
         )
 
-    def publish(self, t_lsl: np.ndarray, x: np.ndarray) -> None:
+    def publish(
+        self,
+        t_lsl: np.ndarray,
+        x: np.ndarray,
+        *,
+        count: bool = True,
+    ) -> None:
         t_arr = np.asarray(t_lsl).reshape(-1)
         x_arr = np.asarray(x)
         n = int(t_arr.shape[0]) if t_arr.size else int(x_arr.shape[0]) if x_arr.ndim else 0
         t_last = float(t_arr[-1]) if t_arr.size else None
-        self.note_push(n, t_lsl_last=t_last)
+        if count:
+            self.note_push(n, t_lsl_last=t_last)
+        else:
+            # 仅扇出：样本计数已由 RingBuffer.attach_bus 记过
+            self.last_health = StreamHealth(
+                last_sample_t=t_last if t_last is not None else self.last_health.last_sample_t,
+                n_samples=self._n,
+                gap_s=0.0,
+                state="ok",
+            )
         for sub in list(self.subscribers):
             sub.on_chunk(t_arr, x_arr)
 

@@ -1,8 +1,7 @@
-"""BCI2a 连续 EEG 回放 → RingBuffer + eeg.csv。"""
+"""BCI2a 连续 EEG 回放 → RingBuffer + eeg.csv（经 EEGBus CSV 订户）。"""
 
 from __future__ import annotations
 
-import csv
 import threading
 import time
 from pathlib import Path
@@ -130,7 +129,7 @@ def build_replay_timeline(
 
 
 class Bci2aReplaySource:
-    """按墙钟向 RingBuffer 灌样本；可选写 eeg.csv。"""
+    """按墙钟向 RingBuffer 灌样本；经 EEGBus 扇出可选写 eeg.csv。"""
 
     def __init__(
         self,
@@ -144,6 +143,7 @@ class Bci2aReplaySource:
         prep_s: float = 2.0,
         mi_s: float = 4.0,
         iti_s: float = 3.0,
+        bus=None,
     ):
         self.script = script
         self.buf = buf
@@ -162,9 +162,15 @@ class Bci2aReplaySource:
         self._stop = False
         self._thread: Optional[threading.Thread] = None
         self._t0: Optional[float] = None
-        self._csv_file = None
-        self._csv_writer = None
         self.samples_pushed = 0
+        # EEGBus：健康 + CSV 订户（W2 仿真路径单写多订）
+        from experiment_game.runtime.eeg_bus import EEGBus
+        from experiment_game.runtime.eeg_health import ensure_session_bus
+
+        self.bus = bus if bus is not None else ensure_session_bus(buf)
+        if not isinstance(self.bus, EEGBus):
+            self.bus = ensure_session_bus(buf)
+        self._csv_sub = None
 
     @property
     def ring_buffer(self) -> RingBuffer:
@@ -173,11 +179,12 @@ class Bci2aReplaySource:
     def start(self) -> None:
         from pylsl import local_clock
 
+        from experiment_game.runtime.csv_recorder import CsvRecorderSubscriber
+
         if self.eeg_csv_path is not None:
-            self.eeg_csv_path.parent.mkdir(parents=True, exist_ok=True)
-            self._csv_file = self.eeg_csv_path.open("w", newline="", encoding="utf-8")
-            self._csv_writer = csv.writer(self._csv_file)
-            self._csv_writer.writerow(["lsl_time"] + list(DEVICE_CHANNEL_LABELS))
+            self._csv_sub = CsvRecorderSubscriber(self.eeg_csv_path)
+            self._csv_sub.open()
+            self.bus.subscribe(self._csv_sub)
 
         self._t0 = local_clock()
         self._stop = False
@@ -198,28 +205,40 @@ class Bci2aReplaySource:
                 row_dev = reorder_model_input_to_device(row)
                 self.buf.push(row_dev)
                 lsl_t = self._t0 + i / (self.fs * self.speed)
-                if self._csv_writer is not None:
-                    self._csv_writer.writerow(
-                        [f"{lsl_t:.6f}"] + [f"{v:.6f}" for v in row_dev[0]]
-                    )
+                # Bus 扇出（CSV 订户）；RingBuffer.attach_bus 已 note_push
+                try:
+                    self.bus.publish(np.asarray([lsl_t]), row_dev, count=False)
+                except Exception:
+                    pass
                 i += 1
                 self.samples_pushed += 1
             time.sleep(0.002)
-        if self._csv_file is not None:
-            self._csv_file.flush()
 
     def stop(self) -> None:
         self._stop = True
         if self._thread is not None:
             self._thread.join(timeout=5.0)
             self._thread = None
-        if self._csv_file is not None:
+        if self._csv_sub is not None:
             try:
-                self._csv_file.close()
+                self.bus.unsubscribe(self._csv_sub)
             except Exception:
                 pass
-            self._csv_file = None
-            self._csv_writer = None
+            self._csv_sub.close()
+            self._csv_sub = None
 
     def session_duration_s(self) -> float:
         return len(self.timeline) / self.fs / self.speed
+
+    # BoardSource 协议兼容
+    def health(self):
+        return self.bus.poll_health()
+
+    def meta(self):
+        from experiment_game.runtime.board_source import BoardMeta
+
+        return BoardMeta(
+            board_name="bci2a_replay",
+            sample_rate_hz=self.fs,
+            channel_labels=list(DEVICE_CHANNEL_LABELS),
+        )

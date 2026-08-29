@@ -291,6 +291,28 @@ class AcquisitionFacade:
                 pass
         return {"stop_recording_ok": ok, "message": msg, "quality": report_dict}
 
+    def health_dict(self) -> dict:
+        """粗健康快照（dict，避免 acquisition→runtime 依赖）。"""
+        if self._mgr is None:
+            return {"last_sample_t": None, "n_samples": 0, "state": "lost"}
+        try:
+            st = self._mgr.get_status()
+            n = int(st.get("samples_pushed") or 0)
+            return {
+                "last_sample_t": None,
+                "n_samples": n,
+                "state": "ok" if n > 0 else "stall",
+            }
+        except Exception:  # noqa: BLE001
+            return {"last_sample_t": None, "n_samples": 0, "state": "lost"}
+
+    def meta_dict(self) -> dict:
+        return {
+            "board_name": "synthetic" if self._use_synthetic else "cyton",
+            "sample_rate_hz": 250.0,
+            "channel_labels": list(self._labels),
+        }
+
     def shutdown(self) -> None:
         if self._mgr is not None:
             self._mgr.shutdown()
