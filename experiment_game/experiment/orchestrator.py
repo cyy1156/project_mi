@@ -307,81 +307,82 @@ class OperatorService:
         return 0
 
     def _on_ws_message(self, msg: Dict[str, Any]) -> None:
+        """WS 入站路由（W6：dispatch table，替代长 elif 链）。"""
         mtype = msg.get("type")
-        if mtype == "config_validate":
-            cfg, errors = validate_run_config(
-                msg.get("run_config") or {},
-                repo_root=self.repo_root,
-            )
-            self.bridge.broadcast(
-                {
-                    "type": "config_ack",
-                    "ok": not errors,
-                    "errors": errors,
-                    "run_config": cfg if not errors else None,
-                }
-            )
-        elif mtype == "session_start":
-            self._handle_session_start(msg.get("run_config") or {})
-        elif mtype == "open_folder":
-            self._open_folder(str(msg.get("path") or ""))
-        elif mtype == "open_subject_page":
-            self._open_subject_page()
-        elif mtype == "list_serial_ports":
-            self._list_serial_ports()
-        elif mtype == "save_defaults":
-            self._save_defaults(msg.get("run_config") or {})
-        elif mtype == "run_phase4":
-            self._handle_run_phase4(str(msg.get("path") or ""), msg)
-        elif mtype == "operator" and str(msg.get("action") or "") == "split_session":
+        if not mtype or not isinstance(mtype, str):
+            return
+
+        # 特殊：operator + split_session
+        if mtype == "operator" and str(msg.get("action") or "") == "split_session":
             self._handle_split_request()
-        elif mtype == "questionnaire_open":
-            self._handle_questionnaire_open()
-        elif mtype == "questionnaire_result":
-            self._handle_questionnaire_result(msg)
-        elif mtype == "client_stats":
-            self._handle_client_stats(msg)
-        elif mtype == "subject_login":
-            self._handle_subject_login(msg)
-        elif mtype == "subject_logout":
-            self._handle_subject_logout()
-        elif mtype == "subject_info":
-            self._handle_subject_info(msg)
-        elif mtype == "finetune_start":
-            self._handle_finetune_start(msg)
-        elif mtype == "finetune_promote":
-            self._handle_finetune_promote(msg)
-        elif mtype == "session_exclude_record":
-            self._handle_session_exclude_record(msg)
-        elif mtype == "ramp_status":
-            self._handle_ramp_status(msg)
-        elif mtype == "sim_catalog":
-            self._handle_sim_catalog(msg)
-        elif mtype == "sim_campaign_create":
-            self._handle_sim_campaign_create(msg)
-        elif mtype == "sim_campaign_list":
-            self._handle_sim_campaign_list(msg)
-        elif mtype == "operator_hello":
-            file_defaults, warn = load_operator_defaults(
-                defaults_path(repo_pkg=_PKG_ROOT),
-                repo_root=self.repo_root,
-            )
-            self.bridge.broadcast(
-                {
-                    "type": "operator_hello",
-                    "message": "operator_connected",
-                    "operator_url": self.operator_url,
-                    "subject_url": self.subject_url,
-                    "defaults": file_defaults,
-                    "builtin_defaults": merge_run_config(None),
-                    "defaults_path": str(defaults_path(repo_pkg=_PKG_ROOT)),
-                    "defaults_warning": warn,
-                    "serial_ports": list_serial_ports(),
-                    "active_subject": self._active_subject,
-                    "active_subject_info": self._active_subject_info,
-                    **self._model_presets_payload(),
-                }
-            )
+            return
+
+        handlers = self._ws_dispatch_table()
+        handler = handlers.get(mtype)
+        if handler is None:
+            return
+        handler(msg)
+
+    def _ws_dispatch_table(self) -> Dict[str, Callable[[Dict[str, Any]], None]]:
+        return {
+            "config_validate": self._ws_config_validate,
+            "session_start": lambda m: self._handle_session_start(m.get("run_config") or {}),
+            "open_folder": lambda m: self._open_folder(str(m.get("path") or "")),
+            "open_subject_page": lambda m: self._open_subject_page(),
+            "list_serial_ports": lambda m: self._list_serial_ports(),
+            "save_defaults": lambda m: self._save_defaults(m.get("run_config") or {}),
+            "run_phase4": lambda m: self._handle_run_phase4(str(m.get("path") or ""), m),
+            "questionnaire_open": lambda m: self._handle_questionnaire_open(),
+            "questionnaire_result": self._handle_questionnaire_result,
+            "client_stats": self._handle_client_stats,
+            "subject_login": self._handle_subject_login,
+            "subject_logout": lambda m: self._handle_subject_logout(),
+            "subject_info": self._handle_subject_info,
+            "finetune_start": self._handle_finetune_start,
+            "finetune_promote": self._handle_finetune_promote,
+            "session_exclude_record": self._handle_session_exclude_record,
+            "ramp_status": self._handle_ramp_status,
+            "sim_catalog": self._handle_sim_catalog,
+            "sim_campaign_create": self._handle_sim_campaign_create,
+            "sim_campaign_list": self._handle_sim_campaign_list,
+            "operator_hello": self._ws_operator_hello,
+        }
+
+    def _ws_config_validate(self, msg: Dict[str, Any]) -> None:
+        cfg, errors = validate_run_config(
+            msg.get("run_config") or {},
+            repo_root=self.repo_root,
+        )
+        self.bridge.broadcast(
+            {
+                "type": "config_ack",
+                "ok": not errors,
+                "errors": errors,
+                "run_config": cfg if not errors else None,
+            }
+        )
+
+    def _ws_operator_hello(self, msg: Dict[str, Any]) -> None:
+        file_defaults, warn = load_operator_defaults(
+            defaults_path(repo_pkg=_PKG_ROOT),
+            repo_root=self.repo_root,
+        )
+        self.bridge.broadcast(
+            {
+                "type": "operator_hello",
+                "message": "operator_connected",
+                "operator_url": self.operator_url,
+                "subject_url": self.subject_url,
+                "defaults": file_defaults,
+                "builtin_defaults": merge_run_config(None),
+                "defaults_path": str(defaults_path(repo_pkg=_PKG_ROOT)),
+                "defaults_warning": warn,
+                "serial_ports": list_serial_ports(),
+                "active_subject": self._active_subject,
+                "active_subject_info": self._active_subject_info,
+                **self._model_presets_payload(),
+            }
+        )
 
     def _handle_split_request(self) -> None:
         """操作台 B 键：会话中 = 请求换场；换场等待中 = 开始下一段。"""
