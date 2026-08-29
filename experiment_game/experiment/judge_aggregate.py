@@ -104,6 +104,7 @@ def primary_judge_from_judgments(
         return None
 
     if mode == "e1f_conf_stop":
+        # bypass-only since F5 frozen 20260829（正式 SOP 默认 causal_smooth_majority）
         from adapt_engine.readout import e1f_conf_stop_from_judgments
 
         return e1f_conf_stop_from_judgments(

@@ -1,83 +1,75 @@
-"""OpenBMI-Align 离线切窗（与 ft_subject_from_v3 openbmi_align / preprocess_run_3s_hop100 同构）。"""
+"""OpenBMI-Align 切窗（薄包装）：表策略在此，数学在 core.windowing。
+
+权威实现：experiment_game.core.windowing
+本模块保留 trial_table / rest 打点策略与向后兼容导出。
+"""
 
 from __future__ import annotations
 
-import sys
 from pathlib import Path
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 
-_REPO = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(_REPO))
-sys.path.insert(0, str(_REPO / "code" / "preprocess_lab"))
+from experiment_game.core.windowing import (
+    BASELINE_BEFORE_CUE_S,
+    FROZEN,
+    FS,
+    HOP_SEC,
+    N_TIMES,
+    TASK_SEC,
+    WIN_SEC,
+    WINDOWING_VERSION,
+    cue_time_from_row,
+    extract_segment_baseline,
+    iter_rest_sources_cue_before,
+    lsl_to_sample,
+    n_windows_3s_hop100,
+    segment_to_3s_hop100_windows,
+    slide_3s_from_interval,
+    task_window_cue_0_to_4,
+    wins_to_model,
+)
 
-from src.common.steps.epoch_baseline import task_window_cue_0_to_4  # noqa: E402
-from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
-from src.common.steps.slide_1s import extract_segment_baseline, iter_rest_sources_cue_before  # noqa: E402
-from src.common.steps.slide_3s_hop100 import WIN_SEC as WIN_SEC_3S, segment_to_3s_hop100_windows  # noqa: E402
-
-FS = 250.0
-# 2026-08-29 冻结：与 experiment/channel_layout.DEVICE_CHANNEL_LABELS 统一（设备序=模型序）
-FROZEN = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
-
-
-def cue_time_from_row(r: Dict[str, Any]) -> Optional[float]:
-    tc, tm = r.get("t_cue"), r.get("t_mi_start")
-    if tc not in (None, "") and tm not in (None, ""):
-        tc_f, tm_f = float(tc), float(tm)
-        if abs(tm_f - tc_f) <= 0.5:
-            return tc_f
-        return tm_f
-    if tc not in (None, ""):
-        return float(tc)
-    if tm not in (None, ""):
-        return float(tm)
-    return None
-
-
-def _lsl_to_sample(t_lsl: np.ndarray, t: float) -> int:
-    return int(np.searchsorted(t_lsl, float(t)))
+# 兼容旧名
+WIN_SEC_3S = WIN_SEC
+HOP_SEC_3S = HOP_SEC
+N_TIMES_3S = N_TIMES
+_lsl_to_sample = lsl_to_sample
+_wins_to_model = wins_to_model
 
 
 def iter_rest_sources_from_table(
-    rows: List[Dict[str, Any]],
+    rows: Sequence[Dict[str, Any]],
     t_lsl: np.ndarray,
     *,
     skip_rejected: bool = True,
     skip_invalid: bool = True,
-    min_win_sec: float = WIN_SEC_3S,
+    min_win_sec: float = WIN_SEC,
 ) -> List[Tuple[int, int, int]]:
-    """从 trial_table 的 t_rest_start/t_rest_end 取 Rest 段（同 trial_id，Cue 前纯静息）。"""
-    min_len = int(round(min_win_sec * FS))
+    """从 trial_table 的 rest 打点提取源区间。返回 [(trial_id, t0, t1), ...]。"""
     out: List[Tuple[int, int, int]] = []
+    min_len = int(round(float(min_win_sec) * FS))
     for r in rows:
         if skip_rejected and str(r.get("rejected") or "0") == "1":
             continue
         if skip_invalid and str(r.get("invalid") or "0") == "1":
             continue
-        ts, te = r.get("t_rest_start"), r.get("t_rest_end")
-        if ts in (None, "") or te in (None, ""):
+        if str(r.get("phase") or "") != "rest":
             continue
-        t0 = _lsl_to_sample(t_lsl, float(ts))
-        t1 = _lsl_to_sample(t_lsl, float(te))
-        if t1 - t0 < min_len:
+        lab = int(r.get("label") or -1)
+        if lab != 0:
             continue
-        try:
-            tid_raw = r.get("trial_id")
-            if tid_raw is None or (isinstance(tid_raw, float) and tid_raw != tid_raw):
-                tid = 0
-            else:
-                tid = int(float(tid_raw))
-        except (TypeError, ValueError):
-            tid = 0
-        out.append((tid, t0, t1))
-    out.sort(key=lambda x: (x[1], x[0]))
+        t_s = r.get("t_rest_start")
+        t_e = r.get("t_rest_end")
+        if t_s in (None, "") or t_e in (None, ""):
+            continue
+        i0 = lsl_to_sample(t_lsl, float(t_s))
+        i1 = lsl_to_sample(t_lsl, float(t_e))
+        if i1 - i0 < min_len:
+            continue
+        out.append((int(r.get("trial_id") or 0), i0, i1))
     return out
-
-
-def _wins_to_model(wins: List[np.ndarray]) -> List[np.ndarray]:
-    return [w.T.astype(np.float32) for w in wins if w.shape[0] == int(round(WIN_SEC_3S * FS))]
 
 
 def cut_openbmi_align_from_table(
@@ -96,7 +88,6 @@ def cut_openbmi_align_from_table(
     y_task: List[int] = []
     tids: List[int] = []
 
-    task_rows: List[Dict[str, Any]] = []
     cue_samples: List[int] = []
     n_left = n_right = 0
 
@@ -114,16 +105,15 @@ def cut_openbmi_align_from_table(
         t_cue = cue_time_from_row(r)
         if t_cue is None:
             continue
-        cue_idx = _lsl_to_sample(t_lsl, t_cue)
+        cue_idx = lsl_to_sample(t_lsl, t_cue)
         seg = task_window_cue_0_to_4(x_filt, cue_idx, FS)
         if seg is None:
             continue
         seg_wins = segment_to_3s_hop100_windows(seg, FS, zscore=True)
-        ws = _wins_to_model(seg_wins)
+        ws = wins_to_model(seg_wins)
         if not ws:
             continue
         tid = int(r["trial_id"])
-        task_rows.append(r)
         cue_samples.append(cue_idx)
         if lab == 1:
             n_left += 1
@@ -142,25 +132,24 @@ def cut_openbmi_align_from_table(
             t_lsl,
             skip_rejected=skip_rejected,
             skip_invalid=skip_invalid,
-            min_win_sec=WIN_SEC_3S,
+            min_win_sec=WIN_SEC,
         )
         if not rest_sources and cue_samples:
-            # 无 rest 打点时回退（OpenBMI .mat / 历史 session）
             fb = iter_rest_sources_cue_before(
                 np.asarray(sorted(cue_samples), dtype=int),
                 FS,
                 x_filt.shape[0],
                 rest_sec=4.0,
-                task_sec=4.0,
-                min_win_sec=WIN_SEC_3S,
+                task_sec=TASK_SEC,
+                min_win_sec=WIN_SEC,
             )
             rest_sources = [(-(i + 1), int(t0), int(t1)) for i, (t0, t1) in enumerate(fb)]
         for ri, (tid, t0, t1) in enumerate(rest_sources[: int(max_rest)]):
-            seg = extract_segment_baseline(x_filt, int(t0), int(t1), FS, baseline_sec=0.5)
+            seg = extract_segment_baseline(x_filt, int(t0), int(t1), FS, baseline_sec=BASELINE_BEFORE_CUE_S)
             if seg is None:
                 continue
             seg_wins = segment_to_3s_hop100_windows(seg, FS, zscore=True)
-            ws = _wins_to_model(seg_wins)
+            ws = wins_to_model(seg_wins)
             for w in ws:
                 wins.append(w)
                 y_three.append(0)
@@ -168,3 +157,37 @@ def cut_openbmi_align_from_table(
                 tids.append(int(tid) if tid > 0 else -(ri + 1))
 
     return wins, y_three, y_task, tids
+
+
+__all__ = [
+    "WINDOWING_VERSION",
+    "FROZEN",
+    "FS",
+    "WIN_SEC",
+    "WIN_SEC_3S",
+    "HOP_SEC",
+    "HOP_SEC_3S",
+    "N_TIMES",
+    "N_TIMES_3S",
+    "TASK_SEC",
+    "BASELINE_BEFORE_CUE_S",
+    "cue_time_from_row",
+    "lsl_to_sample",
+    "_lsl_to_sample",
+    "extract_segment_baseline",
+    "task_window_cue_0_to_4",
+    "segment_to_3s_hop100_windows",
+    "n_windows_3s_hop100",
+    "iter_rest_sources_cue_before",
+    "iter_rest_sources_from_table",
+    "wins_to_model",
+    "_wins_to_model",
+    "slide_3s_from_interval",
+    "cut_openbmi_align_from_table",
+]
+
+
+if __name__ == "__main__":
+    # 自检：不依赖 session 数据
+    print("windowing_version=", WINDOWING_VERSION)
+    print("ok", Path(__file__).name)

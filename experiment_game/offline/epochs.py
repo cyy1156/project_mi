@@ -1,5 +1,8 @@
 """按 mi_start / rest_start 切窗，并做基线校正。
 
+历史 2s 固定窗路径（旧 phase / 兼容工具）；OpenBMI-Align 3s/hop100 权威实现见
+`experiment_game.core.windowing` / `offline.openbmi_align_cut`。本期不统一合并本模块。
+
 支持两种模式（与 preprocess_lab 对齐）：
 - fixed：每阶段起点取 1 个固定窗（默认 2s → 500@250Hz）；
 - slide：在阶段区间 [start, end) 内按窗长 + 步长滑动切多个窗。

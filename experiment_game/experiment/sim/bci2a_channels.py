@@ -13,7 +13,7 @@ EEG22: List[str] = [
     "P1", "Pz", "P2", "POz",
 ]
 
-# 2026-08-29 冻结：轴序与 experiment/channel_layout 统一序一致；
+# 2026-08-29 冻结：轴序与 core.channel_layout / core.windowing.FROZEN 一致；
 # "Cz/CPz" 拼写保留（需与 BCI2a 22 导原始名精确匹配），仅顺序变化
 TARGET_CHANNELS: List[str] = ["FC3", "C3", "CP3", "Cz", "CPz", "FC4", "C4", "CP4"]
 
