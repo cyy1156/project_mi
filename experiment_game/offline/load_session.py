@@ -9,6 +9,7 @@ from typing import Any, Dict, List, Optional, Sequence
 
 import numpy as np
 
+from experiment_game.core.jsonl import read_jsonl_tolerant
 from experiment_game.offline.channels import reorder_to_target
 
 
@@ -26,13 +27,9 @@ class SessionEEG:
 
 
 def _read_jsonl(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    with path.open("r", encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if not line:
-                continue
-            rows.append(json.loads(line))
+    rows, n_bad = read_jsonl_tolerant(path)
+    if n_bad:
+        print(f"[load_session] events.jsonl 跳过坏行 {n_bad} 条: {path}", flush=True)
     return rows
 
 

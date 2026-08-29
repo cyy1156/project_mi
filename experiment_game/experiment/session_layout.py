@@ -8,6 +8,9 @@ import shutil
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
+from experiment_game.core.atomic_io import atomic_write_json
+from experiment_game.core.jsonl import read_jsonl_tolerant
+
 
 PHASE_NODES = [
     ("01_adapt", "adapt", None),
@@ -19,16 +22,9 @@ PHASE_NODES = [
 ]
 
 
-def _read_events(path: Path) -> List[Dict[str, Any]]:
-    rows: List[Dict[str, Any]] = []
-    if not path.is_file():
-        return rows
-    with path.open(encoding="utf-8") as f:
-        for line in f:
-            line = line.strip()
-            if line:
-                rows.append(json.loads(line))
-    return rows
+def _read_events(path: Path) -> Tuple[List[Dict[str, Any]], int]:
+    """容错读 events.jsonl；返回 (rows, n_bad_lines)。"""
+    return read_jsonl_tolerant(path)
 
 
 def _write_events(path: Path, rows: List[Dict[str, Any]]) -> None:
@@ -158,12 +154,18 @@ def finalize_session_layout(
     session_root = Path(session_root)
     eeg_src = session_root / "eeg.csv"
     events_src = session_root / "events.jsonl"
-    events = _read_events(events_src)
+    events, n_bad = _read_events(events_src)
+    if n_bad:
+        print(
+            f"[session_layout] events.jsonl 跳过坏行 {n_bad} 条: {events_src}",
+            flush=True,
+        )
 
     manifest: Dict[str, Any] = {
         "session_root": str(session_root),
         "save_layout": save_layout,
         "acq_enabled": acq_enabled,
+        "events_parse_warnings": int(n_bad),
         "files": {},
     }
 
@@ -199,10 +201,7 @@ def finalize_session_layout(
                 phase_meta["t_start_lsl"] = None
                 phase_meta["t_end_lsl"] = None
                 phase_meta["note"] = "本会话未覆盖该节点（可能 skip）"
-                (node_dir / "phase.meta.json").write_text(
-                    json.dumps(phase_meta, ensure_ascii=False, indent=2) + "\n",
-                    encoding="utf-8",
-                )
+                atomic_write_json(node_dir / "phase.meta.json", phase_meta)
                 nodes_meta.append(phase_meta)
                 continue
             t0, t1 = win
@@ -215,10 +214,7 @@ def finalize_session_layout(
                 n = slice_eeg_csv(eeg_src, node_dir / "eeg.csv", t0, t1)
                 phase_meta["files"]["eeg"] = "eeg.csv"
                 phase_meta["eeg_rows"] = n
-            (node_dir / "phase.meta.json").write_text(
-                json.dumps(phase_meta, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
+            atomic_write_json(node_dir / "phase.meta.json", phase_meta)
             (node_dir / "README.txt").write_text(
                 f"node={folder} phase={phase} train_eligible={train_eligible}\n",
                 encoding="utf-8",
@@ -227,8 +223,5 @@ def finalize_session_layout(
         manifest["files"]["by_phase"] = "by_phase/"
         manifest["phase_nodes"] = nodes_meta
 
-    (session_root / "manifest.json").write_text(
-        json.dumps(manifest, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    atomic_write_json(session_root / "manifest.json", manifest)
     return manifest

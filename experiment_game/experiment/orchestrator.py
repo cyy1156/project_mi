@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+import atexit
 import re
 import socket
 import subprocess
@@ -27,6 +28,7 @@ from experiment_game.experiment.defaults_store import (
     load_operator_defaults,
     save_operator_defaults,
 )
+from experiment_game.experiment.session_finalize import ensure_crash_artifacts
 from experiment_game.experiment.session_layout import finalize_session_layout
 from experiment_game.experiment.trial_scoring import session_score_max_openbmi
 from experiment_game.acquisition import AcquisitionFacade, DEFAULT_CHANNEL_LABELS
@@ -142,6 +144,8 @@ class OperatorService:
         self._events: Optional[EventLogger] = None
         self._markers: Optional[MarkerPublisher] = None
         self._paths: Optional[SessionPaths] = None
+        self._layout_finalized = False
+        self._crash_atexit_registered = False
         self._last_config: Optional[Dict[str, Any]] = None
         self._stop_servers = threading.Event()
         # 换场（B）与问卷（Q）状态
@@ -957,9 +961,12 @@ class OperatorService:
         self._worker.start()
 
     def _run_session_safe(self, cfg: Dict[str, Any]) -> None:
+        self._layout_finalized = False
+        err: Optional[BaseException] = None
         try:
             self._run_session(cfg)
         except Exception as exc:  # noqa: BLE001
+            err = exc
             print(f"[operator] 会话错误: {exc}", file=sys.stderr)
             self.bridge.broadcast(
                 {"type": "session", "status": "error", "message": str(exc)}
@@ -982,8 +989,78 @@ class OperatorService:
                 )
         finally:
             self._shutdown_session_resources()
+            if not self._layout_finalized and self._paths is not None:
+                try:
+                    storage = (cfg or {}).get("storage") or {}
+                    layout = str(storage.get("save_layout") or "phase_folders")
+                    report = ensure_crash_artifacts(
+                        self._paths.root,
+                        aborted=bool(err),
+                        reason=(
+                            f"session_error:{type(err).__name__}"
+                            if err
+                            else "session_exit_without_layout_finalize"
+                        ),
+                        acq_enabled=bool((cfg.get("acquisition") or {}).get("enabled", True)),
+                        save_layout=layout,
+                        save_continuous=bool(storage.get("save_continuous_master", True)),
+                        save_phase_slices=bool(
+                            storage.get("save_phase_slices") or layout == "phase_folders"
+                        ),
+                    )
+                    print(f"[operator] 异常收尾落盘: {report}", flush=True)
+                    self._layout_finalized = True
+                except Exception as fin_exc:  # noqa: BLE001
+                    print(f"[operator] 异常收尾失败: {fin_exc}", file=sys.stderr)
+            self._unregister_session_atexit()
             with self._lock:
                 self._busy = False
+
+    def _mark_layout_finalized(self) -> None:
+        self._layout_finalized = True
+        self._unregister_session_atexit()
+
+    def _register_session_atexit(self) -> None:
+        if self._crash_atexit_registered:
+            return
+        atexit.register(self._atexit_crash_finalize)
+        self._crash_atexit_registered = True
+
+    def _unregister_session_atexit(self) -> None:
+        if not self._crash_atexit_registered:
+            return
+        try:
+            atexit.unregister(self._atexit_crash_finalize)
+        except Exception:  # noqa: BLE001
+            pass
+        self._crash_atexit_registered = False
+
+    def _atexit_crash_finalize(self) -> None:
+        if self._layout_finalized or self._paths is None:
+            return
+        try:
+            cfg = self._last_config or {}
+            storage = cfg.get("storage") or {}
+            layout = str(storage.get("save_layout") or "phase_folders")
+            ensure_crash_artifacts(
+                self._paths.root,
+                aborted=True,
+                reason="process_atexit",
+                acq_enabled=bool((cfg.get("acquisition") or {}).get("enabled", True)),
+                save_layout=layout,
+                save_continuous=bool(storage.get("save_continuous_master", True)),
+                save_phase_slices=bool(
+                    storage.get("save_phase_slices") or layout == "phase_folders"
+                ),
+            )
+        except Exception:  # noqa: BLE001
+            pass
+
+    def _bind_session_paths(self, paths: SessionPaths, cfg: Dict[str, Any]) -> None:
+        self._paths = paths
+        self._last_config = cfg
+        self._layout_finalized = False
+        self._register_session_atexit()
 
     def _run_session(self, cfg: Dict[str, Any]) -> None:
         # 重置桥接事件，避免上一场 ready/abort 残留
@@ -1033,7 +1110,7 @@ class OperatorService:
             )
 
             paths = create_session_dir(save_root, subject_id, session_id)
-            self._paths = paths
+            self._bind_session_paths(paths, cfg)
 
             # 会话快照（便于复现；UI-2 正式化）。继续段记录该段实际 trial 数
             seg_cfg = dict(cfg)
@@ -1173,6 +1250,7 @@ class OperatorService:
                     ),
                     acq_enabled=acq_on,
                 )
+                self._mark_layout_finalized()
             except Exception as exc:  # noqa: BLE001
                 print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
 
@@ -1302,7 +1380,7 @@ class OperatorService:
         session_id = sub["session_id"]
 
         paths = create_session_dir(save_root, subject_id, session_id)
-        self._paths = paths
+        self._bind_session_paths(paths, cfg)
         (paths.root / "run_config.json").write_text(
             json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -1526,6 +1604,7 @@ class OperatorService:
                 ),
                 acq_enabled=acq_on,
             )
+            self._mark_layout_finalized()
         except Exception as exc:  # noqa: BLE001
             print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
 
@@ -1597,7 +1676,7 @@ class OperatorService:
         session_id = sub["session_id"]
 
         paths = create_session_dir(save_root, subject_id, session_id)
-        self._paths = paths
+        self._bind_session_paths(paths, cfg)
         (paths.root / "run_config.json").write_text(
             json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -1779,6 +1858,7 @@ class OperatorService:
                 ),
                 acq_enabled=acq_on,
             )
+            self._mark_layout_finalized()
         except Exception as exc:  # noqa: BLE001
             print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
 
@@ -2008,7 +2088,7 @@ class OperatorService:
 
         session_id = run_id
         paths = create_session_dir(save_root, subject_id, session_id)
-        self._paths = paths
+        self._bind_session_paths(paths, cfg)
         write_sim_script(paths.root, script)
         (paths.root / "run_config.json").write_text(
             json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
@@ -2199,6 +2279,7 @@ class OperatorService:
                 ),
                 acq_enabled=True,
             )
+            self._mark_layout_finalized()
         except Exception as exc:  # noqa: BLE001
             print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
 
@@ -2284,7 +2365,7 @@ class OperatorService:
         session_id = sub["session_id"]
 
         paths = create_session_dir(save_root, subject_id, session_id)
-        self._paths = paths
+        self._bind_session_paths(paths, cfg)
         (paths.root / "run_config.json").write_text(
             json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
             encoding="utf-8",
@@ -2393,6 +2474,21 @@ class OperatorService:
             "root": str(paths.root),
             "message": "v4 检测已结束，正在落盘…",
         })
+
+        layout = str(storage.get("save_layout") or "phase_folders")
+        try:
+            finalize_session_layout(
+                paths.root,
+                save_layout=layout,
+                save_continuous=bool(storage.get("save_continuous_master", True)),
+                save_phase_slices=bool(
+                    storage.get("save_phase_slices") or layout == "phase_folders"
+                ),
+                acq_enabled=acq_on,
+            )
+            self._mark_layout_finalized()
+        except Exception as exc:  # noqa: BLE001
+            print(f"[operator] 整理落盘目录失败: {exc}", file=sys.stderr)
 
         update_session_meta(paths.meta_json, v4_summary=summary)
         files = self._list_session_files(paths.root)
