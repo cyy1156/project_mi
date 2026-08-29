@@ -22,6 +22,7 @@ for _boot in (_REPO_BOOT, _REPO_BOOT / "code", _REPO_BOOT / "code" / "preprocess
     if _bs not in sys.path:
         sys.path.insert(0, _bs)
 
+from experiment_game.core.atomic_io import atomic_write_json
 from experiment_game.experiment.alignment import write_alignment_bundle
 from experiment_game.experiment.defaults_store import (
     defaults_path,
@@ -1119,10 +1120,7 @@ class OperatorService:
                 "subject": {**sub, "session_id": session_id},
                 "experiment": {**exp, "acquire_trials": remaining},
             }
-            (paths.root / "run_config.json").write_text(
-                json.dumps(seg_cfg, ensure_ascii=False, indent=2) + "\n",
-                encoding="utf-8",
-            )
+            atomic_write_json(paths.root / "run_config.json", seg_cfg)
             if is_first:
                 self._maybe_persist_last_config(cfg)
 
@@ -1381,10 +1379,7 @@ class OperatorService:
 
         paths = create_session_dir(save_root, subject_id, session_id)
         self._bind_session_paths(paths, cfg)
-        (paths.root / "run_config.json").write_text(
-            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
 
         use_synthetic = acq_cfg["board_mode"] != "cyton"
@@ -1677,10 +1672,7 @@ class OperatorService:
 
         paths = create_session_dir(save_root, subject_id, session_id)
         self._bind_session_paths(paths, cfg)
-        (paths.root / "run_config.json").write_text(
-            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
 
         use_synthetic = acq_cfg["board_mode"] != "cyton"
@@ -2090,10 +2082,7 @@ class OperatorService:
         paths = create_session_dir(save_root, subject_id, session_id)
         self._bind_session_paths(paths, cfg)
         write_sim_script(paths.root, script)
-        (paths.root / "run_config.json").write_text(
-            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
 
         v3_cfg.blocks = script.blocks
@@ -2366,10 +2355,7 @@ class OperatorService:
 
         paths = create_session_dir(save_root, subject_id, session_id)
         self._bind_session_paths(paths, cfg)
-        (paths.root / "run_config.json").write_text(
-            json.dumps(cfg, ensure_ascii=False, indent=2) + "\n",
-            encoding="utf-8",
-        )
+        atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
 
         use_synthetic = acq_cfg["board_mode"] != "cyton"

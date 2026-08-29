@@ -119,8 +119,9 @@ experiment_game/data/epochs/*
 !experiment_game/data/epochs/sub03_ses01_20260723_185153/
 !experiment_game/data/epochs/sub03_ses01_20260723_185153/**
 
-# Local subject / sim dumps & FT weights (keep on disk, do not publish)
-experiment_game/data/sim_subjects/
+# Local UI memory (COM / absolute paths); commit example only
+experiment_game/config/operator_defaults.json
+
 experiment_game/data/subjects/
 experiment_game/data/models/
 experiment_game/data/offline_replay/

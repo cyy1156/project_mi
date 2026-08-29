@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "subject": {
-    "subject_id": "test",
+    "subject_id": "",
     "session_id": "ws01",
-    "notes": "smoke_timing"
+    "notes": ""
   },
   "acquisition": {
     "enabled": true,
     "board_mode": "synthetic",
-    "serial_port": "COM5",
+    "serial_port": "COM3",
     "sample_rate_hz": 250,
     "channel_labels": [
       "FC3",
@@ -73,7 +73,7 @@
     "skip_learn": false,
     "skip_gate": false,
     "seed": null,
-    "open_subject_page": false,
+    "open_subject_page": true,
     "ready_timeout_s": 90.0,
     "timing": {
       "fixation_s": 2.0,
@@ -119,7 +119,7 @@
     }
   },
   "storage": {
-    "save_root": "D:\\MI\\experiment_game\\data\\subjects\\test\\sessions",
+    "save_root": "experiment_game/data/subjects",
     "save_layout": "phase_folders",
     "save_eeg": true,
     "save_events": true,

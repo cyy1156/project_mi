@@ -14,7 +14,7 @@ sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "code"))
 sys.path.insert(0, str(_REPO / "code" / "preprocess_lab"))
 
-from experiment_game.experiment.channel_layout import reorder_device_to_frozen
+from experiment_game.core.channel_layout import reorder_device_to_frozen
 
 SES = _REPO / "experiment_game/data/sessions/fnz_ws03_20260826_174526"
 FNZ_THREE = _REPO / "experiment_game/data/models/fnz/best_three.pt"
@@ -93,7 +93,7 @@ def main():
     df = pd.read_csv(SES / "eeg.csv", nrows=5000)
     cols = [c for c in df.columns if c != "lsl_time"]
     x = reorder_device_to_frozen(df[cols].to_numpy(float))
-    from experiment_game.experiment.channel_layout import FROZEN_CHANNEL_ORDER
+    from experiment_game.core.channel_layout import FROZEN_CHANNEL_ORDER
 
     ch = FROZEN_CHANNEL_ORDER
     print("\n=== 4. EEG 通道 (前5000点) ===")
