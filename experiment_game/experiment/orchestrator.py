@@ -12,7 +12,7 @@ import threading
 import time
 import webbrowser
 from pathlib import Path
-from typing import Any, Dict, List, Optional
+from typing import Any, Callable, Dict, List, Optional
 
 # adapt_engine / preprocess_lab 在 code/ 下；操作台入口须先于任何校验导入
 _REPO_BOOT = Path(__file__).resolve().parents[2]
@@ -53,7 +53,9 @@ from experiment_game.experiment.questionnaire import (
 )
 from experiment_game.experiment.local_ports import check_ports_free, format_port_conflict
 from experiment_game.experiment.ws_bridge import WsBridge
-from experiment_game.offline.phase4_service import run_phase4_for_session
+
+# 2026-08-29 重构：offline/tools 实现改为依赖注入（见构造函数 phase4_runner/ft_runner），
+# 本模块不再顶层 import offline/tools；惰性回退仅存在于 *_resolve_* 接缝方法内。
 
 _PKG_ROOT = Path(__file__).resolve().parents[1]
 
@@ -116,12 +118,20 @@ class OperatorService:
         serve_host: str = "127.0.0.1",
         web_root: Optional[Path] = None,
         repo_root: Optional[Path] = None,
+        phase4_runner: Optional[Callable[..., Dict[str, Any]]] = None,
+        phase4_v2_pair_runner: Optional[Callable[..., Any]] = None,
+        ft_runner: Optional[Callable[..., Dict[str, Any]]] = None,
     ) -> None:
         self.repo_root = Path(repo_root) if repo_root else _REPO_ROOT
         self.web_root = Path(web_root) if web_root else _WEB_ROOT
         self.http_port = http_port
         self.ws_port = ws_port
         self.serve_host = serve_host
+        # 依赖注入接缝（2026-08-29 重构）：入口层（tools/）负责注入具体实现；
+        # 未注入时 *_resolve_* 方法回退到惰性导入（过渡期，行为不变）。
+        self._phase4_runner = phase4_runner
+        self._phase4_v2_pair_runner = phase4_v2_pair_runner
+        self._ft_runner = ft_runner
         self.bridge = WsBridge(host=serve_host, port=ws_port)
         self.http = StaticServer(self.web_root, host=serve_host, port=http_port)
         self._lock = threading.Lock()
@@ -149,6 +159,30 @@ class OperatorService:
         self._active_sim_mode: bool = False
         self._ft_busy = False
         self._ft_worker: Optional[threading.Thread] = None
+
+    # ---- 依赖注入接缝（2026-08-29 重构，见 docs/重构实施方案_20260829.md §3.3）----
+    # 入口层 tools/ 注入具体实现；未注入时回退惰性导入（过渡期，行为不变）。
+    def _resolve_phase4_runner(self) -> Callable[..., Dict[str, Any]]:
+        if self._phase4_runner is not None:
+            return self._phase4_runner
+        from experiment_game.offline.phase4_service import run_phase4_for_session
+
+        return run_phase4_for_session
+
+    def _resolve_phase4_v2_pair(self) -> tuple[Callable[..., Any], Callable[..., Any]]:
+        if self._phase4_v2_pair_runner is not None:
+            return self._phase4_v2_pair_runner
+        from experiment_game.offline.phase4_v2 import run as run_p4_cal
+        from experiment_game.offline.phase4_v2_game import run as run_p4_game
+
+        return run_p4_cal, run_p4_game
+
+    def _resolve_ft_runner(self) -> Callable[..., Dict[str, Any]]:
+        if self._ft_runner is not None:
+            return self._ft_runner
+        from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+
+        return run_subject_finetune
 
     @property
     def operator_url(self) -> str:
@@ -624,7 +658,7 @@ class OperatorService:
         def _job() -> None:
             self._ft_busy = True
             try:
-                from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+                run_subject_finetune = self._resolve_ft_runner()
 
                 if self._active_sim_mode:
                     from experiment_game.experiment.sim.sim_registry import (
@@ -1156,7 +1190,7 @@ class OperatorService:
                     "[operator] auto_phase4：仅 acquire + 未 reject "
                     f"({p4.get('window_mode', 'fixed')} w{p4.get('win_sec', 2.0):g}s)…"
                 )
-                phase4_result = run_phase4_for_session(
+                phase4_result = self._resolve_phase4_runner()(
                     paths.root,
                     repo_root=self.repo_root,
                     window_mode=str(p4.get("window_mode") or "fixed"),
@@ -1506,8 +1540,7 @@ class OperatorService:
         if acq_on and bool(storage.get("auto_phase4")):
             print("[operator] auto_phase4 v2：phase4_v2 + phase4_v2_game…")
             try:
-                from experiment_game.offline.phase4_v2 import run as run_p4_cal
-                from experiment_game.offline.phase4_v2_game import run as run_p4_game
+                run_p4_cal, run_p4_game = self._resolve_phase4_v2_pair()
 
                 run_p4_cal(str(paths.root))
                 run_p4_game(str(paths.root))
@@ -2427,8 +2460,7 @@ class OperatorService:
                     except Exception:
                         pass
                 if is_v2:
-                    from experiment_game.offline.phase4_v2 import run as run_p4_cal
-                    from experiment_game.offline.phase4_v2_game import run as run_p4_game
+                    run_p4_cal, run_p4_game = self._resolve_phase4_v2_pair()
                     from experiment_game.experiment.v2_acceptance import count_phase4_windows
 
                     run_p4_cal(str(target))
@@ -2444,7 +2476,7 @@ class OperatorService:
                         "summary": {"n": pipes.get("pipes", {}).get("phase4_v2", {}).get("n_windows")},
                     })
                     return
-                result = run_phase4_for_session(
+                result = self._resolve_phase4_runner()(
                     Path(target),
                     repo_root=self.repo_root,
                     window_mode=mode,
