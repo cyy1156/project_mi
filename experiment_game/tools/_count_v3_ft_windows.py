@@ -20,7 +20,7 @@ from experiment_game.tools.ft_subject_from_v3 import (  # noqa: E402
     _build_session_windows,
     detect_session_protocol,
 )
-from src.common.steps.slide_3s_hop100 import n_windows_3s_hop100  # noqa: E402
+from experiment_game.offline.openbmi_align_cut import n_windows_3s_hop100  # noqa: E402
 
 SUBJECTS = ["syj0828", "fnz0828"]
 ROOT = _REPO / "experiment_game" / "data" / "subjects"

@@ -292,7 +292,7 @@ fnz Align v1 采集（单 trial 事件序 · 相对 Cue = 0）：
 |------|------|
 | OpenBMI 3s 预处理 | `code/preprocess_lab/src/datasets/openbmi/pipeline.py` |
 | 段提取 + 基线 | `code/preprocess_lab/src/common/steps/epoch_baseline.py` |
-| 3s/hop100 滑窗 | `code/preprocess_lab/src/common/steps/slide_3s_hop100.py` |
+| 3s/hop100 滑窗 | `experiment_game/core/windowing.py`（权威；`offline/openbmi_align_cut` 薄包装） |
 | OpenBMI 配置 | `code/preprocess_lab/config/openbmi_3s_hop100.yaml` |
 | 5070 单模底座（对照） | `…/5070_baseline_…/run_20260822_094942/` |
 | **5090 E1f 四成员（默认）** | `experiment_game/config/e1f_four_member.json` · `…/run_20260823_*` |

@@ -43,15 +43,16 @@ from experiment_game.core.channel_layout import (  # noqa: E402
     DEVICE_CHANNEL_LABELS,
     reorder_device_to_frozen,
 )
-from src.common.steps.epoch_baseline import task_window_cue_0_to_4  # noqa: E402
+from experiment_game.offline.openbmi_align_cut import (  # noqa: E402
+    WIN_SEC_3S,
+    extract_segment_baseline,
+    iter_rest_sources_cue_before,
+    iter_rest_sources_from_table,
+    segment_to_3s_hop100_windows,
+    task_window_cue_0_to_4,
+)
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
 from src.common.steps.resample_zscore import trial_zscore  # noqa: E402
-from experiment_game.offline.openbmi_align_cut import iter_rest_sources_from_table  # noqa: E402
-from src.common.steps.slide_1s import extract_segment_baseline, iter_rest_sources_cue_before  # noqa: E402
-from src.common.steps.slide_3s_hop100 import (  # noqa: E402
-    WIN_SEC as WIN_SEC_3S,
-    segment_to_3s_hop100_windows,
-)
 
 FS = 250.0
 WIN_S, HOP_S, T0_MIN = 3.0, 0.1, 0.4

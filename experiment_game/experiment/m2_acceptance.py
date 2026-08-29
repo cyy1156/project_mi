@@ -24,10 +24,11 @@ sys.path.insert(0, str(_HERE.parents[2] / "code"))              # adapt_engine
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
 from experiment_game.experiment import inference_v2 as inf  # noqa: E402
+from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS  # noqa: E402
 
 # 2026-08-29 冻结：设备序 = 模型序 = channel_layout 全局统一序
-RAW_COLS = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
-FROZEN = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
+RAW_COLS = list(DEVICE_CHANNEL_LABELS)
+FROZEN = list(DEVICE_CHANNEL_LABELS)
 REORDER = [RAW_COLS.index(c.upper()) for c in FROZEN]  # 恒等 [0..7]
 
 

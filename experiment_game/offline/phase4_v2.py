@@ -27,10 +27,11 @@ from experiment_game.core.channel_layout import (  # noqa: E402
 from experiment_game.offline.openbmi_align_cut import (  # noqa: E402
     FROZEN,
     FS,
+    HOP_SEC,
+    WIN_SEC,
     cut_openbmi_align_from_table,
 )
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
-from src.common.steps.slide_3s_hop100 import HOP_SEC, WIN_SEC  # noqa: E402
 
 WIN, HOP, T0_MIN = WIN_SEC, HOP_SEC, 0.0  # legacy 导出（replay 工具兼容）
 RAW_COLS = list(DEVICE_CHANNEL_LABELS)
