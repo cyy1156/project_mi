@@ -163,7 +163,7 @@ def test_summarize_v4_session_pass():
 
 def _replay_pass_rate(session_name: str) -> tuple[int, int]:
     import pandas as pd
-    from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
+    from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
 
     p = _ROOT / "data" / "sessions" / session_name / "eeg.csv"
     if not p.is_file():

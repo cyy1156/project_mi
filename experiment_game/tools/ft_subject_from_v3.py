@@ -39,7 +39,7 @@ from experiment_game.tools.openbmi_replay_pool import (  # noqa: E402
     build_t0_task_replay_pool,
     resolve_openbmi_root,
 )
-from experiment_game.experiment.channel_layout import (  # noqa: E402
+from experiment_game.core.channel_layout import (  # noqa: E402
     DEVICE_CHANNEL_LABELS,
     reorder_device_to_frozen,
 )

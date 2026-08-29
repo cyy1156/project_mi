@@ -315,7 +315,7 @@ def write_alignment_bundle(
         mi_s=mi_s,
         rest_s=rest_s,
     )
-    from experiment_game.experiment.atomic_io import atomic_write_json
+    from experiment_game.core.atomic_io import atomic_write_json
 
     atomic_write_json(align_dir / "verify_report.json", report)
     return report

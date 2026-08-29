@@ -20,7 +20,7 @@ sys.path.insert(0, str(_HERE.parents[2]))
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
 from experiment_game.offline.openbmi_align_cut import FROZEN, FS, cut_openbmi_align_from_table  # noqa: E402
-from experiment_game.experiment.channel_layout import reorder_device_to_model_input  # noqa: E402
+from experiment_game.core.channel_layout import reorder_device_to_model_input  # noqa: E402
 from experiment_game.offline.phase4_v2 import load_eeg  # noqa: E402
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
 from src.common.steps.slide_3s_hop100 import HOP_SEC, WIN_SEC  # noqa: E402

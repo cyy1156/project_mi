@@ -7,8 +7,8 @@ from copy import deepcopy
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
-from experiment_game.acquisition.service import DEFAULT_CHANNEL_LABELS
-from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
+from experiment_game.core.channel_layout import DEFAULT_CHANNEL_LABELS
+from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
 from experiment_game.experiment.timing import timing_from_dict, validate_timing_dict
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]+$")

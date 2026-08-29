@@ -14,7 +14,7 @@ import numpy as np
 _ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_ROOT))
 
-from experiment_game.experiment.channel_layout import (  # noqa: E402
+from experiment_game.core.channel_layout import (  # noqa: E402
     CHANNEL_ORDER,
     DEVICE_CHANNEL_LABELS,
     MODEL_INPUT_CHANNEL_ORDER,

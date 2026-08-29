@@ -13,7 +13,7 @@ from typing import List, Optional, Sequence
 import numpy as np
 from scipy.signal import resample
 
-from experiment_game.experiment.channel_layout import DEVICE_TO_MODEL_INPUT
+from experiment_game.core.channel_layout import DEVICE_TO_MODEL_INPUT
 from experiment_game.offline.load_session import (
     SessionEEG,
     rejected_trial_ids,

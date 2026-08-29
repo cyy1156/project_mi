@@ -45,7 +45,7 @@ from experiment_game.experiment.feature_probe import (  # noqa: E402
     segment_to_hop_windows,
 )
 from experiment_game.experiment.inference_v2 import CHANNEL_ORDER, OnlinePreprocessor  # noqa: E402
-from experiment_game.experiment.channel_layout import permute_ch_time_to_model  # noqa: E402
+from experiment_game.core.channel_layout import permute_ch_time_to_model  # noqa: E402
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
 from src.common.steps.resample_zscore import trial_zscore  # noqa: E402
 

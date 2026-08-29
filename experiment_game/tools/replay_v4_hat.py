@@ -17,7 +17,7 @@ sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_ROOT))
 
 from experiment_game.experiment.signal_quality import diagnose_eeg_window, summarize_v4_session  # noqa: E402
-from experiment_game.experiment.channel_layout import (  # noqa: E402
+from experiment_game.core.channel_layout import (  # noqa: E402
     DEVICE_CHANNEL_LABELS,
     reorder_device_to_frozen,
 )
