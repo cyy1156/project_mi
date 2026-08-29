@@ -108,6 +108,29 @@ def ensure_crash_artifacts(
         out["events_parse_warnings"] = manifest.get("events_parse_warnings")
     except Exception as exc:  # noqa: BLE001
         out["manifest_error"] = str(exc)
+        manifest = None
+
+    # session_integrity 摘要（总册 §5.3 轻量落地；完整 EEG/events span 核对后续加强）
+    try:
+        integrity = {
+            "event": "session_integrity",
+            "manifest_ok": bool(out.get("manifest") and (root / "manifest.json").is_file()),
+            "session_meta_ok": bool(out.get("session_meta")),
+            "eeg_meta": out.get("eeg_meta"),
+            "aborted": bool(aborted),
+            "abort_reason": str(reason),
+            "incomplete": True,
+        }
+        if isinstance(manifest, dict):
+            integrity["events_parse_warnings"] = manifest.get("events_parse_warnings")
+        atomic_write_json(root / "session_integrity.json", integrity)
+        out["session_integrity"] = True
+        try:
+            update_session_meta(root / "session.meta.json", session_integrity=integrity)
+        except Exception:  # noqa: BLE001
+            pass
+    except Exception as exc:  # noqa: BLE001
+        out["session_integrity_error"] = str(exc)
 
     out["ok"] = bool(out.get("session_meta") and (root / "manifest.json").is_file())
     return out

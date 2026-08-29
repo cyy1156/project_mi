@@ -185,7 +185,7 @@ class OperatorService:
     def _resolve_ft_runner(self) -> Callable[..., Dict[str, Any]]:
         if self._ft_runner is not None:
             return self._ft_runner
-        from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+        from experiment_game.pipeline.finetune import run_subject_finetune
 
         return run_subject_finetune
 

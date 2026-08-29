@@ -12,8 +12,8 @@ from pathlib import Path
 from typing import Any, Dict, Optional, Tuple
 
 from experiment_game.core.atomic_io import atomic_write_json
+from experiment_game.core.paths import to_stored
 from experiment_game.experiment.run_config import merge_run_config, validate_run_config
-from experiment_game.experiment.subject_registry import rel_repo_path
 
 _PKG_ROOT = Path(__file__).resolve().parents[1]
 _REPO_ROOT = Path(__file__).resolve().parents[2]
@@ -47,7 +47,7 @@ def _relativize_for_disk(
     if not p.is_absolute():
         storage["save_root"] = raw.replace("\\", "/")
         return out
-    storage["save_root"] = rel_repo_path(p, repo_root=root)
+    storage["save_root"] = to_stored(p, root=root)
     return out
 
 
