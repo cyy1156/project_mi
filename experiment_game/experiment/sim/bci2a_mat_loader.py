@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
+from functools import lru_cache
 from pathlib import Path
 from typing import List, Optional, Tuple
 
@@ -27,6 +28,12 @@ class Bci2aRunData:
     # Rest 试次：Cue 前静息段（label=0），与 OpenBMI-Align FT 同源
     rest_start_samples: np.ndarray  # (n_rest_slot,)
     rest_end_samples: np.ndarray  # (n_rest_slot,) 通常 = 对应 MI cue
+
+
+@lru_cache(maxsize=8)
+def _loadmat_cached(path_str: str):
+    """同 path 多 run 复用，避免测试/脚本反复 scipy.loadmat。"""
+    return scipy.io.loadmat(path_str, squeeze_me=True, struct_as_record=False)
 
 
 def _parse_run_index(run_id: str) -> int:
@@ -55,7 +62,7 @@ def load_bci2a_run(
     if not path.is_file():
         raise FileNotFoundError(f"mat 不存在: {path}")
     run_index = _parse_run_index(run_id)
-    mat = scipy.io.loadmat(path, squeeze_me=True, struct_as_record=False)
+    mat = _loadmat_cached(str(path.resolve()))
     data = mat.get("data")
     if data is None or run_index >= len(data):
         raise ValueError(f"mat 内无 run 索引 {run_index}: {path}")
@@ -114,7 +121,7 @@ def load_bci2a_run(
 def list_labeled_runs(mat_path: Path | str) -> List[str]:
     """返回 mat 内所有带 trial 的 run 名（run0…）。"""
     path = Path(mat_path)
-    mat = scipy.io.loadmat(path, squeeze_me=True, struct_as_record=False)
+    mat = _loadmat_cached(str(path.resolve()))
     out: List[str] = []
     data = mat.get("data")
     if data is None:

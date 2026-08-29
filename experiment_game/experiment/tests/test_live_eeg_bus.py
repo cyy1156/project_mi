@@ -50,3 +50,33 @@ def test_acq_start_record_csv_flag():
     # 仅检查签名/默认属性，不启板卡
     acq = AcquisitionFacade(use_synthetic=True)
     assert acq._record_csv is True
+
+
+def test_live_eeg_capture_csv_without_lsl(tmp_path: Path, monkeypatch):
+    """不挂真 LSL：手动 push 验证 Capture 启停与 meta。"""
+    from experiment_game.experiment.live_capture import LiveEegCapture
+
+    cap = LiveEegCapture(
+        tmp_path / "eeg.csv",
+        use_synthetic=True,
+        sample_rate_hz=250.0,
+    )
+
+    def _fake_attach(self, stream_name="OpenBCI_EEG", *, timeout_s=5.0):
+        return None
+
+    monkeypatch.setattr(
+        type(cap.buf),
+        "attach_lsl",
+        _fake_attach,
+    )
+    cap.start(lsl_timeout_s=0.1)
+    t = np.asarray([1.0, 1.004, 1.008], dtype=np.float64)
+    x = np.zeros((3, 8), dtype=np.float64)
+    x[:, 0] = [0.1, 0.2, 0.3]
+    cap.buf.push(x, t_lsl=t)
+    meta = cap.stop()
+    assert meta["samples_written"] == 3
+    assert (tmp_path / "eeg.csv").is_file()
+    assert (tmp_path / "eeg.meta.json").is_file()
+    assert "quality" in meta
