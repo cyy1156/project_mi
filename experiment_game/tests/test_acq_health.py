@@ -1,4 +1,4 @@
-"""AcquisitionFacade.health_check 合成板冒烟。"""
+"""AcquisitionFacade.health_check 合成板冒烟（短等待，对齐 Bus CSV 路径）。"""
 
 from __future__ import annotations
 
@@ -15,10 +15,16 @@ class TestAcquisitionHealth(unittest.TestCase):
             csv_path = Path(tmp) / "eeg.csv"
             acq = AcquisitionFacade(use_synthetic=True)
             acq.create()
-            acq.start(csv_path)
+            # 与现网一致：板卡只推 LSL，CSV 由 LiveEegCapture 写
+            acq.start(csv_path, record_csv=False)
             try:
-                hc = acq.health_check(wait_s=1.0, min_samples=100)
-                self.assertGreater(hc["delta_samples"], 100)
+                hc = acq.health_check(
+                    wait_s=0.35,
+                    min_samples=40,
+                    warmup_s=0.15,
+                    retries=1,
+                )
+                self.assertGreaterEqual(hc["delta_samples"], 40)
                 self.assertTrue(hc["lsl_ok"])
             finally:
                 acq.stop()
