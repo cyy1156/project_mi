@@ -16,6 +16,9 @@ const el = {
   subjectBarWeights: document.getElementById("subject-bar-weights"),
   setupSubjectId: document.getElementById("setup-subject-id"),
   setupSessionId: document.getElementById("setup-session-id"),
+  sessionIdHint: document.getElementById("session-id-hint"),
+  sessionOverwriteWrap: document.getElementById("session-overwrite-wrap"),
+  sessionOverwrite: document.getElementById("session-overwrite"),
   ftPanel: document.getElementById("ft-panel"),
   ftCurrentWeights: document.getElementById("ft-current-weights"),
   ftSessionList: document.getElementById("ft-session-list"),
@@ -40,6 +43,7 @@ const el = {
   btnFtPromote: document.getElementById("btn-ft-promote"),
   btnFtKeep: document.getElementById("btn-ft-keep"),
   btnNextSession: document.getElementById("btn-next-session"),
+  btnSessionNoRecord: document.getElementById("btn-session-no-record"),
   simRunQueue: document.getElementById("sim-run-queue"),
   simCampaignSelect: document.getElementById("sim-campaign-select"),
   simCampaignStatus: document.getElementById("sim-campaign-status"),
@@ -98,6 +102,8 @@ const el = {
   stSessionScore: document.getElementById("st-session-score"),
   stWeights: document.getElementById("st-weights"),
   modelPreset: document.getElementById("model-preset"),
+  modelCurrentName: document.getElementById("model-current-name"),
+  modelCurrentMode: document.getElementById("model-current-mode"),
   s3TaskCkpt: document.getElementById("s3_task_ckpt"),
   s3ThreeCkpt: document.getElementById("s3_three_ckpt"),
   modelWeightHint: document.getElementById("model-weight-hint"),
@@ -110,6 +116,7 @@ const el = {
   v2SessionScoreNum: document.getElementById("v2-session-score-num"),
   v2SessionScoreFill: document.getElementById("v2-session-score-fill"),
   v2SessionScoreHint: document.getElementById("v2-session-score-hint"),
+  v2SessionScoreRules: document.getElementById("v2-session-score-rules"),
   v2WeakMi: document.getElementById("v2-weak-mi"),
   v2AcceptDetail: document.getElementById("v2-accept-detail"),
   p4SummaryV2: document.getElementById("p4-summary-v2"),
@@ -122,6 +129,7 @@ const el = {
   v3SessionScoreNum: document.getElementById("v3-session-score-num"),
   v3SessionScoreFill: document.getElementById("v3-session-score-fill"),
   v3SessionScoreHint: document.getElementById("v3-session-score-hint"),
+  v3SessionScoreRules: document.getElementById("v3-session-score-rules"),
   v3Eeg: document.getElementById("v3-eeg"),
   v3PowerBars: document.getElementById("v3-power-bars"),
   v3FeatureCards: document.getElementById("v3-feature-cards"),
@@ -460,7 +468,7 @@ function updateLiveJudgePanels(msg) {
 }
 const V3_MU_ERD_OK = -15;
 const V3_LAT_OK = 8;
-const V3_CH = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"];
+const V3_CH = ["C3", "C4", "CZ", "CP3", "CP4", "CPZ", "FC3", "FC4"];
 const V4_CH = V3_CH;
 const V4_STATE = {
   passRequired: 5,
@@ -488,13 +496,54 @@ const V3_EEG_STATE = {
 let V3_POWER_ROWS = null;
 let V3_POWER_NOTE = null;
 
-/** 本场累计得分（多数票：每试次 0/1，满分 = 计划试次数） */
-const SESSION_SCORE = { score: 0, max: null, done: 0 };
+/** 本场累计得分：MI 试次 +1，Cue前静息 +0.5；满分 = n_mi + n_mi×0.5（36→54） */
+const SESSION_SCORE = { score: 0, max: null, done: 0, nMi: null };
 
-function resetSessionScore(max) {
+function formatScoreHalf(v) {
+  const n = Number(v) || 0;
+  return Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : n.toFixed(1);
+}
+
+/** OpenBMI：n MI 试次 → 满分 n + n×0.5（含 Cue前静息） */
+function openbmiSessionScoreMax(nMi, interTrialRestS = 4) {
+  const n = Math.max(0, Number(nMi) || 0);
+  if (!(Number(interTrialRestS) > 1e-6)) return n;
+  return n + n * 0.5;
+}
+
+function scoreRulesText(nMi, interTrialRestS = 4) {
+  const n = Math.max(0, Math.round(Number(nMi) || 0));
+  if (!(n > 0)) {
+    return "计分：MI 判对 +1；Cue前静息判对 +0.5";
+  }
+  const nL = Math.floor(n / 2);
+  const nR = n - nL;
+  if (!(Number(interTrialRestS) > 1e-6)) {
+    return `满分 ${n}：Left ${nL}×1 + Right ${nR}×1（无 Cue前静息计分）`;
+  }
+  const restMax = n * 0.5;
+  const total = n + restMax;
+  return (
+    `满分 ${formatScoreHalf(total)}：` +
+    `Left ${nL} 试 ×1（满分 ${nL}）· ` +
+    `Right ${nR} 试 ×1（满分 ${nR}）· ` +
+    `Cue前静息 ${n} 段 ×0.5（满分 ${formatScoreHalf(restMax)}）`
+  );
+}
+
+function resetSessionScore(max, opts = {}) {
   SESSION_SCORE.score = 0;
   SESSION_SCORE.max = max != null && Number.isFinite(Number(max)) ? Number(max) : null;
   SESSION_SCORE.done = 0;
+  if (opts.nMi != null) SESSION_SCORE.nMi = Number(opts.nMi);
+  else if (SESSION_SCORE.max != null && opts.inferNMi !== false) {
+    // 54 → 36；无静息时 max=nMi
+    const m = SESSION_SCORE.max;
+    SESSION_SCORE.nMi = Math.abs(m - Math.round(m / 1.5) * 1.5) < 1e-6
+      ? Math.round(m / 1.5)
+      : Math.round(m);
+  }
+  if (opts.interTrialRestS != null) SESSION_SCORE.restS = Number(opts.interTrialRestS);
   renderSessionScore();
 }
 
@@ -508,22 +557,31 @@ function applySessionScore(msg) {
   if (msg.session_score != null) SESSION_SCORE.score = Number(msg.session_score);
   if (src.session_trials_done != null) SESSION_SCORE.done = Number(src.session_trials_done);
   if (msg.session_trials_done != null) SESSION_SCORE.done = Number(msg.session_trials_done);
+  const blocks = src.blocks_total ?? msg.v3_config_effective?.blocks;
+  const tpb = src.trials_per_block ?? msg.v3_config_effective?.trials_per_block;
+  if (blocks != null && tpb != null) SESSION_SCORE.nMi = Number(blocks) * Number(tpb);
   renderSessionScore();
 }
 
 function renderSessionScore() {
-  const { score, max, done } = SESSION_SCORE;
-  const maxTxt = max != null ? String(max) : "—";
-  const scoreInt = Math.round(Number(score) || 0);
-  const scoreTxt = `${scoreInt}/${maxTxt}`;
+  const { score, max, done, nMi } = SESSION_SCORE;
+  const restS = SESSION_SCORE.restS != null ? SESSION_SCORE.restS : 4;
+  const maxTxt = max != null ? formatScoreHalf(max) : "—";
+  const scoreTxt = `${formatScoreHalf(score)}/${maxTxt}`;
   if (el.stSessionScore) el.stSessionScore.textContent = scoreTxt;
   if (el.v2SessionScoreNum) el.v2SessionScoreNum.textContent = scoreTxt;
   if (el.v3SessionScoreNum) el.v3SessionScoreNum.textContent = scoreTxt;
-  const pct = max > 0 ? (scoreInt / max) * 100 : 0;
+  const pct = max > 0 ? (Number(score) / max) * 100 : 0;
   const w = `${Math.min(100, Math.max(0, pct))}%`;
   if (el.v2SessionScoreFill) el.v2SessionScoreFill.style.width = w;
   if (el.v3SessionScoreFill) el.v3SessionScoreFill.style.width = w;
-  const hint = max != null ? `已完成 ${done}/${max} 试次` : "";
+  const rules = scoreRulesText(nMi != null ? nMi : (max != null ? Math.round(Number(max) / 1.5) : 0), restS);
+  if (el.v2SessionScoreRules) el.v2SessionScoreRules.textContent = rules;
+  if (el.v3SessionScoreRules) el.v3SessionScoreRules.textContent = rules;
+  const hint =
+    max != null
+      ? `已完成 ${done} / ${nMi != null ? nMi : "—"} MI 试次（静息另计）`
+      : "";
   if (el.v2SessionScoreHint) el.v2SessionScoreHint.textContent = hint;
   if (el.v3SessionScoreHint) el.v3SessionScoreHint.textContent = hint;
 }
@@ -1005,10 +1063,27 @@ function showV3HatCheck(msg) {
 }
 
 function handleV3Baseline(msg) {
+  if (msg.sim_skipped) {
+    // 等首次试次间 Rest 再 ready；此时只提示
+    V3_EEG_STATE.baselineReady = false;
+    V3_EEG_STATE.baselineMu = [];
+    V3_EEG_STATE.baselineBeta = [];
+    V3_POWER_ROWS = null;
+    if (el.v3PowerBars) {
+      el.v3PowerBars.innerHTML =
+        `<div class="v3-pbar-wait">${msg.message || "仿真：等待试次间 Rest 建立 ERD 基线…"}</div>`;
+    }
+    return;
+  }
   V3_EEG_STATE.baselineReady = true;
   V3_EEG_STATE.baselineMu = msg.baseline_mu || [];
   V3_EEG_STATE.baselineBeta = msg.baseline_beta || [];
-  showV3HatCheck(msg);
+  V3_POWER_ROWS = null;
+  if (msg.sim_rest_seed && el.v3PowerBars && !(msg.baseline_mu || []).length) {
+    el.v3PowerBars.innerHTML =
+      `<div class="v3-pbar-wait">${msg.message || "仿真：ERD 基线已更新"}</div>`;
+  }
+  if (msg.hat_check || msg.hat_verdict) showV3HatCheck(msg);
 }
 
 const V3_OVERRIDE_KEYS = [
@@ -1023,41 +1098,191 @@ const V3_OVERRIDE_KEYS = [
   ["v3_inter_trial_rest_s", "inter_trial_rest_s", "float"],
 ];
 
-/** @type {Array<{id:string,label:string,task:string,three:string,ok?:boolean}>} */
+/** @type {Array<{id:string,label:string,weight_label?:string,model_name?:string,task:string,three:string,ok?:boolean}>} */
 let MODEL_PRESETS = [];
+/** @type {string} */
+let ACTIVE_MODEL_LABEL = "";
+/** @type {Record<string, string>} Campaign R0 选定的零样本模型 preset id */
+let campaignModelPicks = {};
 
-function fillModelPresets(presets, active) {
-  MODEL_PRESETS = Array.isArray(presets) ? presets.slice() : [];
+const ZERO_SAMPLE_PRESET_IDS = new Set(["openbmi_baseline", "e1f_four_member"]);
+
+function isZeroSamplePresetId(id) {
+  return ZERO_SAMPLE_PRESET_IDS.has(String(id || ""));
+}
+
+function isZeroSamplePreset(p) {
+  return isZeroSamplePresetId(p?.id);
+}
+
+function presetWeightLabel(p) {
+  return p?.weight_label || p?.label || p?.id || "—";
+}
+
+function presetModelName(p) {
+  return p?.model_name || p?.id || "—";
+}
+
+function campaignRemainingRuns(c) {
+  const consumed = new Set(c?.runs_consumed || []);
+  return (c?.session_queue || []).filter((r) => !consumed.has(r));
+}
+
+function inferCampaignLockedModelPresetId(campaign) {
+  if (!campaign) return null;
+  if (campaign.locked_model_preset_id) return campaign.locked_model_preset_id;
+  const consumed = campaign.runs_consumed || [];
+  if (!consumed.length) return null;
+  const ft = findLatestPresetForCampaign(campaign.campaign_id);
+  if (ft) {
+    return ft.readout_mode === "e1f" ? "e1f_four_member" : "openbmi_baseline";
+  }
+  const pick = campaignModelPicks[campaign.campaign_id];
+  if (pick && isZeroSamplePresetId(pick)) return pick;
+  const e1f = MODEL_PRESETS.find((p) => p.id === "e1f_four_member" && p.ok !== false);
+  return e1f ? "e1f_four_member" : "openbmi_baseline";
+}
+
+function presetAllowedForCampaign(p, campaign) {
+  if (!campaign || !activeSimMode) return true;
+  const cid = campaign.campaign_id;
+  const consumed = campaign.runs_consumed || [];
+  const lockedModel = inferCampaignLockedModelPresetId(campaign);
+  const r0Pick = campaignModelPicks[cid];
+
+  if (isZeroSamplePreset(p)) {
+    if (consumed.length) return p.id === lockedModel;
+    if (r0Pick) return p.id === r0Pick;
+    return true;
+  }
+  if (p.kind === "current") return false;
+  if (p.campaign_id) return p.campaign_id === cid;
+  return false;
+}
+
+function visiblePresetsForCampaign() {
+  if (!activeCampaign || !activeSimMode) return MODEL_PRESETS.slice();
+  return MODEL_PRESETS.filter((p) => presetAllowedForCampaign(p, activeCampaign));
+}
+
+function syncCampaignWeightLockUi() {
+  const campaignOn = Boolean(activeCampaign && activeSimMode);
+  const consumed = activeCampaign?.runs_consumed || [];
+  const lockedModel = inferCampaignLockedModelPresetId(activeCampaign);
+  if (el.s3TaskCkpt) el.s3TaskCkpt.readOnly = campaignOn;
+  if (el.s3ThreeCkpt) el.s3ThreeCkpt.readOnly = campaignOn;
+  if (el.modelWeightHint) {
+    if (!campaignOn) {
+      el.modelWeightHint.textContent =
+        "路径相对仓库根目录；v2/v3 共用。保存默认配置后下次自动带入。";
+    } else if (consumed.length && lockedModel) {
+      const mp = MODEL_PRESETS.find((p) => p.id === lockedModel);
+      el.modelWeightHint.textContent =
+        `Campaign 已锁定模型「${presetModelName(mp)}」；仅可选用本周期权重，不可切换模型或其他 Campaign 权重。`;
+    } else {
+      el.modelWeightHint.textContent =
+        "Campaign R0：请选择零样本模型（E1f / OpenBMI）；开跑后将锁定，本周期不可更换。";
+    }
+  }
+  refreshModelPresetSelectOptions();
+}
+
+function refreshModelPresetSelectOptions() {
   const sel = el.modelPreset;
   if (!sel) return;
   const cur = sel.value;
+  const visible = visiblePresetsForCampaign();
+  const visibleIds = new Set(visible.map((p) => p.id));
   sel.innerHTML = "";
-  for (const p of MODEL_PRESETS) {
+  for (const p of visible) {
     const opt = document.createElement("option");
     opt.value = p.id;
-    opt.textContent = p.ok === false ? `${p.label}（缺文件）` : p.label;
+    opt.textContent = p.ok === false ? `${presetWeightLabel(p)}（缺文件）` : presetWeightLabel(p);
     opt.disabled = p.ok === false;
     sel.appendChild(opt);
   }
-  const custom = document.createElement("option");
-  custom.value = "custom";
-  custom.textContent = "自定义路径…";
-  sel.appendChild(custom);
+  if (!activeCampaign || !activeSimMode) {
+    const custom = document.createElement("option");
+    custom.value = "custom";
+    custom.textContent = "自定义路径…";
+    sel.appendChild(custom);
+  }
+  if (visibleIds.has(cur)) sel.value = cur;
+  else if (visible.length) sel.value = visible[0].id;
+  else sel.value = "custom";
+}
 
+function inferModelModeTag(preset, label) {
+  if (preset?.readout_mode === "e1f" || /E1f|四成员/.test(String(label || ""))) {
+    return "E1f 四成员在线融合";
+  }
+  if (preset?.id === "openbmi_baseline" || /OpenBMI/.test(String(label || ""))) {
+    return "单模 Shallow（T0）";
+  }
+  if (preset?.kind === "ft_run" || preset?.kind === "current") {
+    return "被试微调权重";
+  }
+  if (preset?.id === "custom" || /自定义/.test(String(label || ""))) {
+    return "自定义路径";
+  }
+  return "";
+}
+
+function updateCurrentModelBanner() {
+  if (!el.modelCurrentName) return;
+  const presetId = el.modelPreset?.value || "";
+  const task = el.s3TaskCkpt?.value?.trim() || "";
+  const three = el.s3ThreeCkpt?.value?.trim() || "";
+  let preset = null;
+  if (presetId && presetId !== "custom") {
+    preset = MODEL_PRESETS.find((x) => x.id === presetId) || null;
+  }
+  if (!preset) {
+    preset = MODEL_PRESETS.find((p) => p.task === task && p.three === three) || null;
+  }
+  let modelName = preset?.model_name || ACTIVE_MODEL_LABEL || "";
+  if (!modelName && preset) modelName = presetModelName(preset);
+  if (!modelName) {
+    modelName = shortWeightLabel(three || task);
+    if (modelName && modelName !== "—") modelName = `自定义 · ${modelName}`;
+  }
+  if (!modelName || modelName === "—") modelName = "未配置";
+  el.modelCurrentName.textContent = modelName;
+  if (el.modelCurrentMode) {
+    const modeTag = inferModelModeTag(preset, presetWeightLabel(preset));
+    el.modelCurrentMode.textContent = modeTag ? `· ${modeTag}` : "";
+  }
+}
+
+function fillModelPresets(presets, active) {
+  MODEL_PRESETS = Array.isArray(presets) ? presets.slice() : [];
   const task = active?.task || el.s3TaskCkpt?.value || "";
   const three = active?.three || el.s3ThreeCkpt?.value || "";
   if (el.s3TaskCkpt && task) el.s3TaskCkpt.value = task;
   if (el.s3ThreeCkpt && three) el.s3ThreeCkpt.value = three;
+
+  refreshModelPresetSelectOptions();
+
   const match =
     active?.preset_id ||
-    MODEL_PRESETS.find(
-      (p) => p.task === task && p.three === three
-    )?.id ||
-    cur ||
+    MODEL_PRESETS.find((p) => p.task === task && p.three === three)?.id ||
+    el.modelPreset?.value ||
     "custom";
-  const okId = MODEL_PRESETS.some((p) => p.id === match) || match === "custom";
-  sel.value = okId ? match : "custom";
+  const visible = visiblePresetsForCampaign();
+  const okId =
+    visible.some((p) => p.id === match) || (!activeCampaign && match === "custom");
+  if (el.modelPreset) el.modelPreset.value = okId ? match : (visible[0]?.id || "custom");
+
   updateWeightsStatusFromInputs();
+  if (active?.model_label) ACTIVE_MODEL_LABEL = active.model_label;
+  syncCampaignWeightLockUi();
+}
+
+function rejectCampaignPresetChange(revertId) {
+  if (revertId && el.modelPreset) el.modelPreset.value = revertId;
+  else applyCampaignLatestWeights();
+  updateWeightsStatusFromInputs();
+  syncCampaignWeightLockUi();
 }
 
 function findLatestPresetForCampaign(campaignId) {
@@ -1073,6 +1298,22 @@ function findLatestPresetForCampaign(campaignId) {
 
 function applyCampaignLatestWeights() {
   if (!activeCampaign?.campaign_id) return;
+  const consumed = activeCampaign.runs_consumed || [];
+  if (!consumed.length) {
+    const r0 = campaignModelPicks[activeCampaign.campaign_id];
+    const locked = inferCampaignLockedModelPresetId(activeCampaign);
+    const pick = r0 || locked;
+    if (pick && isZeroSamplePresetId(pick)) {
+      if (el.modelPreset) el.modelPreset.value = pick;
+      applyModelPreset(pick);
+      return;
+    }
+    const e1f = MODEL_PRESETS.find((p) => p.id === "e1f_four_member" && p.ok !== false);
+    const fallback = e1f ? "e1f_four_member" : "openbmi_baseline";
+    if (el.modelPreset) el.modelPreset.value = fallback;
+    applyModelPreset(fallback);
+    return;
+  }
   const hit = findLatestPresetForCampaign(activeCampaign.campaign_id);
   if (!hit) return;
   if (el.modelPreset) el.modelPreset.value = hit.id;
@@ -1127,17 +1368,18 @@ function shortWeightLabel(path) {
 function updateWeightsStatusFromInputs() {
   const task = el.s3TaskCkpt?.value?.trim() || "";
   const three = el.s3ThreeCkpt?.value?.trim() || "";
-  const label = shortWeightLabel(three || task);
+  const presetId = el.modelPreset?.value || "";
+  const preset = MODEL_PRESETS.find((p) => p.id === presetId) || null;
+  const weightLabel = preset
+    ? presetWeightLabel(preset)
+    : shortWeightLabel(three || task);
   if (el.stWeights) {
-    el.stWeights.textContent = three || task ? `${label}\nT: ${task}\n3: ${three}` : "—";
+    el.stWeights.textContent = three || task ? `${weightLabel}\nT: ${task}\n3: ${three}` : "—";
   }
-  if (el.modelWeightHint) {
-    el.modelWeightHint.textContent = `当前预设短名：${label} · 路径相对仓库根目录；v2/v3 共用。`;
-  }
-  // 若路径与某预设一致，自动同步下拉
+  updateCurrentModelBanner();
   if (el.modelPreset && el.modelPreset.value !== "custom") {
     const hit = MODEL_PRESETS.find((p) => p.task === task && p.three === three);
-    if (hit) el.modelPreset.value = hit.id;
+    if (hit && presetAllowedForCampaign(hit, activeCampaign)) el.modelPreset.value = hit.id;
   }
 }
 
@@ -1146,12 +1388,14 @@ function setWeightsDisplay(weights) {
     updateWeightsStatusFromInputs();
     return;
   }
-  const label = weights.label || shortWeightLabel(weights.three || weights.task);
+  const weightLabel = weights.weight_label || weights.label || shortWeightLabel(weights.three || weights.task);
   const task = weights.task || "";
   const three = weights.three || "";
   if (el.stWeights) {
-    el.stWeights.textContent = `${label}\nT: ${task}\n3: ${three}`;
+    el.stWeights.textContent = `${weightLabel}\nT: ${task}\n3: ${three}`;
   }
+  if (weights.model_label) ACTIVE_MODEL_LABEL = weights.model_label;
+  updateCurrentModelBanner();
 }
 
 function readWeightOverrides() {
@@ -1160,6 +1404,26 @@ function readWeightOverrides() {
   const out = {};
   if (task) out.s3_task_ckpt = task;
   if (three) out.s3_three_ckpt = three;
+  // 与权重一并下发 readout，避免 UI 选 OpenBMI 但仍跑 yaml 默认 e1f
+  const presetId = el.modelPreset?.value || "";
+  let preset =
+    presetId && presetId !== "custom"
+      ? MODEL_PRESETS.find((p) => p.id === presetId) || null
+      : null;
+  if (!preset && task && three) {
+    preset = MODEL_PRESETS.find((p) => p.task === task && p.three === three) || null;
+  }
+  if (preset?.readout_mode) {
+    out.readout_mode = preset.readout_mode;
+    if (preset.e1f_config_path) out.e1f_config_path = preset.e1f_config_path;
+    if (preset.primary_judge_mode) {
+      out.primary_judge_mode = preset.primary_judge_mode;
+    } else if (String(preset.readout_mode).toLowerCase() === "e1f") {
+      out.primary_judge_mode = "e1f_conf_stop";
+    } else {
+      out.primary_judge_mode = "majority";
+    }
+  }
   return out;
 }
 
@@ -1202,6 +1466,7 @@ function stopGuidanceCountdown() {
     guidanceTimer = null;
   }
   el.btnV2Guidance?.classList.remove("guidance-pulse");
+  el.btnV3Guidance?.classList.remove("guidance-pulse");
   el.v2GuidanceCountdown?.classList.add("hidden");
   el.v2GuidanceCountdown?.classList.remove("urgent");
 }
@@ -1223,6 +1488,7 @@ function startGuidanceCountdown(totalSec) {
     left -= 1;
   };
   el.btnV2Guidance?.classList.add("guidance-pulse");
+  el.btnV3Guidance?.classList.add("guidance-pulse");
   playAlertBeep("guidance");
   tick();
   guidanceTimer = setInterval(tick, 1000);
@@ -1723,14 +1989,30 @@ function isV2Mode() {
 }
 
 function isSimV3Mode() {
-  return (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "sim_v3_session";
+  return (
+    Boolean(activeSimMode) &&
+    (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "sim_v3_session"
+  );
 }
 
 function isV3Mode() {
-  return (
-    (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value === "v3_session" ||
-    isSimV3Mode()
-  );
+  const pm = (el.form.querySelector('input[name="phase_mode"]:checked') || {}).value;
+  if (pm === "v3_session") return true;
+  return isSimV3Mode();
+}
+
+/** 真机工作区不应保留 sim_v3（否则会隐藏采集板卡并误显 BCI2a 块） */
+function ensureExperimentPhaseMode() {
+  if (activeSimMode) return;
+  const checked = el.form?.querySelector('input[name="phase_mode"]:checked');
+  if (checked?.value !== "sim_v3_session") return;
+  const v3 = el.form?.querySelector('input[name="phase_mode"][value="v3_session"]');
+  if (v3) {
+    v3.checked = true;
+    return;
+  }
+  const v2 = el.form?.querySelector('input[name="phase_mode"][value="v2_session"]');
+  if (v2) v2.checked = true;
 }
 
 function isV4Mode() {
@@ -1916,9 +2198,8 @@ function setV4RunPanel(on) {
 
 function syncWorkModeUi() {
   const simWorkspace = Boolean(activeSimMode);
-  const simSession = simWorkspace || isSimV3Mode();
   document.querySelectorAll(".exp-only").forEach((node) => {
-    node.classList.toggle("hidden", simSession);
+    node.classList.toggle("hidden", simWorkspace);
   });
   document.querySelectorAll(".exp-phase-only").forEach((node) => {
     node.classList.toggle("hidden", simWorkspace);
@@ -1950,6 +2231,7 @@ function syncWorkModeUi() {
     }
     refreshSimRunSuggestion();
   } else {
+    ensureExperimentPhaseMode();
     const openPage = el.form?.querySelector('[name="open_subject_page"]');
     if (openPage) openPage.disabled = false;
     const fb = el.form?.querySelector('[name="subject_feedback_mode"]');
@@ -2134,18 +2416,58 @@ function updateV2Gate(msg) {
 }
 
 el.form.querySelectorAll('input[name="phase_mode"]').forEach((r) => {
-  r.addEventListener("change", syncPhaseModeUi);
+  r.addEventListener("change", () => {
+    syncPhaseModeUi();
+    if (!activeSimMode) {
+      const sug = activeSubjectInfo?.suggest_session_id;
+      fillSessionIdSelect(sug);
+      if (sug) setSessionIdSelectValue(sug, { overwrite: false });
+    }
+  });
+});
+let priorModelPresetId = "";
+
+el.modelPreset?.addEventListener("focus", () => {
+  priorModelPresetId = el.modelPreset?.value || "";
 });
 el.modelPreset?.addEventListener("change", () => {
   const id = el.modelPreset.value;
+  const prevId = priorModelPresetId;
+  priorModelPresetId = id;
+  if (activeCampaign && activeSimMode) {
+    if (id === "custom") {
+      alert("Campaign 模式下不可使用自定义路径");
+      rejectCampaignPresetChange(prevId);
+      return;
+    }
+    const p = MODEL_PRESETS.find((x) => x.id === id);
+    if (p && !presetAllowedForCampaign(p, activeCampaign)) {
+      alert("不可使用其他 Campaign 的权重，或与本周期锁定的模型不一致");
+      rejectCampaignPresetChange(prevId);
+      return;
+    }
+    const consumed = activeCampaign.runs_consumed || [];
+    const locked = inferCampaignLockedModelPresetId(activeCampaign);
+    if (consumed.length && locked && isZeroSamplePresetId(id) && id !== locked) {
+      alert(`本 Campaign 已锁定模型，不可切换为零样本 ${id}`);
+      rejectCampaignPresetChange(prevId);
+      return;
+    }
+    if (!consumed.length && isZeroSamplePresetId(id)) {
+      campaignModelPicks[activeCampaign.campaign_id] = id;
+    }
+  }
   if (id && id !== "custom") applyModelPreset(id);
   else updateWeightsStatusFromInputs();
+  syncCampaignWeightLockUi();
 });
 el.s3TaskCkpt?.addEventListener("input", () => {
+  if (activeCampaign && activeSimMode) return;
   if (el.modelPreset) el.modelPreset.value = "custom";
   updateWeightsStatusFromInputs();
 });
 el.s3ThreeCkpt?.addEventListener("input", () => {
+  if (activeCampaign && activeSimMode) return;
   if (el.modelPreset) el.modelPreset.value = "custom";
   updateWeightsStatusFromInputs();
 });
@@ -2216,7 +2538,9 @@ function setTimingToForm(timing) {
   renderSetupTimeline();
 }
 
-/** 渲染时间轴：按各阶段秒数比例着色分段；segments 默认 phase2 TIMING_KEYS */
+/** 渲染时间轴：按各阶段秒数比例着色分段；segments 默认 phase2 TIMING_KEYS。
+ *  cue_s≤0 时仍在 prep 后画「Cue·onset」标记（不计入合计秒数）。
+ */
 function renderTimeline(container, timing, segments) {
   if (!container) return null;
   let order;
@@ -2238,8 +2562,23 @@ function renderTimeline(container, timing, segments) {
   }
   const total = order.reduce((a, b) => a + b.s, 0);
   container.innerHTML = "";
-  if (total <= 0) return { total };
+  if (total <= 0 && !order.some((seg) => seg.key === "cue_s")) return { total };
+
   for (const seg of order) {
+    // Cue：时长>0 正常块；时长=0 仍标在 prep 后（OpenBMI Cue=MI onset）
+    if (seg.key === "cue_s" && seg.s <= 0) {
+      const mark = document.createElement("div");
+      mark.className = "tl-seg tl-cue tl-cue-onset";
+      mark.title = "Cue = MI onset（prep 结束后立刻给提示，无单独 cue 时长）";
+      const label = document.createElement("span");
+      label.textContent = "Cue";
+      mark.appendChild(label);
+      const sub = document.createElement("small");
+      sub.textContent = "onset";
+      mark.appendChild(sub);
+      container.appendChild(mark);
+      continue;
+    }
     if (seg.s <= 0) continue;
     const div = document.createElement("div");
     div.className = `tl-seg ${seg.cls}`;
@@ -2252,7 +2591,11 @@ function renderTimeline(container, timing, segments) {
   }
   const cap = document.createElement("div");
   cap.className = "tl-total";
-  cap.textContent = `单 trial 合计 ${total}s`;
+  const cueS = Number(timing.cue_s) || 0;
+  cap.textContent =
+    cueS <= 0
+      ? `单 trial 合计 ${total}s（Cue 在 prep 后 · 与 MI 同刻 onset）`
+      : `单 trial 合计 ${total}s`;
   container.appendChild(cap);
   return { total };
 }
@@ -2305,7 +2648,10 @@ let simCatalogRuns = [];
 let simCampaigns = [];
 let activeCampaign = null;
 let lastFtRunDir = null;
+let lastFtGatePass = null;
 let ftBusy = false;
+let sessionRecordExcluded = false;
+let lastCampaignManifest = null;
 
 function loadSubjectLoginLocal() {
   try {
@@ -2355,7 +2701,14 @@ function applySimRunToForm(runId) {
   if (!rid.startsWith("run")) return;
   const runInp = el.form?.querySelector('[name="sim_run_id"]');
   if (runInp) runInp.value = rid;
-  if (el.setupSessionId) el.setupSessionId.value = rid;
+  if (el.setupSessionId) {
+    el.setupSessionId.innerHTML = "";
+    const opt = document.createElement("option");
+    opt.value = rid;
+    opt.textContent = rid;
+    el.setupSessionId.appendChild(opt);
+    el.setupSessionId.value = rid;
+  }
 }
 
 function syncSimRunFromCampaignOrSuggest() {
@@ -2421,16 +2774,22 @@ function fillSimCampaignSelect(campaigns, selectedId = "") {
   const prev = selectedId || el.simCampaignSelect.value || activeCampaign?.campaign_id || "";
   el.simCampaignSelect.innerHTML = '<option value="">— 单场 run —</option>';
   for (const c of sortCampaignsNewestFirst(campaigns)) {
+    const rem = campaignRemainingRuns(c);
+    if (rem.length === 0) continue;
     const opt = document.createElement("option");
     opt.value = c.campaign_id || "";
     opt.dataset.manifestPath = c.manifest_path || "";
-    const rem = (c.session_queue || []).filter((r) => !(c.runs_consumed || []).includes(r));
     opt.textContent = `${c.campaign_id} · 剩余 ${rem.length}/${(c.session_queue || []).length}`;
     el.simCampaignSelect.appendChild(opt);
   }
-  if (prev) {
+  const stillThere = [...el.simCampaignSelect.options].some((o) => o.value === prev);
+  if (prev && stillThere) {
     el.simCampaignSelect.value = prev;
-    onSimCampaignSelectChange();
+    onSimCampaignSelectChange(false);
+  } else if (prev && !stillThere) {
+    el.simCampaignSelect.value = "";
+    activeCampaign = null;
+    syncCampaignWeightLockUi();
   }
 }
 
@@ -2450,16 +2809,18 @@ function updateSimCampaignStatus() {
   syncSimRunFromCampaignOrSuggest();
 }
 
-function onSimCampaignSelectChange() {
+function onSimCampaignSelectChange(applyWeights = true) {
   const sel = el.simCampaignSelect;
   if (!sel || sel.value === "") {
     activeCampaign = null;
     updateSimCampaignStatus();
+    syncCampaignWeightLockUi();
     return;
   }
   activeCampaign = (simCampaigns || []).find((c) => c.campaign_id === sel.value) || null;
   updateSimCampaignStatus();
-  applyCampaignLatestWeights();
+  if (applyWeights) applyCampaignLatestWeights();
+  syncCampaignWeightLockUi();
 }
 
 function onSimCatalogAck(msg) {
@@ -2484,6 +2845,8 @@ function onSimCampaignAck(msg) {
     const useQ = el.form?.querySelector('[name="sim_use_campaign_queue"]');
     if (useQ) useQ.checked = true;
     updateSimCampaignStatus();
+    applyCampaignLatestWeights();
+    syncCampaignWeightLockUi();
   }
 }
 
@@ -2517,16 +2880,290 @@ function updateSubjectBar() {
   }
 }
 
+/** 当前协议板块：v1 / v2 / v3 / v4（仿真返回 sim） */
+function currentProtocolBoard() {
+  const pm = String(
+    (el.form?.querySelector('input[name="phase_mode"]:checked') || {}).value || "",
+  );
+  if (pm === "v2_session") return "v2";
+  if (pm === "v3_session") return "v3";
+  if (pm === "v4_session") return "v4";
+  if (pm === "sim_v3_session") return "sim";
+  return "v1";
+}
+
+function phaseModeToBoard(phaseMode) {
+  const pm = String(phaseMode || "").trim();
+  if (pm === "v2_session") return "v2";
+  if (pm === "v3_session") return "v3";
+  if (pm === "v4_session") return "v4";
+  if (pm === "sim_v3_session") return "sim";
+  if (pm === "phase2_full" || pm === "phase1" || !pm) return "v1";
+  return pm;
+}
+
+function boardLabel(board) {
+  if (board === "v1") return "v1";
+  if (board === "v2") return "v2";
+  if (board === "v3") return "v3";
+  if (board === "v4") return "v4";
+  if (board === "sim") return "仿真";
+  return board || "未知";
+}
+
+/** 统一取会话列表：登录包在 index.sessions，info 包在顶层 sessions */
+function subjectSessions(info = activeSubjectInfo) {
+  if (!info) return [];
+  if (Array.isArray(info.sessions) && info.sessions.length) return info.sessions;
+  if (Array.isArray(info.index?.sessions)) return info.index.sessions;
+  return Array.isArray(info.sessions) ? info.sessions : [];
+}
+
+/** 全部已有会话编号（去重），附带各编号出现过的板块标签 */
+function listExistingSessionEntries() {
+  const byId = new Map();
+  for (const s of subjectSessions()) {
+    const id = String(s.session_id || s.run_id || "").trim();
+    if (!id) continue;
+    const key = id.toLowerCase();
+    const board = phaseModeToBoard(s.phase_mode);
+    let ent = byId.get(key);
+    if (!ent) {
+      ent = { id, boards: [], count: 0 };
+      byId.set(key, ent);
+    }
+    ent.count += 1;
+    if (!ent.boards.includes(board)) ent.boards.push(board);
+  }
+  const out = [...byId.values()];
+  out.sort((a, b) => {
+    const ma = a.id.match(/^(ws|ses|run)(\d+)$/i);
+    const mb = b.id.match(/^(ws|ses|run)(\d+)$/i);
+    if (ma && mb && ma[1].toLowerCase() === mb[1].toLowerCase()) {
+      return Number(ma[2]) - Number(mb[2]);
+    }
+    return a.id.localeCompare(b.id, undefined, { numeric: true });
+  });
+  return out;
+}
+
+/** @deprecated 保留兼容：默认返回全部编号；传 board 则只返回该板块 */
+function uniqueExistingSessionIds({ board = null } = {}) {
+  const entries = listExistingSessionEntries();
+  if (!board) return entries.map((e) => e.id);
+  return entries.filter((e) => e.boards.includes(board)).map((e) => e.id);
+}
+
+function setSessionIdSelectValue(sessionId, { overwrite = false } = {}) {
+  if (!el.setupSessionId) return;
+  const want = String(sessionId || "").trim();
+  if (!want) return;
+  let opt = [...el.setupSessionId.options].find(
+    (o) => String(o.value).toLowerCase() === want.toLowerCase(),
+  );
+  if (!opt) {
+    opt = document.createElement("option");
+    opt.value = want;
+    opt.textContent = want;
+    el.setupSessionId.appendChild(opt);
+  }
+  el.setupSessionId.value = opt.value;
+  if (el.sessionOverwrite) el.sessionOverwrite.checked = Boolean(overwrite);
+  updateSessionIdConflictUi();
+}
+
+function formatSessionOptionLabel(entry, currentBoard) {
+  const boards = (entry.boards || []).map(boardLabel).join("/");
+  const n = entry.count > 1 ? `（${entry.count} 场）` : "";
+  const cur = entry.boards.includes(currentBoard) ? "" : " · 其他板块";
+  return `${entry.id} · ${boards || "?"}${n}${cur}`;
+}
+
+/** 填充会话编号下拉：新建建议 + 全部已有编号（标注板块） */
+function fillSessionIdSelect(preferredId) {
+  if (!el.setupSessionId) return;
+  if (activeSimMode) {
+    return;
+  }
+  const board = currentProtocolBoard();
+  const bl = boardLabel(board);
+  const sug = String(activeSubjectInfo?.suggest_session_id || "ws01").trim();
+  const entries = listExistingSessionEntries();
+  const prev = String(preferredId || el.setupSessionId.value || sug).trim();
+  el.setupSessionId.innerHTML = "";
+
+  const optNew = document.createElement("option");
+  optNew.value = sug;
+  optNew.dataset.kind = "new";
+  optNew.dataset.board = board;
+  optNew.textContent = `新建 · ${sug}（${bl}）`;
+  el.setupSessionId.appendChild(optNew);
+
+  const currentBoardEntries = entries.filter((e) => e.boards.includes(board));
+  const otherEntries = entries.filter((e) => !e.boards.includes(board));
+
+  const appendGroup = (label, list) => {
+    if (!list.length) return;
+    const group = document.createElement("optgroup");
+    group.label = label;
+    for (const ent of list) {
+      if (ent.id.toLowerCase() === sug.toLowerCase()) continue;
+      const opt = document.createElement("option");
+      opt.value = ent.id;
+      opt.dataset.kind = "existing";
+      opt.dataset.board = (ent.boards || []).join(",");
+      opt.textContent = formatSessionOptionLabel(ent, board);
+      group.appendChild(opt);
+    }
+    if (group.childElementCount) el.setupSessionId.appendChild(group);
+  };
+
+  appendGroup(`已有 ${bl} 会话（选中将询问是否覆盖）`, currentBoardEntries);
+  appendGroup("其他板块已有会话（选中将询问是否覆盖）", otherEntries);
+
+  const allIds = entries.map((e) => e.id);
+  const matchExisting = allIds.find((id) => id.toLowerCase() === prev.toLowerCase());
+  if (matchExisting && matchExisting.toLowerCase() !== sug.toLowerCase()) {
+    el.setupSessionId.value = matchExisting;
+  } else {
+    el.setupSessionId.value = sug;
+  }
+  if (el.sessionOverwrite) {
+    el.sessionOverwrite.checked =
+      Boolean(matchExisting) &&
+      matchExisting.toLowerCase() !== sug.toLowerCase() &&
+      Boolean(el.sessionOverwrite.checked);
+  }
+  updateSessionIdConflictUi();
+}
+
+/** 冲突检测：同编号默认查全部板块（覆盖会归档全部同号目录） */
+function sessionsMatchingId(sessionId, { boardOnly = false } = {}) {
+  const want = String(sessionId || "").trim().toLowerCase();
+  if (!want) return [];
+  const wantBoard = currentProtocolBoard();
+  return subjectSessions().filter((s) => {
+    if (String(s.session_id || s.run_id || "").toLowerCase() !== want) return false;
+    if (!boardOnly) return true;
+    return phaseModeToBoard(s.phase_mode) === wantBoard;
+  });
+}
+
+/** 真机：检测会话编号冲突，提示建议编号与覆盖选项 */
+function updateSessionIdConflictUi() {
+  if (!el.sessionIdHint) return;
+  if (activeSimMode) {
+    el.sessionIdHint.textContent = "仿真模式：会话编号与 run 一致";
+    el.sessionOverwriteWrap?.classList.add("hidden");
+    if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
+    return;
+  }
+  const board = currentProtocolBoard();
+  const bl = boardLabel(board);
+  const sid = String(el.setupSessionId?.value || "").trim();
+  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
+  const selected = el.setupSessionId?.selectedOptions?.[0];
+  const boardHits = sessionsMatchingId(sid, { boardOnly: true });
+  const allHits = sessionsMatchingId(sid);
+  const kind =
+    selected?.dataset?.kind ||
+    (boardHits.length ? "existing" : allHits.length ? "cross" : "new");
+  if (!sid) {
+    el.sessionIdHint.textContent = sug
+      ? `当前 ${bl}：请选择会话（建议新建 ${sug}）`
+      : `当前 ${bl}：请选择会话编号`;
+    el.sessionOverwriteWrap?.classList.add("hidden");
+    return;
+  }
+  if (kind === "existing" || kind === "cross" || boardHits.length || allHits.length) {
+    const hits = boardHits.length ? boardHits : allHits;
+    const names = hits.map((s) => s.dir).slice(0, 3).join("、");
+    const over = Boolean(el.sessionOverwrite?.checked);
+    const crossNote =
+      !boardHits.length && allHits.length
+        ? `（同号存在于其他板块）`
+        : "";
+    el.sessionIdHint.textContent = over
+      ? `将覆盖 ${bl}「${sid}」${crossNote}（${hits.length || 1} 场：${names || sid}）→ 旧目录归档后重采`
+      : `已选 ${bl} 历史编号 ${sid}${crossNote}（${hits.length || 1} 场）。确认覆盖，或改选「新建」。`;
+    el.sessionOverwriteWrap?.classList.remove("hidden");
+  } else {
+    el.sessionIdHint.textContent = `当前 ${bl}：将使用新编号 ${sid}`;
+    el.sessionOverwriteWrap?.classList.add("hidden");
+    if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
+  }
+}
+
+function onSessionIdSelectChange() {
+  if (activeSimMode) {
+    updateSessionIdConflictUi();
+    return;
+  }
+  const bl = boardLabel(currentProtocolBoard());
+  const sid = String(el.setupSessionId?.value || "").trim();
+  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
+  const allHits = sessionsMatchingId(sid);
+  const selected = el.setupSessionId?.selectedOptions?.[0];
+  const isExisting =
+    selected?.dataset?.kind === "existing" ||
+    (allHits.length > 0 && sid.toLowerCase() !== sug.toLowerCase());
+
+  if (isExisting) {
+    const boards = [
+      ...new Set(allHits.map((s) => boardLabel(phaseModeToBoard(s.phase_mode)))),
+    ];
+    const boardNote = boards.length ? `（原板块：${boards.join("/")}）` : "";
+    const ok = confirm(
+      `会话编号「${sid}」已存在${allHits.length ? ` ${allHits.length} 场` : ""}${boardNote}。\n\n` +
+        `当前将以 ${bl} 重新采集；确定则覆盖（旧目录移入 _archived）\n` +
+        `取消：改回新建 ${sug || "下一编号"}`,
+    );
+    if (ok) {
+      if (el.sessionOverwrite) el.sessionOverwrite.checked = true;
+      updateSessionIdConflictUi();
+    } else {
+      if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
+      fillSessionIdSelect(sug);
+    }
+    return;
+  }
+  if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
+  updateSessionIdConflictUi();
+}
+
+function applySuggestedSessionId({ force = false } = {}) {
+  if (activeSimMode) return;
+  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
+  if (!sug) return;
+  fillSessionIdSelect(force ? sug : undefined);
+  setSessionIdSelectValue(sug, { overwrite: false });
+}
+
 function applySubjectToSetup(info) {
   if (!info) return;
   const sid = info.subject_id || info.subject?.subject_id;
   if (el.setupSubjectId) el.setupSubjectId.value = sid || "";
+  // 归一化：登录包可能只有 index.sessions
+  if (!Array.isArray(info.sessions) || !info.sessions.length) {
+    info.sessions = info.index?.sessions || [];
+  }
+  if (activeSubjectInfo && activeSubjectInfo === info) {
+    activeSubjectInfo.sessions = info.sessions;
+  } else if (activeSubjectInfo?.subject_id === sid) {
+    activeSubjectInfo.sessions = info.sessions;
+    if (info.suggest_session_id) {
+      activeSubjectInfo.suggest_session_id = info.suggest_session_id;
+    }
+  }
+  activeSimMode = Boolean(info.sim_mode);
   if (info.sim_mode) {
     // 仿真：会话编号 = run_id，优先服务端 suggest（跑完 run3 → run4）
     refreshSimRunSuggestion();
   } else if (info.suggest_session_id && el.setupSessionId) {
-    el.setupSessionId.value = info.suggest_session_id;
+    fillSessionIdSelect(info.suggest_session_id);
+    setSessionIdSelectValue(info.suggest_session_id, { overwrite: false });
   }
+  updateSessionIdConflictUi();
   const paths = info.sim_mode
     ? {
         save_root: info.sessions_dir || `experiment_game/data/sim_subjects/${sid}/sessions`,
@@ -2538,7 +3175,6 @@ function applySubjectToSetup(info) {
           subject_root: info.subject_root,
         }
       : null;
-  activeSimMode = Boolean(info.sim_mode);
   if (info.sim_mode) {
     simCampaigns = info.campaigns || [];
     fillSimCampaignSelect(simCampaigns);
@@ -2550,7 +3186,7 @@ function applySubjectToSetup(info) {
     if (saveRootInput) saveRootInput.value = paths.save_root;
   }
   const cw = info.current_weights;
-  if (cw?.ok && cw.task_ckpt && cw.three_ckpt) {
+  if (cw?.ok && cw.task_ckpt && cw.three_ckpt && !activeCampaign) {
     if (el.s3TaskCkpt) el.s3TaskCkpt.value = cw.task_ckpt;
     if (el.s3ThreeCkpt) el.s3ThreeCkpt.value = cw.three_ckpt;
     if (el.modelPreset) {
@@ -2563,6 +3199,8 @@ function applySubjectToSetup(info) {
   }
   updateSubjectBar();
   updateReplayAdvice("setup", { autoApply: false });
+  if (activeCampaign) applyCampaignLatestWeights();
+  syncCampaignWeightLockUi();
 }
 
 function renderFtSessionList(sessions) {
@@ -2582,16 +3220,19 @@ function renderFtSessionList(sessions) {
   for (const s of list) {
     const row = document.createElement("div");
     const isThisRun = autoNorm && normSessionPath(s.path) === autoNorm;
-    const isCurrentRun = isThisRun && Boolean(s.ft_eligible);
+    // Leave-Next / 计划：留当前作评估，默认勾选之前所有合格 session
+    const checkPrev =
+      Boolean(s.ft_eligible) && !isThisRun && Boolean(el.ftLeaveNext?.checked !== false);
     row.className =
       "ft-session-row" +
       (s.electrode_ok ? "" : " warn") +
       (isThisRun ? " ft-session-current" : "");
     const cb = document.createElement("input");
     cb.type = "checkbox";
-    cb.checked = isCurrentRun;
+    cb.checked = checkPrev;
     cb.dataset.path = s.path || "";
     cb.dataset.runId = String(s.session_id || s.run_id || "").toLowerCase();
+    cb.dataset.thisRun = isThisRun ? "1" : "0";
     cb.addEventListener("change", () => {
       replayAdviceManualOverride.panel = false;
       updateReplayAdvice("panel");
@@ -2600,7 +3241,8 @@ function renderFtSessionList(sessions) {
     const wa = s.window_acc != null ? `${(s.window_acc * 100).toFixed(0)}%` : "—";
     const pa = s.primary_acc != null ? `${(s.primary_acc * 100).toFixed(0)}%` : "—";
     const nw = sessionWindowEstimate(s);
-    meta.textContent = `${s.dir} · ~${nw} 窗 · 窗acc ${wa} · valid-primary ${pa}`;
+    const tag = isThisRun ? " · 本场(默认不入 FT)" : "";
+    meta.textContent = `${s.dir}${s.record_excluded ? " · 未记入" : ""}${tag} · ~${nw} 窗 · 窗acc ${wa} · valid-primary ${pa}`;
     const warn = document.createElement("div");
     warn.className = "muted";
     warn.textContent = s.electrode_ok ? "电极 OK" : (s.electrode_warnings || []).join(" · ") || "电极 ⚠";
@@ -2615,25 +3257,41 @@ function renderFtSessionList(sessions) {
   updateFtRampHint();
 }
 
-/** Leave-Next：勾选 eval run 之前的已完成 queue session，排除当前 eval。 */
+/** Leave-Next：勾选当前场之前的 session，排除本场。仿真走 Campaign queue；真机走目录序。 */
 function applyLeaveNextFtSelection(evalSessionPathNorm) {
-  if (!el.ftLeaveNext?.checked || !activeSimMode || !activeCampaign) return;
-  const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
-  const done = {};
-  for (const item of activeCampaign.sessions_completed || []) {
-    const rid = String(item.run_id || "").toLowerCase();
-    if (rid && item.session_dir) done[rid] = normSessionPath(item.session_dir);
+  if (!el.ftLeaveNext?.checked) return;
+
+  // 仿真 Campaign：按 queue 切 train / eval
+  if (activeSimMode && activeCampaign) {
+    const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
+    const done = {};
+    for (const item of activeCampaign.sessions_completed || []) {
+      const rid = String(item.run_id || "").toLowerCase();
+      if (rid && item.session_dir) done[rid] = normSessionPath(item.session_dir);
+    }
+    let evalRun = resolveFtEvalRunId(evalSessionPathNorm);
+    if (!evalRun || !queue.includes(evalRun)) return;
+    const idx = queue.indexOf(evalRun);
+    const trainRuns = new Set(queue.slice(0, idx));
+    const trainPaths = new Set(
+      [...trainRuns].map((rid) => done[rid]).filter(Boolean),
+    );
+    el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+      const p = normSessionPath(cb.dataset.path || "");
+      cb.checked = trainPaths.has(p);
+    });
+    return;
   }
-  let evalRun = resolveFtEvalRunId(evalSessionPathNorm);
-  if (!evalRun || !queue.includes(evalRun)) return;
-  const idx = queue.indexOf(evalRun);
-  const trainRuns = new Set(queue.slice(0, idx));
-  const trainPaths = new Set(
-    [...trainRuns].map((rid) => done[rid]).filter(Boolean),
-  );
+
+  // 真机 / 无 Campaign：再确认排除本场，勾选其余合格项
+  const evalNorm =
+    evalSessionPathNorm ||
+    (sessionRoot ? normSessionPath(sessionRoot) : "");
   el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
     const p = normSessionPath(cb.dataset.path || "");
-    cb.checked = trainPaths.has(p);
+    const isThis = evalNorm && p === evalNorm;
+    const hit = ftSessionCatalog.find((s) => normSessionPath(s.path) === p);
+    cb.checked = !isThis && Boolean(hit?.ft_eligible);
   });
 }
 
@@ -2661,10 +3319,16 @@ function resolveFtEvalRunId(evalSessionPathNorm) {
 
 function updateFtRampHint() {
   if (!el.ftRampHint) return;
-  if (!activeSimMode || !el.ftLeaveNext?.checked || !activeCampaign) {
-    el.ftRampHint.textContent = activeSimMode
-      ? "Leave-Next 关：手动勾选 FT session"
-      : "—";
+  if (!el.ftLeaveNext?.checked) {
+    el.ftRampHint.textContent = "Leave-Next 关：可手动勾选本场与历史 session";
+    return;
+  }
+  if (!activeSimMode || !activeCampaign) {
+    const n = el.ftSessionList
+      ? [...el.ftSessionList.querySelectorAll("input[type=checkbox]:checked")].length
+      : 0;
+    el.ftRampHint.textContent =
+      `Leave-Next：本场不入 FT · 已勾选历史 ${n} 场（可手动改）`;
     return;
   }
   const evalRun = resolveFtEvalRunId();
@@ -2698,6 +3362,7 @@ function collectSelectedFtSessions() {
 
 function resetFtPanel() {
   lastFtRunDir = null;
+  lastFtGatePass = null;
   ftBusy = false;
   if (el.ftResult) {
     el.ftResult.classList.add("hidden");
@@ -2710,6 +3375,8 @@ function resetFtPanel() {
   }
   if (el.btnFtPromote) el.btnFtPromote.classList.add("hidden");
   if (el.btnFtKeep) el.btnFtKeep.classList.add("hidden");
+  sessionRecordExcluded = false;
+  updateSessionNoRecordButton();
   const skip = document.querySelector('input[name="ft_mode"][value="skip"]');
   if (skip) skip.checked = true;
   if (el.ftExcludeInvalid) el.ftExcludeInvalid.checked = false;
@@ -2717,6 +3384,16 @@ function resetFtPanel() {
   applyFtReplayDefaults(lockedConfig?.experiment?.ft_defaults);
   applyFtAdvancedDefaults(lockedConfig?.experiment?.ft_defaults);
   updateReplayAdvice("panel");
+}
+
+function updateSessionNoRecordButton() {
+  if (!el.btnSessionNoRecord) return;
+  const show = Boolean(sessionRoot);
+  el.btnSessionNoRecord.classList.toggle("hidden", !show);
+  el.btnSessionNoRecord.disabled = sessionRecordExcluded || !sessionRoot;
+  el.btnSessionNoRecord.textContent = sessionRecordExcluded
+    ? "已标记：不记入记录"
+    : "不记入实验记录";
 }
 
 function showFtPanel(msg) {
@@ -2734,6 +3411,9 @@ function showFtPanel(msg) {
     if (el.ftStatus) el.ftStatus.textContent = "本次未采集 EEG，不可微调";
     if (el.btnFtStart) el.btnFtStart.disabled = true;
   }
+  sessionRecordExcluded = Boolean(msg?.record_excluded);
+  lastCampaignManifest = msg?.campaign?.manifest || activeCampaign || null;
+  updateSessionNoRecordButton();
   send({ type: "subject_info", subject_id: activeSubject || msg?.subject_id });
 }
 
@@ -2917,6 +3597,7 @@ function formToRunConfig() {
       skip_learn: el.form.querySelector('[name="skip_learn"]')?.checked || false,
       skip_gate: el.form.querySelector('[name="skip_gate"]')?.checked || false,
       protocol_locked: el.form.querySelector('[name="protocol_locked"]')?.checked !== false,
+      overwrite_session_id: Boolean(el.sessionOverwrite?.checked),
       ft_defaults: { ...readFtReplayOptions(el.form), ...readFtAdvancedOptions() },
       v2_overrides: readV2Overrides(),
       v3_overrides: readV3Overrides(),
@@ -2989,7 +3670,16 @@ function applyConfigToForm(cfg) {
     node.value = value == null ? "" : String(value);
   };
   set("subject_id", cfg.subject?.subject_id);
-  set("session_id", cfg.subject?.session_id);
+  if (!activeSimMode) {
+    fillSessionIdSelect(cfg.subject?.session_id);
+    if (cfg.subject?.session_id) {
+      setSessionIdSelectValue(cfg.subject.session_id, {
+        overwrite: Boolean(cfg.experiment?.overwrite_session_id),
+      });
+    }
+  } else {
+    set("session_id", cfg.subject?.session_id);
+  }
   set("notes", cfg.subject?.notes || "");
   set("open_subject_page", cfg.experiment?.open_subject_page !== false);
   set("acq_enabled", cfg.acquisition?.enabled !== false);
@@ -3023,6 +3713,7 @@ function applyConfigToForm(cfg) {
   for (const r of el.form.querySelectorAll('input[name="phase_mode"]')) {
     r.checked = r.value === pm;
   }
+  ensureExperimentPhaseMode();
   syncWorkModeUi();
   syncProtocolLockUi();
   set("save_root", cfg.storage?.save_root);
@@ -3061,7 +3752,7 @@ function applyConfigToForm(cfg) {
 }
 
 function syncAcqUi() {
-  const simSession = activeSimMode || isSimV3Mode();
+  const simSession = Boolean(activeSimMode);
   const acqOn = simSession ? true : el.form.querySelector('[name="acq_enabled"]').checked;
   const cyton = el.form.querySelector('input[name="board_mode"]:checked')?.value === "cyton";
   if (el.acqWarn) el.acqWarn.classList.toggle("hidden", acqOn || simSession);
@@ -3172,7 +3863,7 @@ function updateRunLockSummary(msg) {
         `<div><span class="k">正式 trials</span>${msg.acquire_trials}</div>`,
         `<div><span class="k">会话目录</span><code>${msg.session_root || "—"}</code></div>`,
       ].join("");
-  // 本场锁定的时序构成（v2/v3 与执行序一致：Cue前 Rest → prep → MI → ITI）
+  // 本场锁定的时序构成（v2/v3：Cue前 Rest → prep → Cue → MI → ITI）
   if (msg.timing) {
     const isV23 = msg.phase_mode === "v2_session" || msg.phase_mode === "v3_session";
     renderTimeline(el.runTimeline, msg.timing, isV23 ? V23_TIMELINE_SEGMENTS : undefined);
@@ -3180,9 +3871,11 @@ function updateRunLockSummary(msg) {
       if (isV23) {
         const rest = msg.timing.rest_s ?? msg.timing.inter_trial_rest_s ?? 0;
         const prep = msg.timing.fixation_s ?? msg.timing.prep_s ?? 0;
+        const cue = Number(msg.timing.cue_s) || 0;
         const iti = msg.timing.transition_s ?? msg.timing.iti_s ?? 0;
+        const cueTxt = cue <= 0 ? "Cue(=MI onset)" : `cue ${cue}s`;
         el.runTimingHint.textContent =
-          `Cue前 Rest ${rest}s → prep ${prep}s → cue ${msg.timing.cue_s}s → ` +
+          `Cue前 Rest ${rest}s → prep ${prep}s → ${cueTxt} → ` +
           `MI ${msg.timing.mi_s}s → ITI ${iti}s` +
           (msg.trial_total_s != null ? ` · 合计 ${msg.trial_total_s}s` : "");
       } else {
@@ -3219,14 +3912,18 @@ function connect() {
     setTimeout(connect, 1200);
   };
   ws.onerror = () => setWsStatus("WebSocket 错误", "err");
-  ws.onmessage = (ev) => {
+    ws.onmessage = (ev) => {
     let msg;
     try {
       msg = JSON.parse(ev.data);
     } catch {
       return;
     }
-    handleMessage(msg);
+    try {
+      handleMessage(msg);
+    } catch (err) {
+      console.error("[operator] handleMessage", msg?.type, err);
+    }
   };
 }
 
@@ -3270,8 +3967,12 @@ function handleMessage(msg) {
     if (msg.active_subject && msg.active_subject_info) {
       activeSubject = msg.active_subject;
       activeSubjectInfo = msg.active_subject_info;
+      if (!Array.isArray(activeSubjectInfo.sessions) || !activeSubjectInfo.sessions.length) {
+        activeSubjectInfo.sessions = activeSubjectInfo.index?.sessions || [];
+      }
       saveSubjectLoginLocal(msg.active_subject_info);
       applySubjectToSetup(msg.active_subject_info);
+      send({ type: "subject_info", subject_id: activeSubject });
       showView("setup");
     } else {
       const saved = loadSubjectLoginLocal();
@@ -3300,16 +4001,24 @@ function handleMessage(msg) {
     if (el.loginError) el.loginError.classList.add("hidden");
     activeSubject = msg.subject_id;
     activeSubjectInfo = msg;
+    // 兼容旧后端：sessions 可能只在 index 里
+    if (!Array.isArray(activeSubjectInfo.sessions) || !activeSubjectInfo.sessions.length) {
+      activeSubjectInfo.sessions = activeSubjectInfo.index?.sessions || [];
+    }
     activeSimMode = Boolean(msg.sim_mode);
     saveSubjectLoginLocal(msg);
     if (msg.sim_mode) {
       const simRadio = el.form?.querySelector('input[name="phase_mode"][value="sim_v3_session"]');
       if (simRadio) simRadio.checked = true;
-      syncWorkModeUi();
+    } else {
+      ensureExperimentPhaseMode();
     }
+    syncWorkModeUi();
     fillModelPresets(msg.model_presets || MODEL_PRESETS, msg.active_weights || null);
     applySubjectToSetup(msg);
     if (msg.sim_mode) requestSimCatalog();
+    // 再拉一次完整 subject_info，确保会话列表最新
+    send({ type: "subject_info", subject_id: activeSubject });
     showView("setup");
   } else if (t === "subject_logout_ack") {
     activeSubject = null;
@@ -3322,13 +4031,25 @@ function handleMessage(msg) {
   } else if (t === "subject_info_ack") {
     if (!msg.ok) return;
     if (msg.subject_id === activeSubject) {
-      activeSubjectInfo = { ...activeSubjectInfo, ...msg, sessions: msg.sessions };
+      activeSubjectInfo = {
+        ...activeSubjectInfo,
+        ...msg,
+        sessions: msg.sessions || msg.index?.sessions || activeSubjectInfo?.sessions || [],
+        suggest_session_id:
+          msg.suggest_session_id ||
+          msg.index?.suggest_session_id ||
+          activeSubjectInfo?.suggest_session_id,
+      };
       if (msg.sim_mode) {
         simCampaigns = msg.campaigns || simCampaigns;
         fillSimCampaignSelect(simCampaigns, activeCampaign?.campaign_id || "");
         refreshSimRunSuggestion();
       }
       renderFtSessionList(msg.sessions);
+      if (!activeSimMode) {
+        const cur = String(el.setupSessionId?.value || "").trim();
+        fillSessionIdSelect(cur || msg.suggest_session_id);
+      }
       updateReplayAdvice("setup", { autoApply: false });
       updateSubjectBar();
     }
@@ -3374,6 +4095,7 @@ function handleMessage(msg) {
     lastFtRunDir = msg.out_dir;
     const gate = msg.release_gate || {};
     const pass = msg.release_pass;
+    lastFtGatePass = Boolean(pass);
     const ftRec = msg.three_ft || {};
     const esLine = msg.early_stop
       ? `早停 · best@${ftRec.best_epoch ?? "—"}/${msg.max_epochs ?? 20} epoch · patience ${msg.patience ?? 5}`
@@ -3384,15 +4106,33 @@ function handleMessage(msg) {
       const repLine = msg.use_replay
         ? `replay T0 @ ${((msg.replay_ratio ?? 0.1) * 100).toFixed(0)}%`
         : "replay 关闭（纯被试窗）";
+      const failBits = Object.entries(gate.checks || {})
+        .filter(([, ok]) => !ok)
+        .map(([k]) => k);
+      const saved = msg.weights_saved !== false;
+      const gateLine = pass
+        ? `门控（参考）：PASS · pred ${JSON.stringify(gate.pred_labels || {})}`
+        : `门控（参考）：FAIL${failBits.length ? ` · ${failBits.join(", ")}` : ""} · pred ${JSON.stringify(gate.pred_labels || {})}${saved ? " · 权重已写入预设" : " · 无权重文件"}`;
       el.ftResult.innerHTML = [
         `<div>${repLine} · ${esLine} · ${detLine}</div>`,
         `<div>three heldout <strong>${(msg.three_heldout * 100).toFixed(1)}%</strong> · task <strong>${(msg.task_heldout * 100).toFixed(1)}%</strong>（参考）</div>`,
-        `<div>门控（参考）：${pass ? "PASS" : "FAIL"} · pred ${JSON.stringify(gate.pred_labels || {})}</div>`,
+        `<div>${gateLine}</div>`,
         `<div class="muted">已保存 ${msg.out_dir}</div>`,
       ].join("");
     }
-    if (el.ftStatus) el.ftStatus.textContent = "微调完成；请确认是否替换 current";
-    if (el.btnFtPromote) el.btnFtPromote.classList.remove("hidden");
+    if (el.ftStatus) {
+      if (msg.weights_saved === false) {
+        el.ftStatus.textContent =
+          "微调结束但未写出 best_*.pt（请重启服务后重跑；旧版本门控 FAIL 会删权重）";
+      } else {
+        el.ftStatus.textContent = pass
+          ? "微调完成；门控 PASS，可替换 current；预设列表已刷新"
+          : "微调完成；门控 FAIL，权重已进预设，强制替换请确认";
+      }
+    }
+    if (el.btnFtPromote) {
+      el.btnFtPromote.classList.toggle("hidden", msg.weights_saved === false);
+    }
     if (el.btnFtKeep) el.btnFtKeep.classList.remove("hidden");
     refreshModelPresetsFromServer(msg);
   } else if (t === "finetune_promote_ack") {
@@ -3428,6 +4168,13 @@ function handleMessage(msg) {
     showErrors([]);
     if (msg.starting) {
       starting = true;
+      if (activeCampaign?.campaign_id) {
+        const pid = el.modelPreset?.value;
+        if (pid && isZeroSamplePresetId(pid)) {
+          campaignModelPicks[activeCampaign.campaign_id] = pid;
+        }
+      }
+      syncCampaignWeightLockUi();
       if (el.reuseBar) el.reuseBar.classList.add("hidden");
       showView("run");
       if (!isV4Mode()) el.popupWarn.classList.remove("hidden");
@@ -3453,6 +4200,16 @@ function handleMessage(msg) {
     } else if (v3) {
       showRunAlert(sim ? `仿真 · ${msg.sim?.source_run || ""} · 回放` : "");
       setPhaseStepV3(sim ? "block" : "baseline");
+      if (sim && msg.sim?.skip_session_baseline) {
+        V3_EEG_STATE.baselineReady = false;
+        V3_EEG_STATE.baselineMu = [];
+        V3_EEG_STATE.baselineBeta = [];
+        V3_POWER_ROWS = null;
+        if (el.v3PowerBars) {
+          el.v3PowerBars.innerHTML =
+            `<div class="v3-pbar-wait">仿真：等待试次间 Rest 建立 ERD 基线（跳过块前 30s）</div>`;
+        }
+      }
       if (msg.v3_block_order) {
         updateV3Block({
           block_idx: 0,
@@ -3474,10 +4231,16 @@ function handleMessage(msg) {
       setPhaseStepV2("guidance");
     }
     if (v3) {
+      const blocks = msg.v3_config_effective?.blocks ?? 2;
+      const tpb = msg.v3_config_effective?.trials_per_block ?? 18;
+      const nMi = Number(blocks) * Number(tpb);
+      const restS =
+        msg.timing?.inter_trial_rest_s ??
+        msg.v3_config_effective?.inter_trial_rest_s ??
+        4;
       const v3Max =
-        msg.session_score_max ??
-        (msg.v3_config_effective?.blocks ?? 2) * (msg.v3_config_effective?.trials_per_block ?? 18);
-      resetSessionScore(v3Max);
+        msg.session_score_max ?? openbmiSessionScoreMax(nMi, restS);
+      resetSessionScore(v3Max, { nMi, interTrialRestS: restS });
     } else if (v2) {
       resetSessionScore(msg.session_score_max ?? null);
     }
@@ -3512,9 +4275,25 @@ function handleMessage(msg) {
       el.v3SummaryDetail.textContent =
         `v3 报告 · 质量=${r.quality_tier || "—"} · frozen=${r.frozen}`;
     }
+  } else if (t === "eeg_stale") {
+    const age = msg.age_s != null ? Number(msg.age_s).toFixed(1) : "?";
+    const text =
+      msg.message ||
+      `EEG 断流：已 ${age}s 无新样本。请检查 dongle / COM / USB，会话将中止。`;
+    showRunAlert(text, "abort");
+    playAlertBeep("alert");
+    if (el.stAcq) el.stAcq.textContent = `断流 · ${age}s`;
+    showErrors([text]);
   } else if (t === "v3_abort") {
-    showRunAlert(`v3 已中止：${msg.reason || "operator_abort"}`, "abort");
+    const reason = msg.reason || "operator_abort";
+    const text = msg.eeg_stale || String(reason).startsWith("eeg_stale")
+      ? `v3 已中止：EEG 断流（${reason}）。请检查采集盒后重开会话。`
+      : `v3 已中止：${reason}`;
+    showRunAlert(text, "abort");
     stopGuidanceCountdown();
+    if (msg.eeg_stale || String(reason).startsWith("eeg_stale")) {
+      showErrors([text]);
+    }
   } else if (t === "v3_warn") {
     showRunAlert(msg.message || "v3 链路警告", "degraded");
   } else if (t === "v2_online_status") {
@@ -3551,11 +4330,19 @@ function handleMessage(msg) {
       if (msg.stage === "guidance_begin") {
         el.btnV3Guidance?.classList.remove("hidden");
         if (el.btnV3Guidance) el.btnV3Guidance.disabled = false;
-        startGuidanceCountdown(msg.data?.timeout_s ?? 600);
+        if (msg.data?.auto) {
+          showRunAlert("合成/仿真：动觉引导自动确认", "ok");
+          stopGuidanceCountdown();
+          el.btnV3Guidance?.classList.add("hidden");
+        } else {
+          showRunAlert("动觉引导中 — 请完成抬臂后点「确认动觉引导完成」", "gate-pass");
+          startGuidanceCountdown(msg.data?.timeout_s ?? 600);
+        }
       }
       if (msg.stage === "guidance_end") {
         el.btnV3Guidance?.classList.add("hidden");
         stopGuidanceCountdown();
+        if (msg.data?.passed) showRunAlert("");
       }
     } else {
       if (el.v2StageHint) {
@@ -3628,8 +4415,30 @@ function handleMessage(msg) {
         `<div><span class="k">下一步</span>引导抬手休息后按 B 开下一段</div>`,
       ].join("");
     }
+  } else if (t === "session_finishing") {
+    // 试次跑完、落盘前：先切摘要页，避免对齐静默期断线后卡在运行页
+    starting = false;
+    showView("summary");
+    if (msg.root) {
+      sessionRoot = msg.root;
+      if (el.summaryRoot) el.summaryRoot.textContent = sessionRoot;
+    }
+    if (el.summaryMsg) {
+      el.summaryMsg.textContent = msg.message || "会话试次已结束，正在落盘…";
+    }
+    const vs = msg.v3_summary || {};
+    if (vs.session_score != null && vs.session_score_max != null && el.summaryMsg) {
+      el.summaryMsg.textContent +=
+        ` · 本场得分 ${formatScoreHalf(vs.session_score)}/${formatScoreHalf(vs.session_score_max)}`;
+    }
+    if (el.verifyBadge) {
+      el.verifyBadge.textContent = "落盘中…";
+      el.verifyBadge.className = "na";
+    }
   } else if (t === "session_saved") {
     starting = false;
+    lastCampaignManifest = msg.campaign?.manifest || null;
+    if (msg.campaign?.manifest) activeCampaign = msg.campaign.manifest;
     if (restartAfterAbort) {
       restartAfterAbort = false;
       resetRunView();
@@ -3646,7 +4455,7 @@ function handleMessage(msg) {
     const ss = msg.v2_summary?.session_score ?? msg.v3_summary?.session_score;
     const ssMax = msg.v2_summary?.session_score_max ?? msg.v3_summary?.session_score_max;
     if (ss != null && ssMax != null) {
-      el.summaryMsg.textContent += ` · 本场得分 ${Math.round(Number(ss))}/${ssMax}`;
+      el.summaryMsg.textContent += ` · 本场得分 ${formatScoreHalf(ss)}/${formatScoreHalf(ssMax)}`;
     }
     if (activeSubject || msg.subject_id) {
       if (!activeSubject && msg.subject_id) activeSubject = msg.subject_id;
@@ -3673,6 +4482,13 @@ function handleMessage(msg) {
     }
     if (activeSimMode) requestSimCampaignList();
     if (msg.model_presets) refreshModelPresetsFromServer(msg);
+    if (msg.suggest_session_id && !activeSimMode) {
+      activeSubjectInfo = {
+        ...activeSubjectInfo,
+        suggest_session_id: msg.suggest_session_id,
+      };
+      updateSubjectBar();
+    }
     if (msg.sim_index) {
       activeSubjectInfo = {
         ...activeSubjectInfo,
@@ -3711,13 +4527,14 @@ function handleMessage(msg) {
             .join(" · ");
         }
       } else if (msg.phase_mode === "v3_session" || msg.phase_mode === "sim_v3_session") {
-        badge.textContent = `v3 ${msg.v3_summary.quality_tier || "—"}`;
-        badge.className = msg.v3_summary.frozen ? "pass" : "warn";
+        const vs = msg.v3_summary || {};
+        badge.textContent = `v3 ${vs.quality_tier || "—"}`;
+        badge.className = vs.frozen ? "pass" : "warn";
         if (el.v3SummaryDetail) {
           el.v3SummaryDetail.classList.remove("hidden");
-          const r = msg.v3_summary.report || {};
+          const r = vs.report || {};
           el.v3SummaryDetail.textContent =
-            `块顺序 ${(msg.v3_summary.block_order || []).join("→")} · frozen=${msg.v3_summary.frozen} · ${r.quality_tier || ""}`;
+            `块顺序 ${(vs.block_order || []).join("→")} · frozen=${vs.frozen} · ${r.quality_tier || vs.quality_tier || ""}`;
         }
       } else if (msg.phase_mode === "v4_session" && msg.v4_summary) {
         const v = msg.v4_summary.verdict || "—";
@@ -3761,6 +4578,39 @@ function handleMessage(msg) {
     showPhase4Result(msg.phase4 || null);
     const btnP4 = document.getElementById("btn-phase4");
     if (btnP4) btnP4.disabled = !msg.acq_enabled;
+  } else if (t === "session_exclude_record_ack") {
+    if (!msg.ok) {
+      alert(msg.message || "标记失败");
+      return;
+    }
+    sessionRecordExcluded = true;
+    updateSessionNoRecordButton();
+    if (msg.campaign) {
+      activeCampaign = msg.campaign;
+      simCampaigns = simCampaigns.map((c) =>
+        c.campaign_id === activeCampaign?.campaign_id ? activeCampaign : c,
+      );
+      fillSimCampaignSelect(simCampaigns, activeCampaign?.campaign_id || "");
+      updateSimCampaignStatus();
+    }
+    if (msg.next_run) applySimRunToForm(msg.next_run);
+    if (msg.sim_index) {
+      activeSubjectInfo = {
+        ...activeSubjectInfo,
+        index: msg.sim_index,
+        suggest_session_id: msg.sim_index?.suggest_session_id,
+      };
+      updateSubjectBar();
+    }
+    if (msg.model_presets) refreshModelPresetsFromServer(msg);
+    const run = msg.run_id ? ` · run ${msg.run_id} 已释放可重采` : "";
+    if (el.summaryMsg) {
+      el.summaryMsg.textContent += " · 本场不记入实验记录（文件保留，仍可用于微调）" + run;
+    }
+    if (el.ftStatus) {
+      el.ftStatus.textContent = "本场已标记不记入 Campaign/索引；勾选上方 session 仍可进行微调";
+    }
+    if (activeSubject) send({ type: "subject_info", subject_id: activeSubject });
   } else if (t === "phase4_ack") {
     const btnP4 = document.getElementById("btn-phase4");
     if (btnP4) {
@@ -3802,7 +4652,7 @@ function handleMessage(msg) {
 let subjectPageOpened = false;
 
 function tryOpenSubject(force = false) {
-  const sim = activeSimMode || isSimV3Mode();
+  const sim = Boolean(activeSimMode);
   const cfgOpen =
     sim || el.form.querySelector('[name="open_subject_page"]')?.checked !== false;
   if (!cfgOpen) return;
@@ -3835,6 +4685,31 @@ function startSession() {
   resetRunView();
   lockedConfig = null;
   sessionRoot = "";
+  if (!activeSimMode) {
+    const sid = String(el.setupSessionId?.value || "").trim();
+    const bl = boardLabel(currentProtocolBoard());
+    const boardHits = sessionsMatchingId(sid, { boardOnly: true });
+    const allHits = sessionsMatchingId(sid);
+    const hits = boardHits.length ? boardHits : allHits;
+    if (hits.length && !el.sessionOverwrite?.checked) {
+      const sug = activeSubjectInfo?.suggest_session_id || "";
+      const useSug = sug && confirm(
+        `当前 ${bl}：会话编号「${sid}」已存在 ${hits.length} 场。\n\n` +
+          `确定：改用新建 ${sug}\n取消：留在设置页（可选历史编号并确认覆盖）`,
+      );
+      if (useSug) {
+        fillSessionIdSelect(sug);
+        setSessionIdSelectValue(sug, { overwrite: false });
+      }
+      return;
+    }
+    if (hits.length && el.sessionOverwrite?.checked) {
+      const ok = confirm(
+        `将覆盖 ${bl} 会话编号「${sid}」：旧目录移入 _archived，然后重新采集。\n确认继续？`,
+      );
+      if (!ok) return;
+    }
+  }
   const cfg = formToRunConfig();
   hotkeysEnabled = cfg.ui.operator_hotkeys !== false;
   showErrors([]);
@@ -4113,6 +4988,9 @@ el.ftLeaveNext?.addEventListener("change", () => {
   updateReplayAdvice("panel");
 });
 
+el.setupSessionId?.addEventListener("change", () => onSessionIdSelectChange());
+el.sessionOverwrite?.addEventListener("change", () => updateSessionIdConflictUi());
+
 el.btnFtStart?.addEventListener("click", () => {
   const mode = document.querySelector('input[name="ft_mode"]:checked')?.value;
   if (mode !== "run") {
@@ -4122,6 +5000,13 @@ el.btnFtStart?.addEventListener("click", () => {
   const leaveNext = Boolean(el.ftLeaveNext?.checked) && Boolean(activeSimMode);
   const paths = collectFtSessionPaths();
   if (!leaveNext && !paths.length) {
+    if (el.ftLeaveNext?.checked && !activeSimMode) {
+      alert(
+        "Leave-Next 开启：本场不入 FT，且暂无合格历史 session。\n" +
+          "可取消 Leave-Next 后勾选本场，或跳过微调。",
+      );
+      return;
+    }
     alert("请至少勾选一个 session");
     return;
   }
@@ -4171,11 +5056,18 @@ el.btnFtStart?.addEventListener("click", () => {
 
 el.btnFtPromote?.addEventListener("click", () => {
   if (!lastFtRunDir) return;
+  if (lastFtGatePass === false) {
+    const ok = confirm(
+      "本轮门控 FAIL（常见原因：训练准确率远高于 heldout，疑似过拟合）。\n\n" +
+        "仍要用这组权重替换 current 吗？",
+    );
+    if (!ok) return;
+  }
   send({
     type: "finetune_promote",
     subject_id: activeSubject,
     ft_run_dir: lastFtRunDir,
-    reason: "operator_summary_confirm",
+    reason: lastFtGatePass === false ? "operator_force_despite_gate_fail" : "operator_summary_confirm",
   });
 });
 
@@ -4194,13 +5086,32 @@ el.btnNextSession?.addEventListener("click", () => {
   resetRunView();
   lockedConfig = null;
   sessionRoot = "";
+  sessionRecordExcluded = false;
+  lastCampaignManifest = null;
   resetFtPanel();
   if (activeSimMode) {
     refreshSimRunSuggestion();
-  } else if (activeSubjectInfo?.suggest_session_id && el.setupSessionId) {
-    el.setupSessionId.value = activeSubjectInfo.suggest_session_id;
+  } else if (activeSubjectInfo?.suggest_session_id) {
+    fillSessionIdSelect(activeSubjectInfo.suggest_session_id);
+    setSessionIdSelectValue(activeSubjectInfo.suggest_session_id, { overwrite: false });
   }
   showView("setup");
+});
+
+el.btnSessionNoRecord?.addEventListener("click", () => {
+  if (!sessionRoot) return;
+  if (sessionRecordExcluded) return;
+  const ok = confirm(
+    "不记入实验记录？\n\n· 本场文件仍保留，可勾选用于微调\n· 从 Campaign 汇总与被试索引中移除\n· 若属 Campaign 队列，对应 run 可重新采集",
+  );
+  if (!ok) return;
+  send({
+    type: "session_exclude_record",
+    session_root: sessionRoot,
+    subject_id: activeSubject,
+    campaign_manifest: lastCampaignManifest || activeCampaign || null,
+  });
+  if (el.ftStatus) el.ftStatus.textContent = "正在标记不记入记录…";
 });
 
 window.addEventListener("keydown", (e) => {

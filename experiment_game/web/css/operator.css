@@ -132,6 +132,36 @@ select {
   line-height: 1.45;
 }
 
+.model-current-banner {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 8px 10px;
+  margin: 0 0 12px;
+  padding: 10px 12px;
+  border-radius: 8px;
+  background: rgba(90, 156, 255, 0.12);
+  border: 1px solid rgba(90, 156, 255, 0.28);
+}
+
+.model-current-kicker {
+  font-size: 12px;
+  color: var(--muted);
+  letter-spacing: 0.02em;
+}
+
+#model-current-name {
+  font-size: 15px;
+  font-weight: 650;
+  color: var(--ink);
+  line-height: 1.35;
+}
+
+.model-current-mode {
+  font-size: 12px;
+  color: #7ec8a0;
+}
+
 .replay-advice-on {
   color: #7ec8a0;
 }
@@ -205,6 +235,17 @@ button.danger {
   background: transparent;
   border-color: var(--danger);
   color: #ffb4b4;
+}
+
+button.warn {
+  background: transparent;
+  border-color: #c9a227;
+  color: #e8c547;
+}
+
+button.warn:disabled {
+  opacity: 0.55;
+  cursor: default;
 }
 
 .summary-bar {
@@ -431,6 +472,22 @@ code {
 /* 训练窗来源（MI/静息）高饱和，非训练段低饱和 */
 .tl-fixation { background: #8a97a8; }
 .tl-cue { background: #d9b96c; }
+.tl-cue-onset {
+  flex-grow: 0 !important;
+  flex-shrink: 0;
+  min-width: 44px;
+  max-width: 56px;
+  flex-direction: column;
+  gap: 0;
+  padding: 4px 6px;
+  line-height: 1.1;
+  box-shadow: 0 0 0 2px rgba(217, 185, 108, 0.55);
+}
+.tl-cue-onset small {
+  font-size: 10px;
+  font-weight: 500;
+  opacity: 0.85;
+}
 .tl-mi { background: #4fae64; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25); }
 .tl-hold { background: #8a97a8; }
 .tl-rest { background: #3d9cf0; box-shadow: inset 0 -3px 0 rgba(0,0,0,0.25); }
@@ -528,12 +585,26 @@ code {
 }
 .session-score-label {
   font-size: 0.9rem;
-  margin-bottom: 6px;
+  margin-bottom: 4px;
   color: var(--text);
 }
 .session-score-label strong {
   font-size: 1.05rem;
   color: var(--accent);
+}
+.session-score-rules {
+  font-size: 0.78rem;
+  line-height: 1.35;
+  color: var(--muted, #8b949e);
+  margin-bottom: 4px;
+}
+.session-score-rules strong {
+  color: var(--text);
+  font-weight: 600;
+}
+.session-score-hint {
+  font-size: 0.78rem;
+  margin-bottom: 6px;
 }
 .session-score-track {
   height: 12px;

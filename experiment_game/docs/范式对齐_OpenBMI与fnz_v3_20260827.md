@@ -1,8 +1,9 @@
 # 范式对齐：OpenBMI 底座 vs fnz OpenBMI-Align v1
 
-> 日期：2026-08-27 · 状态：**OpenBMI-Align v1 已落地（§2 为现行规格）**  
+> 日期：2026-08-27 · **修订：2026-08-29** · 状态：**OpenBMI-Align v1 已落地（§2 为现行规格）**  
+> **冻结总表**：[`框架冻结确认_20260829.md`](框架冻结确认_20260829.md)（**F5 已冻结：因果平滑 + 多数票单轨**）  
 > 目的：冻结 OpenBMI 训练底座所用范式，并规定 fnz **离线采集 + 离线 FT** 与之 **完全一致** 的目标协议；在线推理对齐见 §2.3。  
-> 相关：[`marker_spec.md`](marker_spec.md) · [`fnz实验与微调采集方案_20260827.md`](fnz实验与微调采集方案_20260827.md) · [`v3零样本探针会话设计_20260824.md`](v3零样本探针会话设计_20260824.md) · `code/preprocess_lab/src/datasets/openbmi/pipeline.py`
+> 相关：[`marker_spec.md`](marker_spec.md)（Phase1 历史）· [`fnz实验与微调采集方案_20260827.md`](fnz实验与微调采集方案_20260827.md) · `code/preprocess_lab/src/datasets/openbmi/pipeline.py`
 
 ---
 
@@ -81,8 +82,8 @@
 
 | 阶段 | 目标时长 | 事件 | 是否训练段 | 与 OpenBMI |
 |------|----------|------|------------|------------|
-| **试次间 Rest（Cue 前）** | **4 s** | `rest_start` … `rest_end`（挂本 trial_id） | **是（Rest 段）** | ✅ Cue 前 ≤4 s 纯静息 |
-| Prep / Fixation | **0–2 s**（可选） | `prep_start` | 否 | OpenBMI 无此段 |
+| **专用试次间 Rest** | **4 s** | `rest_start` … `rest_end`（挂本 trial_id） | **是（Rest 段）** | ✅ 间隔纯静息（**不含 prep**） |
+| Prep / Fixation | **2 s** | `prep_start` | 否 | OpenBMI 无此段；**不算 Rest 计分** |
 | **Cue = MI onset** | **0 s 延迟** | **`cue` = `mi_start`**（同 LSL 时刻） | **是（起点）** | ✅ **`t` = Cue** |
 | **MI** | **固定 4.0 s** | `mi_start` … `mi_end` | **是** | ✅ **`[0, 4) s`** |
 | ITI | **≥3 s** | `iti_start` | 否 | 试次末缓冲；**下一试次 Rest 另起** |
@@ -91,45 +92,49 @@
 
 | 参数 | 历史 v3 | OpenBMI-Align v1 |
 |------|---------|------------------|
-| `cue_s` | 2.0 s（MI 延迟） | **0 s** 或 ≤0.5 s 闪提示后立即 MI |
-| `imagine_s` | 6.0 s（常早停 ~4.2 s） | **4.0 s**（固定，探针关早停或仅记录） |
-| `iti_s` | 3.0 s | **≥3 s**（试次末；不含 Cue 前 Rest） |
-| Rest 试次 | label=0 独立试次 | **FT 不用**；Rest 仅 **Cue 前 4s 间隔段** |
+| `cue_s` | 2.0 s（MI 延迟） | **0 s** |
+| `imagine_s` | 6.0 s（常早停） | **4.0 s**（固定，无 D8 早停） |
+| `iti_s` | 3.0 s | **≥3 s**（试次末；不含专用 Rest） |
+| Rest | label=0 独立试次或含糊「Cue前4s」 | **仅 `inter_trial_rest_s=4` 专用段**；其后 **prep 2s 独立** |
+| `block_gap_s` | 60–90 | **默认 30s**（可 overrides，不永久锁死） |
 
 **单 trial 事件序（相对 Cue = 0；与 `trial_v2.run_round` 一致）：**
 
 ```text
-| Cue前 Rest 4s | prep? 2s |==== MI / Task 4s ========| ITI ≥3s |
-                -2?       0                          4
-                          ↑
-                          Cue = mi_start = OpenBMI t
+| 专用 Rest 4s | prep 2s |==== MI / Task 4s ========| ITI ≥3s |
+      ↑ rest_*           0                          4
+                         ↑
+                         Cue = mi_start = OpenBMI t
 ```
 
-> 跨 trial 物理 EEG 序为 ITI → Rest → prep → Cue，但 **Rest 事件归属下一 trial 的 trial_id**（`rest_start/rest_end` 先于 prep）。
+> 物理序：… → ITI → **专用 Rest 4s** → **prep 2s** → Cue/MI → …。  
+> **禁止**把「Cue 前 4s」说成 Rest——Cue 前还有 prep；Rest 只认 `rest_start`–`rest_end`。
 
 ### 2.2 试次类型与 Rest 语义
 
 | 类型 | OpenBMI-Align v1 | OpenBMI |
 |------|------------------|---------|
 | Left / Right | Cue 后 **固定 4 s MI** | Cue 后 4 s MI 段 |
-| **Rest** | **试次间隔 4 s**（`rest_start/rest_end`） | **Cue 前 ≤4 s** 无提示 EEG |
-| 块内平衡 | Task 试次 + 间隔 Rest 窗数平衡 | 同左 |
-| Rest 想象试次（label=0） | **已取消**；Rest 仅间隔段 | 无 |
+| **Rest** | **专用间隔 4 s**（`rest_start/rest_end`） | Cue 前 ≤4 s 无提示 EEG |
+| Rest 想象试次（label=0） | **已取消** | 无 |
 
-→ **三类标签来源与 OpenBMI 一致**：Rest=间隔段，Left/Right=Task 段。
+→ **三类标签**：Rest=专用间隔段，Left/Right=Task 段。计分：Rest 段多数票为 Rest → **+0.5**（36 试次满分 **54**）。
 
 ### 2.3 在线判定（OpenBMI-Align v1 · 已落地）
 
 | 项 | 实现 |
 |----|------|
+| 默认读出 | **`readout_mode=e1f`**（四成员 three；`e1f_four_member.json`） |
 | 参考时钟 | **`t_cue`（= `mi_start`）** |
-| 滑窗 | **3 s / hop 100 ms**，锚点 **0**（相对 Cue） |
-| 判定点 | **窗尾** 3.0, 3.1, …, 4.0 s（MI=4s 共 **11 档**） |
+| 滑窗 | **3 s / hop 100 ms**，锚点相对 Cue |
+| 判定点 | 窗尾约 3.0…4.0 s（约 11 档） |
 | 输出条件 | 窗尾 ≤ MI 4s 且窗长满 3 s |
-| 段级基线 | **Cue 前 0.5 s** 减均值 → 与 `task_window_cue_0_to_4` 一致 |
+| 段级基线 | **Cue 前 0.5 s** 减均值 |
 | 窗内归一化 | per-channel **z-score** |
-| 试次决策 | MI 阶段 **11 窗多数票**（`primary_judge_mode=majority`） |
+| **窗级** | E1f 融合 → **因果平滑**（n 与前两窗）→ **argmax** |
+| **试次计分 = 主判定** | **因果平滑后多数票**（F5 已冻结单轨）；MI +1 / Rest +0.5；**不**用 τ 早停 |
 | 首判时刻 | **Cue 后 3.0 s**（首窗 `[0, 3]`） |
+| 底座 | 5090 E1f 四成员 fold0（见 json）；对照可选单模 Shallow |
 
 实现：`InferenceService.window_mode=openbmi_hop100` · `v3_config.build_openbmi_judgment_times`
 
@@ -193,8 +198,8 @@ for row in rows:
 | MI 起点 | **Cue (t)** | **Cue = mi_start** | **`t_cue`** | **`t_cue`** |
 | MI 长度 | **固定 4 s** | **固定 4 s** | **`[t_cue, t_cue+4s)`** | 前向窗至 +4 s |
 | 试次内 Rest | 无 | 无 | 无 | 无 |
-| 试次间 Rest | **Cue 前 ≤4 s** | **Cue 前 4 s**（`rest_start/rest_end`） | **`[t_rest_start, t_rest_end)`** | 灌 ERD；不判定 |
-| Rest 标签 | 间隔段=0 | 间隔段=0 | 间隔段=0 | — |
+| 试次间 Rest | **Cue 前 ≤4 s** | **专用 Rest 4s**（`rest_start/rest_end`，**不含 prep**） | **`[t_rest_start, t_rest_end)`** | 计分 +0.5；可灌 ERD |
+| Rest 标签 | 间隔段=0 | 专用 Rest 段=0 | 同左 | — |
 
 ### 3.2 切窗几何（3 s / hop 100 ms / 750 点）
 
@@ -224,8 +229,8 @@ OpenBMI / fnz Align v1（Task 段 + 切窗）：
  ↑ 离线 FT 首窗 [0, 3s]
 
 fnz Align v1 采集（单 trial 事件序 · 相对 Cue = 0）：
-| Cue前 Rest 4s | prep? |==== MI 4s ========| ITI |
-                -2?    0                  4
+| 专用 Rest 4s | prep 2s |==== MI 4s ========| ITI |
+      ↑ rest_*      0                  4
 ```
 
 ---
@@ -234,10 +239,10 @@ fnz Align v1 采集（单 trial 事件序 · 相对 Cue = 0）：
 
 | 文档或说法 | 说明 |
 |------------|------|
-| `marker_spec.md` 默认 **17 s** | Align v1 简化为 prep? + MI 4s + ITI + 间隔 Rest；**无试次内 Rest** |
-| Exp29 / BCI2a「与 OpenBMI 同范式」 | ✅ 预处理同构；fnz **新 session** 按 §2 对齐后亦可同构 |
-| 历史 v3（ws01–ws03） | ❌ 未对齐，见 **附录 A**；FT 需 `--protocol legacy_v3` 或重采 |
-| `phase4_v2.py` 注释「与 openbmi_3s 同构」 | Align v1 离线 FT 应直接调用 `preprocess_run_3s_hop100` 同款函数 |
+| `marker_spec.md` 默认 **17 s** | **Phase1 历史**；Align v1 见 §2（专用 Rest + prep + MI4 + ITI） |
+| Exp29 / BCI2a「与 OpenBMI 同范式」 | ✅ 预处理同构；fnz **新 session** 按 §2 |
+| 历史 v3（ws01–ws03） | ❌ 未对齐，见 **附录 A** |
+| 在线默认读出 | **E1f 四成员** + **因果平滑后多数票**（F5 已冻结；τ 早停退出正式 SOP） |
 
 ---
 
@@ -289,8 +294,10 @@ fnz Align v1 采集（单 trial 事件序 · 相对 Cue = 0）：
 | 段提取 + 基线 | `code/preprocess_lab/src/common/steps/epoch_baseline.py` |
 | 3s/hop100 滑窗 | `code/preprocess_lab/src/common/steps/slide_3s_hop100.py` |
 | OpenBMI 配置 | `code/preprocess_lab/config/openbmi_3s_hop100.yaml` |
-| 5070 底座 | `code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper/.../run_20260822_094942/` |
-| v3 会话配置 | `experiment_game/config/v3_session.yaml` |
+| 5070 单模底座（对照） | `…/5070_baseline_…/run_20260822_094942/` |
+| **5090 E1f 四成员（默认）** | `experiment_game/config/e1f_four_member.json` · `…/run_20260823_*` |
+| 冻结总表 | `experiment_game/docs/框架冻结确认_20260829.md` |
+| v3 会话配置 | `experiment_game/config/v3_session.yaml`（`block_gap_s` 默认 **30**） |
 | 试次状态机 | `experiment_game/experiment/trial_v2.py` |
 | 在线推理 | `experiment_game/experiment/inference_v2.py` |
 | 离线 FT 切窗 | `experiment_game/tools/ft_subject_from_v3.py` |
@@ -317,3 +324,4 @@ fnz Align v1 采集（单 trial 事件序 · 相对 Cue = 0）：
 | 2026-08-27 | 初稿：OpenBMI vs fnz v3 对照 |
 | 2026-08-27 | **§2 重写为 OpenBMI-Align v1**：MI 固定 4 s、Cue=MI onset；**§2.4 离线 FT 与 OpenBMI 完全对齐**；历史 v3 移至附录 A |
 | 2026-08-27 | MI 多数票计分 + baseline_rest=30 对齐 fnz 方案 |
+| 2026-08-29 | Rest 明确为**专用 4s（不含 prep）**；默认 E1f；块间默认 30s；**F5 冻结因果平滑+多数票单轨** |

@@ -161,3 +161,57 @@ def test_leave_next_train_runs():
     train = leave_next_train_runs(m, "run5")
     assert [r for r, _ in train] == ["run3", "run4"]
     assert leave_next_train_runs(m, "run3") == []
+
+
+def test_sim_replay_judge_4x_timing():
+    """4× 回放 + lsl_eeg_scale：判定窗须在试次早期即可取到（回归 20260828）。"""
+    import time
+
+    from pylsl import local_clock
+
+    from experiment_game.experiment.inference_v2 import (
+        FS,
+        InferenceService,
+        OnlinePreprocessor,
+        RingBuffer,
+        readout_from_heads,
+    )
+
+    speed = 4.0
+    scale = 1.0 / speed
+    buf = RingBuffer(capacity_s=60)
+    buf.push_rate_scale = speed
+    pre = OnlinePreprocessor()
+
+    class _FakeReg:
+        def forward_heads(self, window):
+            import numpy as np
+
+            p = np.array([0.2, 0.5, 0.3], dtype=np.float32)
+            return {"p_task": None, "p_three": p}
+
+    infer = InferenceService(
+        buf,
+        _FakeReg(),
+        pre,
+        task_p_on=0.0,
+        window_mode="openbmi_hop100",
+        mi_task_sec=4.0,
+        baseline_before_cue_s=0.5,
+        lsl_eeg_scale=scale,
+    )
+    t0 = local_clock()
+    t_cue = t0 + 0.5
+    i = 0
+    while local_clock() < t_cue + 3.0 * scale + 0.05:
+        now = local_clock()
+        target_i = int((now - t0) * FS * speed)
+        while i <= target_i:
+            buf.push(__import__("numpy").random.randn(8) * 5)
+            i += 1
+        time.sleep(0.001)
+    j = infer.judge(t_cue, 3.0)
+    assert j is not None, "4× 仿真下 judge 不应因 buffer 时间轴返回 None"
+    assert j["pred"] in (0, 1, 2)
+    out = readout_from_heads(None, [0.2, 0.5, 0.3], task_p_on=0.0)
+    assert out["pred"] == 1

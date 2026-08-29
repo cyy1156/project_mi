@@ -1,24 +1,24 @@
 {
   "schema_version": 2,
   "subject": {
-    "subject_id": "A01",
-    "session_id": "run8",
+    "subject_id": "test",
+    "session_id": "ws01",
     "notes": "smoke_timing"
   },
   "acquisition": {
     "enabled": true,
-    "board_mode": "bci2a_replay",
+    "board_mode": "synthetic",
     "serial_port": "COM5",
     "sample_rate_hz": 250,
     "channel_labels": [
-      "C3",
-      "C4",
-      "CZ",
-      "CP3",
-      "CP4",
-      "FC4",
       "FC3",
-      "CPZ"
+      "C3",
+      "CP3",
+      "CZ",
+      "CPZ",
+      "FC4",
+      "C4",
+      "CP4"
     ],
     "filter": {
       "enabled": false,
@@ -31,7 +31,7 @@
     "markers_lsl": true
   },
   "experiment": {
-    "phase_mode": "sim_v3_session",
+    "phase_mode": "v3_session",
     "v2_config_path": null,
     "protocol_locked": true,
     "v2_overrides": {
@@ -58,8 +58,10 @@
       "game_rounds_min": 1,
       "game_rounds_max": 3,
       "replay_ratio": 0.1,
-      "s3_task_ckpt": "experiment_game/data/sim_subjects/A01/models/ft_runs/20260828_004247/best_task.pt",
-      "s3_three_ckpt": "experiment_game/data/sim_subjects/A01/models/ft_runs/20260828_004247/best_three.pt"
+      "s3_three_ckpt": "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260823_095327/three/fold0/best_three.pt",
+      "readout_mode": "e1f",
+      "e1f_config_path": "experiment_game/config/e1f_four_member.json",
+      "primary_judge_mode": "majority"
     },
     "skip_v2_guidance": false,
     "skip_v2_calibration": false,
@@ -71,7 +73,7 @@
     "skip_learn": false,
     "skip_gate": false,
     "seed": null,
-    "open_subject_page": true,
+    "open_subject_page": false,
     "ready_timeout_s": 90.0,
     "timing": {
       "fixation_s": 2.0,
@@ -91,24 +93,33 @@
     },
     "ft_defaults": {
       "use_replay": true,
-      "replay_ratio": 0.1
+      "replay_ratio": 0.1,
+      "early_stop": true,
+      "max_epochs": 20,
+      "patience": 5,
+      "fixed_epochs": 5,
+      "deterministic": true,
+      "seed": 42
     },
+    "overwrite_session_id": false,
     "v3_overrides": {
       "blocks": 2,
       "trials_per_block": 18,
       "baseline_rest_s": 30,
-      "block_gap_s": 90,
+      "block_gap_s": 30,
       "prep_s": 2,
       "cue_s": 0,
       "imagine_s": 4,
       "iti_s": 3,
       "inter_trial_rest_s": 4,
-      "s3_task_ckpt": "experiment_game/data/sim_subjects/A01/models/ft_runs/20260828_004247/best_task.pt",
-      "s3_three_ckpt": "experiment_game/data/sim_subjects/A01/models/ft_runs/20260828_004247/best_three.pt"
+      "s3_three_ckpt": "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260823_095327/three/fold0/best_three.pt",
+      "readout_mode": "e1f",
+      "e1f_config_path": "experiment_game/config/e1f_four_member.json",
+      "primary_judge_mode": "majority"
     }
   },
   "storage": {
-    "save_root": "D:\\MI\\experiment_game\\data\\sim_subjects\\A01\\sessions",
+    "save_root": "D:\\MI\\experiment_game\\data\\subjects\\test\\sessions",
     "save_layout": "phase_folders",
     "save_eeg": true,
     "save_events": true,
@@ -125,15 +136,5 @@
     "operator_hotkeys": true,
     "subject_feedback_mode": "arm_reach"
   },
-  "extensions": {
-    "sim": {
-      "run_id": "run8",
-      "session_trials_total": 36,
-      "include_rest": true,
-      "replay_speed": 4,
-      "replay_align": "schedule_align",
-      "use_campaign_queue": false,
-      "campaign_manifest": "D:\\MI\\experiment_game\\data\\sim_subjects\\A01\\records\\campaigns\\sim_20260827_222049\\manifest.json"
-    }
-  }
+  "extensions": {}
 }

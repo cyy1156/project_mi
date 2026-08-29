@@ -131,6 +131,19 @@ def preprocess_session(
                 continue
         else:
             offsets = [0]
+            if spec.sample_end is not None:
+                span = int(spec.sample_end - spec.sample)
+                if span < n_out:
+                    skipped.append(
+                        {
+                            "trial_id": spec.trial_id,
+                            "kind": spec.kind,
+                            "reason": "fixed_window_exceeds_stage",
+                            "span_samples": span,
+                            "win_samples": n_out,
+                        }
+                    )
+                    continue
 
         lab_t, lab_3 = labels_from_spec(spec)
         for off in offsets:

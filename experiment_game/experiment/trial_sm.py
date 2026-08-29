@@ -24,15 +24,18 @@ def wait_until(
     is_paused: Optional[Callable[[], bool]] = None,
     should_abort: Optional[Callable[[], bool]] = None,
 ) -> None:
-    """等到 local_clock() >= t_end；暂停时冻结终点；abort 时抛 SessionAbort。"""
+    """等到 local_clock() >= t_end；暂停时冻结终点；abort 时抛 SessionAbort。
+
+    should_abort 可直接 raise SessionAbort（带自定义 reason）。
+    """
     while True:
         if should_abort is not None and should_abort():
-            raise SessionAbort("operator abort")
+            raise SessionAbort("operator_abort")
         if is_paused is not None and is_paused():
             t0 = local_clock()
             while is_paused():
                 if should_abort is not None and should_abort():
-                    raise SessionAbort("operator abort")
+                    raise SessionAbort("operator_abort")
                 time.sleep(0.02)
             t_end += local_clock() - t0
             continue
@@ -44,8 +47,11 @@ def wait_until(
 
 
 class SessionAbort(Exception):
-    """操作者紧急结束会话。"""
-    pass
+    """操作者紧急结束会话，或看门狗中止（如 EEG 断流）。"""
+
+    def __init__(self, reason: str = "operator_abort"):
+        self.reason = str(reason or "operator_abort")
+        super().__init__(self.reason)
 
 
 def build_label_schedule(n_trials: int, rng: Optional[random.Random] = None) -> List[int]:
@@ -169,12 +175,11 @@ class TrialStateMachine:
         self._notify("mi", ctx)
         row = self._emit("mi_start", ctx)
         self._wait(row["t_lsl"] + t.mi_s)
-        self._emit("mi_end", ctx)
+        row = self._emit("mi_end", ctx)
 
         # PostMI hold（不单独打点）
         self._notify("post_mi_hold", ctx)
-        hold_t0 = local_clock()
-        self._wait(hold_t0 + t.post_mi_hold_s)
+        self._wait(row["t_lsl"] + t.post_mi_hold_s)
 
         # Rest
         self._notify("rest", ctx, label=0)
@@ -219,8 +224,15 @@ class TrialStateMachine:
         if len(schedule) != n_trials:
             raise ValueError("labels 长度必须等于 n_trials")
 
-        self.events.emit("phase_start", phase=phase, trial_id=None, label=None)
-        self.markers.push(format_payload("phase_start", phase=phase))
+        phase_ctx = TrialContext(
+            trial_id=0,
+            label=0,
+            object=object_name,
+            scene=scene,
+            phase=phase,
+        )
+        self._notify("phase_start", phase_ctx, label=None)
+        self._emit("phase_start", phase_ctx, label=None)
 
         for i, lab in enumerate(schedule, start=1):
             ctx = TrialContext(
@@ -232,6 +244,6 @@ class TrialStateMachine:
             )
             self.run_trial(ctx)
 
-        self.events.emit("phase_end", phase=phase, trial_id=None, label=None)
-        self.markers.push(format_payload("phase_end", phase=phase))
+        self._notify("phase_end", phase_ctx, label=None)
+        self._emit("phase_end", phase_ctx, label=None)
         return schedule

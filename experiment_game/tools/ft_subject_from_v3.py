@@ -60,17 +60,18 @@ PROTOCOL_OPENBMI_ALIGN = "openbmi_align"
 PROTOCOL_LEGACY_V3 = "legacy_v3"
 PROTOCOL_SIM_MAT = "sim_mat_cue"
 
+# 默认底座：E1f 四成员 shallow fold0（5090 · 2026-08-23；task 头 2026-08-29 补齐）
 DEFAULT_TASK = (
     _REPO
-    / "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper"
+    / "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper"
     / "shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100"
-    / "run_20260822_094942/task/fold0/best_task.pt"
+    / "run_20260823_095327/task/fold0/best_task.pt"
 )
 DEFAULT_THREE = (
     _REPO
-    / "code/train_lab/out/5070_baseline_openbmi_3s_hop100_accpaper"
+    / "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper"
     / "shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100"
-    / "run_20260822_094942/three/fold0/best_three.pt"
+    / "run_20260823_095327/three/fold0/best_three.pt"
 )
 
 LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
@@ -98,6 +99,23 @@ def set_training_deterministic(seed: int) -> None:
         torch.cuda.manual_seed_all(int(seed))
     torch.backends.cudnn.deterministic = True
     torch.backends.cudnn.benchmark = False
+
+
+def _safe_int(v: Any, default: int = 0) -> int:
+    """CSV 空单元格 → pandas NaN；NaN 在 Python 中为真，`int(nan or 0)` 会炸。"""
+    if v is None:
+        return default
+    try:
+        if isinstance(v, float) and np.isnan(v):
+            return default
+    except (TypeError, ValueError):
+        pass
+    if isinstance(v, str) and not v.strip():
+        return default
+    try:
+        return int(float(v))
+    except (TypeError, ValueError):
+        return default
 
 
 def _load_eeg(session_dir: Path) -> Tuple[np.ndarray, np.ndarray]:
@@ -153,9 +171,9 @@ def detect_session_protocol(session_dir: Path) -> str:
         return PROTOCOL_OPENBMI_ALIGN
     rows = pd.read_csv(table).to_dict(orient="records")
     for r in rows:
-        if int(r.get("rejected") or 0) == 1:
+        if _safe_int(r.get("rejected"), 0) == 1:
             continue
-        lab = int(r.get("label") or -1)
+        lab = _safe_int(r.get("label"), -1)
         if lab not in (1, 2):
             continue
         tc, tm = r.get("t_cue"), r.get("t_mi_start")
@@ -217,11 +235,13 @@ def _build_session_windows_legacy(
     used_trials = 0
     sess_name = session_dir.name
     for r in rows:
-        if int(r.get("rejected") or 0) == 1:
+        if _safe_int(r.get("rejected"), 0) == 1:
             continue
-        if not include_invalid and int(r.get("invalid") or 0) == 1:
+        if not include_invalid and _safe_int(r.get("invalid"), 0) == 1:
             continue
-        lab = int(r["label"])
+        lab = _safe_int(r.get("label"), -1)
+        if lab not in (0, 1, 2):
+            continue
         if not (r.get("t_mi_start") == r.get("t_mi_start") and r.get("t_mi_end") == r.get("t_mi_end")):
             continue
         t_a, t_b = float(r["t_mi_start"]), float(r["t_mi_end"])
@@ -229,7 +249,7 @@ def _build_session_windows_legacy(
         if not ws:
             continue
         used_trials += 1
-        sid = f"{sess_name}:{int(r['trial_id'])}"
+        sid = f"{sess_name}:{_safe_int(r.get('trial_id'), 0)}"
         for w in ws:
             wins.append(w)
             y_three.append(lab)
@@ -283,11 +303,11 @@ def _build_session_windows_openbmi_align(
     n_left = n_right = n_rest = 0
 
     for r in rows:
-        if int(r.get("rejected") or 0) == 1:
+        if _safe_int(r.get("rejected"), 0) == 1:
             continue
-        if not include_invalid and int(r.get("invalid") or 0) == 1:
+        if not include_invalid and _safe_int(r.get("invalid"), 0) == 1:
             continue
-        lab = int(r["label"])
+        lab = _safe_int(r.get("label"), -1)
         if lab not in (0, 1, 2):
             continue
         t_cue = _cue_time_from_row(r)
@@ -311,7 +331,7 @@ def _build_session_windows_openbmi_align(
         if not ws:
             continue
         used_trials += 1
-        sid = f"{sess_name}:{int(r['trial_id'])}"
+        sid = f"{sess_name}:{_safe_int(r.get('trial_id'), 0)}"
         for w in ws:
             wins.append(w)
             y_three.append(lab)
@@ -400,11 +420,11 @@ def _build_session_windows_sim(
         trial_id = ti + 1
         if table_rows and ti < len(table_rows):
             row = table_rows[ti]
-            if int(row.get("rejected") or 0) == 1:
+            if _safe_int(row.get("rejected"), 0) == 1:
                 continue
-            if not include_invalid and int(row.get("invalid") or 0) == 1:
+            if not include_invalid and _safe_int(row.get("invalid"), 0) == 1:
                 continue
-            lab = int(row.get("label", tr.label))
+            lab = _safe_int(row.get("label"), int(tr.label))
         else:
             lab = int(tr.label)
 
@@ -734,7 +754,14 @@ def _write_ft_report(
     release: Dict[str, Any],
     args_task_ckpt: Path,
     args_three_ckpt: Path,
+    train_session_dirs: Optional[List[Path]] = None,
+    heldout_session_dirs: Optional[List[Path]] = None,
+    leave_next: bool = False,
+    replay_pool: str = "none",
+    replay_ratio: float = 0.0,
 ) -> Dict[str, Any]:
+    train_dirs = [Path(p) for p in (train_session_dirs or session_dirs)]
+    hold_dirs = [Path(p) for p in (heldout_session_dirs or [])]
     report = {
         "subject_id": subject_id,
         "sessions": ds.get("sessions", []),
@@ -748,21 +775,41 @@ def _write_ft_report(
         "release_gate": release,
         "base_task_ckpt": str(args_task_ckpt),
         "base_three_ckpt": str(args_three_ckpt),
+        "leave_next": bool(leave_next),
+        "train_sessions": [d.name for d in train_dirs],
+        "heldout_sessions": [d.name for d in hold_dirs],
+        "replay_pool": replay_pool,
+        "replay_ratio": float(replay_ratio),
+        "no_replay": str(replay_pool).lower() in ("", "none"),
     }
-    report.update(_collect_session_lineage(session_dirs))
+    # lineage：训练 + heldout，便于预设标签拼出 ws02+ws03+ws04→ws05
+    report.update(_collect_session_lineage(train_dirs + hold_dirs))
+    if hold_dirs:
+        # source_run 保留首个训练场，避免覆盖；标签走 train/heldout 字段
+        train_line = _collect_session_lineage(train_dirs)
+        if train_line.get("source_run"):
+            report["source_run"] = train_line["source_run"]
     (out_dir / "meta.json").write_text(
         json.dumps(report, ensure_ascii=False, indent=2), encoding="utf-8"
+    )
+    split_title = (
+        "准确率（Leave-Next：训练场 vs heldout 场）"
+        if leave_next
+        else "准确率（按试次划分 heldout）"
     )
     md = "\n".join(
         [
             f"# 被试专用权重 · {subject_id}",
             "",
             f"- 会话：`{sess_label}`",
+            f"- 训练：`{[d.name for d in train_dirs]}`",
+            f"- heldout：`{[d.name for d in hold_dirs]}`" if hold_dirs else "- heldout：试次划分",
+            f"- replay：`{replay_pool}` ratio={replay_ratio}",
             f"- 窗数：{len(X)}（试次 {int(ds['n_trials'][0])}）",
             f"- 底座 three：`{args_three_ckpt}`",
             f"- 底座 task：`{args_task_ckpt}`",
             "",
-            "## 准确率（按试次划分 heldout）",
+            f"## {split_title}",
             "",
             "| 头 | train 前→后 | heldout 前→后 |",
             "|----|-------------|---------------|",
@@ -803,6 +850,33 @@ def _write_ft_report(
     return report
 
 
+def _session_leave_split(
+    split_ids: np.ndarray,
+    *,
+    train_session_names: List[str],
+    heldout_session_names: List[str],
+) -> Tuple[np.ndarray, np.ndarray]:
+    """按会话名划分：train / heldout（Leave-Next）。split_id 形如 '{session}:{trial}'。"""
+    train_set = {str(n) for n in train_session_names}
+    hold_set = {str(n) for n in heldout_session_names}
+
+    def _sess(sid: Any) -> str:
+        s = str(sid)
+        return s.split(":", 1)[0] if ":" in s else s
+
+    tr_mask = np.array([_sess(t) in train_set for t in split_ids], dtype=bool)
+    te_mask = np.array([_sess(t) in hold_set for t in split_ids], dtype=bool)
+    if not tr_mask.any():
+        raise ValueError(
+            f"Leave-Next：训练会话无窗（train={sorted(train_set)}）"
+        )
+    if not te_mask.any():
+        raise ValueError(
+            f"Leave-Next：heldout 会话无窗（heldout={sorted(hold_set)}）"
+        )
+    return tr_mask, te_mask
+
+
 def run_subject_finetune(
     session_dirs: List[Path],
     out_dir: Path,
@@ -824,13 +898,18 @@ def run_subject_finetune(
     max_epochs: int = DEFAULT_FT_MAX_EPOCHS,
     patience: int = DEFAULT_FT_PATIENCE,
     deterministic: bool = DEFAULT_FT_DETERMINISTIC,
+    heldout_session_dirs: Optional[List[Path]] = None,
 ) -> Dict[str, Any]:
     """运行被试 FT；**始终写入 out_dir**，门控 FAIL 不抛错。
+
+    若提供 heldout_session_dirs：Leave-Next —— session_dirs 全作训练，
+    heldout_session_dirs 全作 heldout（不再按试次 7:3 切）。
 
     返回 dict：status, release_gate, report, out_dir, ...
     """
     session_dirs = [Path(p).resolve() for p in session_dirs]
-    for session_dir in session_dirs:
+    hold_dirs = [Path(p).resolve() for p in (heldout_session_dirs or [])]
+    for session_dir in session_dirs + hold_dirs:
         if not session_dir.is_dir():
             raise FileNotFoundError(f"会话不存在: {session_dir}")
 
@@ -841,11 +920,20 @@ def run_subject_finetune(
     if deterministic:
         set_training_deterministic(seed)
 
-    sess_label = " + ".join(d.name for d in session_dirs)
+    leave_next = bool(hold_dirs)
+    all_dirs = session_dirs + hold_dirs if leave_next else session_dirs
+    sess_label = " + ".join(d.name for d in all_dirs)
     if verbose:
-        print(f"[1/4] 切窗 · {sess_label}", flush=True)
+        if leave_next:
+            print(
+                f"[1/4] Leave-Next 切窗 · train={[d.name for d in session_dirs]} · "
+                f"heldout={[d.name for d in hold_dirs]}",
+                flush=True,
+            )
+        else:
+            print(f"[1/4] 切窗 · {sess_label}", flush=True)
 
-    ds = build_dataset(session_dirs, include_invalid=not exclude_invalid, protocol=protocol)
+    ds = build_dataset(all_dirs, include_invalid=not exclude_invalid, protocol=protocol)
     X, y3, y2, split_ids = ds["X"], ds["y_three"], ds["y_task"], ds["split_id"]
     resolved_protocol = ds.get("protocol", protocol)
     if verbose:
@@ -855,14 +943,28 @@ def run_subject_finetune(
             flush=True,
         )
 
-    tr_m, te_m = _trial_split(split_ids, train_frac=train_frac, seed=seed)
-    if verbose:
-        print(
-            f"  split trials train={len(np.unique(split_ids[tr_m]))} "
-            f"heldout={len(np.unique(split_ids[te_m]))} "
-            f"windows {tr_m.sum()}/{te_m.sum()}",
-            flush=True,
+    if leave_next:
+        tr_m, te_m = _session_leave_split(
+            split_ids,
+            train_session_names=[d.name for d in session_dirs],
+            heldout_session_names=[d.name for d in hold_dirs],
         )
+        if verbose:
+            print(
+                f"  Leave-Next windows train={int(tr_m.sum())} heldout={int(te_m.sum())} "
+                f"trials train={len(np.unique(split_ids[tr_m]))} "
+                f"heldout={len(np.unique(split_ids[te_m]))}",
+                flush=True,
+            )
+    else:
+        tr_m, te_m = _trial_split(split_ids, train_frac=train_frac, seed=seed)
+        if verbose:
+            print(
+                f"  split trials train={len(np.unique(split_ids[tr_m]))} "
+                f"heldout={len(np.unique(split_ids[te_m]))} "
+                f"windows {tr_m.sum()}/{te_m.sum()}",
+                flush=True,
+            )
 
     rep_ratio = 0.0 if no_replay else float(replay_ratio)
     recipe = FTRecipe(
@@ -898,7 +1000,10 @@ def run_subject_finetune(
         "subject_id": subject_id,
         "session_id": sess_label,
         "sessions": ds.get("sessions", [session_dirs[0].name]),
-        "finetune_mode": "full_model_from_v3",
+        "train_sessions": [d.name for d in session_dirs],
+        "heldout_sessions": [d.name for d in hold_dirs] if leave_next else [],
+        "leave_next": leave_next,
+        "finetune_mode": "leave_next_ws_replay" if leave_next else "full_model_from_v3",
         "cut_protocol": resolved_protocol,
         "replay_pool": "t0" if rep_ratio > 0 else "none",
         "replay_root": str(resolve_openbmi_root(prefer_t0=True)),
@@ -935,6 +1040,11 @@ def run_subject_finetune(
             f"[2/4] 微调 three 头 · device={dev} · {mode} · det={deterministic}",
             flush=True,
         )
+    three_final = out_dir / "best_three.pt"
+    task_final = out_dir / "best_task.pt"
+    three_tmp = out_dir / "best_three.pt.tmp"
+    task_tmp = out_dir / "best_task.pt.tmp"
+
     three_rep = finetune_head(
         three_ckpt,
         X[tr_m],
@@ -945,7 +1055,7 @@ def run_subject_finetune(
         device=dev,
         recipe=recipe,
         replay_pool=replay_pool,
-        out_path=out_dir / "best_three.pt",
+        out_path=three_tmp,
         meta=base_meta,
         **ft_kw,
     )
@@ -967,7 +1077,7 @@ def run_subject_finetune(
         device=dev,
         recipe=recipe,
         replay_pool=task_replay_pool,
-        out_path=out_dir / "best_task.pt",
+        out_path=task_tmp,
         meta=base_meta,
         **ft_kw,
     )
@@ -984,11 +1094,30 @@ def run_subject_finetune(
             print(f"  - {k}: {'OK' if ok else 'FAIL'}", flush=True)
         print(f"  pred: {release.get('pred_labels')}", flush=True)
 
+    import os
+
+    def _commit_ckpt(tmp: Path, final: Path) -> None:
+        """训练快照始终落盘到本轮 ft_runs；门控只作晋升参考，不删权重。"""
+        if not tmp.is_file():
+            return
+        prev = final.with_suffix(final.suffix + ".prev")
+        if final.is_file():
+            try:
+                os.replace(final, prev)
+            except OSError:
+                pass
+        os.replace(tmp, final)
+
+    _commit_ckpt(three_tmp, three_final)
+    _commit_ckpt(task_tmp, task_final)
+    three_rep["out"] = str(three_final)
+    task_rep["out"] = str(task_final)
+
     report = _write_ft_report(
         out_dir,
         subject_id=subject_id,
         sess_label=sess_label,
-        session_dirs=session_dirs,
+        session_dirs=all_dirs if leave_next else session_dirs,
         ds=ds,
         X=X,
         y3=y3,
@@ -997,6 +1126,11 @@ def run_subject_finetune(
         release=release,
         args_task_ckpt=task_ckpt,
         args_three_ckpt=three_ckpt,
+        train_session_dirs=session_dirs,
+        heldout_session_dirs=hold_dirs if leave_next else None,
+        leave_next=leave_next,
+        replay_pool="t0" if rep_ratio > 0 else "none",
+        replay_ratio=rep_ratio,
     )
 
     return {
@@ -1018,7 +1152,14 @@ def main() -> None:
         type=Path,
         action="append",
         required=True,
-        help="v3 会话目录；可重复传入以合并多 session",
+        help="训练用 v3 会话目录；可重复传入以合并多 session",
+    )
+    ap.add_argument(
+        "--heldout-session",
+        type=Path,
+        action="append",
+        default=None,
+        help="Leave-Next：heldout/测试会话目录（可重复）；提供后不再按试次 7:3 切",
     )
     ap.add_argument("--task-ckpt", type=Path, default=DEFAULT_TASK)
     ap.add_argument("--three-ckpt", type=Path, default=DEFAULT_THREE)
@@ -1064,7 +1205,8 @@ def main() -> None:
     args = ap.parse_args()
 
     session_dirs = [p.resolve() for p in args.session]
-    if len(session_dirs) == 1:
+    hold_dirs = [p.resolve() for p in (args.heldout_session or [])]
+    if len(session_dirs) == 1 and not hold_dirs:
         out_dir = (args.out_dir or (session_dirs[0] / "subject_ft")).resolve()
     else:
         subject_id = session_dirs[0].name.split("_")[0]
@@ -1090,6 +1232,7 @@ def main() -> None:
         max_epochs=args.max_epochs,
         patience=args.patience,
         deterministic=not args.no_deterministic,
+        heldout_session_dirs=hold_dirs or None,
     )
 
     release = result["release_gate"]

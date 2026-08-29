@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
 
 from experiment_game.acquisition.service import DEFAULT_CHANNEL_LABELS
+from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
 from experiment_game.experiment.timing import timing_from_dict, validate_timing_dict
 
 _ID_RE = re.compile(r"^[A-Za-z0-9_]+$")
@@ -72,6 +73,7 @@ DEFAULT_RUN_CONFIG: Dict[str, Any] = {
             "use_replay": True,
             "replay_ratio": 0.10,
         },
+        "overwrite_session_id": False,
     },
     "storage": {
         "save_root": "experiment_game/data/sessions",
@@ -167,7 +169,17 @@ def validate_run_config(
     if not isinstance(labels, list) or len(labels) != 8:
         errors.append("channel_labels 须为 8 个通道名")
     else:
-        acq["channel_labels"] = [str(x) for x in labels]
+        got = [str(x).upper() for x in labels]
+        canon = [str(x).upper() for x in DEVICE_CHANNEL_LABELS]
+        if sorted(got) != sorted(canon):
+            errors.append(
+                "channel_labels 须为设备 8 通道: " + ",".join(DEVICE_CHANNEL_LABELS)
+            )
+        elif got != canon:
+            errors.append(
+                "channel_labels 顺序须与设备序一致: " + ",".join(DEVICE_CHANNEL_LABELS)
+            )
+        acq["channel_labels"] = list(DEVICE_CHANNEL_LABELS)
 
     filt = acq.get("filter") if isinstance(acq.get("filter"), dict) else {}
     acq["filter"] = {
@@ -244,6 +256,7 @@ def validate_run_config(
     exp["skip_learn"] = bool(exp.get("skip_learn", False))
     exp["skip_gate"] = bool(exp.get("skip_gate", False))
     exp["protocol_locked"] = bool(exp.get("protocol_locked", True))
+    exp["overwrite_session_id"] = bool(exp.get("overwrite_session_id", False))
     exp["skip_v2_guidance"] = bool(exp.get("skip_v2_guidance", False))
     exp["skip_v2_calibration"] = bool(exp.get("skip_v2_calibration", False))
     exp["skip_v2_gate"] = bool(exp.get("skip_v2_gate", False))

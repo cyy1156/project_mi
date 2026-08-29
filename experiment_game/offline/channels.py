@@ -15,36 +15,35 @@ import numpy as np
 
 
 # preprocess_lab/src/steps/select_channels.py
-
+# 2026-08-29 冻结：与 experiment/channel_layout.DEVICE_CHANNEL_LABELS 同序同拼写
 TARGET_CHANNELS: List[str] = [
-
-    "C3",
-
-    "C4",
-
-    "Cz",
-
-    "CP3",
-
-    "CP4",
-
-    "CPz",
 
     "FC3",
 
+    "C3",
+
+    "CP3",
+
+    "CZ",
+
+    "CPZ",
+
     "FC4",
+
+    "C4",
+
+    "CP4",
 
 ]
 
 
 
-# experiment_game / lsl_connect 录制名 → 标准名
-
+# experiment_game / lsl_connect 录制名 → 标准名（统一大写规范形）
 CHANNEL_ALIASES: Dict[str, str] = {
 
-    "CZ": "Cz",
+    "CZ": "CZ",
 
-    "Cz": "Cz",
+    "Cz": "CZ",
 
     "C3": "C3",
 
@@ -62,9 +61,9 @@ CHANNEL_ALIASES: Dict[str, str] = {
 
     "FC3": "FC3",
 
-    "CPZ": "CPz",
+    "CPZ": "CPZ",
 
-    "CPz": "CPz",
+    "CPz": "CPZ",
 
 }
 

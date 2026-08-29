@@ -13,7 +13,7 @@ from typing import Any, Dict, List, Tuple
 import numpy as np
 import torch
 
-_REPO = Path(r"d:\MI")
+_REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "code"))
 sys.path.insert(0, str(_REPO / "code" / "preprocess_lab"))

@@ -108,7 +108,26 @@ def run_v4_session(
     try:
         while local_clock() < t_end:
             if bridge.should_abort():
-                raise SessionAbort("operator abort")
+                raise SessionAbort("operator_abort")
+            st = buf.stale_status(3.0)
+            if st is not None:
+                age = float(st["age_s"])
+                msg = (
+                    f"EEG 断流：已 {age:.1f}s 无新样本。请检查 dongle/COM/USB。"
+                )
+                on_console(f"[v4] ERR {msg}")
+                events.emit("eeg_stale", phase="v4", age_s=age, timeout_s=st["timeout_s"])
+                bridge.broadcast(
+                    {
+                        "type": "eeg_stale",
+                        "age_s": age,
+                        "timeout_s": float(st["timeout_s"]),
+                        "n_samples": int(st["n_samples"]),
+                        "message": msg,
+                    }
+                )
+                bridge.broadcast({"type": "acq_status", "state": "error", "message": msg})
+                raise SessionAbort(f"eeg_stale:{age:.1f}s")
             now = local_clock()
 
             if now >= next_live:
@@ -171,9 +190,19 @@ def run_v4_session(
                 is_paused=bridge.is_paused,
                 should_abort=bridge.should_abort,
             )
-    except SessionAbort:
-        on_console("[v4] 操作员中止")
-        events.emit("v4_abort", phase="v4")
+    except SessionAbort as exc:
+        reason = getattr(exc, "reason", None) or str(exc) or "operator_abort"
+        on_console(f"[v4] 会话中止 · {reason}")
+        events.emit("v4_abort", phase="v4", reason=reason)
+        if str(reason).startswith("eeg_stale"):
+            bridge.broadcast(
+                {
+                    "type": "session",
+                    "status": "error",
+                    "message": "EEG 断流，v4 已中止（请检查 dongle/COM）",
+                    "phase": "v4_session",
+                }
+            )
 
     duration = local_clock() - t_start
     summary = summarize_v4_session(

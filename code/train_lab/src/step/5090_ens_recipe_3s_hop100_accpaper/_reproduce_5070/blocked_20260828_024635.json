@@ -1,0 +1,58 @@
+{
+  "stamp": "20260828_024635",
+  "machine": "5070_laptop",
+  "published_json_check": {
+    "published_E1f_test": 0.6173456790123457,
+    "published_R6_test": 0.6173456790123457,
+    "anchor_E1f": 0.6173,
+    "E1f_matches_anchor": true,
+    "R6_matches_E1f": true,
+    "E1f_config": {
+      "temperatures": [
+        1.951139545509476,
+        1.8879612863867319,
+        1.1753753736050039,
+        2.4952981194854504
+      ],
+      "weights": [
+        0.2,
+        0.2,
+        0.30000000000000004,
+        0.29999999999999993
+      ],
+      "smooth_radius": 1,
+      "tau_conf": 0.4,
+      "consist_c": null
+    },
+    "R6_members": [
+      "shallow",
+      "t_shallow",
+      "eegnet",
+      "conformer"
+    ]
+  },
+  "dump_check_four": {
+    "ok": false,
+    "messages": [
+      "NO DUMP shallow: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three)",
+      "NO DUMP t_shallow: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_123900\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_123900\\three)",
+      "NO DUMP eegnet: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three)",
+      "NO DUMP conformer: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three)"
+    ]
+  },
+  "dump_check_three": {
+    "ok": false,
+    "messages": [
+      "NO DUMP shallow: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three)",
+      "NO DUMP eegnet: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three)",
+      "NO DUMP conformer: D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three (no prob dumps under D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three)"
+    ]
+  },
+  "status": "blocked_no_dumps",
+  "how_to_sync": [
+    "在 5090 上打包 fold*/prob_dump_three.csv（或 best_three.pt）到本机对应相对路径",
+    "robocopy 示例（在 5090 仓库根）:",
+    "  robocopy code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper \\\\目标\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper *.csv /S",
+    "或拷贝各 run 的 three/fold0..fold4/best_three.pt 后对本机执行 dump_member_probs.py"
+  ]
+}

@@ -43,8 +43,9 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--trials", type=int, default=20, help="试次数（验收 ≥20）")
     p.add_argument("--subject", default="sub01")
     p.add_argument("--session", default="ses01")
-    p.add_argument("--synthetic", action="store_true", default=True)
-    p.add_argument("--real", action="store_true", help="使用真机 Cyton（关闭 synthetic）")
+    mode = p.add_mutually_exclusive_group()
+    mode.add_argument("--synthetic", action="store_true", help="合成板卡（默认）")
+    mode.add_argument("--real", action="store_true", help="使用真机 Cyton")
     p.add_argument("--port", default="COM3", help="真机串口")
     p.add_argument(
         "--out",
@@ -56,7 +57,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--yes", action="store_true", help="跳过按键确认")
     args = p.parse_args(argv)
 
-    use_synthetic = not args.real
+    use_synthetic = bool(args.synthetic) or not args.real
     if args.trials < 1:
         print("trials 必须 ≥ 1", file=sys.stderr)
         return 2

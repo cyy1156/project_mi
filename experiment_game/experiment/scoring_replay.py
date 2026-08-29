@@ -14,14 +14,34 @@ from typing import Dict, List, Optional
 from experiment_game.experiment.trial_scoring import MiTrialTracker
 
 
-def load_judge_rows(events_path: Path) -> Dict[int, List[dict]]:
-    """trial_id → 按 t_rel 排序的 judge 行。"""
+def load_judge_rows(
+    events_path: Path,
+    *,
+    score_phase: Optional[str] = "mi",
+) -> Dict[int, List[dict]]:
+    """trial_id → 按 t_rel 排序的 judge 行。
+
+    score_phase:
+      - \"mi\"（默认）：只取 MI 判定（排除 Cue 前静息）
+      - \"pre_cue_rest\"：只取 Cue 前静息判定
+      - None：全部判定（会混 MI+Rest，一般勿用于多数票回放）
+    """
     by_trial: Dict[int, List[dict]] = {}
     for line in events_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
             continue
-        row = json.loads(line)
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError:
+            continue
         if row.get("event") != "judge":
+            continue
+        phase = str(row.get("score_phase") or row.get("role") or "mi")
+        if phase == "pre_cue_rest":
+            phase = "pre_cue_rest"
+        else:
+            phase = "mi"
+        if score_phase is not None and phase != score_phase:
             continue
         if row.get("signal_bad"):
             by_trial.setdefault(int(row["trial_id"]), []).append({"signal_bad": True})
@@ -35,6 +55,7 @@ def load_judge_rows(events_path: Path) -> Dict[int, List[dict]]:
             "p_three": row.get("p_three"),
             "win_start_rel": row.get("win_start_rel"),
             "win_end_rel": row.get("win_end_rel"),
+            "score_phase": phase,
         })
     for tid in by_trial:
         by_trial[tid].sort(key=lambda x: x.get("t_rel", 0.0))
@@ -58,7 +79,10 @@ def replay_trial(trial_id: int, label: int, judgments: List[dict]) -> dict:
 
 
 def replay_session(events_path: Path) -> List[dict]:
-    judges = load_judge_rows(events_path)
+    from experiment_game.experiment.trial_scoring import PRE_CUE_REST_POINTS
+
+    judges = load_judge_rows(events_path, score_phase="mi")
+    rest_judges = load_judge_rows(events_path, score_phase="pre_cue_rest")
     labels: Dict[int, int] = {}
     for line in events_path.read_text(encoding="utf-8").splitlines():
         if not line.strip():
@@ -77,7 +101,21 @@ def replay_session(events_path: Path) -> List[dict]:
         lab = labels.get(tid)
         if lab is None:
             continue
-        results.append(replay_trial(tid, lab, jrows))
+        mi = replay_trial(tid, lab, jrows)
+        rest_rows = rest_judges.get(tid) or []
+        if rest_rows:
+            rest = replay_trial(tid, 0, rest_rows)
+            rest["score"] = (
+                float(PRE_CUE_REST_POINTS) if rest.get("correct") else 0.0
+            )
+            rest["correct_points"] = PRE_CUE_REST_POINTS
+            mi["rest_score"] = rest["score"]
+            mi["rest_correct"] = rest.get("correct")
+            mi["session_points"] = float(mi.get("score") or 0.0) + float(rest["score"])
+        else:
+            mi["rest_score"] = None
+            mi["session_points"] = float(mi.get("score") or 0.0)
+        results.append(mi)
     return results
 
 

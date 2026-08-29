@@ -45,11 +45,17 @@ from experiment_game.experiment.feature_probe import (  # noqa: E402
     segment_to_hop_windows,
 )
 from experiment_game.experiment.inference_v2 import CHANNEL_ORDER, OnlinePreprocessor  # noqa: E402
+from experiment_game.experiment.channel_layout import permute_ch_time_to_model  # noqa: E402
 from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noqa: E402
 from src.common.steps.resample_zscore import trial_zscore  # noqa: E402
 
 N_TIMES = int(round(WIN * FS))
 IX = {n: i for i, n in enumerate(CHANNEL_ORDER)}
+
+def _to_model_input(win_ch_time):
+    """设备序 (8,T) → 模型权重轴；load_eeg 现为设备序。"""
+    return permute_ch_time_to_model(win_ch_time)
+
 
 
 def resolve_session(path: Path) -> Path:
@@ -266,7 +272,7 @@ def run_v3_v2(
                 tail_n = int(12.0 * FS)
                 tail = X_raw[max(0, i_end - tail_n) : i_end]
                 window = pre.process(tail)
-                heads = registry.forward_heads(window)
+                heads = registry.forward_heads(_to_model_input(window))
                 out = serial_gating(heads["p_task"], heads["p_three"], task_p_on=0.6)
                 v3_pred = int(out["pred"])
                 v3_gated = bool(out.get("gated", False))
@@ -291,7 +297,7 @@ def run_v3_v2(
             if not qa["ok"]:
                 n_bad += 1
                 continue
-            heads = registry.forward_heads(zw)
+            heads = registry.forward_heads(_to_model_input(zw))
             out = serial_gating(heads["p_task"], heads["p_three"], task_p_on=0.6)
             pred = int(out["pred"])
             keep_preds.append(pred)

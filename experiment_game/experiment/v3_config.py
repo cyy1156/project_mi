@@ -16,6 +16,9 @@ PROTOCOL_LOCKED_ALLOW: Set[str] = {
     "block_gap_s",
     "s3_task_ckpt",
     "s3_three_ckpt",
+    "readout_mode",
+    "e1f_config_path",
+    "primary_judge_mode",
 }
 
 
@@ -94,6 +97,10 @@ class V3Config:
 
     s3_task_ckpt: str = ""
     s3_three_ckpt: str = ""
+
+    # E1f 四成员集成（readout_mode=e1f 时启用）
+    readout_mode: str = "serial_gating"
+    e1f_config_path: str = "experiment_game/config/e1f_four_member.json"
 
     # 关闭信号质量门控：所有判定窗进入模型
     signal_quality_enabled: bool = False
@@ -201,12 +208,9 @@ class V3Config:
             errs.append("时序无效：prep/cue/iti≥0、MI≥1s")
         if self.inter_trial_rest_s < 0 or self.inter_trial_rest_s > 10:
             errs.append("inter_trial_rest_s 须在 0–10")
-        task = Path(__file__).resolve().parents[2] / self.s3_task_ckpt
-        three = Path(__file__).resolve().parents[2] / self.s3_three_ckpt
-        if not task.is_file():
-            errs.append(f"缺 task 权重: {task}")
-        if not three.is_file():
-            errs.append(f"缺 three 权重: {three}")
+        from experiment_game.experiment.registry_factory import verify_registry_paths
+
+        errs.extend(verify_registry_paths(self))
         return errs
 
     @classmethod

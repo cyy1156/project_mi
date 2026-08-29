@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any, Dict, List, Optional
 
 from experiment_game.acquisition.service import DEFAULT_CHANNEL_LABELS
+from experiment_game.experiment.atomic_io import atomic_write_json, atomic_write_text
 
 
 @dataclass
@@ -59,13 +60,13 @@ def create_session_dir(
 def write_session_meta(path: Path, meta: SessionMeta) -> None:
     if not meta.created_at:
         meta.created_at = datetime.now().isoformat(timespec="seconds")
-    path.write_text(
+    atomic_write_text(
+        path,
         json.dumps(meta.to_dict(), ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
     )
 
 
 def update_session_meta(path: Path, **patch: Any) -> None:
     data = json.loads(path.read_text(encoding="utf-8"))
     data.update(patch)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(path, data)

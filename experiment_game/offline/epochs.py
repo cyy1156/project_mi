@@ -13,6 +13,7 @@ from typing import List, Optional, Sequence
 import numpy as np
 from scipy.signal import resample
 
+from experiment_game.experiment.channel_layout import DEVICE_TO_MODEL_INPUT
 from experiment_game.offline.load_session import (
     SessionEEG,
     rejected_trial_ids,
@@ -170,7 +171,8 @@ def trial_zscore(x: np.ndarray, eps: float = 1e-8) -> np.ndarray:
 
 
 def to_model_tensor(trials: List[np.ndarray]) -> np.ndarray:
-    arr = np.stack(trials, axis=0)  # (N, T, 8)
+    arr = np.stack(trials, axis=0)  # (N, T, 8) 设备列序
+    arr = arr[:, :, DEVICE_TO_MODEL_INPUT]  # → 模型训练列序
     arr = np.transpose(arr, (0, 2, 1))  # (N, 8, T)
     return arr[:, None, :, :].astype(np.float32)
 

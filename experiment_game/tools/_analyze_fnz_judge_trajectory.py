@@ -7,7 +7,7 @@ from pathlib import Path
 
 import numpy as np
 
-ROOT = Path(r"d:\MI\experiment_game\data\sessions")
+ROOT = Path(__file__).resolve().parents[2] / "experiment_game" / "data" / "sessions"
 SESSIONS = [
     "fnz_ws01_20260826_164149",
     "fnz_ws02_20260826_171537",

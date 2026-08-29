@@ -7,16 +7,9 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-DEFAULT_CHANNEL_LABELS: List[str] = [
-    "C3",
-    "C4",
-    "CZ",
-    "CP3",
-    "CP4",
-    "FC4",
-    "FC3",
-    "CPZ",
-]
+from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
+
+DEFAULT_CHANNEL_LABELS: List[str] = list(DEVICE_CHANNEL_LABELS)
 
 LSL_CONNECT_ROOT = (
     Path(__file__).resolve().parents[2]
@@ -286,10 +279,16 @@ class AcquisitionFacade:
     def stop(self) -> dict:
         mgr = self.manager
         report_dict = {}
-        ok, msg, report = mgr.stop_recording()
-        if report is not None:
-            report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
-        mgr.stop_acquisition()
+        ok, msg = False, ""
+        try:
+            ok, msg, report = mgr.stop_recording()
+            if report is not None:
+                report_dict = report.to_dict() if hasattr(report, "to_dict") else {}
+        finally:
+            try:
+                mgr.stop_acquisition()
+            except Exception:
+                pass
         return {"stop_recording_ok": ok, "message": msg, "quality": report_dict}
 
     def shutdown(self) -> None:

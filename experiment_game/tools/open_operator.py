@@ -19,6 +19,9 @@ from pathlib import Path
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 if str(_REPO_ROOT) not in sys.path:
     sys.path.insert(0, str(_REPO_ROOT))
+_CODE_ROOT = _REPO_ROOT / "code"
+if str(_CODE_ROOT) not in sys.path:
+    sys.path.insert(0, str(_CODE_ROOT))
 
 from experiment_game.experiment.orchestrator import OperatorService
 

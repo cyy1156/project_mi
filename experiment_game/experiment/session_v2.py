@@ -90,23 +90,21 @@ def diagnose_v2_online_deps(
             OnlinePreprocessor,
             RingBuffer,
         )
+        from experiment_game.experiment.registry_factory import build_registry, verify_registry_paths
     except Exception as exc:
         reasons.append(f"adapt_engine/inference 导入失败: {exc}")
         return None, reasons
 
-    task = Path(__file__).resolve().parents[2] / cfg.s3_task_ckpt
-    three = Path(__file__).resolve().parents[2] / cfg.s3_three_ckpt
-    if not task.exists():
-        reasons.append(f"缺 task 权重: {task}")
-    if not three.exists():
-        reasons.append(f"缺 three 权重: {three}")
+    missing = verify_registry_paths(cfg)
+    for msg in missing:
+        reasons.append(msg if msg.startswith("缺") else f"缺权重: {msg}")
     if reasons:
         return None, reasons
 
     try:
-        reg = ModelRegistry(task, three)
+        reg = build_registry(cfg)
     except Exception as exc:
-        reasons.append(f"ModelRegistry 加载失败: {exc}")
+        reasons.append(f"注册表加载失败: {exc}")
         return None, reasons
 
     if not require_lsl:
@@ -296,11 +294,59 @@ def run_v2_session(
     arm_peak_by_trial: Dict[int, int] = {}
     aborted = False
     abort_reason: Optional[str] = None
+    eeg_stale_timeout_s = 3.0
+    _eeg_stale_announced = {"done": False}
+
+    def _raise_if_eeg_stale() -> None:
+        if buf is None or degraded:
+            return
+        st = buf.stale_status(eeg_stale_timeout_s)
+        if st is None:
+            return
+        age = float(st["age_s"])
+        if not _eeg_stale_announced["done"]:
+            _eeg_stale_announced["done"] = True
+            msg = (
+                f"EEG 断流：已 {age:.1f}s 无新样本（阈值 {eeg_stale_timeout_s:.0f}s）。"
+                "请检查 dongle/COM/USB。"
+            )
+            on_console(f"[v2] ERR {msg}")
+            events.emit(
+                "eeg_stale",
+                phase="v2",
+                age_s=age,
+                timeout_s=float(st["timeout_s"]),
+                n_samples=int(st["n_samples"]),
+            )
+            markers.push(f"eeg_stale|age={age:.1f}")
+            bridge.broadcast(
+                {
+                    "type": "eeg_stale",
+                    "age_s": age,
+                    "timeout_s": float(st["timeout_s"]),
+                    "n_samples": int(st["n_samples"]),
+                    "message": msg,
+                }
+            )
+            bridge.broadcast({"type": "acq_status", "state": "error", "message": msg})
+        raise SessionAbort(f"eeg_stale:{age:.1f}s")
+
+    def _should_abort() -> bool:
+        if bridge.should_abort():
+            return True
+        _raise_if_eeg_stale()
+        return False
+
     _score_max = 0
     if not skip_calibration:
         _score_max += int(cfg.cal_rounds_max) * int(cfg.trials_per_round)
     if not skip_game:
         _score_max += int(cfg.game_rounds) * int(cfg.game_trials_per_round)
+    from experiment_game.experiment.trial_scoring import session_score_max_openbmi
+
+    _score_max = session_score_max_openbmi(
+        _score_max, inter_trial_rest_s=float(cfg.inter_trial_rest_s)
+    )
     progress: Dict[str, object] = {
         "cal_round": 0,
         "cal_rounds_max": cfg.cal_rounds_max,
@@ -317,6 +363,19 @@ def run_v2_session(
 
     def judgment_fn(mi_t: float, t_rel: float, ctx) -> Optional[Dict]:
         tid = getattr(ctx, "trial_id", -1)
+        phase = getattr(ctx, "score_phase", "mi")
+        if infer is None:
+            return None
+        if phase == "pre_cue_rest":
+            try:
+                j = infer.judge(float(mi_t), t_rel)
+                if j is not None and j.get("eeg_stale"):
+                    _raise_if_eeg_stale()
+                return j
+            except SessionAbort:
+                raise
+            except Exception:
+                return None
         mi_times[tid] = mi_t
         times = trial_times.setdefault(tid, {})
         times["mi_t"] = mi_t
@@ -324,15 +383,17 @@ def run_v2_session(
         if cue_t is None:
             cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
             times["cue_t"] = cue_t
-        if infer is None:
-            return None
         try:
             j = infer.judge(float(cue_t), t_rel)
+            if j is not None and j.get("eeg_stale"):
+                _raise_if_eeg_stale()
             if j is not None and j.get("signal_bad"):
                 return j
             if j is not None and "window" in j:
                 window_cache.setdefault(tid, []).append(np.asarray(j["window"], dtype=np.float32))
             return j
+        except SessionAbort:
+            raise
         except Exception:
             return None
 
@@ -373,16 +434,18 @@ def run_v2_session(
                 score = data["summary"].get("score")
         if score is not None:
             progress["score"] = score
-        # 本场累计：多数票每试次 0/1，满分 = 计划试次数
+        # 本场累计：MI +1；Cue前静息 +0.5
         if (
-            stage == "trial_end"
-            and ctx is not None
+            ctx is not None
             and not getattr(ctx, "rejected", False)
             and isinstance(data, dict)
         ):
             summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
             lab = getattr(ctx, "label", None)
-            if summary is not None and lab in (1, 2):
+            if stage == "pre_cue_rest_end" and summary is not None:
+                pts = float(summary.get("score") or 0.0)
+                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+            elif stage == "trial_end" and summary is not None and lab in (1, 2):
                 pts = float(summary.get("score") or 0.0)
                 progress["session_score"] = float(progress.get("session_score") or 0) + pts
                 progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
@@ -440,7 +503,7 @@ def run_v2_session(
         judgment_fn=judgment_fn,
         on_trial_end=on_trial_end,
         is_paused=bridge.is_paused,
-        should_abort=bridge.should_abort,
+        should_abort=_should_abort,
         is_rejected=bridge.is_rejected,
     )
 
@@ -745,7 +808,26 @@ def run_v2_session(
             round_ids = [trial_offset + i + 1 for i in range(len(labels))]
             for i, lab in enumerate(labels):
                 store.labels[round_ids[i]] = int(lab)
-            sm.run_round(labels, mode="calibration", round_no=round_no, trial_id_offset=trial_offset)
+            try:
+                sm.run_round(labels, mode="calibration", round_no=round_no, trial_id_offset=trial_offset)
+            except SessionAbort as exc:
+                reason = getattr(exc, "reason", None) or str(exc) or "operator_abort"
+                eeg_stale = str(reason).startswith("eeg_stale")
+                on_console(f"[v2] 会话中止 · {reason}")
+                events.emit("v2_abort", phase="v2", reason=reason, eeg_stale=eeg_stale)
+                markers.push(f"v2_abort|{reason}")
+                bridge.broadcast({"type": "v2_abort", "reason": reason, "eeg_stale": eeg_stale})
+                bridge.broadcast({
+                    "type": "session",
+                    "status": "error",
+                    "message": (
+                        "EEG 断流，会话已中止（请检查 dongle/COM）"
+                        if eeg_stale
+                        else "操作者已中止"
+                    ),
+                    "phase": "v2_session",
+                })
+                return _early_abort_summary(reason, rounds=round_no, gstatus=gate_status)
             trial_offset += len(labels)
             _commit_round_windows(round_ids)
             if ctrl is not None and predict_window is not None:
@@ -954,7 +1036,26 @@ def run_v2_session(
         for g_round in range(1, cfg.game_rounds + 1):
             progress["game_round"] = g_round
             labels = build_game_schedule(cfg.game_trials_per_round, rng)
-            _run_game_trials(labels, round_no=g_round, trial_id_offset=trial_offset)
+            try:
+                _run_game_trials(labels, round_no=g_round, trial_id_offset=trial_offset)
+            except SessionAbort as exc:
+                reason = getattr(exc, "reason", None) or str(exc) or "operator_abort"
+                eeg_stale = str(reason).startswith("eeg_stale")
+                on_console(f"[v2] 会话中止 · {reason}")
+                events.emit("v2_abort", phase="v2", reason=reason, eeg_stale=eeg_stale)
+                markers.push(f"v2_abort|{reason}")
+                bridge.broadcast({"type": "v2_abort", "reason": reason, "eeg_stale": eeg_stale})
+                bridge.broadcast({
+                    "type": "session",
+                    "status": "error",
+                    "message": (
+                        "EEG 断流，会话已中止（请检查 dongle/COM）"
+                        if eeg_stale
+                        else "操作者已中止"
+                    ),
+                    "phase": "v2_session",
+                })
+                return _early_abort_summary(reason, rounds=round_no, gstatus=gate_status)
             trial_offset += len(labels)
             bridge.broadcast({
                 "type": "v2_stage",

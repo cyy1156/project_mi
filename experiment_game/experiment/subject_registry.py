@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Tuple
@@ -112,6 +111,7 @@ def login_subject(
         "current_model_dir": rel_repo_path(current, repo_root=repo_root),
         "subject": data,
         "index": index,
+        "sessions": index.get("sessions") or [],
         "suggest_session_id": suggest_session_id(sid, repo_root=repo_root),
         "current_weights": current_model_paths(sid, repo_root=repo_root),
     }
@@ -170,6 +170,74 @@ def suggest_session_id(subject_id: str, *, repo_root: Optional[Path] = None) -> 
     return "ws01"
 
 
+def list_dirs_for_session_id(
+    subject_id: str,
+    session_id: str,
+    *,
+    repo_root: Optional[Path] = None,
+) -> List[Path]:
+    """返回该被试下 session_id 匹配的已有会话目录（不含 _archived）。"""
+    sid = validate_subject_id(subject_id)
+    want = str(session_id or "").strip().lower()
+    if not want:
+        return []
+    out: List[Path] = []
+    for d in _discover_session_dirs(sid, repo_root=repo_root):
+        if "_archived" in d.parts:
+            continue
+        _, sess, _ = _parse_session_name(d.name)
+        if str(sess).lower() == want:
+            out.append(d)
+    return out
+
+
+def session_id_conflict(
+    subject_id: str,
+    session_id: str,
+    *,
+    repo_root: Optional[Path] = None,
+) -> Dict[str, Any]:
+    dirs = list_dirs_for_session_id(subject_id, session_id, repo_root=repo_root)
+    return {
+        "subject_id": validate_subject_id(subject_id),
+        "session_id": str(session_id or "").strip(),
+        "exists": bool(dirs),
+        "count": len(dirs),
+        "dirs": [str(p) for p in dirs],
+        "suggest_session_id": suggest_session_id(subject_id, repo_root=repo_root),
+    }
+
+
+def archive_sessions_for_id(
+    subject_id: str,
+    session_id: str,
+    *,
+    repo_root: Optional[Path] = None,
+) -> List[str]:
+    """覆盖前：将同 session_id 的旧目录移入 sessions/_archived/。"""
+    root = Path(repo_root or _REPO)
+    sid = validate_subject_id(subject_id)
+    dirs = list_dirs_for_session_id(sid, session_id, repo_root=root)
+    if not dirs:
+        return []
+    sess_root = sessions_dir(sid, repo_root=root)
+    arch = sess_root / "_archived"
+    arch.mkdir(parents=True, exist_ok=True)
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    moved: List[str] = []
+    for d in dirs:
+        dest = arch / f"{d.name}__overwritten_{stamp}"
+        # 同秒多次覆盖时加序号
+        n = 1
+        while dest.exists():
+            dest = arch / f"{d.name}__overwritten_{stamp}_{n}"
+            n += 1
+        d.rename(dest)
+        moved.append(str(dest))
+    build_index(sid, repo_root=root)
+    return moved
+
+
 def _read_v3_report(session_dir: Path) -> Dict[str, Any]:
     p = session_dir / "v3_report.json"
     if not p.is_file():
@@ -224,6 +292,7 @@ def _session_metrics(session_dir: Path) -> Dict[str, Any]:
     valid_rate = None
     n_trials = None
     phase_mode = None
+    record_excluded = False
 
     meta_path = session_dir / "session.meta.json"
     if meta_path.is_file():
@@ -231,6 +300,7 @@ def _session_metrics(session_dir: Path) -> Dict[str, Any]:
             meta = json.loads(meta_path.read_text(encoding="utf-8"))
             phase_mode = meta.get("phase_mode")
             n_trials = meta.get("trial_count")
+            record_excluded = bool(meta.get("record_excluded"))
         except Exception:
             pass
 
@@ -267,6 +337,7 @@ def _session_metrics(session_dir: Path) -> Dict[str, Any]:
         "window_acc": window_acc,
         "valid_rate": valid_rate,
         "ft_eligible": ft_eligible and electrode.get("electrode_ok", False),
+        "record_excluded": record_excluded,
     }
 
 
@@ -357,22 +428,20 @@ def promote_ft_to_current(
             raise FileNotFoundError(f"缺少 {name} in {src}")
 
     cur = models_current_dir(sid, repo_root=root)
-    cur.mkdir(parents=True, exist_ok=True)
+    from experiment_game.experiment.atomic_io import atomic_copy_files_into, atomic_write_json
 
-    for name in ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"):
-        sp = src / name
-        if sp.is_file():
-            shutil.copy2(sp, cur / name)
+    atomic_copy_files_into(
+        src,
+        cur,
+        ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"),
+    )
 
     promote_log = {
         "promoted_at": datetime.now().isoformat(timespec="seconds"),
         "from_ft_run": rel_repo_path(src, repo_root=root),
         "reason": reason or "operator_confirmed",
     }
-    (cur / "promote_log.json").write_text(
-        json.dumps(promote_log, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    atomic_write_json(cur / "promote_log.json", promote_log)
     build_index(sid, repo_root=root)
     return {
         "ok": True,

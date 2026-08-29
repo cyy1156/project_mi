@@ -20,6 +20,10 @@ _HERE = Path(__file__).resolve()
 sys.path.insert(0, str(_HERE.parents[2]))
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
+from experiment_game.experiment.channel_layout import (  # noqa: E402
+    DEVICE_CHANNEL_LABELS,
+    reorder_device_to_model_input,
+)
 from experiment_game.offline.openbmi_align_cut import (  # noqa: E402
     FROZEN,
     FS,
@@ -29,12 +33,22 @@ from src.common.steps.filter_car import car_reference, notch_and_bandpass  # noq
 from src.common.steps.slide_3s_hop100 import HOP_SEC, WIN_SEC  # noqa: E402
 
 WIN, HOP, T0_MIN = WIN_SEC, HOP_SEC, 0.0  # legacy 导出（replay 工具兼容）
-RAW_COLS = ["C3", "C4", "CZ", "CP3", "CP4", "CPZ", "FC3", "FC4"]
+RAW_COLS = list(DEVICE_CHANNEL_LABELS)
+# 兼容旧别名：load_eeg 现返回设备序；切窗前再 remap 到 FROZEN
 REORDER = [RAW_COLS.index(c.upper()) for c in FROZEN]
 
 
+def _col_indices(header: list) -> list:
+    """按设备序取列；大小写不敏感（兼容历史 Cz/CPz 表头）。"""
+    upper = {str(h).upper(): i for i, h in enumerate(header)}
+    missing = [c for c in RAW_COLS if c.upper() not in upper]
+    if missing:
+        raise KeyError(f"eeg.csv 缺少通道 {missing}; cols={header}")
+    return [upper[c.upper()] for c in RAW_COLS]
+
+
 def load_eeg(session_dir: Path):
-    """优先 by_phase 切片；v2 会话无 phase 节点时回退根目录/continuous 全段 eeg。"""
+    """优先 by_phase 切片；回退根目录/continuous。返回 (t, X) 且 X 为设备序 (T,8)。"""
     frames, times = [], []
     by_phase = session_dir / "by_phase"
     if by_phase.is_dir():
@@ -45,7 +59,7 @@ def load_eeg(session_dir: Path):
             with open(f, encoding="utf-8") as fh:
                 rd = csv.reader(fh)
                 header = next(rd)
-                cols = [header.index(c) for c in RAW_COLS]
+                cols = _col_indices(header)
                 rows = [r for r in rd if len(r) == len(header)]
             arr = np.asarray(rows, dtype=np.float64)
             times.append(arr[:, header.index("lsl_time")])
@@ -57,14 +71,14 @@ def load_eeg(session_dir: Path):
             with open(candidate, encoding="utf-8") as fh:
                 rd = csv.reader(fh)
                 header = next(rd)
-                cols = [header.index(c) for c in RAW_COLS]
+                cols = _col_indices(header)
                 rows = [r for r in rd if len(r) == len(header)]
             arr = np.asarray(rows, dtype=np.float64)
             if len(arr):
-                return arr[:, header.index("lsl_time")], arr[:, cols][:, REORDER]
+                return arr[:, header.index("lsl_time")], arr[:, cols]
     if not frames:
         raise RuntimeError("无 eeg.csv（by_phase / 根目录 / continuous 均不可用）")
-    return np.concatenate(times), np.concatenate(frames)[:, REORDER]
+    return np.concatenate(times), np.concatenate(frames)
 
 
 def cut_segment(x_filt, t_lsl, t_start, t_end):
@@ -86,15 +100,18 @@ def cut_segment(x_filt, t_lsl, t_start, t_end):
 
 def run(session_dir: str) -> Path:
     sd = Path(session_dir)
-    t_lsl, X_raw = load_eeg(sd)
+    t_lsl, X_dev = load_eeg(sd)
+    # 切窗产物与 FROZEN / OpenBMI 训练轴对齐
+    X_raw = reorder_device_to_model_input(X_dev)
     x = notch_and_bandpass(car_reference(X_raw), FS, l_freq=8.0, h_freq=30.0)
     rows = list(csv.DictReader(open(sd / "alignment" / "trial_table.csv", encoding="utf-8")))
 
-    cal_rows = [r for r in rows if r.get("phase") != "game"]
+    cal_rows = [r for r in rows if str(r.get("phase") or "") == "acquire"]
     wins, y_task, y_three, tids = cut_openbmi_align_from_table(
         x,
         t_lsl,
         cal_rows,
+        task_phases={"acquire"},
         include_rest_interval=True,
     )
 

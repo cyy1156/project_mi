@@ -36,18 +36,21 @@ def _openbmi_cfg() -> SignalQualityConfig:
 
 
 def _make_cyy_like_window(rng: np.random.Generator | None = None) -> np.ndarray:
-    """模拟 cyy 6 导帽：6 导 ~0.7µV std + 大 DC 偏置；Cz/CPz 卡轨。"""
+    """模拟 cyy 6 导帽：6 导 ~0.7µV std + 大 DC 偏置；CZ/CPZ 卡轨（设备序）。
+
+    2026-08-29 冻结设备序：FC3(0) C3(1) CP3(2) CZ(3) CPZ(4) FC4(5) C4(6) CP4(7)。
+    """
     rng = rng or np.random.default_rng(0)
     x = np.zeros((750, 8), dtype=np.float64)
-    x[:, 0] = -4190.95263671875
-    x[:, 7] = -4190.95263671875
+    x[:, 3] = -4190.95263671875  # CZ
+    x[:, 4] = -4190.95263671875  # CPZ
     spec = [
         (1, -340.0, 0.65),  # C3
-        (2, -48.0, 0.59),   # C4
-        (3, -538.0, 0.74),  # CP3
-        (4, -384.0, 0.78),  # FC4
-        (5, -37.0, 0.75),   # FC3
-        (6, -285.0, 0.68),  # CP4
+        (6, -48.0, 0.59),   # C4
+        (2, -538.0, 0.74),  # CP3
+        (5, -384.0, 0.78),  # FC4
+        (0, -37.0, 0.75),   # FC3
+        (7, -285.0, 0.68),  # CP4
     ]
     for idx, off, std in spec:
         x[:, idx] = off + rng.normal(0, std, 750)
@@ -62,8 +65,8 @@ def test_diagnose_cyy_6ch_cap_passes():
     # 大 DC 不进 peak_uv；AC peak 应远小于 max_peak
     assert d["metrics"]["peak_uv"] < 50.0
     assert d["metrics"]["peak_raw_uv"] > 400.0
-    cz = next(c for c in d["per_channel"] if c["name"] == "Cz")
-    cpz = next(c for c in d["per_channel"] if c["name"] == "CPz")
+    cz = next(c for c in d["per_channel"] if c["name"] == "CZ")
+    cpz = next(c for c in d["per_channel"] if c["name"] == "CPZ")
     assert cz["reason"] == "unused_expected"
     assert cpz["reason"] == "unused_expected"
 
@@ -74,9 +77,9 @@ def test_large_dc_offset_does_not_saturate():
 
     rng = np.random.default_rng(9)
     x = _make_cyy_like_window(rng)
-    # 再加大 DC，模拟 141555 量级
+    # 再加大 DC，模拟 141555 量级（C3@1、CP3@2）
     x[:, 1] -= 800.0
-    x[:, 3] -= 600.0
+    x[:, 2] -= 600.0
     cfg = V4Config.load_yaml()
     r = assess_eeg_window(x, cfg.signal_quality_config())
     assert r["ok"] is True
@@ -87,7 +90,8 @@ def test_large_dc_offset_does_not_saturate():
 def test_diagnose_dead_channel_flags_scoring_channel():
     rng = np.random.default_rng(1)
     x = _make_cyy_like_window(rng)
-    x[:, 1] = x[:, [2, 3, 4, 5, 6]].mean(axis=1)
+    # C3@1 死通道：取其余计分导均值（排除 CZ@3/CPZ@4 卡轨）
+    x[:, 1] = x[:, [0, 2, 5, 6, 7]].mean(axis=1)
     cfg = V4Config.load_yaml()
     d = diagnose_eeg_window(x, cfg.signal_quality_config(), channel_names=list(cfg.channel_labels))
     assert d["window_ok"] is False
@@ -151,7 +155,7 @@ def test_summarize_v4_session_pass():
         pass_streak_required=5,
         achieved_stable=True,
         time_to_stable_s=15.0,
-        unused_channels=["Cz", "CPz"],
+        unused_channels=["CZ", "CPZ"],
         scoring_channels=["C3", "C4", "CP3", "FC4", "FC3", "CP4"],
     )
     assert s["verdict"] == "pass"
@@ -159,7 +163,7 @@ def test_summarize_v4_session_pass():
 
 def _replay_pass_rate(session_name: str) -> tuple[int, int]:
     import pandas as pd
-    from experiment_game.experiment.channel_layout import reorder_device_to_frozen
+    from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
 
     p = _ROOT / "data" / "sessions" / session_name / "eeg.csv"
     if not p.is_file():
@@ -168,8 +172,18 @@ def _replay_pass_rate(session_name: str) -> tuple[int, int]:
     sq = cfg.signal_quality_config()
     names = list(cfg.channel_labels)
     df = pd.read_csv(p)
-    cols = [c for c in df.columns if c != "lsl_time"]
-    X = reorder_device_to_frozen(df[cols].values.astype(np.float64))
+    cols = []
+    for name in DEVICE_CHANNEL_LABELS:
+        if name in df.columns:
+            cols.append(name)
+        elif name.upper() in df.columns:
+            cols.append(name.upper())
+        else:
+            alt = next((c for c in df.columns if c.upper() == name.upper()), None)
+            if alt is None:
+                return 0, 0
+            cols.append(alt)
+    X = df[cols].values.astype(np.float64)
     win = 750
     oks = total = 0
     for s in range(0, len(X) - win + 1, win):

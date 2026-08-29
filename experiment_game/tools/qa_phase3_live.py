@@ -44,15 +44,25 @@ async def cdp_eval(ws, expression: str, nid: int):
 
 
 async def main() -> int:
-    LOG.parent.mkdir(parents=True, exist_ok=True)
-    # kill leftover
-    subprocess.run(
-        ["powershell", "-NoProfile", "-Command",
-         "Get-NetTCPConnection -LocalPort 8080,8765,9222 -ErrorAction SilentlyContinue | "
-         "ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"],
-        check=False,
+    import argparse
+
+    ap = argparse.ArgumentParser()
+    ap.add_argument(
+        "--kill-existing",
+        action="store_true",
+        help="强杀占用 8080/8765/9222 的进程（默认仅尝试连接）",
     )
-    time.sleep(1)
+    args = ap.parse_args()
+
+    LOG.parent.mkdir(parents=True, exist_ok=True)
+    if args.kill_existing:
+        subprocess.run(
+            ["powershell", "-NoProfile", "-Command",
+             "Get-NetTCPConnection -LocalPort 8080,8765,9222 -ErrorAction SilentlyContinue | "
+             "ForEach-Object { Stop-Process -Id $_.OwningProcess -Force -ErrorAction SilentlyContinue }"],
+            check=False,
+        )
+        time.sleep(1)
 
     cmd = [
         str(PY),

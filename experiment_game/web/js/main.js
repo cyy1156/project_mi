@@ -64,7 +64,7 @@ function setHelpTip(text) {
 function setStatus(s) {
   if (el.status) el.status.textContent = s;
   const offline =
-    /断开|错误|重试|服务已结束|连接 WebSocket/i.test(s) && !sessionDone;
+    /断开|错误|重试|服务已结束/i.test(s) && !sessionDone;
   setOffline(offline && !promptOpen && !qOpen);
   if (qOpen) {
     setHelpTip("请完成后点击「提交问卷」");
@@ -197,13 +197,13 @@ function sendContinue(role = "subject") {
     return;
   }
   if (el.promptBtn) el.promptBtn.disabled = true;
-  dismissedPromptId = lastPromptPayload?.id || dismissedPromptId;
   promptContinuePending = true;
   promptContinueSentAt = Date.now();
   hidePrompt();
   const ok = client.send({ type: "continue", role });
   if (!ok) {
     promptContinuePending = false;
+    dismissedPromptId = null;
     if (lastPromptPayload) showPrompt(lastPromptPayload);
     if (el.promptBtn) el.promptBtn.disabled = false;
     setStatus("未连接 — 无法确认");
@@ -211,6 +211,7 @@ function sendContinue(role = "subject") {
     setOffline(true);
     return;
   }
+  dismissedPromptId = lastPromptPayload?.id || dismissedPromptId;
   if (!promptAllowSubject) {
     client.send({ type: "operator", action: "gate_ok" });
   }
@@ -479,6 +480,7 @@ client = new WsClient(
     } else if (msg.type === "session") {
       if (msg.status === "done" || msg.status === "aborted") {
         sessionDone = true;
+        if (client?.setSessionDone) client.setSessionDone(true);
         hidePrompt();
         if (el.text) el.text.textContent = "本会话结束";
         if (el.sub) el.sub.textContent = "可以关闭页面";

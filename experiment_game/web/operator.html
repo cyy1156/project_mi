@@ -4,7 +4,7 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>操作台 · 采集控制</title>
-    <link rel="stylesheet" href="css/operator.css?v=20260827m" />
+    <link rel="stylesheet" href="css/operator.css?v=20260828x" />
   </head>
   <body>
     <div id="app">
@@ -72,7 +72,14 @@
           <fieldset>
             <legend>被试与会话</legend>
             <label>被试编号 <input name="subject_id" id="setup-subject-id" value="sub01" required readonly /></label>
-            <label>会话编号 <input name="session_id" id="setup-session-id" value="ses01" required /></label>
+            <label>会话编号
+              <select name="session_id" id="setup-session-id" required></select>
+            </label>
+            <p id="session-id-hint" class="hint">下拉列出全部已有会话（标注 v1/v2/v3/v4）；选已有会询问是否覆盖</p>
+            <label class="check hidden" id="session-overwrite-wrap">
+              <input type="checkbox" name="overwrite_session_id" id="session-overwrite" />
+              覆盖已有该编号的实验（旧目录移入 sessions/_archived）
+            </label>
             <label class="full">备注 <textarea name="notes" rows="2" placeholder="写入 meta"></textarea></label>
             <label class="check">
               <input type="checkbox" name="open_subject_page" checked />
@@ -106,7 +113,7 @@
             <p id="ports-hint" class="hint">点击「刷新串口」从本机枚举 COM；也可直接手填。</p>
             <label>采样率 <input value="250 Hz" disabled /></label>
             <label>通道数 <input value="8" disabled /></label>
-            <p class="hint">通道：C3, C4, CZ, CP3, CP4, CPZ, FC3, FC4</p>
+            <p class="hint">通道：FC3, C3, CP3, CZ, CPZ, FC4, C4, CP4</p>
           </fieldset>
 
           <fieldset id="phase-mode-fieldset">
@@ -132,6 +139,11 @@
 
           <fieldset class="v23-only hidden">
             <legend>模型权重</legend>
+            <div id="model-current-banner" class="model-current-banner" role="status" aria-live="polite">
+              <span class="model-current-kicker">当前模型</span>
+              <strong id="model-current-name">—</strong>
+              <span id="model-current-mode" class="model-current-mode"></span>
+            </div>
             <label class="full">预设
               <select name="model_preset" id="model-preset">
                 <option value="openbmi_baseline">OpenBMI 底座（零样本）</option>
@@ -489,7 +501,11 @@
             <div>FT <strong id="v2-ft-status">idle</strong></div>
           </div>
           <div class="session-score-bar-wrap">
-            <div class="session-score-label">本场累计 <strong id="v2-session-score-num">0/—</strong> <span id="v2-session-score-hint" class="hint"></span></div>
+            <div class="session-score-label">本场累计 <strong id="v2-session-score-num">0/—</strong></div>
+            <div id="v2-session-score-rules" class="session-score-rules">
+              计分：MI 判对 +1；Cue前静息判对 +0.5（与 Left/Right 满分对齐）
+            </div>
+            <div id="v2-session-score-hint" class="session-score-hint hint"></div>
             <div class="session-score-track"><div id="v2-session-score-fill" class="session-score-fill"></div></div>
           </div>
           <div class="v2-score-bar-wrap">
@@ -596,7 +612,11 @@
             <span>条件 <strong id="v3-cond">—</strong></span>
           </div>
           <div class="session-score-bar-wrap">
-            <div class="session-score-label">本场累计 <strong id="v3-session-score-num">0/—</strong> <span id="v3-session-score-hint" class="hint"></span></div>
+            <div class="session-score-label">本场累计 <strong id="v3-session-score-num">0/54</strong></div>
+            <div id="v3-session-score-rules" class="session-score-rules">
+              满分 <strong>54</strong>：Left 18 试 ×1 + Right 18 试 ×1 + Cue前静息 36 段 ×0.5
+            </div>
+            <div id="v3-session-score-hint" class="session-score-hint hint">已完成 0 MI 试次</div>
             <div class="session-score-track"><div id="v3-session-score-fill" class="session-score-fill"></div></div>
           </div>
           <div id="v3-live-judge" class="live-judge-panel">
@@ -722,7 +742,7 @@
           </label>
           <label class="check">
             <input type="checkbox" id="ft-leave-next" checked />
-            Leave-Next（仅 FT 当前 eval run 之前的 session；eval 本身不进训练集）
+            Leave-Next（留本场评估 · 默认只用之前 session 微调）
           </label>
           <p id="ft-ramp-hint" class="hint">—</p>
           <label>replay_ratio
@@ -757,6 +777,9 @@
             <button type="button" id="btn-ft-promote" class="hidden">替换 current 权重</button>
             <button type="button" id="btn-ft-keep" class="hidden">保留旧 current</button>
             <button type="button" id="btn-next-session">再采一场</button>
+            <button type="button" id="btn-session-no-record" class="warn" title="文件保留、仍可微调；从 Campaign/索引移除，run 可重采">
+              不记入实验记录
+            </button>
           </div>
           <p id="ft-status" class="hint"></p>
         </div>
@@ -771,6 +794,6 @@
         <p id="q-status" class="hint"></p>
       </section>
     </div>
-    <script type="module" src="js/operator.js?v=20260828b"></script>
+    <script type="module" src="js/operator.js?v=20260829a"></script>
   </body>
 </html>

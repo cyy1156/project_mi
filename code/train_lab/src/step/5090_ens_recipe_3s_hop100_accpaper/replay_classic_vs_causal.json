@@ -1,0 +1,106 @@
+{
+  "protocol": "openbmi_3s_hop100_dump · E1f fuse frozen · classic vs S vs C",
+  "e1f_config": {
+    "temperatures": [
+      1.951139545509476,
+      1.8879612863867319,
+      1.1753753736050039,
+      2.4952981194854504
+    ],
+    "weights": [
+      0.2,
+      0.2,
+      0.30000000000000004,
+      0.29999999999999993
+    ],
+    "smooth_radius": 1,
+    "tau_conf": 0.4,
+    "consist_c": null
+  },
+  "member_runs": [
+    "D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+    "D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_123900\\three",
+    "D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\eegnet_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_131435\\three",
+    "D:\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three"
+  ],
+  "anchor_e1f_test": 0.6173456790123457,
+  "tau_fixed": 0.4,
+  "tau_star": 0.4,
+  "val_tau_scores_mean_SC": {
+    "0.40": 0.6061616161616161,
+    "0.45": 0.6014646464646465,
+    "0.50": 0.5975252525252526,
+    "0.55": 0.5857575757575757,
+    "0.60": 0.5751010101010101
+  },
+  "at_tau_fixed": {
+    "W": {
+      "val_acc_paper": 0.5992929292929293,
+      "test_acc_paper": 0.6125308641975309,
+      "t_dec_mean_all": 4.0,
+      "early_frac_all": 0.0,
+      "n_trials_timed": 16200
+    },
+    "classic": {
+      "val_acc_paper": 0.6054545454545455,
+      "test_acc_paper": 0.6173456790123457,
+      "t_dec_mean_all": 3.4566851902467968,
+      "early_frac_all": 0.9798148148148148,
+      "n_trials_timed": 16200
+    },
+    "S": {
+      "val_acc_paper": 0.6051515151515151,
+      "test_acc_paper": 0.617037037037037,
+      "t_dec_mean_all": 3.4566851902467968,
+      "early_frac_all": 0.9837654320987654,
+      "n_trials_timed": 16200
+    },
+    "C": {
+      "val_acc_paper": 0.6071717171717171,
+      "test_acc_paper": 0.6187654320987654,
+      "t_dec_mean_all": 3.5010074038086114,
+      "early_frac_all": 0.9817901234567902,
+      "n_trials_timed": 16200
+    }
+  },
+  "at_tau_star": {
+    "W": {
+      "val_acc_paper": 0.5992929292929293,
+      "test_acc_paper": 0.6125308641975309,
+      "t_dec_mean_all": 4.0,
+      "early_frac_all": 0.0,
+      "n_trials_timed": 16200
+    },
+    "classic": {
+      "val_acc_paper": 0.6054545454545455,
+      "test_acc_paper": 0.6173456790123457,
+      "t_dec_mean_all": 3.4566851902467968,
+      "early_frac_all": 0.9798148148148148,
+      "n_trials_timed": 16200
+    },
+    "S": {
+      "val_acc_paper": 0.6051515151515151,
+      "test_acc_paper": 0.617037037037037,
+      "t_dec_mean_all": 3.4566851902467968,
+      "early_frac_all": 0.9837654320987654,
+      "n_trials_timed": 16200
+    },
+    "C": {
+      "val_acc_paper": 0.6071717171717171,
+      "test_acc_paper": 0.6187654320987654,
+      "t_dec_mean_all": 3.5010074038086114,
+      "early_frac_all": 0.9817901234567902,
+      "n_trials_timed": 16200
+    }
+  },
+  "deltas_test_tau_fixed_pp": {
+    "classic_minus_S": 0.030864197530866555,
+    "classic_minus_C": -0.14197530864197283,
+    "S_minus_C": -0.17283950617283939
+  },
+  "deltas_test_tau_star_pp": {
+    "classic_minus_S": 0.030864197530866555,
+    "classic_minus_C": -0.14197530864197283,
+    "S_minus_C": -0.17283950617283939
+  }
+}

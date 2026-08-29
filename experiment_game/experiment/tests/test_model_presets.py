@@ -10,8 +10,11 @@ sys.path.insert(0, str(_REPO))
 
 from experiment_game.experiment.model_presets import (  # noqa: E402
     active_weights_from_yaml,
+    campaign_locked_model_preset_id,
     list_model_presets,
     match_preset_id,
+    resolve_model_display_label,
+    resolve_weight_display_label,
     short_weight_label,
 )
 
@@ -25,10 +28,22 @@ def test_list_includes_baseline_and_fnz():
     assert fnz["ok"] is True
 
 
-def test_active_weights_fnz():
+def test_active_weights_from_yaml():
     w = active_weights_from_yaml()
-    assert w["preset_id"] == "fnz"
+    assert w["preset_id"]
     assert w["task_ok"] and w["three_ok"]
+    assert w["model_label"]
+    assert w["weight_label"]
+    assert "E1f" in w["model_label"] or "OpenBMI" in w["model_label"]
+
+
+def test_compose_weight_label():
+    from experiment_game.experiment.model_presets import compose_weight_label, resolve_model_name
+
+    mn = resolve_model_name(preset_id="e1f_four_member")
+    wl = compose_weight_label(mn, "A01 · FT · sim_x · run3 · gate FAIL")
+    assert wl.startswith("E1f")
+    assert "A01 · FT" in wl
 
 
 def test_short_label():
