@@ -26,6 +26,21 @@ if str(_CODE_ROOT) not in sys.path:
 from experiment_game.experiment.orchestrator import OperatorService
 
 
+def _wire_implementations(svc: OperatorService) -> None:
+    """入口层负责注入 offline/tools 具体实现（依赖倒置，见重构实施方案 §3.3）。
+
+    OperatorService 未注入时也有惰性回退，此处显式接线以保证依赖方向单向。
+    """
+    from experiment_game.offline.phase4_service import run_phase4_for_session
+    from experiment_game.offline.phase4_v2 import run as run_p4_cal
+    from experiment_game.offline.phase4_v2_game import run as run_p4_game
+    from experiment_game.tools.ft_subject_from_v3 import run_subject_finetune
+
+    svc._phase4_runner = run_phase4_for_session  # noqa: SLF001
+    svc._phase4_v2_pair_runner = (run_p4_cal, run_p4_game)  # noqa: SLF001
+    svc._ft_runner = run_subject_finetune  # noqa: SLF001
+
+
 def main(argv: list[str] | None = None) -> int:
     p = argparse.ArgumentParser(description="操作者采集控制台")
     p.add_argument("--http-port", type=int, default=8080)
@@ -44,6 +59,7 @@ def main(argv: list[str] | None = None) -> int:
         ws_port=args.ws_port,
         serve_host=args.host,
     )
+    _wire_implementations(svc)
     open_browser = args.open_browser and not args.no_browser
 
     print("=== 操作者采集控制台 ===")
