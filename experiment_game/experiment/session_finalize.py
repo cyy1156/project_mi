@@ -15,6 +15,7 @@ from pathlib import Path
 from typing import Any, Dict, Optional
 
 from experiment_game.core.atomic_io import atomic_write_json
+from experiment_game.core.jsonl import read_jsonl_tolerant
 from experiment_game.experiment.session import update_session_meta
 from experiment_game.experiment.session_layout import finalize_session_layout
 
@@ -45,6 +46,68 @@ def ensure_eeg_meta(session_root: Path) -> Optional[Path]:
         except OSError:
             return None
     return None
+
+
+def _probe_span_integrity(root: Path) -> Dict[str, Any]:
+    """轻量核对 EEG / events 时间跨度（总册 §5.3）。"""
+    info: Dict[str, Any] = {"eeg_span_s": None, "events_span_s": None, "span_ok": None}
+    eeg = root / "eeg.csv"
+    if not eeg.is_file():
+        cont = root / "continuous" / "eeg.csv"
+        eeg = cont if cont.is_file() else eeg
+    if eeg.is_file():
+        try:
+            import csv
+
+            with eeg.open("r", encoding="utf-8", newline="") as f:
+                reader = csv.DictReader(f)
+                first = last = None
+                n = 0
+                for row in reader:
+                    t = row.get("lsl_time") or row.get("time") or row.get("t_lsl")
+                    if t in (None, ""):
+                        continue
+                    tf = float(t)
+                    if first is None:
+                        first = tf
+                    last = tf
+                    n += 1
+                if first is not None and last is not None:
+                    info["eeg_span_s"] = float(last - first)
+                    info["rows_eeg"] = n
+        except Exception as exc:  # noqa: BLE001
+            info["eeg_span_error"] = str(exc)
+
+    events_path = root / "events.jsonl"
+    if events_path.is_file():
+        try:
+            rows, _bad = read_jsonl_tolerant(events_path)
+            ts = []
+            for r in rows:
+                if not isinstance(r, dict):
+                    continue
+                t = r.get("t_lsl")
+                if t is None:
+                    continue
+                try:
+                    ts.append(float(t))
+                except (TypeError, ValueError):
+                    continue
+            if ts:
+                info["events_span_s"] = float(max(ts) - min(ts))
+                info["rows_events"] = len(ts)
+        except Exception as exc:  # noqa: BLE001
+            info["events_span_error"] = str(exc)
+
+    es, vs = info.get("eeg_span_s"), info.get("events_span_s")
+    if es is not None and vs is not None and vs > 1e-6:
+        # EEG 覆盖应 ≥ 约 0.9× events（总册）
+        info["span_ok"] = bool(es >= 0.9 * vs)
+    elif es is None and vs is None:
+        info["span_ok"] = None
+    else:
+        info["span_ok"] = False
+    return info
 
 
 def ensure_crash_artifacts(
@@ -110,8 +173,9 @@ def ensure_crash_artifacts(
         out["manifest_error"] = str(exc)
         manifest = None
 
-    # session_integrity 摘要（总册 §5.3 轻量落地；完整 EEG/events span 核对后续加强）
+    # session_integrity 摘要（总册 §5.3）
     try:
+        span = _probe_span_integrity(root)
         integrity = {
             "event": "session_integrity",
             "manifest_ok": bool(out.get("manifest") and (root / "manifest.json").is_file()),
@@ -120,11 +184,20 @@ def ensure_crash_artifacts(
             "aborted": bool(aborted),
             "abort_reason": str(reason),
             "incomplete": True,
+            **span,
         }
         if isinstance(manifest, dict):
             integrity["events_parse_warnings"] = manifest.get("events_parse_warnings")
+        # manifest_ok 且 span 未明确失败 → 可用于提示 FT
+        if integrity.get("span_ok") is False:
+            integrity["ft_recommended"] = False
+        elif integrity["manifest_ok"] and not aborted:
+            integrity["ft_recommended"] = True
+        else:
+            integrity["ft_recommended"] = False
         atomic_write_json(root / "session_integrity.json", integrity)
         out["session_integrity"] = True
+        out["span_ok"] = integrity.get("span_ok")
         try:
             update_session_meta(root / "session.meta.json", session_integrity=integrity)
         except Exception:  # noqa: BLE001

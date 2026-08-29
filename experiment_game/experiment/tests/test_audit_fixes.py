@@ -138,7 +138,12 @@ class TestAuditFixes(unittest.TestCase):
         infer.stale_check_enabled = False
         with mock.patch.object(InferenceService, "_judge_legacy", return_value={"pred": 1}):
             out = InferenceService.judge(infer, 0.0, 0.0)
-        self.assertEqual(out, {"pred": 1})
+        self.assertIsNotNone(out)
+        self.assertEqual(out.get("pred"), 1)
+        self.assertIn("buf_age_s", out)
+        # 软陈旧：缓冲年龄大时 stale=true，但非 eeg_stale 硬中止
+        self.assertTrue(out.get("stale"))
+        self.assertFalse(bool(out.get("eeg_stale")))
 
 
 if __name__ == "__main__":

@@ -25,6 +25,8 @@ BASELINE_BEFORE_CUE_S = 0.5
 MI_TASK_SEC = 4.0
 # 真机：连续无新样本超过该秒数 → 判定 EEG 断流（勿再用陈旧窗推理）
 EEG_STALE_TIMEOUT_S = 3.0
+# judge 软陈旧（总册 §5.2）：缓冲年龄 >1s → stale=true，供计分排除
+JUDGE_BUF_STALE_S = 1.0
 
 from experiment_game.core.channel_layout import (  # noqa: E402
     CHANNEL_ORDER,
@@ -69,6 +71,12 @@ class RingBuffer:
         self._last_push_mono: Optional[float] = None
         # 看门狗起点：无样本时按「自创建/挂流起」计时（避免永不 push 时永远不报警）
         self._watch_mono: float = time.monotonic()
+        # 可选 EEGBus（runtime）；push 时 note_push
+        self._bus = None
+
+    def attach_bus(self, bus) -> None:
+        """挂接 runtime.EEGBus，使 push 同步更新总线健康。"""
+        self._bus = bus
 
     # —— 数据源 ——
     def attach_lsl(self, stream_name: str = "OpenBCI_EEG", *, timeout_s: float = 5.0) -> None:
@@ -105,6 +113,12 @@ class RingBuffer:
                 self._buf[: n - k] = sample_tc[k:]
             self._n += n
             self._last_push_mono = time.monotonic()
+        bus = self._bus
+        if bus is not None:
+            try:
+                bus.note_push(n)
+            except Exception:  # noqa: BLE001
+                pass
 
     def last_push_age_s(self) -> Optional[float]:
         """距最近一次 push 的秒数；尚无样本时返回自 _watch_mono 起的秒数。"""
@@ -277,22 +291,37 @@ class InferenceService:
     def _lsl_at_eeg_rel(self, t_cue_lsl: float, eeg_rel_s: float) -> float:
         return float(t_cue_lsl) + float(eeg_rel_s) * self.lsl_eeg_scale
 
+    def _annotate_buf_age(self, out: Dict) -> Dict:
+        """附加 buf_age_s；年龄 > JUDGE_BUF_STALE_S 时标 stale=true（软陈旧）。"""
+        age = self.buffer.last_push_age_s()
+        age_f = float(age) if age is not None else 0.0
+        out["buf_age_s"] = age_f
+        if age_f > float(JUDGE_BUF_STALE_S):
+            out["stale"] = True
+        else:
+            out.setdefault("stale", False)
+        return out
+
     def judge(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
         if self.stale_check_enabled:
             stale = self.buffer.stale_status()
             if stale is not None:
-                return {
-                    "eeg_stale": True,
-                    "signal_bad": True,
-                    "reason": "eeg_stale",
-                    "age_s": stale["age_s"],
-                    "timeout_s": stale["timeout_s"],
-                    "n_samples": stale["n_samples"],
-                    "t_rel": float(t_rel),
-                }
+                return self._annotate_buf_age(
+                    {
+                        "eeg_stale": True,
+                        "signal_bad": True,
+                        "reason": "eeg_stale",
+                        "age_s": stale["age_s"],
+                        "timeout_s": stale["timeout_s"],
+                        "n_samples": stale["n_samples"],
+                        "t_rel": float(t_rel),
+                    }
+                )
         if self.window_mode == "openbmi_hop100":
-            return self.judge_openbmi_hop100(t_cue_lsl, t_rel)
-        return self._judge_legacy(t_cue_lsl, t_rel)
+            out = self.judge_openbmi_hop100(t_cue_lsl, t_rel)
+            return self._annotate_buf_age(out) if out is not None else None
+        out = self._judge_legacy(t_cue_lsl, t_rel)
+        return self._annotate_buf_age(out) if out is not None else None
 
     def judge_openbmi_hop100(self, t_cue_lsl: float, t_win_end_rel: float) -> Optional[Dict]:
         """OpenBMI 3s/hop100：t_win_end_rel 为窗尾（相对 Cue）；窗 [end−3, end] ⊆ [0, MI]。"""
