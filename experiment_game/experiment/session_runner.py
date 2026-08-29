@@ -15,6 +15,7 @@ from experiment_game.experiment.content_catalog import (
 )
 from experiment_game.experiment.events_log import EventLogger
 from experiment_game.experiment.markers import MarkerPublisher, format_payload
+from experiment_game.experiment.session_base import SessionRunnerBase, SessionServices
 from experiment_game.experiment.timing import DEFAULT_TIMING, TrialTiming
 from experiment_game.experiment.trial_sm import (
     SessionAbort,
@@ -49,7 +50,9 @@ class Phase2Config:
     settle_s: float = 0.0
 
 
-class SessionRunner:
+class SessionRunner(SessionRunnerBase):
+    """Phase2 编排器；继承 SessionRunnerBase 共用 services / 事件三件套。"""
+
     def __init__(
         self,
         events: EventLogger,
@@ -59,12 +62,11 @@ class SessionRunner:
         config: Optional[Phase2Config] = None,
         on_console: Optional[OnConsole] = None,
     ) -> None:
-        self.events = events
-        self.markers = markers
-        self.bridge = bridge
+        console = on_console or (lambda s: print(s, flush=True))
+        super().__init__(SessionServices(events, markers, bridge, console))
+        self.on_console = console
         self.timing = timing
         self.config = config or Phase2Config()
-        self.on_console = on_console or (lambda s: print(s, flush=True))
         self._anim = "none"
         self._learn_step: Optional[int] = None
         self._current_object = self.config.object_name

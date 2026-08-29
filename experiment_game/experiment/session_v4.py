@@ -93,6 +93,15 @@ def run_v4_session(
     events.emit("v4_start", phase="v4", duration_s=cfg.duration_s)
     markers.push("v4_start")
 
+    from experiment_game.experiment.session_base import SessionServices, attach_eeg_health
+
+    _eeg_health = attach_eeg_health(
+        buf,
+        SessionServices(events, markers, bridge, on_console),
+        tag="v4",
+        enabled=True,
+    )
+
     t_start = local_clock()
     t_end = t_start + cfg.duration_s
     live_interval = 0.5
@@ -109,6 +118,8 @@ def run_v4_session(
         while local_clock() < t_end:
             if bridge.should_abort():
                 raise SessionAbort("operator_abort")
+            if _eeg_health is not None:
+                _eeg_health.tick(buf)
             st = buf.stale_status(3.0)
             if st is not None:
                 age = float(st["age_s"])

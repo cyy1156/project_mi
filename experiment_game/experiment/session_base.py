@@ -1,7 +1,8 @@
-"""会话公共底座（总册 W6 · SessionRunner 基类前置）。
+"""会话公共底座（总册 W6 · SessionRunner 基类）。
 
-v2/v3/v4 仍为独立入口函数；本模块抽出共用服务包与 EEG 看门狗装配，
-避免三处复制。完整「一个 SessionRunner 基类合并」战役窗口再做。
+``session_runner.SessionRunner`` 已继承本基类（Phase2）；v2/v3/v4 仍以函数入口为主，
+经本模块的 ``SessionServices`` / ``attach_eeg_health`` 共用服务与看门狗。
+完整三会话类合并仍属后续战役。
 """
 
 from __future__ import annotations
@@ -49,10 +50,9 @@ def attach_eeg_health(
 
 
 class SessionRunnerBase:
-    """范式会话基类占位：子类实现 run()。
+    """范式会话基类：持有 SessionServices；子类实现 run()。
 
-    现网 ``session_runner.SessionRunner`` 仍是 Phase2 编排器；
-    v2/v3/v4 以函数入口为主，迁移时改为继承本类。
+    现网 ``SessionRunner``（Phase2）已继承；v2/v3/v4 函数入口逐步迁移。
     """
 
     def __init__(self, services: SessionServices) -> None:
