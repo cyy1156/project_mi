@@ -23,13 +23,31 @@ WIN_SEC_3S = 3.0
 HOP_SEC_100 = 0.1
 BASELINE_BEFORE_CUE_S = 0.5
 MI_TASK_SEC = 4.0
+# 真机：连续无新样本超过该秒数 → 判定 EEG 断流（勿再用陈旧窗推理）
+EEG_STALE_TIMEOUT_S = 3.0
 
 from experiment_game.experiment.channel_layout import (  # noqa: E402
-    FROZEN_CHANNEL_ORDER,
-    reorder_device_to_frozen,
+    CHANNEL_ORDER,
+    permute_ch_time_to_model,
 )
 
-CHANNEL_ORDER = FROZEN_CHANNEL_ORDER  # 冻结序（索引 0–7）
+# 全局与设备/采集序一致；模型 forward 前 permute_ch_time_to_model
+
+
+def readout_from_heads(
+    p_task: Optional[np.ndarray],
+    p_three: np.ndarray,
+    *,
+    task_p_on: float,
+) -> Dict:
+    """Task 头缺失（E1f）或 task_p_on≤0 时跳过串行门控，直接 three 头 argmax。"""
+    from adapt_engine.readout import serial_gating
+
+    p3 = np.asarray(p_three, dtype=np.float64).ravel()
+    if p_task is None or float(task_p_on) <= 0.0:
+        pred = int(np.argmax(p3))
+        return {"pred": pred, "p_max": float(np.max(p3)), "gated": False}
+    return serial_gating(p_task, p_three, task_p_on=float(task_p_on))
 
 
 class RingBuffer:
@@ -45,6 +63,12 @@ class RingBuffer:
         self._inlet = None
         self._thread: Optional[threading.Thread] = None
         self._stop = False
+        # 仿真回放：1 LSL 秒灌入 fs×scale 样本（默认 1=实时 LSL）
+        self.push_rate_scale = 1.0
+        # 最近一次 push 的单调时钟（秒）；None=尚未收到任何样本
+        self._last_push_mono: Optional[float] = None
+        # 看门狗起点：无样本时按「自创建/挂流起」计时（避免永不 push 时永远不报警）
+        self._watch_mono: float = time.monotonic()
 
     # —— 数据源 ——
     def attach_lsl(self, stream_name: str = "OpenBCI_EEG", *, timeout_s: float = 5.0) -> None:
@@ -54,6 +78,7 @@ class RingBuffer:
         if not streams:
             raise RuntimeError(f"未找到 LSL 流 {stream_name}（timeout={timeout_s}s）")
         self._inlet = StreamInlet(streams[0], max_buflen=int(self.cap / 80) + 2)
+        self._watch_mono = time.monotonic()
         self._thread = threading.Thread(target=self._pull_loop, daemon=True)
         self._thread.start()
 
@@ -62,7 +87,6 @@ class RingBuffer:
             sample, ts = self._inlet.pull_sample(timeout=0.1)
             if sample is not None:
                 row = np.asarray(sample, dtype=np.float64)[: self.n_ch]
-                row = reorder_device_to_frozen(row.reshape(1, -1))[0]
                 self.push(row.reshape(1, -1))
 
     def push(self, sample_tc: np.ndarray) -> None:
@@ -80,6 +104,36 @@ class RingBuffer:
                 self._buf[pos:] = sample_tc[:k]
                 self._buf[: n - k] = sample_tc[k:]
             self._n += n
+            self._last_push_mono = time.monotonic()
+
+    def last_push_age_s(self) -> Optional[float]:
+        """距最近一次 push 的秒数；尚无样本时返回自 _watch_mono 起的秒数。"""
+        with self._lock:
+            ts = self._last_push_mono
+            n = self._n
+            watch = self._watch_mono
+        now = time.monotonic()
+        if ts is not None and n > 0:
+            return max(0.0, now - ts)
+        return max(0.0, now - watch)
+
+    def is_stale(self, timeout_s: float = EEG_STALE_TIMEOUT_S) -> bool:
+        """超过 timeout_s 无新样本（含从未收到样本）。"""
+        age = self.last_push_age_s()
+        if age is None:
+            return False
+        return age > float(timeout_s)
+
+    def stale_status(
+        self, timeout_s: float = EEG_STALE_TIMEOUT_S
+    ) -> Optional[Dict[str, float]]:
+        """断流时返回 {age_s, timeout_s, n_samples}；否则 None。"""
+        age = self.last_push_age_s()
+        if age is None or age <= float(timeout_s):
+            return None
+        with self._lock:
+            n = int(self._n)
+        return {"age_s": float(age), "timeout_s": float(timeout_s), "n_samples": n}
 
     # —— 取数 ——
     def window_ending_at(self, t_end_lsl: float, n_samples: int = N_TIMES_3S,
@@ -92,7 +146,7 @@ class RingBuffer:
             return None  # 判定时刻未到（状态机已 wait，此为防御）
         with self._lock:
             end_idx = self._n  # 近似：缓冲尾 ≈ now（pull 延迟 <50ms 由验收测试量化）
-            lag = max(0, int(round((now - t_end_lsl) * self.fs)))
+            lag = max(0, int(round((now - t_end_lsl) * self.fs * self.push_rate_scale)))
             end = end_idx - lag
             start = end - n_samples
             if start < 0 or end > self._n:
@@ -203,6 +257,7 @@ class InferenceService:
         window_mode: str = "legacy",
         mi_task_sec: float = MI_TASK_SEC,
         baseline_before_cue_s: float = BASELINE_BEFORE_CUE_S,
+        lsl_eeg_scale: float = 1.0,
     ):
         self.buffer = buffer
         self.registry = registry
@@ -214,8 +269,27 @@ class InferenceService:
         self.window_mode = window_mode
         self.mi_task_sec = float(mi_task_sec)
         self.baseline_before_cue_s = float(baseline_before_cue_s)
+        # 仿真回放：墙钟 LSL 推进 1/speed，EEG 内容推进 1s；取窗须缩放
+        self.lsl_eeg_scale = max(1e-9, float(lsl_eeg_scale))
+        # False：跳过断流检测（仿真回放 gap 不应记 signal_bad）
+        self.stale_check_enabled = True
+
+    def _lsl_at_eeg_rel(self, t_cue_lsl: float, eeg_rel_s: float) -> float:
+        return float(t_cue_lsl) + float(eeg_rel_s) * self.lsl_eeg_scale
 
     def judge(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
+        if self.stale_check_enabled:
+            stale = self.buffer.stale_status()
+            if stale is not None:
+                return {
+                    "eeg_stale": True,
+                    "signal_bad": True,
+                    "reason": "eeg_stale",
+                    "age_s": stale["age_s"],
+                    "timeout_s": stale["timeout_s"],
+                    "n_samples": stale["n_samples"],
+                    "t_rel": float(t_rel),
+                }
         if self.window_mode == "openbmi_hop100":
             return self.judge_openbmi_hop100(t_cue_lsl, t_rel)
         return self._judge_legacy(t_cue_lsl, t_rel)
@@ -224,7 +298,6 @@ class InferenceService:
         """OpenBMI 3s/hop100：t_win_end_rel 为窗尾（相对 Cue）；窗 [end−3, end] ⊆ [0, MI]。"""
         from pylsl import local_clock
 
-        from adapt_engine.readout import serial_gating
         from experiment_game.experiment.signal_quality import assess_eeg_window
 
         win_end = float(t_win_end_rel)
@@ -232,11 +305,12 @@ class InferenceService:
         if win_start < -1e-9 or win_end > self.mi_task_sec + 1e-9:
             return None
 
-        t_seg_end = t_cue_lsl + win_end
+        t_seg_end = self._lsl_at_eeg_rel(t_cue_lsl, win_end)
         seg_len_s = self.baseline_before_cue_s + win_end
         now = local_clock()
 
-        tail_s = max(self.tail_s, seg_len_s + 2.0)
+        # OpenBMI 段级取窗：尾段长度 = Cue 前基线 + MI 窗尾（+0.5s 滤波过渡）
+        tail_s = seg_len_s + 0.5
         tail_n = int(round(tail_s * FS))
         tail_raw = self.buffer.window_ending_at(t_seg_end, tail_n, t_now_lsl=now)
         if tail_raw is None:
@@ -264,13 +338,15 @@ class InferenceService:
                     "win_end_rel": win_end,
                 }
 
+        window = permute_ch_time_to_model(window)
         heads = self.registry.forward_heads(window)
         p_task = heads["p_task"]
         p_three = heads["p_three"]
-        out = serial_gating(p_task, p_three, task_p_on=self.task_p_on)
+        out = readout_from_heads(p_task, p_three, task_p_on=self.task_p_on)
         out["window"] = window
         out["p_three"] = [float(x) for x in np.asarray(p_three).ravel()]
-        out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
+        if p_task is not None:
+            out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
         out["t_rel"] = win_end
         out["win_start_rel"] = win_start
         out["win_end_rel"] = win_end
@@ -285,12 +361,11 @@ class InferenceService:
     def _judge_legacy(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
         from pylsl import local_clock
 
-        from adapt_engine.readout import serial_gating
         from experiment_game.experiment.signal_quality import assess_eeg_window
 
-        t_end = t_cue_lsl + t_rel
+        t_end = self._lsl_at_eeg_rel(t_cue_lsl, t_rel)
         if self.forward_window:
-            t_end += N_TIMES_3S / FS
+            t_end += (N_TIMES_3S / FS) * self.lsl_eeg_scale
         win_tc = self.buffer.window_ending_at(t_end, N_TIMES_3S, t_now_lsl=local_clock())
         if win_tc is None:
             return None
@@ -311,13 +386,15 @@ class InferenceService:
         if tail is None:
             tail = win_tc
         window = self.pre.process(tail)
+        window = permute_ch_time_to_model(window)
         heads = self.registry.forward_heads(window)
         p_task = heads["p_task"]
         p_three = heads["p_three"]
-        out = serial_gating(p_task, p_three, task_p_on=self.task_p_on)
+        out = readout_from_heads(p_task, p_three, task_p_on=self.task_p_on)
         out["window"] = window
         out["p_three"] = [float(x) for x in np.asarray(p_three).ravel()]
-        out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
+        if p_task is not None:
+            out["p_task"] = [float(x) for x in np.asarray(p_task).ravel()]
         pred = int(out["pred"])
         if pred < len(out["p_three"]):
             others = [out["p_three"][i] for i in range(len(out["p_three"])) if i != pred]

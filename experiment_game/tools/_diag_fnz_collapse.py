@@ -10,7 +10,7 @@ import numpy as np
 import pandas as pd
 import torch
 
-_REPO = Path(r"d:\MI")
+_REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "code"))
 sys.path.insert(0, str(_REPO / "code" / "preprocess_lab"))
@@ -81,7 +81,7 @@ def ws02_windows():
 def main():
     device = "cuda" if torch.cuda.is_available() else "cpu"
     ds = build_dataset(WS01, include_invalid=True)
-    X, y, tids = ds["X"], ds["y_three"], ds["trial_id"]
+    X, y, tids = ds["X"], ds["y_three"], ds["split_id"]
     tr_m, te_m = _trial_split(tids, train_frac=0.7, seed=42)
 
     print("=== FT 数据 fnz_ws01 ===")

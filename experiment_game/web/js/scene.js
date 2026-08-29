@@ -992,8 +992,13 @@ export class HomeDeskScene {
    */
   applyStage(msg) {
     const stage = msg.stage || "idle";
+    const phase = msg.phase || "";
+    let anim = stage === "mi" ? msg.anim || "none" : "none";
+    if (stage === "mi" && phase === "acquire" && anim !== "none") {
+      console.error("[scene] acquire MI 段 anim 须为 none，已强制", { anim, trial_id: msg.trial_id });
+      anim = "none";
+    }
     const hand = msg.hand || "none";
-    const anim = stage === "mi" ? msg.anim || "none" : "none";
     const key = `${stage}|${hand}|${anim}|${msg.trial_id ?? ""}`;
     const sameMi = stage === "mi" && anim !== "none" && key === this._stageKey;
 
@@ -1011,6 +1016,9 @@ export class HomeDeskScene {
     this.setHudHighlight(stage === "cue");
 
     if (stage !== "mi") {
+      this._resetHands();
+      this._resetCup();
+    } else if (anim === "none") {
       this._resetHands();
       this._resetCup();
     } else if (this.anim === "full_grasp" || this.anim === "reach") {

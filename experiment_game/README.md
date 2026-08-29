@@ -2,17 +2,26 @@
 
 第一人称运动想象实验：**视觉诱导** + OpenBCI 采集/打标/落盘。
 
-## 文档
+## 现行规范（2026-08-29）
 
 | 文档 | 说明 |
 |------|------|
-| [项目计划.md](./项目计划.md) | 总计划与阶段 |
-| [docs/游戏内容规格.md](./docs/游戏内容规格.md) | 画面与流程定稿 |
-| [docs/marker_spec.md](./docs/marker_spec.md) | 事件 / Marker / 切窗 |
-| [docs/ws_protocol.md](./docs/ws_protocol.md) | 前后端 WebSocket 协议 |
-| [docs/操作按键设计.md](./docs/操作按键设计.md) | 操作者/被试分键（Phase 3 已实现） |
-| [docs/Phase4_流水线检查清单.md](./docs/Phase4_流水线检查清单.md) | 切窗 → 训练检查清单 |
-| [docs/完整使用流程.md](./docs/完整使用流程.md) | **从安装到训练的逐步操作手册** |
+| **[docs/框架冻结确认_20260829.md](./docs/框架冻结确认_20260829.md)** | **冻结选择题结论（F5 除外）** |
+| [docs/范式对齐_OpenBMI与fnz_v3_20260827.md](./docs/范式对齐_OpenBMI与fnz_v3_20260827.md) | OpenBMI-Align v1 时序 / Rest / 在线 |
+| [docs/被试登录与按session微调方案_20260827.md](./docs/被试登录与按session微调方案_20260827.md) | 登录 / 目录 / 采后 FT |
+| [docs/操作按键设计.md](./docs/操作按键设计.md) | 操作者/被试分键 |
+| [docs/完整使用流程.md](./docs/完整使用流程.md) | 安装到开实验（部分章节仍偏旧 Phase，以冻结表为准） |
+
+**现行默认**：E1f 四成员 · Align 时序（专用 Rest4 → prep2 → MI4）· 采后 Leave-Next · 块间默认 30s。
+
+## 其它文档
+
+| 文档 | 说明 |
+|------|------|
+| [项目计划.md](./项目计划.md) | 早期总计划（多处已过时） |
+| [docs/游戏内容规格.md](./docs/游戏内容规格.md) | 画面与流程 |
+| [docs/marker_spec.md](./docs/marker_spec.md) | **Phase1 历史** Marker 表 |
+| [docs/ws_protocol.md](./docs/ws_protocol.md) | WebSocket 协议 |
 
 依赖：仓库根 `.venv` 安装本目录 `requirements.txt`（含 `websockets`、`scipy`）。
 
@@ -20,19 +29,16 @@
 
 双击 [`open_operator.bat`](./open_operator.bat)，浏览器打开 **Setup**：
 
-1. 勾选「开启采集」  
-2. 选 **Cyton 真机**，串口填设备管理器中的 COM（默认模板 COM5）  
-3. **先关闭 OpenBCI GUI 串口直播**（避免抢 COM）  
-4. 正式 trial 首测可改为 4～8；可勾选跳过适应/学习  
-5. 落盘选 `phase_folders`（默认）  
-6. 点「开始实验」→ 自动打开诱导页 → 操作台留在 Run 控场  
+1. **登录被试缩写**（如 `syj0828`）  
+2. 勾选「开启采集」· 选 **Cyton** 或合成板 · 填 COM  
+3. 模式选 **v3 探针**（可选先跑 **v4 帽检**，不强制）  
+4. 权重默认 **E1f 四成员**（可选手模对照）  
+5. 点「开始实验」→ 诱导页 + 操作台 Run  
 
-**UI-2：**「保存为本地默认」写入 `config/operator_defaults.json`；真机可点「刷新串口」；勾选「下次显示沿用确认条」。
-
-合成板联调：板模式选「合成板」即可。
+合成板联调：板模式选「合成板」；动觉引导会 **自动确认**（无需再点）。
 
 ```powershell
-cd d:\cyy\MI
+cd d:\MI
 .\.venv\Scripts\python.exe -m experiment_game.tools.open_operator
 ```
 

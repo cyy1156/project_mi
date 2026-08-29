@@ -73,7 +73,8 @@ def main(argv: list[str] | None = None) -> int:
             by_trial[int(tid)][name] = t
 
     mi_ok = rest_ok = cue_in_span = 0
-    mi_bad = rest_bad = []
+    mi_bad = []
+    rest_bad = []
     for tid, m in sorted(by_trial.items()):
         if "mi_start" in m and "mi_end" in m:
             dur = m["mi_end"] - m["mi_start"]

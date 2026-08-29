@@ -698,6 +698,8 @@ class SessionRunner:
         block_order_override: Optional[List[str]] = None,
         trial_labels_by_block: Optional[List[List[int]]] = None,
         sim_meta: Optional[Dict] = None,
+        use_synthetic: bool = False,
+        auto_confirm_guidance: Optional[bool] = None,
     ) -> Dict:
         """v3 探针会话：委托 session_v3.run_v3_session。"""
         from experiment_game.experiment.session_v3 import run_v3_session
@@ -719,6 +721,8 @@ class SessionRunner:
             block_order_override=block_order_override,
             trial_labels_by_block=trial_labels_by_block,
             sim_meta=sim_meta,
+            use_synthetic=use_synthetic,
+            auto_confirm_guidance=auto_confirm_guidance,
         )
 
     def run_v4_session(

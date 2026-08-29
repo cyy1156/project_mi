@@ -14,6 +14,13 @@ import webbrowser
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+# adapt_engine / preprocess_lab 在 code/ 下；操作台入口须先于任何校验导入
+_REPO_BOOT = Path(__file__).resolve().parents[2]
+for _boot in (_REPO_BOOT, _REPO_BOOT / "code", _REPO_BOOT / "code" / "preprocess_lab"):
+    _bs = str(_boot)
+    if _bs not in sys.path:
+        sys.path.insert(0, _bs)
+
 from experiment_game.experiment.alignment import write_alignment_bundle
 from experiment_game.experiment.defaults_store import (
     defaults_path,
@@ -21,6 +28,7 @@ from experiment_game.experiment.defaults_store import (
     save_operator_defaults,
 )
 from experiment_game.experiment.session_layout import finalize_session_layout
+from experiment_game.experiment.trial_scoring import session_score_max_openbmi
 from experiment_game.acquisition import AcquisitionFacade, DEFAULT_CHANNEL_LABELS
 from experiment_game.experiment.events_log import EventLogger
 from experiment_game.experiment.http_static import StaticServer
@@ -169,15 +177,40 @@ class OperatorService:
 
     @staticmethod
     def _weights_from_cfg(cfg_obj: Any) -> Dict[str, Any]:
-        from experiment_game.experiment.model_presets import match_preset_id, short_weight_label
+        from experiment_game.experiment.model_presets import (
+            match_preset_id,
+            resolve_model_display_label,
+            resolve_weight_display_label,
+            short_weight_label,
+        )
 
         task = getattr(cfg_obj, "s3_task_ckpt", "") or ""
         three = getattr(cfg_obj, "s3_three_ckpt", "") or ""
+        readout = getattr(cfg_obj, "readout_mode", "") or ""
+        preset_id = match_preset_id(task, three)
+        if readout.lower() == "e1f":
+            preset_id = "e1f_four_member"
+        weight_label = resolve_weight_display_label(
+            task=task,
+            three=three,
+            preset_id=preset_id,
+            readout_mode=readout,
+        )
+        model_label = resolve_model_display_label(
+            task=task,
+            three=three,
+            preset_id=preset_id,
+            readout_mode=readout,
+        )
         return {
             "task": task,
             "three": three,
-            "preset_id": match_preset_id(task, three),
-            "label": short_weight_label(three or task),
+            "preset_id": preset_id,
+            "readout_mode": readout,
+            "label": weight_label,
+            "weight_label": weight_label,
+            "model_label": model_label,
+            "short_label": short_weight_label(three or task),
         }
 
     def start(self) -> None:
@@ -279,6 +312,8 @@ class OperatorService:
             self._handle_finetune_start(msg)
         elif mtype == "finetune_promote":
             self._handle_finetune_promote(msg)
+        elif mtype == "session_exclude_record":
+            self._handle_session_exclude_record(msg)
         elif mtype == "ramp_status":
             self._handle_ramp_status(msg)
         elif mtype == "sim_catalog":
@@ -559,17 +594,28 @@ class OperatorService:
         if use_replay is not None:
             no_replay = not bool(use_replay)
         replay_ratio = float(msg.get("replay_ratio", 0.10))
+        if not (replay_ratio == replay_ratio):  # NaN
+            replay_ratio = 0.10
         early_stop = bool(msg.get("early_stop", True))
         if msg.get("no_early_stop"):
             early_stop = False
-        max_epochs = int(msg.get("max_epochs", 20))
-        patience = int(msg.get("patience", 5))
+
+        def _safe_msg_int(key: str, default: int) -> int:
+            v = msg.get(key, default)
+            try:
+                if v is None or (isinstance(v, float) and v != v):
+                    return default
+                return int(float(v))
+            except (TypeError, ValueError):
+                return default
+
+        max_epochs = _safe_msg_int("max_epochs", 20)
+        patience = _safe_msg_int("patience", 5)
         deterministic = bool(msg.get("deterministic", True))
         if msg.get("no_deterministic"):
             deterministic = False
-        seed = msg.get("seed")
-        seed_i = int(seed) if seed is not None else 42
-        ft_epochs = int(msg.get("epochs", 5))
+        seed_i = _safe_msg_int("seed", 42)
+        ft_epochs = _safe_msg_int("epochs", 5)
         leave_next_mode = bool(msg.get("leave_next_mode"))
         eval_run_id = str(msg.get("eval_run_id") or "").strip().lower()
         campaign_manifest_path = msg.get("campaign_manifest")
@@ -597,12 +643,14 @@ class OperatorService:
                     subject_id = validate_subject_id(sid)
                     out_dir = new_ft_run_dir(subject_id, repo_root=self.repo_root)
                 session_dirs = [Path(p) for p in paths_raw]
+                heldout_dirs: List[Path] = []
                 job_no_replay = no_replay
                 job_replay_ratio = replay_ratio
                 ramp_stage_i: Optional[int] = None
                 if leave_next_mode and campaign_manifest_path and eval_run_id:
                     from experiment_game.experiment.sim.campaign import load_campaign
                     from experiment_game.experiment.sim.ramp import (
+                        completed_by_run,
                         ft_replay_recommendation,
                         leave_next_train_runs,
                         ramp_stage,
@@ -615,6 +663,13 @@ class OperatorService:
                             f"Leave-Next：eval {eval_run_id} 之前无已完成 session 可训练"
                         )
                     session_dirs = [Path(p) for _, p in train_pairs]
+                    done = completed_by_run(manifest)
+                    eval_path = done.get(str(eval_run_id).strip().lower())
+                    if not eval_path:
+                        raise ValueError(
+                            f"Leave-Next：找不到 eval session 目录（{eval_run_id}）"
+                        )
+                    heldout_dirs = [Path(eval_path)]
                     ramp_stage_i = ramp_stage(manifest, eval_run_id)
                     if use_ramp_replay:
                         rec = ft_replay_recommendation(ramp_stage_i)
@@ -642,13 +697,50 @@ class OperatorService:
                     deterministic=deterministic,
                     seed=seed_i,
                     verbose=False,
+                    heldout_session_dirs=heldout_dirs or None,
                 )
+                task_ckpt = out_dir / "best_task.pt"
+                three_ckpt = out_dir / "best_three.pt"
+                presets_payload = self._model_presets_payload()
+                # 刚训完的本轮必须出现在预设里（避免扫描时机/路径遗漏）
+                if task_ckpt.is_file() and three_ckpt.is_file():
+                    from experiment_game.experiment.subject_registry import rel_repo_path
+
+                    task_rel = rel_repo_path(task_ckpt, repo_root=self.repo_root)
+                    three_rel = rel_repo_path(three_ckpt, repo_root=self.repo_root)
+                    stamp = out_dir.name
+                    subj_key = str(subject_id or "")
+                    presets = list(presets_payload.get("model_presets") or [])
+                    if not any(
+                        str(p.get("task") or "").replace("\\", "/").endswith(
+                            f"/ft_runs/{stamp}/best_task.pt"
+                        )
+                        for p in presets
+                    ):
+                        presets.insert(
+                            2,
+                            {
+                                "id": f"ft_{stamp}",
+                                "label": f"{subj_key} · FT {stamp}",
+                                "task": task_rel,
+                                "three": three_rel,
+                                "ok": True,
+                                "subject_id": subj_key,
+                                "kind": "ft_run",
+                                "ft_stamp": stamp,
+                                "release_pass": bool(result.get("release_pass")),
+                            },
+                        )
+                        presets_payload["model_presets"] = presets
                 self.bridge.broadcast(
                     {
                         "type": "finetune_done",
                         "ok": True,
                         "subject_id": subject_id,
                         "out_dir": result["out_dir"],
+                        "ft_task_ckpt": str(task_ckpt) if task_ckpt.is_file() else "",
+                        "ft_three_ckpt": str(three_ckpt) if three_ckpt.is_file() else "",
+                        "weights_saved": task_ckpt.is_file() and three_ckpt.is_file(),
                         "release_gate": result["release_gate"],
                         "release_pass": result["release_pass"],
                         "three_heldout": result["three"]["acc_after_heldout"],
@@ -667,7 +759,7 @@ class OperatorService:
                         "eval_run_id": eval_run_id or None,
                         "ramp_stage": ramp_stage_i,
                         "train_session_dirs": [str(p) for p in session_dirs],
-                        **self._model_presets_payload(),
+                        **presets_payload,
                     }
                 )
             except Exception as exc:  # noqa: BLE001
@@ -724,6 +816,71 @@ class OperatorService:
                 {"type": "finetune_promote_ack", "ok": False, "message": str(exc)}
             )
 
+    def _handle_session_exclude_record(self, msg: Dict[str, Any]) -> None:
+        try:
+            from experiment_game.experiment.sim.campaign import load_campaign
+            from experiment_game.experiment.sim.campaign_summary import exclude_session_from_records
+
+            session_root = Path(str(msg.get("session_root") or msg.get("root") or ""))
+            campaign = msg.get("campaign_manifest") or msg.get("campaign")
+            if isinstance(campaign, dict) and campaign.get("manifest_path"):
+                campaign = load_campaign(campaign["manifest_path"])
+            elif msg.get("campaign_manifest_path"):
+                campaign = load_campaign(msg["campaign_manifest_path"])
+            else:
+                campaign = None
+
+            result = exclude_session_from_records(
+                session_root,
+                campaign_manifest=campaign,
+                repo_root=self.repo_root,
+                reason=str(msg.get("reason") or "operator_summary_exclude"),
+            )
+            payload: Dict[str, Any] = {
+                "type": "session_exclude_record_ack",
+                "ok": True,
+                **result,
+            }
+            if result.get("sim_index") and self._active_subject == result.get("subject_id"):
+                payload.update(self._model_presets_payload())
+            self.bridge.broadcast(payload)
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast(
+                {
+                    "type": "session_exclude_record_ack",
+                    "ok": False,
+                    "message": str(exc),
+                }
+            )
+
+    def _maybe_archive_overwrite_session(self, cfg: Dict[str, Any]) -> None:
+        """若 experiment.overwrite_session_id：归档同 session_id 的旧目录。"""
+        exp = cfg.get("experiment") or {}
+        if not bool(exp.get("overwrite_session_id")):
+            return
+        if str(exp.get("phase_mode") or "") == "sim_v3_session":
+            return
+        sub = cfg.get("subject") or {}
+        sid = str(sub.get("subject_id") or "").strip()
+        sess = str(sub.get("session_id") or "").strip()
+        if not sid or not sess:
+            return
+        from experiment_game.experiment.subject_registry import archive_sessions_for_id
+
+        moved = archive_sessions_for_id(sid, sess, repo_root=self.repo_root)
+        if moved:
+            print(f"[operator] 已归档 {len(moved)} 个同编号会话: {sess}")
+            self.bridge.broadcast(
+                {
+                    "type": "session_overwrite_ack",
+                    "ok": True,
+                    "subject_id": sid,
+                    "session_id": sess,
+                    "archived": moved,
+                    "message": f"已归档 {len(moved)} 个旧目录后重采 {sess}",
+                }
+            )
+
     def _handle_session_start(self, raw: Dict[str, Any]) -> None:
         with self._lock:
             if self._busy:
@@ -743,6 +900,10 @@ class OperatorService:
                 return
             self._busy = True
             self._last_config = cfg
+            try:
+                self.bridge.clear_pending_session_saved()
+            except Exception:  # noqa: BLE001
+                pass
 
         self.bridge.broadcast(
             {
@@ -803,6 +964,7 @@ class OperatorService:
 
         exp = cfg["experiment"]
         phase_mode = str(exp.get("phase_mode") or "phase2_full")
+        self._maybe_archive_overwrite_session(cfg)
         if phase_mode == "v3_session":
             self._run_v3_session(cfg)
             return
@@ -1151,6 +1313,9 @@ class OperatorService:
             v2_score_max += int(v2_cfg.cal_rounds_max) * int(v2_cfg.trials_per_round)
         if not skip_game:
             v2_score_max += int(v2_cfg.game_rounds) * int(v2_cfg.game_trials_per_round)
+        v2_score_max = session_score_max_openbmi(
+            v2_score_max, inter_trial_rest_s=float(v2_cfg.inter_trial_rest_s)
+        )
         update_session_meta(
             paths.meta_json,
             v2_config=str(v2_path or "config/v2_session.yaml"),
@@ -1307,6 +1472,14 @@ class OperatorService:
         markers.push("session_end|phase=v2_session")
 
         self._shutdown_session_resources()
+
+        self.bridge.broadcast({
+            "type": "session_finishing",
+            "phase_mode": "v2_session",
+            "subject_id": subject_id,
+            "root": str(paths.root),
+            "message": "v2 试次已结束，正在落盘…",
+        })
 
         layout = str(storage.get("save_layout") or "phase_folders")
         try:
@@ -1473,7 +1646,10 @@ class OperatorService:
             },
             "trial_total_s": v3_cfg.trial_total_s(),
             "session_score": 0,
-            "session_score_max": int(v3_cfg.blocks) * int(v3_cfg.trials_per_block),
+            "session_score_max": session_score_max_openbmi(
+                int(v3_cfg.blocks) * int(v3_cfg.trials_per_block),
+                inter_trial_rest_s=float(v3_cfg.inter_trial_rest_s),
+            ),
             "session_trials_done": 0,
             "v3_config_effective": {
                 "blocks": v3_cfg.blocks,
@@ -1534,12 +1710,30 @@ class OperatorService:
             seed=seed,
             subject_id=subject_id,
             subject_feedback_mode=_subject_feedback_mode(cfg),
+            use_synthetic=use_synthetic,
         )
         self._runner = None
 
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v3_session")
         markers.push("session_end|phase=v3_session")
         self._shutdown_session_resources()
+
+        self.bridge.broadcast({
+            "type": "session_finishing",
+            "phase_mode": "v3_session",
+            "subject_id": subject_id,
+            "root": str(paths.root),
+            "v3_summary": {
+                "session_score": (summary or {}).get("session_score"),
+                "session_score_max": (summary or {}).get("session_score_max"),
+                "session_trials_done": (summary or {}).get("session_trials_done"),
+                "quality_tier": (summary or {}).get("quality_tier"),
+                "n_trials": (summary or {}).get("n_trials"),
+                "frozen": (summary or {}).get("frozen"),
+            },
+            "message": "v3 试次已结束，正在落盘…",
+        })
+        self._emit_acq_status("stopped", "录制已停止 · 落盘中")
 
         layout = str(storage.get("save_layout") or "phase_folders")
         try:
@@ -1564,10 +1758,12 @@ class OperatorService:
 
         update_session_meta(paths.meta_json, v3_summary=summary)
         files = self._list_session_files(paths.root)
+        suggest_sid = None
         try:
             from experiment_game.experiment.subject_registry import build_index
 
-            build_index(subject_id, repo_root=self.repo_root)
+            idx = build_index(subject_id, repo_root=self.repo_root)
+            suggest_sid = idx.get("suggest_session_id")
         except Exception:  # noqa: BLE001
             pass
         self.bridge.broadcast({
@@ -1575,12 +1771,17 @@ class OperatorService:
             "root": str(paths.root),
             "files": files,
             "acq_enabled": acq_on,
-            "train_eligible": acq_on,
+            "train_eligible": acq_on and not bool((summary or {}).get("aborted")),
             "verify": verify,
             "v3_summary": summary,
             "phase_mode": "v3_session",
             "subject_id": subject_id,
-            "message": "v3 探针会话已结束",
+            "suggest_session_id": suggest_sid,
+            "message": (
+                "v3 会话已中止（动觉引导超时或其它中止）"
+                if (summary or {}).get("aborted")
+                else "v3 探针会话已结束"
+            ),
         })
         self.bridge.broadcast({"type": "session", "status": "done"})
         self._emit_acq_status("stopped", "录制已停止")
@@ -1858,7 +2059,10 @@ class OperatorService:
             },
             "trial_total_s": v3_cfg.trial_total_s(),
             "session_score": 0,
-            "session_score_max": script.session_trials_total,
+            "session_score_max": session_score_max_openbmi(
+                int(script.session_trials_total),
+                inter_trial_rest_s=float(v3_cfg.inter_trial_rest_s),
+            ),
             "session_trials_done": 0,
             "sim": sim_meta,
             "v3_config_effective": {
@@ -1878,6 +2082,7 @@ class OperatorService:
         self._runner = runner
 
         buf = RingBuffer(capacity_s=max(120.0, script.session_trials_total * 20.0))
+        buf.push_rate_scale = replay_speed
         replay: Optional[Bci2aReplaySource] = None
         try:
             deps = build_v3_deps_from_buffer(v3_cfg, buf, on_console=print)
@@ -1921,6 +2126,7 @@ class OperatorService:
                 block_order_override=b_order,
                 trial_labels_by_block=script.labels_by_block,
                 sim_meta=sim_meta,
+                auto_confirm_guidance=True,
             )
         finally:
             if replay is not None:
@@ -1930,6 +2136,24 @@ class OperatorService:
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="sim_v3_session")
         markers.push("session_end|phase=sim_v3_session")
         self._shutdown_session_resources()
+
+        # 先通知前端离场，再做耗时落盘/对齐（避免静默期断线丢 session_saved）
+        self.bridge.broadcast({
+            "type": "session_finishing",
+            "phase_mode": "sim_v3_session",
+            "subject_id": subject_id,
+            "root": str(paths.root),
+            "v3_summary": {
+                "session_score": (summary or {}).get("session_score"),
+                "session_score_max": (summary or {}).get("session_score_max"),
+                "session_trials_done": (summary or {}).get("session_trials_done"),
+                "quality_tier": (summary or {}).get("quality_tier"),
+                "n_trials": (summary or {}).get("n_trials"),
+                "frozen": (summary or {}).get("frozen"),
+            },
+            "message": f"仿真试次已结束，正在落盘… · {run_id}",
+        })
+        self._emit_acq_status("stopped", "仿真回放已停止 · 落盘中")
 
         layout = str(storage.get("save_layout") or "phase_folders")
         try:
@@ -2128,6 +2352,14 @@ class OperatorService:
         events.emit("session_end", subject_id=subject_id, session_id=session_id, phase="v4_session")
         markers.push("session_end|phase=v4_session")
         self._shutdown_session_resources()
+
+        self.bridge.broadcast({
+            "type": "session_finishing",
+            "phase_mode": "v4_session",
+            "subject_id": subject_id,
+            "root": str(paths.root),
+            "message": "v4 检测已结束，正在落盘…",
+        })
 
         update_session_meta(paths.meta_json, v4_summary=summary)
         files = self._list_session_files(paths.root)

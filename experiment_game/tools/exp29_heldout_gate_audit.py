@@ -192,7 +192,9 @@ def enrich_b2_heldout_meta(*, device: str) -> int:
             data["rows"][i]["heldout_pred_counts"] = row.get("heldout_pred_counts")
             n += 1
             print(f"  enriched {subject} R{R}", flush=True)
-    path.write_text(json.dumps(data, ensure_ascii=False, indent=2, default=str), encoding="utf-8")
+    from experiment_game.experiment.atomic_io import atomic_write_json
+
+    atomic_write_json(path, data)
     return n
 
 

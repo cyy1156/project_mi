@@ -12,14 +12,14 @@ lsl_stream_name: OpenBCI_EEG
 lsl_timeout_s: 8.0
 
 channel_labels:
-  - Cz
-  - C3
-  - C4
-  - CP3
-  - FC4
   - FC3
+  - C3
+  - CP3
+  - CZ
+  - CPZ
+  - FC4
+  - C4
   - CP4
-  - CPz
 fs: 250
 
 # 仅以下 6 导参与 PASS/FAIL；Cz/CPz 卡轨为预期，不拖垮整窗
@@ -31,8 +31,8 @@ scoring_channels:
   - FC3
   - CP4
 unused_channels:
-  - Cz
-  - CPz
+  - CZ
+  - CPZ
 unused_allow_rail: true
 
 signal_quality_enabled: true

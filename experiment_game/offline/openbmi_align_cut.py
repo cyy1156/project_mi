@@ -18,7 +18,8 @@ from src.common.steps.slide_1s import extract_segment_baseline, iter_rest_source
 from src.common.steps.slide_3s_hop100 import WIN_SEC as WIN_SEC_3S, segment_to_3s_hop100_windows  # noqa: E402
 
 FS = 250.0
-FROZEN = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]
+# 2026-08-29 冻结：与 experiment/channel_layout.DEVICE_CHANNEL_LABELS 统一（设备序=模型序）
+FROZEN = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
 
 
 def cue_time_from_row(r: Dict[str, Any]) -> Optional[float]:
@@ -62,7 +63,14 @@ def iter_rest_sources_from_table(
         t1 = _lsl_to_sample(t_lsl, float(te))
         if t1 - t0 < min_len:
             continue
-        tid = int(r.get("trial_id") or 0)
+        try:
+            tid_raw = r.get("trial_id")
+            if tid_raw is None or (isinstance(tid_raw, float) and tid_raw != tid_raw):
+                tid = 0
+            else:
+                tid = int(float(tid_raw))
+        except (TypeError, ValueError):
+            tid = 0
         out.append((tid, t0, t1))
     out.sort(key=lambda x: (x[1], x[0]))
     return out

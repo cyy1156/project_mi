@@ -10,6 +10,10 @@ from typing import List, Optional
 
 import numpy as np
 
+from experiment_game.experiment.channel_layout import (
+    DEVICE_CHANNEL_LABELS,
+    reorder_model_input_to_device,
+)
 from experiment_game.experiment.inference_v2 import FS, RingBuffer
 from experiment_game.experiment.sim.run_to_session_map import SimTrialScript
 
@@ -172,9 +176,8 @@ class Bci2aReplaySource:
         if self.eeg_csv_path is not None:
             self.eeg_csv_path.parent.mkdir(parents=True, exist_ok=True)
             self._csv_file = self.eeg_csv_path.open("w", newline="", encoding="utf-8")
-            ch = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]
             self._csv_writer = csv.writer(self._csv_file)
-            self._csv_writer.writerow(["lsl_time"] + ch)
+            self._csv_writer.writerow(["lsl_time"] + list(DEVICE_CHANNEL_LABELS))
 
         self._t0 = local_clock()
         self._stop = False
@@ -192,11 +195,12 @@ class Bci2aReplaySource:
             target_i = int((now - self._t0) * self.fs * self.speed)
             while i <= target_i and i < n:
                 row = self.timeline[i : i + 1]
-                self.buf.push(row)
+                row_dev = reorder_model_input_to_device(row)
+                self.buf.push(row_dev)
                 lsl_t = self._t0 + i / (self.fs * self.speed)
                 if self._csv_writer is not None:
                     self._csv_writer.writerow(
-                        [f"{lsl_t:.6f}"] + [f"{v:.6f}" for v in row[0]]
+                        [f"{lsl_t:.6f}"] + [f"{v:.6f}" for v in row_dev[0]]
                     )
                 i += 1
                 self.samples_pushed += 1

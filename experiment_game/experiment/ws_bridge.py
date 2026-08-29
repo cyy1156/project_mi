@@ -17,7 +17,7 @@ class WsBridge:
     """
     在后台线程跑 asyncio WebSocket 服务。
     主线程用 broadcast() 推消息；wait_client_event() 等浏览器 continue/ready。
-    新连接会重放 pending 的 prompt/stage/hud，避免刷新后卡死。
+    新连接会重放 pending 的 prompt/stage/hud/session_saved，避免刷新后卡死。
     """
 
     def __init__(self, host: str = "127.0.0.1", port: int = 8765) -> None:
@@ -66,8 +66,14 @@ class WsBridge:
                     m for m in self._pending if m.get("type") != "questionnaire"
                 ]
                 self._pending.append(dict(message))
-            elif mtype in ("stage", "hud", "session", "operator_state"):
+            elif mtype in ("stage", "hud", "session", "operator_state", "session_saved", "session_finishing"):
+                # session_saved / session_finishing：落盘/对齐期间可能断线，重连须能收到终态
                 self._pending = [m for m in self._pending if m.get("type") != mtype]
+                # session_saved 到达后不再需要 finishing 过渡态
+                if mtype == "session_saved":
+                    self._pending = [
+                        m for m in self._pending if m.get("type") != "session_finishing"
+                    ]
                 self._pending.append(dict(message))
 
     def clear_pending_questionnaire(self) -> None:
@@ -136,15 +142,35 @@ class WsBridge:
             "hud",
             "session",
             "operator_state",
+            "session_saved",
+            "session_finishing",
         ):
             self.set_pending(message)
         loop = self._loop
         if loop is None or not loop.is_running():
             return
         try:
-            asyncio.run_coroutine_threadsafe(self._broadcast(message), loop)
-        except Exception:  # noqa: BLE001
-            pass
+            fut = asyncio.run_coroutine_threadsafe(self._broadcast(message), loop)
+
+            def _log_err(f: Any) -> None:
+                try:
+                    exc = f.exception()
+                except Exception:  # noqa: BLE001
+                    return
+                if exc is not None:
+                    print(f"[ws] broadcast 失败 type={message.get('type')}: {exc!r}")
+
+            fut.add_done_callback(_log_err)
+        except Exception as exc:  # noqa: BLE001
+            print(f"[ws] broadcast 调度失败 type={message.get('type')}: {exc!r}")
+
+    def clear_pending_session_saved(self) -> None:
+        with self._lock:
+            self._pending = [
+                m
+                for m in self._pending
+                if m.get("type") not in ("session_saved", "session_finishing")
+            ]
 
     def clear_event(self, name: str) -> None:
         ev = self._client_events.get(name)
@@ -251,6 +277,8 @@ class WsBridge:
                     msg = json.loads(raw)
                 except json.JSONDecodeError:
                     continue
+                if not isinstance(msg, dict):
+                    continue
                 mtype = msg.get("type")
                 if mtype == "continue":
                     self.clear_pending_prompt()
@@ -320,7 +348,10 @@ class WsBridge:
     async def _broadcast(self, message: dict[str, Any]) -> None:
         if not self._clients:
             return
-        data = json.dumps(message, ensure_ascii=False)
+        try:
+            data = json.dumps(message, ensure_ascii=False, default=str)
+        except Exception as exc:  # noqa: BLE001
+            raise RuntimeError(f"JSON 序列化失败 type={message.get('type')}: {exc}") from exc
         dead = []
         for ws in list(self._clients):
             try:

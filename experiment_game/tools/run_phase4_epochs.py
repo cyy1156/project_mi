@@ -71,6 +71,11 @@ def main(argv: list[str] | None = None) -> int:
         default=0.5,
         help="窗内基线校正时长（秒）",
     )
+    p.add_argument(
+        "--force",
+        action="store_true",
+        help="覆盖已有输出目录中的 npy",
+    )
     args = p.parse_args(argv)
 
     session = args.session
@@ -101,6 +106,11 @@ def main(argv: list[str] | None = None) -> int:
         out = out / name
     elif not out.is_absolute():
         out = (_REPO_ROOT / out).resolve()
+
+    out.mkdir(parents=True, exist_ok=True)
+    if (out / "X.npy").is_file() and not args.force:
+        print(f"输出已存在: {out}（加 --force 覆盖）", file=sys.stderr)
+        return 1
 
     print(f"session={session}")
     print(f"phases={phases}")

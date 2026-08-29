@@ -26,6 +26,8 @@ def test_login_creates_dirs(tmp_path):
     assert (root / "sessions").is_dir()
     assert (root / "models/current").is_dir()
     assert info["subject_id"] == "tst01"
+    assert "sessions" in info
+    assert isinstance(info["sessions"], list)
 
 
 def test_estimate_ft_windows():
@@ -45,6 +47,35 @@ def test_suggest_session_id_ws():
     sid = suggest_session_id("fnz", repo_root=Path(__file__).resolve().parents[3])
     # fnz has ws01-ws03 in data/sessions
     assert sid.startswith("ws")
+
+
+def test_session_id_conflict_and_archive(tmp_path):
+    from experiment_game.experiment.subject_registry import (
+        archive_sessions_for_id,
+        login_subject,
+        session_id_conflict,
+        sessions_dir,
+        suggest_session_id,
+    )
+
+    login_subject("abctest", repo_root=tmp_path)
+    sess = sessions_dir("abctest", repo_root=tmp_path)
+    d1 = sess / "abctest_ws07_20260828_120000"
+    d1.mkdir(parents=True)
+    (d1 / "session.meta.json").write_text('{"phase_mode":"v3_session"}', encoding="utf-8")
+
+    conflict = session_id_conflict("abctest", "ws07", repo_root=tmp_path)
+    assert conflict["exists"] is True
+    assert conflict["count"] == 1
+    assert conflict["suggest_session_id"] == "ws08"
+
+    moved = archive_sessions_for_id("abctest", "ws07", repo_root=tmp_path)
+    assert len(moved) == 1
+    assert not d1.exists()
+    assert Path(moved[0]).is_dir()
+    conflict2 = session_id_conflict("abctest", "ws07", repo_root=tmp_path)
+    assert conflict2["exists"] is False
+    assert suggest_session_id("abctest", repo_root=tmp_path) == "ws01"
 
 
 def test_scan_fnz_ws01():

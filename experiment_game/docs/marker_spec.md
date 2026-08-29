@@ -1,16 +1,31 @@
-# Marker / 事件规格（冻结）
+# Marker / 事件规格
 
 > **版本**：v0.2  
-> **日期**：2026-08-22  
-> **状态**：Phase 1 冻结（时序数值升级为「可配置 + 落盘快照」，见 §1.1）  
-> **配套**：`游戏内容规格.md`、`项目计划.md` §5
+> **日期**：2026-08-22 · **状态标注修订：2026-08-29**  
+> **状态**：**Phase 1 历史规格（归档）** —— 下表 17s / Cue2s+MI 晚 2s **不是**现行 OpenBMI-Align。  
+> **现行时序与打点**：见 [`范式对齐_OpenBMI与fnz_v3_20260827.md`](范式对齐_OpenBMI与fnz_v3_20260827.md) §2 · [`框架冻结确认_20260829.md`](框架冻结确认_20260829.md)  
+> 配套（历史）：`游戏内容规格.md`、旧 `项目计划.md`
 
 权威时钟：`pylsl.local_clock()`（下称 `t_lsl`）。  
 控制器在每个阶段边界**先**取 `t_lsl`，再写 `events.jsonl` 并推 LSL Marker；前端不参与打标。
 
 ---
 
-## 1. 单 Trial 时间轴（默认值，可配置）
+## ⚠ 现行 Align 单 Trial（请用这个，不要用 §1 旧表）
+
+```text
+专用 Rest 4s → prep 2s → Cue=MI onset → MI 4s → ITI 3s
+```
+
+- Rest：`rest_start` / `rest_end`（**不含 prep**）  
+- Cue 与 `mi_start` 对齐（`cue_s=0`）  
+- 切窗 / FT：`[t_rest_start,t_rest_end)` + Cue 后 `[0,4)`  
+
+以下 §1 仅保留 Phase1 追溯。
+
+---
+
+## 1. 单 Trial 时间轴（Phase1 默认值 · 历史）
 
 墙钟合计 **17 s**（含 Transition）。相对 `trial_start`：
 

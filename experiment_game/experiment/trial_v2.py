@@ -3,7 +3,9 @@
 范式（OpenBMI-Align v1）：
   【每试次 Cue 前 4s Rest】→ prep → Cue=mi_start → MI 固定 4s → ITI
   无 label=0「静息想象」试次；静息 = 块前 30s seed + 每试次 Cue 前 4s。
-  计分：每窗记录 pred；MI 结束多数票 vs label → 正确 +1 / 错误 0。
+  计分：
+    - MI：多数票 vs L/R → 正确 +1
+    - Cue 前 Rest：多数票 vs Rest(0) → 正确 +0.5（36×0.5=18，与 L/R 各 18 对齐）
 """
 
 from __future__ import annotations
@@ -19,7 +21,7 @@ from pylsl import local_clock
 
 from experiment_game.experiment.events_log import EventLogger
 from experiment_game.experiment.markers import MarkerPublisher, format_payload
-from experiment_game.experiment.trial_scoring import MiTrialTracker
+from experiment_game.experiment.trial_scoring import PRE_CUE_REST_POINTS, MiTrialTracker
 from experiment_game.experiment.trial_sm import SessionAbort, wait_until as _wu  # noqa: F401
 
 _ADAPT_ENGINE_ROOT = str(Path(__file__).resolve().parents[2] / "code")
@@ -99,6 +101,8 @@ class TrialContextV2:
     round_no: int
     rejected: bool = False
     subblock: int = 0
+    # "mi" | "pre_cue_rest"：判定锚点 / 计分相位（Rest 判定勿写入 MI cue_t）
+    score_phase: str = "mi"
 
 
 TrialEndHook = Callable[[TrialContextV2, Optional[Dict]], Optional[str]]
@@ -186,6 +190,7 @@ class TrialStateMachineV2:
         tracker = MiTrialTracker(ctx.label)
         signal_bad_ticks = 0
         good_ticks = 0
+        ctx.score_phase = "mi"
 
         for t_rel in t.judgment_times:
             self._wait_after(mi_t, t_rel)
@@ -203,6 +208,7 @@ class TrialStateMachineV2:
                     "signal_metrics": j.get("signal_metrics"),
                     "p_three": None,
                     "pred": None,
+                    "score_phase": "mi",
                 }
                 self._emit("judge", ctx, extra=bad_payload)
                 self._notify("judge", ctx, {**j, **bad_payload})
@@ -219,6 +225,7 @@ class TrialStateMachineV2:
             j["t_rel"] = t_rel
             j["is_game"] = ctx.mode == "game"
             j["score"] = tracker.running_arm_score()
+            j["score_phase"] = "mi"
             self._emit(
                 "judge",
                 ctx,
@@ -231,6 +238,7 @@ class TrialStateMachineV2:
                     "p_three": p_three,
                     "win_start_rel": j.get("win_start_rel"),
                     "win_end_rel": j.get("win_end_rel"),
+                    "score_phase": "mi",
                 },
             )
             self._notify("judge", ctx, j)
@@ -273,18 +281,96 @@ class TrialStateMachineV2:
 
         return summary_dict
 
-    def run_inter_trial_rest(self, ctx: TrialContextV2) -> None:
-        """每试次 Cue 前 Rest（OpenBMI 间隔段 / ERD 基线）；事件挂在本试次 trial_id。"""
+    def run_inter_trial_rest(self, ctx: TrialContextV2) -> Optional[Dict]:
+        """每试次 Cue 前 Rest（OpenBMI 间隔段 / ERD 基线）；多数票判 Rest → +0.5。"""
         dur = self.timing.inter_trial_rest_s
         if dur <= 1e-6:
-            return
+            return None
         self._notify("inter_trial_rest", ctx)
         row = self._emit("rest_start", ctx, extra={"label": 0, "role": "pre_cue_rest"})
         rest_t = row["t_lsl"]
         self._notify("rest_start", ctx, {"rest_t": rest_t, "duration_s": dur})
+
+        rest_ctx = TrialContextV2(
+            trial_id=ctx.trial_id,
+            label=LABEL_REST,
+            mode=ctx.mode,
+            round_no=ctx.round_no,
+            subblock=ctx.subblock,
+            score_phase="pre_cue_rest",
+        )
+        tracker = MiTrialTracker(LABEL_REST, correct_points=PRE_CUE_REST_POINTS)
+        signal_bad_ticks = 0
+        good_ticks = 0
+        t = self.timing
+        for t_rel in t.judgment_times:
+            if float(t_rel) > float(dur) + 1e-9:
+                continue
+            self._wait_after(rest_t, t_rel)
+            if self.judgment_fn is None:
+                continue
+            j = self.judgment_fn(rest_t, t_rel, rest_ctx)
+            if j is None:
+                continue
+            if j.get("signal_bad"):
+                signal_bad_ticks += 1
+                bad_payload = {
+                    "t_rel": t_rel,
+                    "signal_bad": True,
+                    "signal_reason": j.get("reason"),
+                    "signal_metrics": j.get("signal_metrics"),
+                    "p_three": None,
+                    "pred": None,
+                    "score_phase": "pre_cue_rest",
+                    "role": "pre_cue_rest",
+                }
+                self._emit("judge", rest_ctx, extra=bad_payload)
+                self._notify("judge", rest_ctx, {**j, **bad_payload})
+                continue
+            good_ticks += 1
+            j = dict(j)
+            from experiment_game.experiment.class_labels import normalize_p_three
+
+            p_three = normalize_p_three(j.get("p_three"))
+            j["p_three"] = p_three
+            win = tracker.add_window(t_rel, j)
+            j.update(win)
+            j["t_rel"] = t_rel
+            j["score_phase"] = "pre_cue_rest"
+            j["role"] = "pre_cue_rest"
+            self._emit(
+                "judge",
+                rest_ctx,
+                extra={
+                    "t_rel": t_rel,
+                    "pred": j.get("pred"),
+                    "gated_pred": win.get("gated_pred"),
+                    "p_max": round(float(j.get("p_max", 0.0)), 4),
+                    "gated": bool(j.get("gated", False)),
+                    "p_three": p_three,
+                    "win_start_rel": j.get("win_start_rel"),
+                    "win_end_rel": j.get("win_end_rel"),
+                    "score_phase": "pre_cue_rest",
+                    "role": "pre_cue_rest",
+                },
+            )
+            self._notify("judge", rest_ctx, j)
+
         self._wait_after(rest_t, dur)
         self._emit("rest_end", ctx)
         self._notify("rest_end", ctx, {"rest_t": rest_t, "duration_s": dur})
+
+        signal_bad = bool(good_ticks == 0 and signal_bad_ticks > 0)
+        summary = tracker.finalize(signal_bad_trial=signal_bad)
+        summary["role"] = "pre_cue_rest"
+        summary["score_phase"] = "pre_cue_rest"
+        self._emit(
+            "pre_cue_rest_end",
+            rest_ctx,
+            extra={"trial_score": summary, "score": summary.get("score")},
+        )
+        self._notify("pre_cue_rest_end", rest_ctx, {"summary": summary})
+        return summary
 
     def run_round(
         self,
@@ -327,6 +413,7 @@ def run_guidance_stage(
     on_stage: Optional[Callable[[str, dict], None]] = None,
     confirm_fn: Optional[Callable[[], bool]] = None,
     timeout_s: float = 600.0,
+    should_abort: Optional[Callable[[], bool]] = None,
 ) -> dict:
     t0 = local_clock()
     events.emit("guidance_begin", round=round_no, payload=format_payload("guidance_begin"))
@@ -335,8 +422,10 @@ def run_guidance_stage(
         on_stage("guidance_begin", {"round": round_no})
     passed = False
     if confirm_fn is not None:
-        deadline = time.time() + timeout_s
-        while time.time() < deadline:
+        deadline = t0 + timeout_s
+        while local_clock() < deadline:
+            if should_abort is not None and should_abort():
+                break
             if confirm_fn():
                 passed = True
                 break

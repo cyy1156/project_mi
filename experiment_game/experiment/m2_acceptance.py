@@ -25,9 +25,10 @@ sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
 from experiment_game.experiment import inference_v2 as inf  # noqa: E402
 
-RAW_COLS = ["C3", "C4", "CZ", "CP3", "CP4", "CPZ", "FC3", "FC4"]
-FROZEN = ["Cz", "C3", "C4", "CP3", "FC4", "FC3", "CP4", "CPz"]
-REORDER = [RAW_COLS.index(c.upper()) for c in FROZEN]  # [2,0,1,3,7,6,4,5]
+# 2026-08-29 冻结：设备序 = 模型序 = channel_layout 全局统一序
+RAW_COLS = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
+FROZEN = ["FC3", "C3", "CP3", "CZ", "CPZ", "FC4", "C4", "CP4"]
+REORDER = [RAW_COLS.index(c.upper()) for c in FROZEN]  # 恒等 [0..7]
 
 
 def load_session_eeg(session_dir: Path):
@@ -51,7 +52,8 @@ def load_session_eeg(session_dir: Path):
 
 
 def load_cues(session_dir: Path):
-    rows = list(csv.DictReader(open(session_dir / "alignment" / "trial_table.csv", encoding="utf-8")))
+    with open(session_dir / "alignment" / "trial_table.csv", encoding="utf-8") as fh:
+        rows = list(csv.DictReader(fh))
     return [(int(r["trial_id"]), int(r["label"]), float(r["t_cue"])) for r in rows if r["t_cue"]]
 
 

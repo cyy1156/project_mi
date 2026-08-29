@@ -16,9 +16,29 @@ def _load_events(path: Path) -> List[Dict[str, Any]]:
     with path.open(encoding="utf-8") as f:
         for line in f:
             line = line.strip()
-            if line:
+            if not line:
+                continue
+            try:
                 rows.append(json.loads(line))
+            except json.JSONDecodeError:
+                continue
     return rows
+
+
+def _timing_from_session_root(session_root: Path) -> Tuple[float, float]:
+    mi_s, rest_s = 4.0, 4.0
+    rc = session_root / "run_config.json"
+    if rc.is_file():
+        try:
+            cfg = json.loads(rc.read_text(encoding="utf-8"))
+            timing = (cfg.get("experiment") or {}).get("timing") or {}
+            if timing.get("mi_s") is not None:
+                mi_s = float(timing["mi_s"])
+            if timing.get("rest_s") is not None:
+                rest_s = float(timing["rest_s"])
+        except (TypeError, ValueError, json.JSONDecodeError):
+            pass
+    return mi_s, rest_s
 
 
 def _find_eeg_meta_path(
@@ -161,6 +181,8 @@ def verify_alignment(
     require_acq: bool = True,
     eeg_quality: Optional[Dict[str, Any]] = None,
     max_drop_rate_pct: float = 1.0,
+    mi_s: float = 4.0,
+    rest_s: float = 4.0,
 ) -> Dict[str, Any]:
     report: Dict[str, Any] = {
         "passed": True,
@@ -193,19 +215,19 @@ def verify_alignment(
             continue
         md = r.get("mi_dur")
         rd = r.get("rest_dur")
-        if md is None or abs(float(md) - 4.0) > tol_s:
+        if md is None or abs(float(md) - float(mi_s)) > tol_s:
             mi_bad.append((r.get("trial_id"), md))
-        if rd is None or abs(float(rd) - 4.0) > tol_s:
+        if rd is None or abs(float(rd) - float(rest_s)) > tol_s:
             rest_bad.append((r.get("trial_id"), rd))
     add(
         len(mi_bad) == 0,
-        "acquire_mi_4s",
-        f"bad={mi_bad[:5]} n_acquire={len(acquire)}",
+        "acquire_mi_duration",
+        f"expected={mi_s}s bad={mi_bad[:5]} n_acquire={len(acquire)}",
     )
     add(
         len(rest_bad) == 0,
-        "acquire_rest_4s",
-        f"bad={rest_bad[:5]} n_acquire={len(acquire)}",
+        "acquire_rest_duration",
+        f"expected={rest_s}s bad={rest_bad[:5]} n_acquire={len(acquire)}",
     )
 
     span = _eeg_span(eeg_path) if eeg_path else None
@@ -282,6 +304,7 @@ def write_alignment_bundle(
         else None
     )
     eeg_quality = _load_eeg_quality(eeg_meta_path) if acq_enabled else None
+    mi_s, rest_s = _timing_from_session_root(session_root)
 
     report = verify_alignment(
         events,
@@ -289,9 +312,10 @@ def write_alignment_bundle(
         eeg_path if acq_enabled else None,
         require_acq=acq_enabled,
         eeg_quality=eeg_quality,
+        mi_s=mi_s,
+        rest_s=rest_s,
     )
-    (align_dir / "verify_report.json").write_text(
-        json.dumps(report, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    from experiment_game.experiment.atomic_io import atomic_write_json
+
+    atomic_write_json(align_dir / "verify_report.json", report)
     return report

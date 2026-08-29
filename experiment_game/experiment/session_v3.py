@@ -25,6 +25,7 @@ from experiment_game.experiment.trial_v2 import (
     build_calibration_schedule,
 )
 from experiment_game.experiment.trial_sm import SessionAbort
+from experiment_game.experiment.trial_scoring import session_score_max_openbmi
 from experiment_game.experiment.v3_config import V3Config
 from experiment_game.experiment.v3_report import build_v3_report, write_v3_report
 from experiment_game.experiment.ws_bridge import WsBridge
@@ -87,18 +88,10 @@ def build_v3_deps_from_buffer(
     on_console: Optional[Callable[[str], None]] = None,
 ) -> tuple:
     """仿真回放：权重 + 已有 RingBuffer（无 LSL）。"""
-    from pathlib import Path
-
-    from adapt_engine.registry import ModelRegistry
+    from experiment_game.experiment.registry_factory import build_registry, is_e1f_mode
 
     log = on_console or (lambda _m: None)
-    task = Path(__file__).resolve().parents[2] / cfg.s3_task_ckpt
-    three = Path(__file__).resolve().parents[2] / cfg.s3_three_ckpt
-    if not task.is_file():
-        raise FileNotFoundError(f"缺 task 权重: {task}")
-    if not three.is_file():
-        raise FileNotFoundError(f"缺 three 权重: {three}")
-    reg = ModelRegistry(task, three)
+    reg = build_registry(cfg)
     pre = OnlinePreprocessor()
     infer = InferenceService(
         buf,
@@ -110,15 +103,24 @@ def build_v3_deps_from_buffer(
         mi_task_sec=cfg.imagine_s,
         baseline_before_cue_s=cfg.baseline_before_cue_s,
     )
-    log("[v3] 仿真依赖就绪：权重 + Replay RingBuffer")
+    mode_s = "E1f 四成员" if is_e1f_mode(cfg) else "单模 Shallow"
+    log(f"[v3] 仿真依赖就绪：{mode_s} + Replay RingBuffer")
     return reg, buf, pre, infer
 
 
-def _extract_segment(buf: RingBuffer, t_start: float, t_end: float) -> Optional[np.ndarray]:
+def _extract_segment(
+    buf: RingBuffer,
+    t_start: float,
+    t_end: float,
+    *,
+    lsl_eeg_scale: float = 1.0,
+) -> Optional[np.ndarray]:
     from pylsl import local_clock
 
-    n = max(1, int(round((t_end - t_start) * FS)))
-    return buf.window_ending_at(t_end, n, t_now_lsl=local_clock())
+    dur_eeg = float(t_end) - float(t_start)
+    t_end_lsl = float(t_start) + dur_eeg * float(lsl_eeg_scale)
+    n = max(1, int(round(dur_eeg * FS)))
+    return buf.window_ending_at(t_end_lsl, n, t_now_lsl=local_clock())
 
 
 def run_v3_session(
@@ -139,6 +141,8 @@ def run_v3_session(
     block_order_override: Optional[List[str]] = None,
     trial_labels_by_block: Optional[List[List[int]]] = None,
     sim_meta: Optional[Dict[str, Any]] = None,
+    use_synthetic: bool = False,
+    auto_confirm_guidance: Optional[bool] = None,
 ) -> Dict[str, Any]:
     import random
 
@@ -149,6 +153,11 @@ def run_v3_session(
     verr = cfg.verify_errors()
     if verr:
         raise ValueError("v3 配置无效: " + "; ".join(verr))
+
+    # 合成板 / 仿真：默认自动确认动觉引导，避免「像卡死」干等 600s
+    if auto_confirm_guidance is None:
+        auto_confirm_guidance = bool(use_synthetic) or bool(sim_meta)
+    auto_confirm_guidance = bool(auto_confirm_guidance)
 
     rng = random.Random(seed) if seed is not None else random.Random()
     if block_order_override is not None:
@@ -173,10 +182,61 @@ def run_v3_session(
             raise RuntimeError(msg)
         reg, buf, _, infer = deps_pair
     assert buf is not None and infer is not None
+    lsl_eeg_scale = 1.0
+    eeg_watchdog = not bool(sim_meta)  # 仿真回放不启断流看门狗
+    eeg_stale_timeout_s = 3.0
+    _eeg_stale_announced = {"done": False}
+
+    def _raise_if_eeg_stale() -> None:
+        if not eeg_watchdog:
+            return
+        st = buf.stale_status(eeg_stale_timeout_s)
+        if st is None:
+            return
+        age = float(st["age_s"])
+        if not _eeg_stale_announced["done"]:
+            _eeg_stale_announced["done"] = True
+            msg = (
+                f"EEG 断流：已 {age:.1f}s 无新样本（阈值 {eeg_stale_timeout_s:.0f}s）。"
+                "请检查 dongle/COM/USB，会话已暂停判定并中止。"
+            )
+            on_console(f"[v3] ERR {msg}")
+            events.emit(
+                "eeg_stale",
+                phase="v3",
+                age_s=age,
+                timeout_s=float(st["timeout_s"]),
+                n_samples=int(st["n_samples"]),
+            )
+            markers.push(f"eeg_stale|age={age:.1f}")
+            bridge.broadcast(
+                {
+                    "type": "eeg_stale",
+                    "age_s": age,
+                    "timeout_s": float(st["timeout_s"]),
+                    "n_samples": int(st["n_samples"]),
+                    "message": msg,
+                }
+            )
+            bridge.broadcast({"type": "acq_status", "state": "error", "message": msg})
+        raise SessionAbort(f"eeg_stale:{age:.1f}s")
+
+    def _should_abort() -> bool:
+        if bridge.should_abort():
+            return True
+        _raise_if_eeg_stale()
+        return False
+
+    if sim_meta:
+        replay_speed = float(sim_meta.get("replay_speed") or 1.0)
+        if replay_speed > 1.0 + 1e-9:
+            lsl_eeg_scale = 1.0 / replay_speed
     infer.window_mode = str(getattr(cfg, "online_window_mode", "openbmi_hop100"))
     infer.mi_task_sec = float(cfg.imagine_s)
     infer.baseline_before_cue_s = float(getattr(cfg, "baseline_before_cue_s", 0.5))
     infer.forward_window = False
+    infer.lsl_eeg_scale = lsl_eeg_scale
+    infer.stale_check_enabled = eeg_watchdog
     pre_feat = OnlinePreprocessor()
     fp_start = _weight_fingerprint(reg)
     eeg_pub = EegFramePublisher(buf, bridge, cfg, pre=pre_feat, on_console=on_console)
@@ -204,7 +264,10 @@ def run_v3_session(
         "blocks_total": cfg.blocks,
         "session_score": 0,
         "session_trials_done": 0,
-        "session_score_max": int(cfg.blocks) * int(cfg.trials_per_block),
+        "session_score_max": session_score_max_openbmi(
+            int(cfg.blocks) * int(cfg.trials_per_block),
+            inter_trial_rest_s=float(cfg.inter_trial_rest_s),
+        ),
     }
 
     def _ser(data):
@@ -218,6 +281,26 @@ def run_v3_session(
         return None
 
     arm_peak_by_trial: Dict[int, int] = {}
+    _judge_err_logged = False
+    _sim_live_baseline_sent = False
+
+    def _maybe_broadcast_sim_erd_baseline(filt: np.ndarray) -> None:
+        """仿真跳过 30s 基线：用首次试次间 Rest 功率灌入操作台实时 ERD% 条。"""
+        nonlocal _sim_live_baseline_sent
+        if not sim_meta or _sim_live_baseline_sent:
+            return
+        if filt is None or filt.shape[0] < int(FS):
+            return
+        mu, bl, _bh = bandpowers_fft(filt, FS, cfg.standards())
+        _sim_live_baseline_sent = True
+        bridge.broadcast({
+            "type": "v3_baseline",
+            "baseline_mu": [float(x) for x in mu],
+            "baseline_beta": [float(x) for x in bl],
+            "sim_rest_seed": True,
+            "message": "仿真：已用试次间 Rest 建立实时 ERD 基线",
+        })
+        on_console("[v3] 仿真：试次间 Rest → 操作台实时 ERD 基线已就绪")
 
     def on_stage(stage: str, ctx, data) -> None:
         from experiment_game.experiment.score_feedback import enrich_stage_data
@@ -239,12 +322,15 @@ def run_v3_session(
             rest_t = data.get("rest_t")
             dur = float(data.get("duration_s") or cfg.inter_trial_rest_s)
             if rest_t is not None and dur > 1e-6:
-                seg = _extract_segment(buf, float(rest_t), float(rest_t) + dur)
+                seg = _extract_segment(
+                    buf, float(rest_t), float(rest_t) + dur, lsl_eeg_scale=lsl_eeg_scale
+                )
                 if seg is not None and seg.shape[0] >= int(FS):
                     filt = pre_feat.process_segment(seg)
                     n_itr = extractor.seed_rest_from_segment(filt, as_block_seed=False)
                     if n_itr:
                         on_console(f"[v3] 试次间 Rest 灌入 ERD 基线 +{n_itr} 窗")
+                    _maybe_broadcast_sim_erd_baseline(filt)
         if ctx is not None:
             progress["trial_in_block"] = getattr(ctx, "trial_id", 0)
             progress["block_cond"] = current_cond
@@ -258,21 +344,31 @@ def run_v3_session(
         score = None
         if isinstance(data, dict) and data.get("score") is not None:
             score = data.get("score")
-        # 本场累计：多数票每试次 0/1，满分 = blocks × trials_per_block
+        # 本场累计：MI 各 +1（满分 36）+ Cue前静息各 +0.5（满分 18）→ 满分 54
         if (
-            stage == "trial_end"
-            and ctx is not None
+            ctx is not None
             and not getattr(ctx, "rejected", False)
             and isinstance(data, dict)
         ):
             summary = data.get("summary") if isinstance(data.get("summary"), dict) else None
             lab_end = getattr(ctx, "label", None)
-            # Rest(0)/L/R 均计分；静息无伸手/拿杯（见 score_feedback.enrich_stage_data）
-            if summary is not None and lab_end in (0, 1, 2):
+            if stage == "pre_cue_rest_end" and summary is not None:
+                pts = float(summary.get("score") or 0.0)
+                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                progress["score"] = pts
+                if score is None:
+                    score = pts
+            elif (
+                stage == "trial_end"
+                and summary is not None
+                and lab_end in (0, 1, 2)
+            ):
                 pts = float(summary.get("score") or 0.0)
                 progress["session_score"] = float(progress.get("session_score") or 0) + pts
                 progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
                 progress["score"] = pts
+                if score is None:
+                    score = pts
         from experiment_game.experiment.class_labels import attach_judge_names, label_name
 
         lab = getattr(ctx, "label", None) if ctx else None
@@ -298,7 +394,27 @@ def run_v3_session(
         })
 
     def judgment_fn(mi_t: float, t_rel: float, ctx) -> Optional[Dict]:
+        nonlocal _judge_err_logged
         tid = getattr(ctx, "trial_id", -1)
+        phase = getattr(ctx, "score_phase", "mi")
+        # Cue 前静息：锚点=rest_start，勿写入 MI 的 cue_t / trial_judgments
+        if phase == "pre_cue_rest":
+            try:
+                _raise_if_eeg_stale()
+                j = infer.judge(float(mi_t), t_rel)
+                if j is None:
+                    return None
+                if j.get("eeg_stale"):
+                    _raise_if_eeg_stale()
+                return j
+            except SessionAbort:
+                raise
+            except Exception as exc:
+                if not _judge_err_logged:
+                    _judge_err_logged = True
+                    on_console(f"[v3] 判定异常（已静默后续同类错误）: {exc}")
+                return None
+
         times = trial_times.setdefault(tid, {})
         times["mi_t"] = mi_t
         cue_t = times.get("cue_t")
@@ -306,9 +422,13 @@ def run_v3_session(
             cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
             times["cue_t"] = cue_t
         try:
+            _raise_if_eeg_stale()
             j = infer.judge(float(cue_t), t_rel)
             if j is None:
                 return None
+            if j.get("eeg_stale"):
+                _raise_if_eeg_stale()
+                return j
             rec = {
                 "t_rel": t_rel,
                 "win_start_rel": j.get("win_start_rel"),
@@ -324,7 +444,12 @@ def run_v3_session(
             }
             trial_judgments.setdefault(tid, []).append(rec)
             return j
-        except Exception:
+        except SessionAbort:
+            raise
+        except Exception as exc:
+            if not _judge_err_logged:
+                _judge_err_logged = True
+                on_console(f"[v3] 判定异常（已静默后续同类错误）: {exc}")
             return None
 
     def on_trial_end(ctx, summary: Optional[Dict]) -> Optional[str]:
@@ -363,7 +488,7 @@ def run_v3_session(
         judgment_fn=judgment_fn,
         on_trial_end=on_trial_end,
         is_paused=bridge.is_paused,
-        should_abort=bridge.should_abort,
+        should_abort=_should_abort,
         is_rejected=bridge.is_rejected,
         time_scale=time_scale,
     )
@@ -381,12 +506,13 @@ def run_v3_session(
         wait_until(
             local_clock() + duration_s * time_scale,
             is_paused=bridge.is_paused,
-            should_abort=bridge.should_abort,
+            should_abort=_should_abort,
         )
 
     def _finalize_trial(ctx: TrialContextV2, summary: Dict) -> None:
         if bridge.should_abort():
             return
+        _raise_if_eeg_stale()
         tid = ctx.trial_id
         times = trial_times.get(tid, {})
         cue_t = times.get("cue_t")
@@ -403,16 +529,21 @@ def run_v3_session(
                 "verdict_text": "信号质量不足，本试次不计统计（acc/ERD 均已剔除）",
             }
         elif cue_t is not None:
-            mi_seg_raw = _extract_segment(buf, cue_t, cue_t + 4.0)
+            mi_seg_raw = _extract_segment(
+                buf, cue_t, cue_t + float(cfg.imagine_s), lsl_eeg_scale=lsl_eeg_scale
+            )
             if mi_seg_raw is not None and mi_seg_raw.shape[0] >= int(FS):
                 mi_filt = pre_feat.process_segment(mi_seg_raw)
                 feat = extractor.compute_trial_features(ctx.label, mi_filt)
                 extractor.add_trial_segment(ctx.label, mi_filt)
+                if int(ctx.label) == 0:
+                    _maybe_broadcast_sim_erd_baseline(mi_filt)
                 if cfg.save_trial_segments:
                     seg_raw = _extract_segment(
                         buf,
-                        cue_t - 2.0,
-                        times.get("mi_end_t", cue_t + cfg.imagine_s + cfg.cue_s),
+                        cue_t - float(getattr(cfg, "baseline_before_cue_s", 0.5)),
+                        cue_t + cfg.imagine_s + cfg.cue_s,
+                        lsl_eeg_scale=lsl_eeg_scale,
                     )
                     if seg_raw is not None:
                         np.save(segments_dir / f"trial{tid:03d}.npy", seg_raw.astype(np.float32))
@@ -421,11 +552,21 @@ def run_v3_session(
         if js_ok:
             from experiment_game.experiment.judge_aggregate import primary_judge_from_judgments
 
+            # F5：计分与主判定同轨（因果平滑+多数票）；不再因 e1f 读出强制 conf_stop
+            pj_mode = getattr(cfg, "primary_judge_mode", "majority")
+            if pj_mode == "e1f_conf_stop":
+                # 历史配置兼容：正式 SOP 已退出，回落到多数票
+                pj_mode = "majority"
             primary = primary_judge_from_judgments(
                 js_ok,
-                mode=getattr(cfg, "primary_judge_mode", "majority"),
+                mode=pj_mode,
                 primary_s=cfg.primary_judge_s,
             )
+            # 若试次 summary 已带同轨 primary，优先与计分一致
+            if isinstance(summary, dict) and isinstance(summary.get("primary_judge"), dict):
+                spj = summary["primary_judge"]
+                if spj.get("rule") in ("causal_smooth_majority", "majority_vote"):
+                    primary = spj
 
         signal_reason = None
         if signal_bad:
@@ -515,27 +656,67 @@ def run_v3_session(
 
     def _run_guidance(block_no: int) -> None:
         progress["phase_step"] = "guidance"
+        timeout_s = float(cfg.guidance_timeout_s)
         bridge.broadcast({
             "type": "v2_stage",
             "stage": "guidance_begin",
             "ctx": None,
-            "data": {"round": block_no, "timeout_s": cfg.guidance_timeout_s},
+            "data": {
+                "round": block_no,
+                "timeout_s": timeout_s,
+                "auto": bool(auto_confirm_guidance),
+            },
             "progress": dict(progress),
         })
-        events.emit("v3_guidance_begin", phase="v3", block=block_no)
+        # 覆盖块前基线 HUD，避免被试页仍显示「静息基线」误以为卡死
+        bridge.broadcast({
+            "type": "hud",
+            "text": f"动觉引导 · 第 {block_no} 块",
+            "subtext": (
+                "合成/仿真：自动确认中…"
+                if auto_confirm_guidance
+                else "操作者抬臂 → 记住感觉 → 等待操作员确认"
+            ),
+            "show_cross": False,
+        })
+        events.emit(
+            "v3_guidance_begin",
+            phase="v3",
+            block=block_no,
+            auto=bool(auto_confirm_guidance),
+        )
         markers.push(f"v3_guidance_begin|block={block_no}")
-        confirmed = bridge.wait_client_event("v2_guidance_confirm", timeout=cfg.guidance_timeout_s)
-        events.emit("v3_guidance_end", phase="v3", block=block_no, passed=bool(confirmed))
-        markers.push(f"v3_guidance_end|block={block_no}|passed={int(bool(confirmed))}")
+        if auto_confirm_guidance:
+            on_console("[v3] 合成/仿真：自动确认动觉引导")
+            confirmed = True
+        else:
+            confirmed = bridge.wait_client_event(
+                "v2_guidance_confirm", timeout=timeout_s
+            )
+        events.emit(
+            "v3_guidance_end",
+            phase="v3",
+            block=block_no,
+            passed=bool(confirmed),
+            auto=bool(auto_confirm_guidance),
+        )
+        markers.push(
+            f"v3_guidance_end|block={block_no}|passed={int(bool(confirmed))}"
+            f"|auto={int(bool(auto_confirm_guidance))}"
+        )
         bridge.broadcast({
             "type": "v2_stage",
             "stage": "guidance_end",
             "ctx": None,
-            "data": {"passed": confirmed, "block": block_no},
+            "data": {
+                "passed": confirmed,
+                "block": block_no,
+                "auto": bool(auto_confirm_guidance),
+            },
             "progress": dict(progress),
         })
         if not confirmed:
-            raise RuntimeError("动觉引导未确认，v3 会话中止")
+            raise SessionAbort("guidance_timeout")
 
     aborted = False
     report: Dict[str, Any] = {}
@@ -550,6 +731,11 @@ def run_v3_session(
             on_console("[v3] 仿真：跳过 session 静息基线（Cue 前 Rest 作校准）")
             events.emit("v3_baseline_skipped", phase="v3", sim=True)
             markers.push("v3_baseline_skipped|sim")
+            bridge.broadcast({
+                "type": "v3_baseline",
+                "sim_skipped": True,
+                "message": "仿真：跳过块前 30s 基线，ERD 相对试次间 Rest",
+            })
         else:
             # —— 阶段 1：静息基线 ——
             _wait_rest(
@@ -635,8 +821,8 @@ def run_v3_session(
             stub = TrialContextV2(trial_id=0, label=0, mode="probe", round_no=block_idx + 1)
             on_stage("round_start", stub, {"mode": "probe", "cond": cond, "block": block_idx + 1, "round": block_idx + 1})
             for i, lab in enumerate(labels):
-                if bridge.should_abort():
-                    raise SessionAbort("operator abort")
+                if _should_abort():
+                    raise SessionAbort("operator_abort")
                 ctx = TrialContextV2(
                     trial_id=trial_offset + i + 1,
                     label=int(lab),
@@ -680,16 +866,25 @@ def run_v3_session(
             markers.push("v3_report")
             bridge.broadcast({"type": "v3_report", "report": report})
 
-    except SessionAbort:
+    except SessionAbort as exc:
         aborted = True
-        on_console("[v3] 操作者中止")
-        events.emit("v3_abort", phase="v3", reason="operator_abort")
-        markers.push("v3_abort|operator")
-        bridge.broadcast({"type": "v3_abort", "reason": "operator_abort"})
+        reason = getattr(exc, "reason", None) or str(exc) or "operator_abort"
+        eeg_stale = str(reason).startswith("eeg_stale")
+        guidance_to = str(reason) == "guidance_timeout"
+        on_console(f"[v3] 会话中止 · {reason}")
+        events.emit("v3_abort", phase="v3", reason=reason, eeg_stale=eeg_stale)
+        markers.push(f"v3_abort|{reason}")
+        bridge.broadcast({"type": "v3_abort", "reason": reason, "eeg_stale": eeg_stale})
+        if guidance_to:
+            abort_msg = "动觉引导超时未确认，会话已中止（请点「确认动觉引导完成」）"
+        elif eeg_stale:
+            abort_msg = "EEG 断流，会话已中止（请检查 dongle/COM）"
+        else:
+            abort_msg = "操作者已中止"
         bridge.broadcast({
             "type": "session",
             "status": "error",
-            "message": "操作者已中止",
+            "message": abort_msg,
             "phase": "v3_session",
         })
 
@@ -699,6 +894,7 @@ def run_v3_session(
 
     summary = {
         "phase_mode": "sim_v3_session" if sim_meta else "v3_session",
+        "readout_mode": getattr(cfg, "readout_mode", None),
         "block_order": order,
         "frozen": fp_start == _weight_fingerprint(reg) if reg else False,
         "invalid_streak_max": invalid_streak_max,

@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import re
-import shutil
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -101,6 +100,8 @@ def suggest_next_run(subject_id: str, *, repo_root: Optional[Path] = None) -> st
     sid = validate_sim_subject_id(subject_id)
     used: set[str] = set()
     for s in list_sim_sessions(sid, repo_root=repo_root):
+        if s.get("record_excluded"):
+            continue
         sid_part = str(s.get("session_id") or "")
         if sid_part.startswith("run"):
             used.add(sid_part.lower())
@@ -124,6 +125,7 @@ def build_sim_index(subject_id: str, *, repo_root: Optional[Path] = None) -> Dic
         "sim_mode": True,
         "updated_at": datetime.now().isoformat(timespec="seconds"),
         "sessions": sessions,
+        "session_count_official": len([s for s in sessions if not s.get("record_excluded")]),
         "current_model": current,
         "suggest_session_id": nxt,
     }
@@ -132,7 +134,7 @@ def build_sim_index(subject_id: str, *, repo_root: Optional[Path] = None) -> Dic
     sub_json = sim_subject_root(sid, repo_root=repo_root) / "subject.json"
     if sub_json.is_file():
         data = json.loads(sub_json.read_text(encoding="utf-8"))
-        data["session_count"] = len(sessions)
+        data["session_count"] = len([s for s in sessions if not s.get("record_excluded")])
         data["next_session_suggest"] = nxt
         sub_json.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     return idx
@@ -162,20 +164,19 @@ def promote_sim_ft_to_current(
         if not (src / name).is_file():
             raise FileNotFoundError(f"缺少 {name} in {src}")
     cur = sim_models_current(sid, repo_root=root)
-    cur.mkdir(parents=True, exist_ok=True)
-    for name in ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"):
-        sp = src / name
-        if sp.is_file():
-            shutil.copy2(sp, cur / name)
+    from experiment_game.experiment.atomic_io import atomic_copy_files_into, atomic_write_json
+
+    atomic_copy_files_into(
+        src,
+        cur,
+        ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"),
+    )
     promote_log = {
         "promoted_at": datetime.now().isoformat(timespec="seconds"),
         "from_ft_run": rel_repo_path(src, repo_root=root),
         "reason": reason or "operator_confirmed",
     }
-    (cur / "promote_log.json").write_text(
-        json.dumps(promote_log, ensure_ascii=False, indent=2) + "\n",
-        encoding="utf-8",
-    )
+    atomic_write_json(cur / "promote_log.json", promote_log)
     build_sim_index(sid, repo_root=root)
     return {
         "ok": True,
@@ -200,6 +201,23 @@ def list_campaigns(subject_id: str, *, repo_root: Optional[Path] = None) -> List
         try:
             data = json.loads(mf.read_text(encoding="utf-8"))
             data["manifest_path"] = str(mf.resolve())
+            from experiment_game.experiment.model_presets import campaign_locked_model_preset_id
+
+            rem = [
+                r
+                for r in (data.get("session_queue") or [])
+                if r not in set(data.get("runs_consumed") or [])
+            ]
+            data["remaining_runs"] = rem
+            data["remaining_count"] = len(rem)
+            locked = campaign_locked_model_preset_id(
+                str(data.get("campaign_id") or ""),
+                subject_id=sid,
+                sim_mode=True,
+                manifest=data,
+            )
+            if locked:
+                data["locked_model_preset_id"] = locked
             out.append(data)
         except Exception:
             continue
@@ -253,6 +271,7 @@ def login_sim_subject(
         "campaigns": list_campaigns(sid, repo_root=repo_root),
         "subject": data,
         "index": index,
+        "sessions": index.get("sessions") or [],
         "suggest_session_id": index.get("suggest_session_id"),
         "current_weights": current_sim_model_paths(sid, repo_root=repo_root),
     }

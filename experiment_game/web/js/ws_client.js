@@ -12,6 +12,11 @@ export class WsClient {
     this.onStatus = onStatus;
     this.ws = null;
     this._retry = 0;
+    this._sessionDone = false;
+  }
+
+  setSessionDone(done = true) {
+    this._sessionDone = Boolean(done);
   }
 
   connect() {
@@ -34,11 +39,11 @@ export class WsClient {
     };
     ws.onclose = () => {
       this.onStatus("连接断开，重试中…");
-      if (this._retry >= 8) {
+      if (this._sessionDone) {
         this.onStatus("服务已结束（可关闭页面）");
         return;
       }
-      const delay = Math.min(3000, 400 + this._retry * 400);
+      const delay = Math.min(30000, 400 + this._retry * 400);
       this._retry += 1;
       setTimeout(() => this.connect(), delay);
     };
