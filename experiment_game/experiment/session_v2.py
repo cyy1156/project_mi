@@ -298,15 +298,13 @@ def run_v2_session(
     _eeg_stale_announced = {"done": False}
     _eeg_health = None
     if buf is not None and not degraded:
-        from experiment_game.runtime.eeg_health import EegHealthTicker, ensure_session_bus
+        from experiment_game.experiment.session_base import SessionServices, attach_eeg_health
 
-        _eeg_bus = ensure_session_bus(buf)
-        _eeg_health = EegHealthTicker(
-            _eeg_bus,
-            bridge=bridge,
-            events=events,
-            markers=markers,
-            log=lambda m: on_console(f"[v2] {m}"),
+        _eeg_health = attach_eeg_health(
+            buf,
+            SessionServices(events, markers, bridge, on_console),
+            tag="v2",
+            enabled=True,
         )
 
     def _raise_if_eeg_stale() -> None:
