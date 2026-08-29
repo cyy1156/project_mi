@@ -26,7 +26,7 @@ MI_TASK_SEC = 4.0
 # 真机：连续无新样本超过该秒数 → 判定 EEG 断流（勿再用陈旧窗推理）
 EEG_STALE_TIMEOUT_S = 3.0
 
-from experiment_game.experiment.channel_layout import (  # noqa: E402
+from experiment_game.core.channel_layout import (  # noqa: E402
     CHANNEL_ORDER,
     permute_ch_time_to_model,
 )

@@ -7,7 +7,7 @@ import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
-from experiment_game.experiment.channel_layout import DEVICE_CHANNEL_LABELS
+from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
 
 DEFAULT_CHANNEL_LABELS: List[str] = list(DEVICE_CHANNEL_LABELS)
 

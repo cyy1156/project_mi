@@ -8,8 +8,8 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
-from experiment_game.acquisition.service import DEFAULT_CHANNEL_LABELS
-from experiment_game.experiment.atomic_io import atomic_write_json, atomic_write_text
+from experiment_game.core.channel_layout import DEFAULT_CHANNEL_LABELS
+from experiment_game.core.atomic_io import atomic_write_json, atomic_write_text
 
 
 @dataclass

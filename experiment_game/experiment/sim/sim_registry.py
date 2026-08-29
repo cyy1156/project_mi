@@ -164,7 +164,7 @@ def promote_sim_ft_to_current(
         if not (src / name).is_file():
             raise FileNotFoundError(f"缺少 {name} in {src}")
     cur = sim_models_current(sid, repo_root=root)
-    from experiment_game.experiment.atomic_io import atomic_copy_files_into, atomic_write_json
+    from experiment_game.core.atomic_io import atomic_copy_files_into, atomic_write_json
 
     atomic_copy_files_into(
         src,

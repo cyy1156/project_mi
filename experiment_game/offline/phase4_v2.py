@@ -20,7 +20,7 @@ _HERE = Path(__file__).resolve()
 sys.path.insert(0, str(_HERE.parents[2]))
 sys.path.insert(0, str(_HERE.parents[2] / "code" / "preprocess_lab"))
 
-from experiment_game.experiment.channel_layout import (  # noqa: E402
+from experiment_game.core.channel_layout import (  # noqa: E402
     DEVICE_CHANNEL_LABELS,
     reorder_device_to_model_input,
 )

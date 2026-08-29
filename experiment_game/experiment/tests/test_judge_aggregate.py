@@ -19,7 +19,8 @@ def test_majority_vote_wins():
     pj = primary_judge_from_judgments(js, mode="majority", primary_s=4.0)
     assert pj is not None
     assert pj["pred"] == 1
-    assert pj.get("rule") == "majority_vote"
+    # F5 冻结（2026-08-29）：majority 实现含因果平滑，rule 标识为 causal_smooth_majority
+    assert pj.get("rule") == "causal_smooth_majority"
 
 
 def test_majority_tie_break_by_p_three():

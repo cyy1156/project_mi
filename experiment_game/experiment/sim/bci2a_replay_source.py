@@ -10,7 +10,7 @@ from typing import List, Optional
 
 import numpy as np
 
-from experiment_game.experiment.channel_layout import (
+from experiment_game.core.channel_layout import (
     DEVICE_CHANNEL_LABELS,
     reorder_model_input_to_device,
 )

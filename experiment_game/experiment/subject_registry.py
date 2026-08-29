@@ -428,7 +428,7 @@ def promote_ft_to_current(
             raise FileNotFoundError(f"缺少 {name} in {src}")
 
     cur = models_current_dir(sid, repo_root=root)
-    from experiment_game.experiment.atomic_io import atomic_copy_files_into, atomic_write_json
+    from experiment_game.core.atomic_io import atomic_copy_files_into, atomic_write_json
 
     atomic_copy_files_into(
         src,

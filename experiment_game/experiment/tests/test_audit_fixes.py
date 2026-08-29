@@ -16,7 +16,7 @@ from experiment_game.experiment.sim.bci2a_replay_source import Bci2aReplaySource
 from experiment_game.experiment.sim.run_to_session_map import SimTrial, SimTrialScript
 from experiment_game.experiment.inference_v2 import RingBuffer
 from experiment_game.offline.epochs import to_model_tensor
-from experiment_game.experiment.channel_layout import MODEL_INPUT_CHANNEL_ORDER, DEVICE_CHANNEL_LABELS
+from experiment_game.core.channel_layout import MODEL_INPUT_CHANNEL_ORDER, DEVICE_CHANNEL_LABELS
 
 
 class TestAuditFixes(unittest.TestCase):
@@ -105,7 +105,7 @@ class TestAuditFixes(unittest.TestCase):
         self.assertEqual(done["run3"], "/tmp/s3")
 
     def test_atomic_copy_files_into(self) -> None:
-        from experiment_game.experiment.atomic_io import atomic_copy_files_into
+        from experiment_game.core.atomic_io import atomic_copy_files_into
 
         with tempfile.TemporaryDirectory() as tmp:
             src = Path(tmp) / "src"
