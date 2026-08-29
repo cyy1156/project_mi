@@ -15,7 +15,7 @@ _ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_ROOT))
 
-from experiment_game.experiment.channel_layout import reorder_device_to_frozen
+from experiment_game.core.channel_layout import reorder_device_to_frozen
 from experiment_game.experiment.signal_quality import SignalQualityConfig, assess_eeg_window
 from experiment_game.experiment.v4_config import V4Config
 

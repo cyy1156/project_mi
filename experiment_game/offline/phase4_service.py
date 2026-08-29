@@ -6,6 +6,7 @@ import json
 from pathlib import Path
 from typing import Any, Dict, Optional, Sequence
 
+from experiment_game.core.atomic_io import atomic_write_json
 from experiment_game.offline.pipeline import preprocess_session, save_bundle
 
 _PKG_ROOT = Path(__file__).resolve().parents[1]
@@ -58,7 +59,7 @@ def write_phase4_pointer(
         "summary": summary,
     }
     path = summary_dir / "phase4_pointer.json"
-    path.write_text(json.dumps(pointer, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    atomic_write_json(path, pointer)
     # 人读一行
     (summary_dir / "README.txt").write_text(
         "Phase4 切窗指针见 phase4_pointer.json；"

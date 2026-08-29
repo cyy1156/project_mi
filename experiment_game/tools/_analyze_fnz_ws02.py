@@ -13,7 +13,7 @@ sys.path.insert(0, str(_REPO))
 sys.path.insert(0, str(_REPO / "code"))
 sys.path.insert(0, str(_REPO / "code" / "preprocess_lab"))
 
-from experiment_game.experiment.channel_layout import reorder_device_to_frozen
+from experiment_game.core.channel_layout import reorder_device_to_frozen
 from experiment_game.experiment.inference_v2 import (
     FS,
     N_TIMES_3S,
