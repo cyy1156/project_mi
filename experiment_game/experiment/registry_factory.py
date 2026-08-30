@@ -2,8 +2,9 @@
 
 from __future__ import annotations
 
+import json
 from pathlib import Path
-from typing import Any, Union
+from typing import Any, Dict, Optional, Union
 
 from adapt_engine.e1f import E1fRegistry, E1fStackConfig
 from adapt_engine.registry import ModelRegistry
@@ -15,11 +16,49 @@ def is_e1f_mode(cfg: Any) -> bool:
     return str(getattr(cfg, "readout_mode", "") or "").lower() == "e1f"
 
 
+def _resolve_overlay_path(cfg: Any, *, repo_root: Path) -> Optional[Path]:
+    raw = getattr(cfg, "e1f_overlay_path", "") or ""
+    if not raw:
+        return None
+    p = Path(str(raw))
+    if not p.is_absolute():
+        p = (repo_root / p).resolve()
+    return p if p.is_file() else None
+
+
+def apply_e1f_overlay(
+    stack: E1fStackConfig,
+    overlay_path: Path | str | None,
+    *,
+    repo_root: Path | None = None,
+) -> E1fStackConfig:
+    """叠加被试 current 的 e1f_overlay.json（all4 FT 后四员权重）。"""
+    if not overlay_path:
+        return stack
+    root = repo_root or _REPO
+    p = Path(overlay_path)
+    if not p.is_absolute():
+        p = (root / p).resolve()
+    if not p.is_file():
+        return stack
+    try:
+        blob = json.loads(p.read_text(encoding="utf-8"))
+    except Exception:
+        return stack
+    members = blob.get("members") or {}
+    if not isinstance(members, dict) or not members:
+        return stack
+    return stack.with_member_overrides(members).resolve_paths(repo_root=root)
+
+
 def load_e1f_stack(cfg: Any, *, repo_root: Path | None = None) -> E1fStackConfig:
     root = repo_root or _REPO
     path = getattr(cfg, "e1f_config_path", "") or "experiment_game/config/e1f_four_member.json"
-    stack = E1fStackConfig.load_json(path, repo_root=root)
-    return stack.resolve_paths(repo_root=root)
+    stack = E1fStackConfig.load_json(path, repo_root=root).resolve_paths(repo_root=root)
+    overlay = _resolve_overlay_path(cfg, repo_root=root)
+    if overlay is not None:
+        stack = apply_e1f_overlay(stack, overlay, repo_root=root)
+    return stack
 
 
 def build_registry(

@@ -637,8 +637,11 @@ def finetune_head(
     max_epochs: int = DEFAULT_FT_MAX_EPOCHS,
     patience: int = DEFAULT_FT_PATIENCE,
     fixed_epochs: int = DEFAULT_FT_EPOCHS_FIXED,
+    build_fn=None,
 ) -> Dict[str, Any]:
-    entry = load_head(ckpt, n_chans=8, n_times=N_TIMES, device=device)
+    entry = load_head(
+        ckpt, n_chans=8, n_times=N_TIMES, device=device, build_fn=build_fn
+    )
     model = entry.model
     acc0_tr = _eval_acc(model, X_tr, y_tr, device)
     acc0_te = _eval_acc(model, X_te, y_te, device)
@@ -896,11 +899,14 @@ def run_subject_finetune(
     patience: int = DEFAULT_FT_PATIENCE,
     deterministic: bool = DEFAULT_FT_DETERMINISTIC,
     heldout_session_dirs: Optional[List[Path]] = None,
+    build_fn=None,
 ) -> Dict[str, Any]:
     """运行被试 FT；**始终写入 out_dir**，门控 FAIL 不抛错。
 
     若提供 heldout_session_dirs：Leave-Next —— session_dirs 全作训练，
     heldout_session_dirs 全作 heldout（不再按试次 7:3 切）。
+
+    build_fn: 可选，``Callable[[n_outputs], nn.Module]``；用于 EEGNet/Conformer 等非默认 shallow。
 
     返回 dict：status, release_gate, report, out_dir, ...
     """
@@ -1025,6 +1031,7 @@ def run_subject_finetune(
         "max_epochs": int(max_epochs),
         "patience": int(patience),
         "fixed_epochs": int(epochs),
+        "build_fn": build_fn,
     }
 
     if verbose:

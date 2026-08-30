@@ -344,21 +344,30 @@ def _append_current_preset(
             pass
     gate_pass = (meta_blob.get("release_gate") or {}).get("pass")
     ro = str(meta_blob.get("readout_mode") or _default_readout_mode() or "")
-    presets.append(
-        {
-            "id": preset_id,
-            "label": label,
-            "task": task,
-            "three": three,
-            "ok": True,
-            "subject_id": subject_key,
-            "kind": "current",
-            "campaign_id": meta_blob.get("campaign_id"),
-            "source_run": meta_blob.get("source_run"),
-            "release_pass": gate_pass,
-            "readout_mode": ro,
-        }
-    )
+    overlay_rel = f"{rel_prefix}/models/current/e1f_overlay.json"
+    overlay_p = cur / "e1f_overlay.json"
+    has_overlay = overlay_p.is_file()
+    if has_overlay or str(meta_blob.get("ft_scope") or "").lower() == "all4":
+        ro = "e1f"
+    entry = {
+        "id": preset_id,
+        "label": label,
+        "task": task,
+        "three": three,
+        "ok": True,
+        "subject_id": subject_key,
+        "kind": "current",
+        "campaign_id": meta_blob.get("campaign_id"),
+        "source_run": meta_blob.get("source_run"),
+        "release_pass": gate_pass,
+        "readout_mode": ro,
+    }
+    if has_overlay:
+        entry["e1f_overlay_path"] = overlay_rel
+        entry["e1f_config_path"] = E1F_CONFIG
+        entry["primary_judge_mode"] = "majority"
+        entry["ft_scope"] = "all4"
+    presets.append(entry)
 
 
 def list_model_presets(
