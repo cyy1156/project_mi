@@ -19,8 +19,12 @@ Write-Host ""
 Write-Host "=== Operator console (LAN) ==="
 Write-Host "Repo root: $Root"
 Write-Host "Python:    $Py"
-Write-Host "Monitor:   http://<LAN-IP>:8080/operator.html"
 Write-Host "Subject:   http://127.0.0.1:8080/"
+Write-Host ""
+Write-Host "IMPORTANT for monitor PC:" -ForegroundColor Yellow
+Write-Host "  Do NOT open only http://LAN-IP:8080/operator.html"
+Write-Host "  Copy the FULL line printed below starting with monitor URL"
+Write-Host "  It MUST contain ?token=... or fine-tune will be blocked."
 Write-Host ""
 
 & $Py -m experiment_game.tools.open_operator --host 0.0.0.0 @args

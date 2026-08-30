@@ -73,9 +73,56 @@ RAMP_FNZ = [
     (["ws02", "ws03", "ws04", "ws05"], "ws06", False),
 ]
 
+# cyy0830 / fnz0830 / wzr0830 / xj0830 · v3 w01–w06
+RAMP_W = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", False),
+    (["w01", "w02", "w03", "w04", "w05"], "w06", False),
+]
+
+# 兼容旧名
+RAMP_CYY = RAMP_W
+RAMP_FNZ0830 = RAMP_W
+
+SUBJECTS_W = ("cyy0830", "fnz0830", "wzr0830", "xj0830")
+SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
+
+
+def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Path]) -> list:
+    if subject_id == "syj0828":
+        cand = list(RAMP_SYJ)
+    elif subject_id == "fnz0828":
+        cand = list(RAMP_FNZ)
+    elif subject_id in SUBJECTS_W:
+        cand = list(RAMP_W)
+    else:
+        raise ValueError(f"未知被试: {subject_id}")
+    out = []
+    for train_keys, hold_key, use_replay in cand:
+        need = list(train_keys) + [hold_key]
+        miss = [k for k in need if k not in by_ws]
+        if miss:
+            print(f"  [skip] R train={train_keys} hold={hold_key} 缺 {miss}")
+            continue
+        out.append((train_keys, hold_key, use_replay))
+    return out
+
+
+def _session_key_from_dirname(name: str) -> Optional[str]:
+    """从目录名解析 wsNN / wNN。"""
+    for part in name.split("_"):
+        p = part.lower()
+        if p.startswith("ws") and p[2:].isdigit():
+            return p
+        if p.startswith("w") and not p.startswith("ws") and p[1:].isdigit():
+            return p
+    return None
+
 
 def _list_v3_sessions(subject_id: str) -> Dict[str, Path]:
-    """session_id(wsNN) -> 最新一条 v3 目录（排除 record_excluded / 非 v3）。"""
+    """session_id(wsNN|wNN) -> 最新一条 v3 目录（排除 record_excluded / 非 v3）。"""
     root = SUBJECTS_ROOT / subject_id / "sessions"
     idx_path = SUBJECTS_ROOT / subject_id / "index.json"
     exclude: set[str] = set()
@@ -105,11 +152,7 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Path]:
                 phase = ""
         if phase and phase != "v3_session":
             continue
-        ws = None
-        for part in d.name.split("_"):
-            if part.lower().startswith("ws") and part[2:].isdigit():
-                ws = part.lower()
-                break
+        ws = _session_key_from_dirname(d.name)
         if not ws:
             continue
         prev = by_ws.get(ws)
@@ -286,7 +329,9 @@ def eval_f5_e1f(
 
 def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
     by_ws = _list_v3_sessions(subject_id)
-    ramp = RAMP_SYJ if subject_id == "syj0828" else RAMP_FNZ
+    ramp = _ramp_for_subject(subject_id, by_ws)
+    if not ramp:
+        raise ValueError(f"{subject_id}: 无可用 Leave-Next 档（sessions={sorted(by_ws)}）")
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     ft_root = SUBJECTS_ROOT / subject_id / "models" / "ft_runs"
     ft_root.mkdir(parents=True, exist_ok=True)
@@ -298,6 +343,7 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
     print(f"[{subject_id}] E1f shallow base task={DEFAULT_TASK}")
     print(f"[{subject_id}] E1f shallow base three={DEFAULT_THREE}")
     print(f"[{subject_id}] v3 sessions: { {k: v.name for k, v in sorted(by_ws.items())} }")
+    print(f"[{subject_id}] Leave-Next 档数={len(ramp)}")
     print(f"[{subject_id}] F5 = causal_smooth(lookback={CAUSAL_LOOKBACK}) + majority")
 
     e1f_reg: Optional[E1fRegistry] = None
@@ -320,7 +366,8 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
     for i, (train_keys, hold_key, use_replay) in enumerate(ramp, start=1):
         missing = [k for k in list(train_keys) + [hold_key] if k not in by_ws]
         if missing:
-            raise FileNotFoundError(f"{subject_id}: 缺 session {missing}; have {list(by_ws)}")
+            print(f"  [skip] 缺 session {missing}")
+            continue
         train_dirs = [by_ws[k] for k in train_keys]
         hold_dirs = [by_ws[hold_key]]
         tag = f"leave_next_{_tag_from_ws(train_keys)}_eval_{hold_key}"
@@ -458,8 +505,17 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument("--subject", choices=("syj0828", "fnz0828"), action="append")
-    ap.add_argument("--all", action="store_true")
+    ap.add_argument(
+        "--subject",
+        choices=SUBJECTS_ALL,
+        action="append",
+    )
+    ap.add_argument("--all", action="store_true", help="syj0828+fnz0828")
+    ap.add_argument(
+        "--cohort-0828-0830",
+        action="store_true",
+        help="syj0828 fnz0828 + 全部 *0830 真被试",
+    )
     ap.add_argument(
         "--promote-final",
         action="store_true",
@@ -467,7 +523,9 @@ def main() -> None:
     )
     args = ap.parse_args()
     subjects = list(args.subject or [])
-    if args.all or not subjects:
+    if args.cohort_0828_0830:
+        subjects = list(SUBJECTS_ALL)
+    elif args.all or not subjects:
         subjects = ["syj0828", "fnz0828"]
     for sid in subjects:
         run_ramp(sid, promote_final=bool(args.promote_final))

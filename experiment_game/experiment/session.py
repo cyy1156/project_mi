@@ -44,9 +44,17 @@ def create_session_dir(
     base_dir: Path,
     subject_id: str,
     session_id: str,
+    *,
+    module_prefix: str = "",
 ) -> SessionPaths:
+    """会话目录：``[module_]subject_id_session_id_YYYYmmdd_HHMMSS``。
+
+    ``module_prefix`` 为模块前缀（如 "v3"→"v3_fnz_w01_..."），
+    用于按模块隔离采集数据（需求 2026-08-30 二.1）。
+    """
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name = f"{subject_id}_{session_id}_{stamp}"
+    prefix = f"{module_prefix}_" if module_prefix else ""
+    name = f"{prefix}{subject_id}_{session_id}_{stamp}"
     root = Path(base_dir) / name
     root.mkdir(parents=True, exist_ok=False)
     return SessionPaths(

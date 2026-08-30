@@ -26,14 +26,19 @@ if not defined PY (
 )
 
 echo.
-echo === Operator console (LAN) ===
+echo === Operator console ^(LAN^) ===
 echo Bind: 0.0.0.0
-echo Monitor PC: http://^<this-PC-LAN-IP^>:8080/operator.html
+echo.
+echo IMPORTANT for monitor PC:
+echo   Do NOT open bare http://LAN-IP:8080/operator.html
+echo   Copy the FULL URL printed below ^(line starts with monitor URL^)
+echo   It MUST contain ?token=... or fine-tune / abort will be blocked.
+echo.
 echo Subject screen on THIS PC: http://127.0.0.1:8080/
 echo Repo root: %CD%
 echo Python: %PY%
 echo Keep this window open. Close it to stop the server.
-echo First time: allow firewall for ports 8080 and 8765 (inbound).
+echo First time: allow firewall for ports 8080 and 8765 ^(inbound^).
 echo.
 
 "%PY%" -m experiment_game.tools.open_operator --host 0.0.0.0 %*

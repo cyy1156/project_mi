@@ -1,6 +1,21 @@
-# v2 会话统一参数（OpenBMI-Align v1 · MI 多数票计分 · 与 v3 同构）
-# orchestrator / SessionRunner 在会话启动前加载；编辑后重开会话即生效。
+# v2 会话统一参数
+# game_mode = v3_test：基于 v3 最终权重的游戏测试（跳过标定/准入/在线 FT）
+#   20 试次 = 10 静息(连续5窗静息 +0.5) + 5 左 + 5 右(连续5窗对应手 +1，MI 提前结束)；满分 15
+# game_mode = legacy：旧「标定→准入→游戏」流程
+game_mode: v3_test
+use_v3_weights: true
+v3test_rest_s: 5.0
+v3test_cue_s: 2.0
+v3test_mi_s: 10.0
+v3test_judge_interval_s: 0.5
+v3test_consecutive: 5
+v3test_n_rest: 10
+v3test_n_left: 5
+v3test_n_right: 5
+v3test_rest_points: 0.5
+v3test_mi_points: 1.0
 
+# —— legacy 流程参数（game_mode=legacy 时生效）——
 cal_rounds_min: 4
 cal_rounds_max: 6
 trials_per_round: 18

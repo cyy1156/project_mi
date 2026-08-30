@@ -82,6 +82,21 @@ class V2Config:
     game_trials_per_round: int = 16
     judgment_times: tuple = field(default_factory=tuple)
 
+    # —— v3 权重游戏测试（game_mode="v3_test"）：跳过标定/准入，直接 20 试次 ——
+    game_mode: str = "legacy"  # "v3_test" | "legacy"
+    use_v3_weights: bool = True  # 用被试 v3 最终权重（current/members + overlay）
+    subject_models_dir: str = ""  # orchestrator 注入 data/subjects/<sid>/models
+    v3test_rest_s: float = 5.0
+    v3test_cue_s: float = 2.0
+    v3test_mi_s: float = 10.0
+    v3test_judge_interval_s: float = 0.5
+    v3test_consecutive: int = 5
+    v3test_n_rest: int = 10
+    v3test_n_left: int = 5
+    v3test_n_right: int = 5
+    v3test_rest_points: float = 0.5
+    v3test_mi_points: float = 1.0
+
     primary_judge_mode: str = "majority"
     ft_min_valid_trials: int = 6
 
@@ -217,6 +232,18 @@ class V2Config:
             errs.append("ft_epochs 须在 1–50")
         if self.ft_batch_size < 1 or self.ft_batch_size > 256:
             errs.append("ft_batch_size 须在 1–256")
+        if self.game_mode == "v3_test":
+            if self.v3test_rest_s <= 0 or self.v3test_cue_s < 0 or self.v3test_mi_s <= 0:
+                errs.append("v3test 时序无效：rest/mi > 0、cue ≥ 0")
+            if not (0.1 <= self.v3test_judge_interval_s <= 2.0):
+                errs.append("v3test_judge_interval_s 须在 0.1–2.0")
+            if self.v3test_consecutive < 1:
+                errs.append("v3test_consecutive 须 ≥ 1")
+            if min(self.v3test_n_rest, self.v3test_n_left, self.v3test_n_right) < 0:
+                errs.append("v3test 试次数不得为负")
+            if self.use_v3_weights and not self.subject_models_dir:
+                # orchestrator 启动会话时注入；纯配置校验阶段允许为空
+                pass
         return errs
 
     def verify(self) -> None:

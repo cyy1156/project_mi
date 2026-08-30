@@ -2,9 +2,35 @@ const WS_URL =
   new URLSearchParams(location.search).get("ws") ||
   `ws://${location.hostname || "127.0.0.1"}:8765`;
 /** 操作台控制面鉴权（与 --ws-token / 启动打印的 URL ?token= 一致） */
-const WS_TOKEN = new URLSearchParams(location.search).get("token") || "";
+function resolveWsToken() {
+  const q = new URLSearchParams(location.search).get("token");
+  if (q) {
+    try {
+      sessionStorage.setItem("eg_ws_token", q);
+    } catch {
+      /* ignore */
+    }
+    return q;
+  }
+  try {
+    return sessionStorage.getItem("eg_ws_token") || "";
+  } catch {
+    return "";
+  }
+}
+let WS_TOKEN = resolveWsToken();
+// 刷新后若地址栏丢了 ?token=，从 sessionStorage 写回，避免微调被静默拒绝
+if (WS_TOKEN && !new URLSearchParams(location.search).get("token")) {
+  try {
+    const u = new URL(location.href);
+    u.searchParams.set("token", WS_TOKEN);
+    history.replaceState(null, "", u.toString());
+  } catch {
+    /* ignore */
+  }
+}
 
-const STORAGE_KEY = "experiment_game_operator_defaults_v1";
+const STORAGE_KEY = "experiment_game_operator_defaults_v3";
 const SUBJECT_LOGIN_KEY = "experiment_game_subject_login_v1";
 
 function _escHtml(s) {
@@ -58,6 +84,10 @@ const el = {
   btnFtKeep: document.getElementById("btn-ft-keep"),
   btnNextSession: document.getElementById("btn-next-session"),
   btnSessionNoRecord: document.getElementById("btn-session-no-record"),
+  btnFtAllV3: document.getElementById("btn-ft-all-v3"),
+  btnModelEvalGrid: document.getElementById("btn-model-eval-grid"),
+  modelEvalProgress: document.getElementById("model-eval-progress"),
+  modelEvalResult: document.getElementById("model-eval-result"),
   simRunQueue: document.getElementById("sim-run-queue"),
   simCampaignSelect: document.getElementById("sim-campaign-select"),
   simCampaignStatus: document.getElementById("sim-campaign-status"),
@@ -1619,7 +1649,8 @@ function startGuidanceCountdown(totalSec) {
 }
 
 const V23_TIMING_PRESETS = {
-  openbmi: { prep_s: 2, cue_s: 0, imagine_s: 4, iti_s: 3, inter_trial_rest_s: 4 },
+  // 正式范式：Cue 1s（文案=MI +「cue」前缀）+ MI 4s；块间见 v3_block_gap_s 默认 30
+  openbmi: { prep_s: 2, cue_s: 1, imagine_s: 4, iti_s: 3, inter_trial_rest_s: 4 },
   legacy: { prep_s: 2, cue_s: 2, imagine_s: 6, iti_s: 3, inter_trial_rest_s: 0 },
 };
 
@@ -2027,7 +2058,16 @@ function applyV3OverridesToForm(ov) {
     const node = el.form.elements.namedItem(formName);
     if (node) node.value = ov[key];
   }
+  migrateV3ParadigmFormDefaults();
   renderSetupTimelineV3();
+}
+
+/** 旧 OpenBMI 默认 Cue=0 / 块间 90 → 新范式 Cue=1 / 块间 30（仅迁移精确旧值）。 */
+function migrateV3ParadigmFormDefaults() {
+  const cue = el.form?.elements?.namedItem("v3_cue_s");
+  const gap = el.form?.elements?.namedItem("v3_block_gap_s");
+  if (cue && Number(cue.value) === 0) cue.value = "1";
+  if (gap && Number(gap.value) === 90) gap.value = "30";
 }
 
 function applyV2OverridesToForm(ov) {
@@ -2088,11 +2128,11 @@ function renderSetupTimelineV3() {
     const blocks = Number(el.form.elements.namedItem("v3_blocks")?.value) || 2;
     const tpb = Number(el.form.elements.namedItem("v3_trials_per_block")?.value) || 18;
     const baseline = v3BaselineRestS();
-    const gap = Number(el.form.elements.namedItem("v3_block_gap_s")?.value) || 90;
+    const gap = Number(el.form.elements.namedItem("v3_block_gap_s")?.value) || 30;
     const trials = blocks * tpb;
     const cue = Number(el.form.elements.namedItem("v3_cue_s")?.value) || 0;
     el.timingHintV3.textContent =
-      `单 trial = ${total}s（OpenBMI-Align${cue <= 0 ? " · Cue=MI onset" : ""}）· ${blocks} 块×${tpb} 试次` +
+      `单 trial = ${total}s（Align${cue <= 0 ? " · Cue=MI onset" : ` · Cue ${cue}s`}）· ${blocks} 块×${tpb} 试次` +
       ` · 块间 ${gap}s + 开场基线 ${baseline}s · 纯试次 ≈ ${Math.round((trials * total) / 60)} 分钟`;
   }
 }
@@ -2900,13 +2940,17 @@ function fillSimCampaignSelect(campaigns, selectedId = "") {
   if (!el.simCampaignSelect) return;
   const prev = selectedId || el.simCampaignSelect.value || activeCampaign?.campaign_id || "";
   el.simCampaignSelect.innerHTML = '<option value="">— 单场 run —</option>';
+  // 含「剩余 0」：末场 Leave-Next FT 仍需选中该 Campaign（train=此前 runs · eval=末场）
   for (const c of sortCampaignsNewestFirst(campaigns)) {
     const rem = campaignRemainingRuns(c);
-    if (rem.length === 0) continue;
+    const qn = (c.session_queue || []).length;
     const opt = document.createElement("option");
     opt.value = c.campaign_id || "";
     opt.dataset.manifestPath = c.manifest_path || "";
-    opt.textContent = `${c.campaign_id} · 剩余 ${rem.length}/${(c.session_queue || []).length}`;
+    opt.textContent =
+      rem.length > 0
+        ? `${c.campaign_id} · 剩余 ${rem.length}/${qn}`
+        : `${c.campaign_id} · 已完成 ${qn}/${qn}`;
     el.simCampaignSelect.appendChild(opt);
   }
   const stillThere = [...el.simCampaignSelect.options].some((o) => o.value === prev);
@@ -2918,6 +2962,25 @@ function fillSimCampaignSelect(campaigns, selectedId = "") {
     activeCampaign = null;
     syncCampaignWeightLockUi();
   }
+}
+
+/** Leave-Next FT：若下拉被清成「单场」，按 eval run 找回含该场的 Campaign。 */
+function ensureCampaignForLeaveNextFt(evalRun) {
+  if (activeCampaign?.manifest_path) return activeCampaign;
+  const rid = String(evalRun || "").toLowerCase();
+  if (!rid) return null;
+  const hit = (simCampaigns || []).find((c) => {
+    const q = (c.session_queue || []).map((r) => String(r).toLowerCase());
+    if (q.includes(rid)) return true;
+    return (c.sessions_completed || []).some(
+      (s) => String(s.run_id || "").toLowerCase() === rid,
+    );
+  });
+  if (!hit?.manifest_path) return null;
+  activeCampaign = hit;
+  fillSimCampaignSelect(simCampaigns, hit.campaign_id);
+  updateSimCampaignStatus();
+  return activeCampaign;
 }
 
 function updateSimCampaignStatus() {
@@ -3552,16 +3615,20 @@ function renderFtSessionList(sessions) {
   for (const s of list) {
     const row = document.createElement("div");
     const isThisRun = autoNorm && normSessionPath(s.path) === autoNorm;
+    // v3 微调屏蔽（与后端 _handle_finetune_start 过滤一致）：非 v3 会话禁选；sim 模式豁免
+    const blocked = !activeSimMode && s.phase_mode !== "v3_session";
     // Leave-Next / 计划：留当前作评估，默认勾选之前所有合格 session
     const checkPrev =
-      Boolean(s.ft_eligible) && !isThisRun && Boolean(el.ftLeaveNext?.checked !== false);
+      Boolean(s.ft_eligible) && !isThisRun && !blocked && Boolean(el.ftLeaveNext?.checked !== false);
     row.className =
       "ft-session-row" +
       (s.electrode_ok ? "" : " warn") +
+      (blocked ? " ft-session-blocked" : "") +
       (isThisRun ? " ft-session-current" : "");
     const cb = document.createElement("input");
     cb.type = "checkbox";
     cb.checked = checkPrev;
+    cb.disabled = blocked;
     cb.dataset.path = s.path || "";
     cb.dataset.runId = String(s.session_id || s.run_id || "").toLowerCase();
     cb.dataset.thisRun = isThisRun ? "1" : "0";
@@ -3573,7 +3640,11 @@ function renderFtSessionList(sessions) {
     const wa = s.window_acc != null ? `${(s.window_acc * 100).toFixed(0)}%` : "—";
     const pa = s.primary_acc != null ? `${(s.primary_acc * 100).toFixed(0)}%` : "—";
     const nw = sessionWindowEstimate(s);
-    const tag = isThisRun ? " · 本场(默认不入 FT)" : "";
+    const tag = blocked
+      ? " · 非v3 · 已屏蔽"
+      : isThisRun
+        ? " · 本场(默认不入 FT)"
+        : "";
     meta.textContent = `${s.dir}${s.record_excluded ? " · 未记入" : ""}${tag} · ~${nw} 窗 · 窗acc ${wa} · valid-primary ${pa}`;
     const warn = document.createElement("div");
     warn.className = "muted";
@@ -3594,25 +3665,32 @@ function applyLeaveNextFtSelection(evalSessionPathNorm) {
   if (!el.ftLeaveNext?.checked) return;
 
   // 仿真 Campaign：按 queue 切 train / eval
-  if (activeSimMode && activeCampaign) {
-    const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
-    const done = {};
-    for (const item of activeCampaign.sessions_completed || []) {
-      const rid = String(item.run_id || "").toLowerCase();
-      if (rid && item.session_dir) done[rid] = normSessionPath(item.session_dir);
-    }
+  if (activeSimMode) {
     let evalRun = resolveFtEvalRunId(evalSessionPathNorm);
-    if (!evalRun || !queue.includes(evalRun)) return;
-    const idx = queue.indexOf(evalRun);
-    const trainRuns = new Set(queue.slice(0, idx));
-    const trainPaths = new Set(
-      [...trainRuns].map((rid) => done[rid]).filter(Boolean),
-    );
-    el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
-      const p = normSessionPath(cb.dataset.path || "");
-      cb.checked = trainPaths.has(p);
-    });
-    return;
+    if (!activeCampaign) ensureCampaignForLeaveNextFt(evalRun);
+    if (activeCampaign) {
+      const queue = (activeCampaign.session_queue || []).map((r) => String(r).toLowerCase());
+      const done = {};
+      for (const item of activeCampaign.sessions_completed || []) {
+        const rid = String(item.run_id || "").toLowerCase();
+        if (rid && item.session_dir) done[rid] = normSessionPath(item.session_dir);
+      }
+      if (!evalRun || !queue.includes(evalRun)) return;
+      const idx = queue.indexOf(evalRun);
+      const trainRuns = new Set(queue.slice(0, idx));
+      const trainPaths = new Set(
+        [...trainRuns].map((rid) => done[rid]).filter(Boolean),
+      );
+      el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+        if (cb.disabled) {
+          cb.checked = false;
+          return;
+        }
+        const p = normSessionPath(cb.dataset.path || "");
+        cb.checked = trainPaths.has(p);
+      });
+      return;
+    }
   }
 
   // 真机 / 无 Campaign：再确认排除本场，勾选其余合格项
@@ -3620,6 +3698,10 @@ function applyLeaveNextFtSelection(evalSessionPathNorm) {
     evalSessionPathNorm ||
     (sessionRoot ? normSessionPath(sessionRoot) : "");
   el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    if (cb.disabled) {
+      cb.checked = false;
+      return;
+    }
     const p = normSessionPath(cb.dataset.path || "");
     const isThis = evalNorm && p === evalNorm;
     const hit = ftSessionCatalog.find((s) => normSessionPath(s.path) === p);
@@ -3709,8 +3791,9 @@ function resetFtPanel() {
   if (el.btnFtKeep) el.btnFtKeep.classList.add("hidden");
   sessionRecordExcluded = false;
   updateSessionNoRecordButton();
-  const skip = document.querySelector('input[name="ft_mode"][value="skip"]');
-  if (skip) skip.checked = true;
+  // 默认「立即微调」：点「开始微调」即开跑，避免停在「跳过」时静默无反应
+  const run = document.querySelector('input[name="ft_mode"][value="run"]');
+  if (run) run.checked = true;
   if (el.ftExcludeInvalid) el.ftExcludeInvalid.checked = false;
   replayAdviceManualOverride.panel = false;
   applyFtReplayDefaults(lockedConfig?.experiment?.ft_defaults);
@@ -3863,9 +3946,26 @@ function setWsStatus(text, cls) {
 
 function send(msg) {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    const out = WS_TOKEN ? { ...msg, token: WS_TOKEN } : msg;
+    // 控制面动作一律附带 token（缺 token 时服务端会静默丢弃 finetune_start）
+    const out = WS_TOKEN ? { ...msg, token: WS_TOKEN } : { ...msg };
+    if (
+      !WS_TOKEN &&
+      (msg.type === "finetune_start" ||
+        msg.type === "finetune_promote" ||
+        msg.type === "model_eval_grid" ||
+        msg.type === "operator")
+    ) {
+      alert(
+        "当前页面缺少控制 token，微调等操作会被服务器拒绝。\n\n" +
+          "请关闭本页，用黑色命令窗口里打印的「操作台」链接重新打开（地址须含 ?token=…）。",
+      );
+      return false;
+    }
     ws.send(JSON.stringify(out));
+    return true;
   }
+  alert("未连接到实验服务，无法发送。请确认操作台黑色命令窗口仍在运行，并刷新本页。");
+  return false;
 }
 
 function formToRunConfig() {
@@ -4032,6 +4132,9 @@ function applyConfigToForm(cfg) {
   set("v2_seed", cfg.experiment?.seed ?? "");
   applyV2OverridesToForm(cfg.experiment?.v2_overrides || {});
   applyV3OverridesToForm(cfg.experiment?.v3_overrides || {});
+  // 再跑一遍：即使 v3_overrides 为空 / 被其它路径写回 90，也拉回新范式默认
+  migrateV3ParadigmFormDefaults();
+  renderSetupTimelineV3();
   applyFtReplayDefaults(cfg.experiment?.ft_defaults);
   applyFtAdvancedDefaults(cfg.experiment?.ft_defaults);
   // v3 overrides 里的权重也回填（与 v2 共用表单字段）
@@ -4301,6 +4404,35 @@ function showPhase4Result(p4) {
 
 function handleMessage(msg) {
   const t = msg.type;
+  if (t === "hello") {
+    if (msg.auth_required && !WS_TOKEN) {
+      const tip =
+        "缺控制 token（微调/中止等不可用）。\n\n" +
+        "监控端请打开实验机黑色窗口里打印的整行链接：\n" +
+        "「监控端打开: http://…:8080/operator.html?token=…」\n" +
+        "必须带 ?token=，不要只开无 token 的 operator.html。";
+      setWsStatus("缺 token（微调不可用）", "err");
+      if (el.ftStatus) el.ftStatus.textContent = tip.replace(/\n/g, " ");
+      // 局域网监控端最常见：开了无 token 的地址
+      if (location.hostname && location.hostname !== "127.0.0.1" && location.hostname !== "localhost") {
+        alert(tip);
+      }
+    }
+    return;
+  }
+  if (t === "auth_error") {
+    const tip =
+      msg.message ||
+      "鉴权失败：需要有效 token。请用命令窗口打印的操作台链接重新打开本页。";
+    if (el.ftStatus) el.ftStatus.textContent = tip;
+    if (el.btnFtStart) {
+      el.btnFtStart.disabled = false;
+      el.btnFtStart.textContent = "开始微调";
+    }
+    ftBusy = false;
+    alert(tip);
+    return;
+  }
   if (t === "operator_hello") {
     if (msg.subject_url) subjectUrl = msg.subject_url;
     defaultsFromServer = msg.defaults || null;
@@ -4425,7 +4557,37 @@ function handleMessage(msg) {
       syncFtReplayRatioUi();
     }
   } else if (t === "finetune_ack") {
-    if (!msg.ok && el.ftStatus) el.ftStatus.textContent = msg.message || "微调失败";
+    if (msg.ok) {
+      if (el.ftStatus) el.ftStatus.textContent = msg.message || "微调已开始";
+      if (el.btnFtStart) {
+        el.btnFtStart.disabled = true;
+        el.btnFtStart.textContent = "微调中…";
+      }
+    } else {
+      if (el.ftStatus) el.ftStatus.textContent = msg.message || "微调失败";
+      if (el.btnFtStart) {
+        el.btnFtStart.disabled = false;
+        el.btnFtStart.textContent = "开始微调";
+      }
+      alert(msg.message || "微调无法启动");
+    }
+  } else if (t === "model_eval_ack") {
+    if (el.modelEvalProgress) {
+      el.modelEvalProgress.textContent = msg.ok
+        ? msg.message || "评测已开始…"
+        : msg.message || "评测无法启动";
+    }
+  } else if (t === "model_eval_progress") {
+    if (el.modelEvalProgress) {
+      el.modelEvalProgress.textContent = `评测中… ${msg.stage || ""}`;
+    }
+  } else if (t === "model_eval_result") {
+    if (el.modelEvalProgress) {
+      el.modelEvalProgress.textContent = msg.ok
+        ? `完成 · ${msg.n_weight_sets ?? "—"} 套权重 × ${msg.n_sessions ?? "—"} 会话`
+        : msg.message || "评测失败";
+    }
+    renderModelEvalResult(msg);
   } else if (t === "finetune_progress") {
     if (el.ftStatus) el.ftStatus.textContent = `微调中… ${msg.out_dir || ""}`;
     ftBusy = true;
@@ -4921,7 +5083,14 @@ function handleMessage(msg) {
             const n = vs.window_acc_n ?? ov.n_windows;
             parts.push(n != null ? `窗级识别率 ${waTxt}（${n} 窗）` : `窗级识别率 ${waTxt}`);
           }
-          if (trialTxt) parts.push(`试次多数票 ${trialTxt}`);
+          if (trialTxt) {
+            const tn = ov.n;
+            parts.push(
+              tn != null
+                ? `试次多数票 ${trialTxt}（${tn} 试 · Rest/L/R）`
+                : `试次多数票 ${trialTxt}（Rest/L/R）`
+            );
+          }
           el.v3SummaryDetail.textContent = parts.filter(Boolean).join(" · ");
         }
       } else if (msg.phase_mode === "v4_session" && msg.v4_summary) {
@@ -5406,10 +5575,16 @@ el.sessionIdSuggestBtn?.addEventListener("click", () => applySuggestedSessionId(
 el.sessionOverwrite?.addEventListener("change", () => updateSessionIdConflictUi());
 
 el.btnFtStart?.addEventListener("click", () => {
-  const mode = document.querySelector('input[name="ft_mode"]:checked')?.value;
+  let mode = document.querySelector('input[name="ft_mode"]:checked')?.value;
   if (mode !== "run") {
-    if (el.ftStatus) el.ftStatus.textContent = "已跳过微调";
-    return;
+    const runRadio = document.querySelector('input[name="ft_mode"][value="run"]');
+    if (runRadio) {
+      runRadio.checked = true;
+      mode = "run";
+    } else {
+      alert("请先选择「立即微调」，再点开始。");
+      return;
+    }
   }
   const leaveNext = Boolean(el.ftLeaveNext?.checked) && Boolean(activeSimMode);
   const paths = collectFtSessionPaths();
@@ -5417,20 +5592,26 @@ el.btnFtStart?.addEventListener("click", () => {
     if (el.ftLeaveNext?.checked && !activeSimMode) {
       alert(
         "Leave-Next 开启：本场不入 FT，且暂无合格历史 session。\n" +
-          "可取消 Leave-Next 后勾选本场，或跳过微调。",
+          "可取消 Leave-Next 后勾选本场，或点「用全部 v3 数据微调」。",
       );
       return;
     }
-    alert("请至少勾选一个 session");
-    return;
-  }
-  if (leaveNext && !activeCampaign?.manifest_path) {
-    alert("Leave-Next 需要先选择 Campaign");
+    alert("请至少勾选一个 session（或点「用全部 v3 数据微调」）。");
     return;
   }
   const evalRun = resolveFtEvalRunId();
   if (leaveNext && !evalRun) {
     alert("Leave-Next 无法确定 eval run（请确认刚结束的 session 或 run_id）");
+    return;
+  }
+  if (leaveNext && !activeCampaign?.manifest_path) {
+    ensureCampaignForLeaveNextFt(evalRun);
+  }
+  if (leaveNext && !activeCampaign?.manifest_path) {
+    alert(
+      "Leave-Next 需要先选择 Campaign。\n" +
+        "末场跑完后请在设置页 Campaign 下拉选「已完成」项（或重新打开该 Campaign），再开始微调。",
+    );
     return;
   }
   if (leaveNext && activeCampaign?.session_queue) {
@@ -5445,9 +5626,59 @@ el.btnFtStart?.addEventListener("click", () => {
       return;
     }
   }
+  sendFinetuneStart({ paths, leaveNext, evalRun });
+});
+
+/** 勾选全部可用 v3 会话、关闭 Leave-Next，用当前已采数据微调（需求 二.3）。 */
+el.btnFtAllV3?.addEventListener("click", () => {
+  if (!activeSubject) {
+    alert("请先登录被试");
+    return;
+  }
+  if (activeSimMode) {
+    alert("仿真请用 Leave-Next / Campaign；本按钮仅用于真被试 v3 全部数据微调。");
+    return;
+  }
+  if (el.ftLeaveNext) el.ftLeaveNext.checked = false;
+  updateFtRampHint();
+  const runRadio = document.querySelector('input[name="ft_mode"][value="run"]');
+  if (runRadio) runRadio.checked = true;
+  let n = 0;
+  el.ftSessionList?.querySelectorAll("input[type=checkbox]").forEach((cb) => {
+    if (cb.disabled) {
+      cb.checked = false;
+      return;
+    }
+    const hit = ftSessionCatalog.find(
+      (s) => normSessionPath(s.path) === normSessionPath(cb.dataset.path || ""),
+    );
+    const ok = Boolean(hit?.ft_eligible) && hit?.phase_mode === "v3_session";
+    cb.checked = ok;
+    if (ok) n += 1;
+  });
+  updateReplayAdvice("panel");
+  if (!n) {
+    alert("没有可微调的 v3 会话（需电极 OK / 未排除）。");
+    return;
+  }
+  if (!confirm(`将用已勾选的 ${n} 场 v3 会话微调（关闭 Leave-Next）。继续？`)) return;
+  if (el.btnFtStart) el.btnFtStart.disabled = false;
+  sendFinetuneStart({ paths: collectFtSessionPaths(), leaveNext: false, evalRun: null });
+});
+
+function sendFinetuneStart({ paths, leaveNext, evalRun }) {
   const ftRep = readFtReplayOptions(null);
   const ftAdv = readFtAdvancedOptions();
-  send({
+  if (el.ftStatus) {
+    el.ftStatus.textContent = leaveNext
+      ? `正在提交 Leave-Next 微调（eval=${evalRun || "—"}）…`
+      : `正在提交微调（${paths.length} 场会话）…`;
+  }
+  if (el.btnFtStart) {
+    el.btnFtStart.disabled = true;
+    el.btnFtStart.textContent = "提交中…";
+  }
+  const ok = send({
     type: "finetune_start",
     subject_id: activeSubject,
     session_paths: paths,
@@ -5465,6 +5696,82 @@ el.btnFtStart?.addEventListener("click", () => {
     eval_run_id: leaveNext ? evalRun : null,
     campaign_manifest: leaveNext ? activeCampaign?.manifest_path || null : null,
     use_ramp_replay_defaults: leaveNext,
+  });
+  if (!ok) {
+    if (el.btnFtStart) {
+      el.btnFtStart.disabled = false;
+      el.btnFtStart.textContent = "开始微调";
+    }
+    if (el.ftStatus) el.ftStatus.textContent = "发送失败：未连接服务";
+  }
+}
+
+function renderModelEvalResult(msg) {
+  const host = el.modelEvalResult;
+  if (!host) return;
+  if (!msg?.ok) {
+    host.innerHTML = `<p class="warn">${_escHtml(msg?.message || "评测失败")}</p>`;
+    return;
+  }
+  const models = msg.models || [];
+  if (!models.length) {
+    host.textContent = "无权重套可评";
+    return;
+  }
+  const sessions = [];
+  const seen = new Set();
+  for (const m of models) {
+    for (const r of m.rows || []) {
+      if (r.session && !seen.has(r.session)) {
+        seen.add(r.session);
+        sessions.push(r.session);
+      }
+    }
+  }
+  const head =
+    `<tr><th>权重</th>${sessions.map((s) => `<th>${_escHtml(s)}</th>`).join("")}</tr>`;
+  const body = models
+    .map((m) => {
+      const by = Object.fromEntries((m.rows || []).map((r) => [r.session, r]));
+      const cells = sessions
+        .map((s) => {
+          const r = by[s];
+          if (!r) return "<td>—</td>";
+          if (r.error) return `<td class="warn" title="${_escHtml(r.error)}">err</td>`;
+          const w =
+            r.acc_window_lr != null
+              ? `${(r.acc_window_lr * 100).toFixed(0)}%`
+              : "—";
+          const t =
+            r.acc_trial_majority != null
+              ? `${(r.acc_trial_majority * 100).toFixed(0)}%`
+              : "—";
+          return `<td>窗 ${w}<br/>试 ${t}</td>`;
+        })
+        .join("");
+      return `<tr><th>${_escHtml(m.label || m.id)}</th>${cells}</tr>`;
+    })
+    .join("");
+  host.innerHTML = `<table><thead>${head}</thead><tbody>${body}</tbody></table>`;
+}
+
+el.btnModelEvalGrid?.addEventListener("click", () => {
+  if (!activeSubject) {
+    alert("请先登录被试");
+    return;
+  }
+  if (activeSimMode) {
+    alert("仿真模式暂不支持模型评测网格");
+    return;
+  }
+  if (el.modelEvalProgress) el.modelEvalProgress.textContent = "排队评测…";
+  if (el.modelEvalResult) el.modelEvalResult.innerHTML = "";
+  send({
+    type: "model_eval_grid",
+    subject_id: activeSubject,
+    session_paths: collectFtSessionPaths().length
+      ? collectFtSessionPaths()
+      : undefined,
   });
 });
 

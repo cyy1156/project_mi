@@ -12,9 +12,10 @@ LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
 
 
 def _acc_at_primary(records: List[Dict], primary_s: float) -> Dict[str, Any]:
+    """试次多数票识别率：Rest/L/R 三分类（primary_judge pred==label）。"""
     scored = [
         r for r in records
-        if r.get("label") in (1, 2) and r.get("valid") and not r.get("signal_bad")
+        if r.get("label") in (0, 1, 2) and r.get("valid") and not r.get("signal_bad")
     ]
     if not scored:
         return {"n": 0, "acc_argmax": None, "acc_gated": None, "margin_mean": None}
@@ -40,12 +41,12 @@ def _acc_at_primary(records: List[Dict], primary_s: float) -> Dict[str, Any]:
 
 
 def _acc_window(records: List[Dict]) -> Dict[str, Any]:
-    """窗级识别率：MI L/R 逐窗 pred==label（因果平滑后 argmax；非试次多数票）。"""
+    """窗级识别率：Rest/L/R 三分类逐窗 pred==label（因果平滑后 argmax；非试次多数票）。"""
     from experiment_game.experiment.judge_aggregate import apply_causal_smooth_to_judgments
 
     hits: List[bool] = []
     for r in records:
-        if r.get("label") not in (1, 2) or r.get("signal_bad"):
+        if r.get("label") not in (0, 1, 2) or r.get("signal_bad"):
             continue
         # valid 缺省视为 True（兼容旧记录）
         if r.get("valid") is False:
@@ -268,9 +269,9 @@ def _report_md(report: Dict[str, Any]) -> str:
         lines.extend(
             [
                 f"- 整场窗级识别率：**{_fmt_pct(overall.get('acc_window'))}**"
-                f"（{overall.get('n_windows', 0)} 窗 · L/R）",
+                f"（{overall.get('n_windows', 0)} 窗 · Rest/L/R）",
                 f"- 整场试次多数票：**{_fmt_pct(overall.get('acc_argmax'))}**"
-                f"（{overall.get('n', 0)} 试）",
+                f"（{overall.get('n', 0)} 试 · Rest/L/R）",
                 "",
             ]
         )

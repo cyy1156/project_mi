@@ -122,8 +122,21 @@ def login_subject(
     }
 
 
+# 模块前缀（create_session_dir module_prefix）；会话目录名 = [module_]sid_sess_stamp
+MODULE_PREFIXES = ("v1", "v2", "v3", "v4", "sim")
+
+
+def _split_module_prefix(name: str) -> tuple:
+    """v3_fnz_w01_... → ("v3", "fnz_w01_...")；无前缀 → ("", name)。"""
+    head, _, rest = name.partition("_")
+    if head in MODULE_PREFIXES and rest:
+        return head, rest
+    return "", name
+
+
 def _parse_session_name(name: str) -> Tuple[str, str, str]:
-    """fnz_ws01_20260826_164149 → (subject, session_id, stamp)."""
+    """``[v3_]fnz_ws01_20260826_164149`` → (subject, session_id, stamp)；剥离模块前缀。"""
+    _, name = _split_module_prefix(name)
     parts = name.split("_")
     if len(parts) >= 3:
         return parts[0], parts[1], "_".join(parts[2:])
@@ -136,7 +149,7 @@ def _discover_session_dirs(subject_id: str, *, repo_root: Optional[Path] = None)
     sid = validate_subject_id(subject_id)
     root = Path(repo_root or _REPO)
     found: Dict[str, Path] = {}
-    prefixes = (f"{sid}_",)
+    prefixes = (f"{sid}_",) + tuple(f"{m}_{sid}_" for m in MODULE_PREFIXES)
 
     for base in (
         sessions_dir(sid, repo_root=root),

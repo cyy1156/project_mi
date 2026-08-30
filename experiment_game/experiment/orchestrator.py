@@ -187,6 +187,7 @@ class OperatorService:
         self._active_sim_mode: bool = False
         self._ft_busy = False
         self._ft_worker: Optional[threading.Thread] = None
+        self._eval_busy = False
 
     # ---- 依赖注入接缝（2026-08-29 重构，见 docs/重构实施方案_20260829.md §3.3）----
     # 入口层 tools/ 注入具体实现；未注入时回退惰性导入（过渡期，行为不变）。
@@ -656,6 +657,31 @@ class OperatorService:
                     subject_id = validate_subject_id(sid)
                     out_dir = new_ft_run_dir(subject_id, repo_root=self.repo_root)
                 session_dirs = [Path(p) for p in paths_raw]
+                if not self._active_sim_mode:
+                    # 需求 2026-08-30 二.2：v3 微调仅使用 v3 模块自采数据，屏蔽其他模块历史数据
+                    from experiment_game.experiment.subject_registry import (
+                        _read_session_phase_mode,
+                    )
+
+                    _v3_dirs: List[Path] = []
+                    _excluded: List[Path] = []
+                    for _d in session_dirs:
+                        pm = _read_session_phase_mode(_d)
+                        if pm == "v3_session":
+                            _v3_dirs.append(_d)
+                        else:
+                            _excluded.append(_d)
+                    if _excluded:
+                        self.bridge.broadcast({
+                            "type": "finetune_progress",
+                            "level": "warning",
+                            "message": (
+                                f"已屏蔽 {len(_excluded)} 个非 v3 会话"
+                                "（v3 微调仅使用 v3 自采数据）："
+                                + ", ".join(d.name for d in _excluded[:6])
+                            ),
+                        })
+                    session_dirs = _v3_dirs
                 heldout_dirs: List[Path] = []
                 job_no_replay = no_replay
                 job_replay_ratio = replay_ratio
@@ -925,6 +951,77 @@ class OperatorService:
                 {"type": "finetune_promote_ack", "ok": False, "message": str(exc)}
             )
 
+    def _handle_model_eval_grid(self, msg: Dict[str, Any]) -> None:
+        """需求 2026-08-30 二.4：历史模型（current + ft_runs）× v3 会话 识别结果。"""
+        if getattr(self, "_eval_busy", False):
+            self.bridge.broadcast({
+                "type": "model_eval_ack", "ok": False,
+                "message": "已有评测任务在运行",
+            })
+            return
+        try:
+            if self._active_sim_mode:
+                raise ValueError("仿真模式暂不支持模型评测网格")
+            from experiment_game.experiment.subject_registry import (
+                list_sessions,
+                models_current_dir,
+                validate_subject_id,
+            )
+
+            sid = validate_subject_id(
+                str(msg.get("subject_id") or self._active_subject or "")
+            )
+            paths_raw = msg.get("session_paths") or []
+            if paths_raw:
+                session_dirs = [Path(p) for p in paths_raw]
+            else:
+                session_dirs = [
+                    Path(s["path"])
+                    for s in list_sessions(sid, repo_root=self.repo_root)
+                    if s.get("phase_mode") == "v3_session"
+                ]
+            if not session_dirs:
+                self.bridge.broadcast({
+                    "type": "model_eval_ack", "ok": False,
+                    "message": "没有 v3 会话可评测",
+                })
+                return
+            models_dir = models_current_dir(sid, repo_root=self.repo_root).parent
+        except Exception as exc:  # noqa: BLE001
+            self.bridge.broadcast({"type": "model_eval_ack", "ok": False, "message": str(exc)})
+            return
+
+        def _job() -> None:
+            self._eval_busy = True
+            try:
+                from experiment_game.pipeline.model_eval import evaluate_model_grid
+
+                def _prog(stage: str, i: int) -> None:
+                    self.bridge.broadcast({
+                        "type": "model_eval_progress", "stage": stage, "index": int(i),
+                    })
+
+                self.bridge.broadcast({
+                    "type": "model_eval_ack", "ok": True,
+                    "message": f"开始评测 {len(session_dirs)} 个 v3 会话…",
+                    "n_sessions": len(session_dirs),
+                })
+                result = evaluate_model_grid(
+                    models_dir, session_dirs, on_progress=_prog,
+                )
+                result["subject_id"] = sid
+                self.bridge.broadcast({"type": "model_eval_result", "ok": True, **result})
+            except Exception as exc:  # noqa: BLE001
+                self.bridge.broadcast({
+                    "type": "model_eval_result", "ok": False, "message": str(exc),
+                })
+            finally:
+                self._eval_busy = False
+
+        import threading as _threading
+
+        _threading.Thread(target=_job, daemon=True, name="model-eval-grid").start()
+
     def _handle_session_exclude_record(self, msg: Dict[str, Any]) -> None:
         try:
             from experiment_game.experiment.sim.campaign import load_campaign
@@ -1187,7 +1284,7 @@ class OperatorService:
                 else _next_session_id(sub["session_id"], segment - 1)
             )
 
-            paths = create_session_dir(save_root, subject_id, session_id)
+            paths = create_session_dir(save_root, subject_id, session_id, module_prefix="v1")
             self._bind_session_paths(paths, cfg)
 
             # 会话快照（便于复现；UI-2 正式化）。继续段记录该段实际 trial 数
@@ -1454,7 +1551,7 @@ class OperatorService:
         subject_id = sub["subject_id"]
         session_id = sub["session_id"]
 
-        paths = create_session_dir(save_root, subject_id, session_id)
+        paths = create_session_dir(save_root, subject_id, session_id, module_prefix="v2")
         self._bind_session_paths(paths, cfg)
         atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
@@ -1481,6 +1578,13 @@ class OperatorService:
 
         v2_cfg = V2Config.load_yaml(v2_path) if v2_path else V2Config.load_yaml()
         ignored = v2_cfg.apply_overrides(v2_overrides, protocol_locked=protocol_locked)
+        # v3 权重游戏测试：注入被试模型目录（current/members + overlay = v3 最终权重）
+        if getattr(v2_cfg, "use_v3_weights", False) and not getattr(v2_cfg, "subject_models_dir", ""):
+            from experiment_game.experiment.subject_registry import subject_root
+
+            v2_cfg.subject_models_dir = str(
+                subject_root(subject_id, repo_root=self.repo_root) / "models"
+            )
         verr = v2_cfg.verify_errors()
         if verr:
             raise RuntimeError("v2 配置无效: " + "; ".join(verr))
@@ -1492,14 +1596,22 @@ class OperatorService:
         weights_missing = probe_v2_weights_missing(v2_cfg)
         skip_cal = bool(exp.get("skip_v2_calibration"))
         skip_game = bool(exp.get("skip_v2_game"))
-        v2_score_max = 0
-        if not skip_cal:
-            v2_score_max += int(v2_cfg.cal_rounds_max) * int(v2_cfg.trials_per_round)
-        if not skip_game:
-            v2_score_max += int(v2_cfg.game_rounds) * int(v2_cfg.game_trials_per_round)
-        v2_score_max = session_score_max_openbmi(
-            v2_score_max, inter_trial_rest_s=float(v2_cfg.inter_trial_rest_s)
-        )
+        if getattr(v2_cfg, "game_mode", "") == "v3_test":
+            v2_score_max = round(
+                int(v2_cfg.v3test_n_rest) * float(v2_cfg.v3test_rest_points)
+                + (int(v2_cfg.v3test_n_left) + int(v2_cfg.v3test_n_right))
+                * float(v2_cfg.v3test_mi_points),
+                2,
+            )
+        else:
+            v2_score_max = 0
+            if not skip_cal:
+                v2_score_max += int(v2_cfg.cal_rounds_max) * int(v2_cfg.trials_per_round)
+            if not skip_game:
+                v2_score_max += int(v2_cfg.game_rounds) * int(v2_cfg.game_trials_per_round)
+            v2_score_max = session_score_max_openbmi(
+                v2_score_max, inter_trial_rest_s=float(v2_cfg.inter_trial_rest_s)
+            )
         update_session_meta(
             paths.meta_json,
             v2_config=str(v2_path or "config/v2_session.yaml"),
@@ -1751,7 +1863,7 @@ class OperatorService:
         subject_id = sub["subject_id"]
         session_id = sub["session_id"]
 
-        paths = create_session_dir(save_root, subject_id, session_id)
+        paths = create_session_dir(save_root, subject_id, session_id, module_prefix="v3")
         self._bind_session_paths(paths, cfg)
         atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)
@@ -2170,7 +2282,7 @@ class OperatorService:
         )
 
         session_id = run_id
-        paths = create_session_dir(save_root, subject_id, session_id)
+        paths = create_session_dir(save_root, subject_id, session_id, module_prefix="sim")
         self._bind_session_paths(paths, cfg)
         write_sim_script(paths.root, script)
         atomic_write_json(paths.root / "run_config.json", cfg)
@@ -2447,7 +2559,7 @@ class OperatorService:
         subject_id = sub["subject_id"]
         session_id = sub["session_id"]
 
-        paths = create_session_dir(save_root, subject_id, session_id)
+        paths = create_session_dir(save_root, subject_id, session_id, module_prefix="v4")
         self._bind_session_paths(paths, cfg)
         atomic_write_json(paths.root / "run_config.json", cfg)
         self._maybe_persist_last_config(cfg)

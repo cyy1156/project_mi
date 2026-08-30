@@ -66,7 +66,7 @@ class V3Config:
     blocks: int = 2
     trials_per_block: int = 18
     baseline_rest_s: float = 30.0
-    block_gap_s: float = 90.0
+    block_gap_s: float = 30.0
     guidance_timeout_s: float = 600.0
 
     primary_judge_s: float = 4.0
@@ -84,7 +84,7 @@ class V3Config:
     beta_h_hz: tuple = (20.0, 30.0)
 
     prep_s: float = 2.0
-    cue_s: float = 0.0
+    cue_s: float = 1.0
     imagine_s: float = 4.0
     iti_s: float = 3.0
     inter_trial_rest_s: float = 4.0

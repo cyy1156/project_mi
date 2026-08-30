@@ -119,20 +119,28 @@ def _enrich_weight_meta(blob: Dict[str, Any], rel_prefix: str) -> Dict[str, Any]
 
 
 def _session_id_tag(name: str) -> str:
-    """从目录名 / session_id 抽出 ws02 / run3 等短标签。"""
+    """从目录名 / session_id 抽出 ws02 / w01 / run3 等短标签。"""
     s = str(name or "").strip()
     if not s:
         return ""
-    # 已是短 id
+    # 已是短 id：优先 ws/run/ses，其次 wNN（勿把 ws01 误拆成 w）
     if re.fullmatch(r"(?i)(ws|run|ses)\d+", s):
         return s.lower()
+    if re.fullmatch(r"(?i)w\d+", s):
+        return s.lower()
     m = re.search(r"(?i)(?:^|_)((?:ws|run|ses)\d+)(?:_|$)", s)
+    if m:
+        return m.group(1).lower()
+    m = re.search(r"(?i)(?:^|_)(w\d+)(?:_|$)", s)
     if m:
         return m.group(1).lower()
     # session_lineage 项可能只有 session 目录名
     parts = s.split("_")
     for p in parts:
         if re.fullmatch(r"(?i)(ws|run|ses)\d+", p):
+            return p.lower()
+    for p in parts:
+        if re.fullmatch(r"(?i)w\d+", p):
             return p.lower()
     return ""
 

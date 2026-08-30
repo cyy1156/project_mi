@@ -156,7 +156,26 @@ body,
   border-radius: 12px;
   background: rgba(12, 14, 18, 0.7);
   text-shadow: 0 1px 2px rgba(0, 0, 0, 0.45);
-  max-width: min(90vw, 34rem);
+  max-width: min(92vw, 40rem);
+  line-height: 1.35;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+#hud-text .cue-badge {
+  display: inline-block;
+  vertical-align: middle;
+  margin-right: 0.55em;
+  padding: 0.12em 0.55em;
+  border-radius: 8px;
+  background: #c4a574;
+  color: #1a1f24;
+  font-size: 0.72em;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: lowercase;
+  text-shadow: none;
+  line-height: 1.2;
 }
 
 #hud-text:empty {
@@ -167,12 +186,14 @@ body,
 
 #hud-sub {
   margin-top: 8px;
-  font-size: 14px;
+  font-size: clamp(13px, 1.8vw, 16px);
   color: #f2f2f2;
-  max-width: min(90vw, 34rem);
+  max-width: min(92vw, 40rem);
   padding: 8px 14px;
   border-radius: 10px;
   background: rgba(12, 14, 18, 0.58);
+  line-height: 1.45;
+  word-break: keep-all;
 }
 
 #hud-sub:empty {
