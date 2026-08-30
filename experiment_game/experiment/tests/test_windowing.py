@@ -80,6 +80,21 @@ def test_slide_3s_from_interval():
     assert out[0].shape == (8, 750)
 
 
+def test_to_nchw_rejects_time_major_windows():
+    from experiment_game.core.windowing import to_nchw
+
+    bad = [np.zeros((750, 8), dtype=np.float32)]
+    try:
+        to_nchw(bad)
+        assert False, "expected ValueError"
+    except ValueError as exc:
+        assert "wins_to_model" in str(exc) or "(T,C)" in str(exc)
+
+    good = [np.zeros((8, 750), dtype=np.float32)]
+    out = to_nchw(good)
+    assert out.shape == (1, 1, 8, 750)
+
+
 def test_openbmi_align_cut_reexports():
     from experiment_game.offline import openbmi_align_cut as oac
 
