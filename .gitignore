@@ -139,3 +139,7 @@ collect_data/**/models/**/*.pt
 collect_data/**/models/**/*.onnx
 collect_data/**/models/**/*.pkl
 collect_data/**/models/**/*.joblib
+
+# 会话数据与本地助手缓存（大体量/本地态，严禁入库）
+experiment_game/data/sim_subjects/
+experiment_game/.workbuddy/
