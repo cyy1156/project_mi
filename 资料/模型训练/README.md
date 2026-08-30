@@ -2,7 +2,7 @@
 
 > 更新：2026-08-09 · **入口修订：2026-08-29**  
 > **线上/游戏现行**：`experiment_game` · **3s hop100 · E1f 四成员**（见 `experiment_game/docs/框架冻结确认_20260829.md`）。  
-> 本目录「2s 主线」为 **训练旁路历史主线**；E1f / Leave-Next / fnz FT 证据见方案 **24–29**。部署动作以 `experiment_game` 配置为准（冻结 F22）。
+> 本目录「2s 主线」为 **训练旁路历史主线**；E1f / Leave-Next / fnz FT 证据见方案 **24–31**；BCI2a 双底座×双门控见 **[`32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper`](./32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper/)**。部署动作以 `experiment_game` 配置为准（冻结 F22）。
 
 ## 历史主线入口（2 s / 100 ms · 请知悉已非线上默认）
 

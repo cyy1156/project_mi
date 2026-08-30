@@ -211,6 +211,30 @@ def test_replay_pool_balance():
     assert set(vals) == {0, 1, 2} and (cnts == 10).all()
 
 
+def test_replay_pool_squeezes_nchw_and_mixes_with_online_nct():
+    """OpenBMI (N,1,8,T) 与在线 (N,8,T) 混合不得再炸 3D/4D。"""
+    from adapt_engine.ft import ensure_windows_nct
+
+    rng = np.random.default_rng(1)
+    X4 = rng.normal(0, 1, (45, 1, 8, 750)).astype(np.float32)
+    y4 = np.repeat([0, 1, 2], 15)
+    pool = ReplayPool(X4, y4, seed=2)
+    assert pool.windows.shape == (45, 8, 750)
+
+    X3 = rng.normal(0, 1, (12, 8, 750)).astype(np.float32)
+    y3 = np.array([i % 3 for i in range(12)], dtype=np.int64)
+    model = TinyThree(seed=3)
+    fin = IncrementalFinetuner(
+        model,
+        FTRecipe(epochs=1, batch_size=8, replay_ratio=0.5),
+        replay_pool=pool,
+    )
+    rec = fin.train_round(X3, y3)
+    assert rec["frozen"] is False
+    assert rec["n_train"] > rec["n_new"]
+    assert ensure_windows_nct(X4).shape == (45, 8, 750)
+
+
 def test_ft_learns_and_frozen_round():
     X, y, tids, centers = make_trials(12, seed=5)
     model = TinyThree(seed=9)

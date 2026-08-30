@@ -179,6 +179,40 @@ class E1fStackConfig:
                     missing.append(f"缺 E1f 成员 {m.name} task 权重: {m.task_ckpt}")
         return missing
 
+    def with_member_overrides(
+        self,
+        overrides: Dict[str, Dict[str, str]],
+    ) -> "E1fStackConfig":
+        """按成员名覆盖 three/task 路径（用于被试 current all4 叠加）。
+
+        overrides 例::
+            {"shallow": {"three_ckpt": "...", "task_ckpt": "..."}}
+        """
+        members: List[E1fMemberSpec] = []
+        for m in self.members:
+            ov = overrides.get(m.name) or {}
+            members.append(
+                E1fMemberSpec(
+                    name=m.name,
+                    arch=m.arch,
+                    three_ckpt=str(ov.get("three_ckpt") or m.three_ckpt),
+                    task_ckpt=str(ov.get("task_ckpt") or m.task_ckpt or ""),
+                )
+            )
+        task = self.task_ckpt
+        if "shallow" in overrides and overrides["shallow"].get("task_ckpt"):
+            task = str(overrides["shallow"]["task_ckpt"])
+        return E1fStackConfig(
+            id=self.id,
+            label=self.label,
+            readout_mode=self.readout_mode,
+            primary_judge_mode=self.primary_judge_mode,
+            task_ckpt=task,
+            members=members,
+            fusion=self.fusion,
+            test_acc_paper=self.test_acc_paper,
+        )
+
 
 class E1fRegistry:
     """四成员 E1f 注册表；接口与 ModelRegistry 对齐。"""

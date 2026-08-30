@@ -34,12 +34,34 @@ class FTRecipe:
         }
 
 
+def ensure_windows_nct(windows: np.ndarray) -> np.ndarray:
+    """统一为 ``(N, C, T)``（通常 ``(N, 8, 750)``）。
+
+    OpenBMI npy 常为 ``(N, 1, 8, T)``（Conv 通道维）；在线判定窗堆叠为 ``(N, 8, T)``。
+    二者直接 ``concatenate`` 会触发 3D/4D 维数错误。
+    """
+    x = np.asarray(windows, dtype=np.float32)
+    if x.ndim == 4 and x.shape[1] == 1:
+        x = x[:, 0]
+    if x.ndim == 2:
+        x = x[None, ...]
+    if x.ndim != 3:
+        raise ValueError(
+            f"窗张量期望 (N,C,T) 或 (N,1,C,T)，得到 shape={tuple(x.shape)}"
+        )
+    return np.ascontiguousarray(x, dtype=np.float32)
+
+
 class ReplayPool:
     """源域回放池（按类平衡采样；25-G2）。"""
 
     def __init__(self, windows: np.ndarray, labels: np.ndarray, seed: int = 42):
-        self.windows = np.asarray(windows, dtype=np.float32)
+        self.windows = ensure_windows_nct(windows)
         self.labels = np.asarray(labels, dtype=np.int64)
+        if len(self.windows) != len(self.labels):
+            raise ValueError(
+                f"ReplayPool windows/labels 长度不一致: {len(self.windows)} vs {len(self.labels)}"
+            )
         self._rng = random.Random(seed)
         self._by_class = {
             int(c): np.where(self.labels == c)[0].tolist() for c in np.unique(self.labels)
@@ -144,17 +166,19 @@ class IncrementalFinetuner:
 
     def _mix_training_xy(self, windows: np.ndarray, labels: np.ndarray) -> Tuple[np.ndarray, np.ndarray, int]:
         """被试窗 + replay 混合；返回 (X, y, n_new)。"""
-        X = np.asarray(windows, dtype=np.float32)
+        X = ensure_windows_nct(windows)
         y = np.asarray(labels, dtype=np.int64)
         n = len(X)
         if self.replay_pool is not None and self.recipe.replay_ratio > 0:
             n_rep = int(round(n * self.recipe.replay_ratio))
             Xr, yr = self.replay_pool.sample(n_rep)
             if len(Xr):
+                Xr = ensure_windows_nct(Xr)
                 X = np.concatenate([X, Xr], axis=0)
                 y = np.concatenate([y, yr], axis=0)
         if self.recipe.aug_fn is not None:  # 25-G3 钩子
             X = np.stack([self.recipe.aug_fn(w) for w in X])
+            X = ensure_windows_nct(X)
         return X, y, n
 
     def train_one_epoch(

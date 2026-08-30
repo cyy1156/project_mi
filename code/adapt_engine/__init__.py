@@ -10,7 +10,7 @@
 
 from .constants import DEFAULT_CONSTANTS, SystemConstants
 from .drift import DriftAction, DriftGuard, DriftRecord
-from .ft import FTRecipe, IncrementalFinetuner, ReplayPool
+from .ft import FTRecipe, IncrementalFinetuner, ReplayPool, ensure_windows_nct
 from .quiz import AdmissionGate, CurvePoint, GateDecision, QuizStore, QuizTrial
 from .readout import confidence_weighted_majority, judge_trial, serial_gating, TrialVerdict
 from .scoring_v21 import (
@@ -27,7 +27,7 @@ from .runner import replay_offline, RoundController, RoundSplit, split_round
 __all__ = [
     "DEFAULT_CONSTANTS", "SystemConstants",
     "DriftAction", "DriftGuard", "DriftRecord",
-    "FTRecipe", "IncrementalFinetuner", "ReplayPool",
+    "FTRecipe", "IncrementalFinetuner", "ReplayPool", "ensure_windows_nct",
     "AdmissionGate", "CurvePoint", "GateDecision", "QuizStore", "QuizTrial",
     "confidence_weighted_majority", "judge_trial", "serial_gating", "TrialVerdict",
     "OnlineScoreTracker", "ScoringConfig", "TrialScoreV21",
