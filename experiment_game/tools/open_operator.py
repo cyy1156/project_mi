@@ -50,14 +50,23 @@ def main(argv: list[str] | None = None) -> int:
         default="127.0.0.1",
         help="绑定地址：本机 127.0.0.1；局域网监控传 0.0.0.0（或具体 LAN IP）",
     )
+    p.add_argument(
+        "--ws-token",
+        default=None,
+        help="WS 控制面 token（默认自动生成；也可用环境变量 EG_WS_TOKEN）",
+    )
     p.add_argument("--open-browser", action="store_true", default=True)
     p.add_argument("--no-browser", action="store_true")
     args = p.parse_args(argv)
 
+    import os
+
+    token = args.ws_token or os.environ.get("EG_WS_TOKEN") or None
     svc = OperatorService(
         http_port=args.http_port,
         ws_port=args.ws_port,
         serve_host=args.host,
+        ws_token=token,
     )
     _wire_implementations(svc)
     open_browser = args.open_browser and not args.no_browser
@@ -66,7 +75,7 @@ def main(argv: list[str] | None = None) -> int:
     print("关闭本窗口即结束服务。")
     print("默认：采集开 + 合成板；真机请在 Setup 选 Cyton，串口填设备管理器中的 COM（当前机常见 COM3）。")
     if args.host not in ("127.0.0.1", "localhost"):
-        print(f"远程模式：--host {args.host}（监控端用下方打印的局域网 URL）")
+        print(f"远程模式：--host {args.host}（监控端用下方打印的局域网 URL，须含 token）")
 
     try:
         svc.start()

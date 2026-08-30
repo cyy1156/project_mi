@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import logging
 import threading
 import time
 from typing import TYPE_CHECKING, Callable, Optional
@@ -11,6 +12,8 @@ import numpy as np
 from experiment_game.experiment.feature_probe import bandpowers_fft
 from experiment_game.experiment.inference_v2 import CHANNEL_ORDER, FS
 from experiment_game.experiment.signal_quality import assess_eeg_window
+
+_LOG = logging.getLogger(__name__)
 
 if TYPE_CHECKING:
     from experiment_game.experiment.inference_v2 import RingBuffer, OnlinePreprocessor
@@ -104,7 +107,7 @@ class EegFramePublisher:
                             "type": "v3_warn",
                             "message": "EEG 帧流中断：实时脑电画面可能停更，请检查采集链路",
                         })
-                    except Exception:
-                        pass
+                    except Exception as exc:  # noqa: BLE001
+                        _LOG.warning("断流警告 broadcast 失败: %r", exc)
             elapsed = time.monotonic() - t0
             time.sleep(max(0.01, interval - elapsed))

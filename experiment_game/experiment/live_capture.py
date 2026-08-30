@@ -6,6 +6,7 @@
 
 from __future__ import annotations
 
+import logging
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence, Union
 
@@ -13,6 +14,8 @@ from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
 from experiment_game.experiment.inference_v2 import RingBuffer
 from experiment_game.runtime.csv_recorder import CsvRecorderSubscriber
 from experiment_game.runtime.eeg_health import ensure_session_bus
+
+_LOG = logging.getLogger(__name__)
 
 
 class LiveEegCapture:
@@ -53,23 +56,30 @@ class LiveEegCapture:
         if bus is not None:
             try:
                 bus.unsubscribe(self.csv)
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                _LOG.warning("EEGBus 退订 CSV 失败: %r", exc)
         try:
             meta = self.csv.write_meta(
                 sample_rate_hz=self.sample_rate_hz,
                 use_synthetic=self.use_synthetic,
                 serial_port=self.serial_port,
             )
-        except Exception:  # noqa: BLE001
+        except Exception as exc:  # noqa: BLE001
+            _LOG.warning("写 eeg.meta 失败，仅回退 rows_written: %r", exc)
             meta = {"samples_written": int(self.csv.rows_written)}
+        close_err: Optional[BaseException] = None
         try:
             self.csv.close()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            close_err = exc
+            _LOG.error("eeg.csv close 失败（落盘可能不完整）rows=%s: %r", self.csv.rows_written, exc)
         try:
             self.buf.close()
-        except Exception:  # noqa: BLE001
-            pass
+        except Exception as exc:  # noqa: BLE001
+            _LOG.warning("RingBuffer close 失败: %r", exc)
         self._started = False
+        if close_err is not None:
+            raise RuntimeError(
+                f"eeg.csv 关闭失败，落盘可能不完整（rows={self.csv.rows_written}）"
+            ) from close_err
         return meta

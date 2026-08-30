@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import sys
 import time
 from pathlib import Path
 from typing import Any, Dict, List, Optional, Sequence
 
 from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
+
+_LOG = logging.getLogger(__name__)
 
 DEFAULT_CHANNEL_LABELS: List[str] = list(DEVICE_CHANNEL_LABELS)
 
@@ -300,8 +303,8 @@ class AcquisitionFacade:
         finally:
             try:
                 mgr.stop_acquisition()
-            except Exception:
-                pass
+            except Exception as exc:  # noqa: BLE001
+                _LOG.warning("stop_acquisition 失败（下一场可能重复触发采集）: %r", exc)
         return {"stop_recording_ok": ok, "message": msg, "quality": report_dict}
 
     def health_dict(self) -> dict:

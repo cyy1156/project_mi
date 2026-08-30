@@ -4,13 +4,26 @@ from __future__ import annotations
 
 import asyncio
 import json
+import logging
+import secrets
 import threading
 import time
-from typing import Any, Callable, Optional, Set
+from typing import Any, Callable, Optional, Sequence, Set
 
 import websockets
 
 from experiment_game.experiment.trial_sm import SessionAbort
+
+_LOG = logging.getLogger(__name__)
+
+# 被试页可无 token：continue / ready / sync / 引导确认
+_PUBLIC_CLIENT_EVENTS = frozenset(
+    {"ready", "continue", "sync", "v2_guidance_confirm"}
+)
+# 破坏性/控制面事件：有 token 配置时必须校验
+_PROTECTED_CLIENT_EVENTS = frozenset(
+    {"abort", "gate_ok", "split_request", "v2_enter_game"}
+)
 
 
 class WsBridge:
@@ -18,11 +31,26 @@ class WsBridge:
     在后台线程跑 asyncio WebSocket 服务。
     主线程用 broadcast() 推消息；wait_client_event() 等浏览器 continue/ready。
     新连接会重放 pending 的 prompt/stage/hud/session_saved，避免刷新后卡死。
+
+    鉴权：``auth_token`` 非空时，``operator`` 动作与 abort/gate_ok 等须带匹配 token；
+    诱导页的 continue/ready 仍可无 token。
     """
 
-    def __init__(self, host: str = "127.0.0.1", port: int = 8765) -> None:
+    def __init__(
+        self,
+        host: str = "127.0.0.1",
+        port: int = 8765,
+        *,
+        auth_token: Optional[str] = None,
+        allowed_origins: Optional[Sequence[str]] = None,
+    ) -> None:
         self.host = host
         self.port = port
+        self.auth_token = (str(auth_token).strip() if auth_token else "") or None
+        # None = 不校验 Origin（兼容局域网）；传列表则收紧
+        self.allowed_origins = (
+            list(allowed_origins) if allowed_origins is not None else None
+        )
         self._clients: Set[Any] = set()
         self._loop: Optional[asyncio.AbstractEventLoop] = None
         self._thread: Optional[threading.Thread] = None
@@ -44,6 +72,16 @@ class WsBridge:
         self.paused = False
         self.reject_requested = False
         self._operator_hook: Optional[Callable[[str, dict], None]] = None
+
+    @staticmethod
+    def make_token() -> str:
+        return secrets.token_urlsafe(18)
+
+    def _token_ok(self, msg: dict[str, Any]) -> bool:
+        if not self.auth_token:
+            return True
+        got = str(msg.get("token") or "").strip()
+        return bool(got) and secrets.compare_digest(got, self.auth_token)
 
     def set_operator_hook(self, hook: Optional[Callable[[str, dict], None]]) -> None:
         self._operator_hook = hook
@@ -225,14 +263,19 @@ class WsBridge:
                 pass
 
     async def _serve(self) -> None:
+        origin_kw: dict[str, Any] = {}
+        if self.allowed_origins is not None:
+            origin_kw["origins"] = list(self.allowed_origins)
+        else:
+            # 显式 None：允许跨主机 Origin（局域网监控）；靠 auth_token 控破坏性操作
+            origin_kw["origins"] = None
         self._server = await websockets.serve(
             self._handler,
             self.host,
             self.port,
             ping_interval=20,
             ping_timeout=20,
-            # 允许局域网监控端跨主机连接（否则偶发握手被拒）
-            origins=None,
+            **origin_kw,
         )
 
     async def _shutdown(self) -> None:
@@ -263,7 +306,11 @@ class WsBridge:
         try:
             await ws.send(
                 json.dumps(
-                    {"type": "hello", "message": "connected"},
+                    {
+                        "type": "hello",
+                        "message": "connected",
+                        "auth_required": bool(self.auth_token),
+                    },
                     ensure_ascii=False,
                 )
             )
@@ -282,6 +329,7 @@ class WsBridge:
                     continue
                 mtype = msg.get("type")
                 if mtype == "continue":
+                    # continue 是公开事件（被试页无 token）：不做 token 校验
                     self.clear_pending_prompt()
                     self._client_events["continue"].set()
                     try:
@@ -291,14 +339,60 @@ class WsBridge:
                     except Exception:  # noqa: BLE001
                         pass
                 elif mtype in self._client_events:
+                    if (
+                        self.auth_token
+                        and mtype in _PROTECTED_CLIENT_EVENTS
+                        and not self._token_ok(msg)
+                    ):
+                        _LOG.warning("拒绝无 token 的受保护事件: type=%s", mtype)
+                        try:
+                            await ws.send(
+                                json.dumps(
+                                    {
+                                        "type": "auth_error",
+                                        "message": f"需要 token 才能发送 {mtype}",
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+                        continue
                     self._client_events[mtype].set()
                 if mtype == "operator":
-                    self._handle_operator(msg)
+                    if self.auth_token and not self._token_ok(msg):
+                        _LOG.warning(
+                            "拒绝无 token 的 operator 动作: %s",
+                            msg.get("action"),
+                        )
+                        try:
+                            await ws.send(
+                                json.dumps(
+                                    {
+                                        "type": "auth_error",
+                                        "message": "operator 动作需要有效 token",
+                                    },
+                                    ensure_ascii=False,
+                                )
+                            )
+                        except Exception:  # noqa: BLE001
+                            pass
+                    else:
+                        self._handle_operator(msg)
                 if mtype in ("ready", "sync"):
                     # continue 已确认后不再重放 prompt（避免点击后弹窗又弹回）
                     if not self._client_events["continue"].is_set():
                         await self._send_pending(ws)
                 if self._on_message is not None:
+                    # 受保护事件未通过鉴权时不转发编排器
+                    if mtype == "operator" and self.auth_token and not self._token_ok(msg):
+                        continue
+                    if (
+                        mtype in _PROTECTED_CLIENT_EVENTS
+                        and self.auth_token
+                        and not self._token_ok(msg)
+                    ):
+                        continue
                     self._on_message(msg)
         finally:
             self._clients.discard(ws)

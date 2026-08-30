@@ -124,8 +124,12 @@ class RingBuffer:
                     bus.publish(np.asarray(t_lsl, dtype=np.float64), sample_tc, count=True)
                 else:
                     bus.note_push(n)
-            except Exception:  # noqa: BLE001
-                pass
+            except Exception as exc:  # noqa: BLE001
+                import logging
+
+                logging.getLogger(__name__).warning(
+                    "EEGBus.publish 失败（推理可能读到陈旧缓冲）: %r", exc
+                )
 
     def last_push_age_s(self) -> Optional[float]:
         """距最近一次 push 的秒数；尚无样本时返回自 _watch_mono 起的秒数。"""

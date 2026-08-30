@@ -161,7 +161,12 @@ def _softmax_batch(model, X: np.ndarray, device: str, *, n_out: int = 3) -> np.n
                 logits = model(xb.unsqueeze(1))
         if logits.dim() == 3:
             logits = logits.reshape(logits.shape[0], -1)
-        probs = torch.softmax(logits, dim=-1).cpu().numpy()[:, :n_out]
+        if int(logits.shape[-1]) != int(n_out):
+            raise ValueError(
+                f"模型输出类别数={int(logits.shape[-1])} 与 n_out={n_out} 不一致；"
+                "禁止静默切片，以免门控准确率系统性偏低"
+            )
+        probs = torch.softmax(logits, dim=-1).cpu().numpy()
         preds.append(probs.astype(np.float32))
     return np.concatenate(preds, axis=0) if preds else np.zeros((0, n_out), np.float32)
 
