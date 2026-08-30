@@ -73,6 +73,18 @@ h1 {
   line-height: 1.5;
 }
 
+.summary-window-acc {
+  margin: -8px 0 16px;
+  font-size: 1.05rem;
+  color: var(--text);
+}
+
+.summary-window-acc strong {
+  color: var(--accent);
+  font-size: 1.15rem;
+  font-variant-numeric: tabular-nums;
+}
+
 fieldset {
   border: 1px solid var(--line);
   border-radius: var(--radius);
@@ -375,8 +387,120 @@ code {
   margin-top: 4px;
 }
 
-.port-row input {
+    .port-row input {
   flex: 1;
+}
+
+.port-row button {
+  flex: 0 0 auto;
+  white-space: nowrap;
+}
+
+.session-board-map {
+  margin: 8px 0 0;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: 1px solid var(--line);
+  background: #0e141c;
+}
+
+.session-board-map.hidden {
+  display: none;
+}
+
+.session-board-map-title {
+  font-size: 12px;
+  color: var(--muted);
+  margin: 0 0 8px;
+}
+
+.session-board-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px 8px;
+  padding: 6px 0;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.session-board-row:first-of-type {
+  border-top: none;
+  padding-top: 0;
+}
+
+.session-board-row.is-current {
+  background: rgba(90, 156, 255, 0.08);
+  margin: 0 -8px;
+  padding-left: 8px;
+  padding-right: 8px;
+  border-radius: 6px;
+}
+
+.session-board-name {
+  flex: 0 0 4.5rem;
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--ink);
+}
+
+.session-board-row.is-current .session-board-name::after {
+  content: " · 当前";
+  font-weight: 500;
+  color: var(--accent, #5a9cff);
+  font-size: 11px;
+}
+
+.session-board-next {
+  flex: 0 0 auto;
+  font-size: 11px;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.session-board-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.session-id-chip {
+  appearance: none;
+  border: 1px solid var(--line);
+  background: #121820;
+  color: var(--ink);
+  border-radius: 999px;
+  padding: 3px 10px;
+  font-size: 12px;
+  line-height: 1.4;
+  cursor: pointer;
+}
+
+.session-id-chip:hover {
+  border-color: var(--accent, #5a9cff);
+}
+
+.session-id-chip.is-selected {
+  border-color: var(--accent, #5a9cff);
+  background: rgba(90, 156, 255, 0.2);
+}
+
+.session-id-chip.is-suggest {
+  border-style: dashed;
+  color: var(--muted);
+}
+
+.session-id-chip.is-empty {
+  cursor: default;
+  opacity: 0.55;
+  border-style: none;
+  background: transparent;
+  padding-left: 0;
+}
+
+.session-id-chip.is-empty:hover {
+  border-color: transparent;
 }
 
 .reuse-bar {
@@ -591,6 +715,17 @@ code {
 .session-score-label strong {
   font-size: 1.05rem;
   color: var(--accent);
+}
+.session-score-by {
+  font-size: 0.85rem;
+  line-height: 1.4;
+  color: var(--text);
+  margin-bottom: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.session-score-by strong {
+  color: var(--accent);
+  font-weight: 600;
 }
 .session-score-rules {
   font-size: 0.78rem;

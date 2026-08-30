@@ -73,9 +73,22 @@
             <legend>被试与会话</legend>
             <label>被试编号 <input name="subject_id" id="setup-subject-id" value="sub01" required readonly /></label>
             <label>会话编号
-              <select name="session_id" id="setup-session-id" required></select>
+              <div class="port-row">
+                <input
+                  name="session_id"
+                  id="setup-session-id"
+                  list="session-id-list"
+                  required
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="如 w01（可手输）"
+                />
+                <datalist id="session-id-list"></datalist>
+                <button type="button" id="session-id-suggest-btn" title="填入当前板块建议下一号">建议号</button>
+              </div>
             </label>
-            <p id="session-id-hint" class="hint">下拉列出全部已有会话（标注 v1/v2/v3/v4）；选已有会询问是否覆盖</p>
+            <div id="session-id-board-map" class="session-board-map" aria-live="polite"></div>
+            <p id="session-id-hint" class="hint">可手输；下方按板块列出已有编号（点击填入）。同板块已有会询问是否覆盖；其他板块同号可并存。</p>
             <label class="check hidden" id="session-overwrite-wrap">
               <input type="checkbox" name="overwrite_session_id" id="session-overwrite" />
               覆盖已有该编号的实验（旧目录移入 sessions/_archived）
@@ -431,12 +444,17 @@
           </fieldset>
 
           <div id="form-errors" class="errors hidden"></div>
+          <p id="setup-busy-hint" class="hint hidden">
+            后台仍有未结束会话时，请先点「中止后台会话」，再开始实验。
+            （改地址 <code>#run</code> 无效：重连后会自动回到本设置页）
+          </p>
 
           <div class="actions">
             <button type="button" id="btn-reset">恢复推荐默认</button>
             <button type="button" id="btn-save-local">保存为本地默认</button>
             <button type="button" id="btn-export-cfg">导出配置 JSON</button>
             <label class="file-btn">导入配置<input type="file" id="btn-import-cfg" accept="application/json,.json" hidden /></label>
+            <button type="button" id="btn-setup-abort" class="danger">中止后台会话</button>
             <button type="submit" id="btn-start" class="primary">开始实验</button>
           </div>
         </form>
@@ -502,6 +520,7 @@
           </div>
           <div class="session-score-bar-wrap">
             <div class="session-score-label">本场累计 <strong id="v2-session-score-num">0/—</strong></div>
+            <div id="v2-session-score-by" class="session-score-by">Left 0/— · Right 0/— · Cue前静息 0/—</div>
             <div id="v2-session-score-rules" class="session-score-rules">
               计分：MI 判对 +1；Cue前静息判对 +0.5（与 Left/Right 满分对齐）
             </div>
@@ -592,7 +611,7 @@
           </div>
           <p id="v4-headline" class="v4-headline hint">请静坐放松，正在评估信号…</p>
           <p class="v4-hint hint">
-            <strong>绿格</strong> = 最近 3s 静息信号合格（std 约 5–120µV、CAR 后有差分、无饱和；按 OpenBMI 标定）。<strong>按压不会变绿</strong>，只会饱和变红。合成板幅度过小会一直 FAIL，请用真机做帽检。
+            <strong>绿格</strong> = 最近 3s 静息信号合格（计分导含 CZ/CPZ 共 8 导；std 门槛见 v4_session.yaml）。<strong>按压不会变绿</strong>，只会饱和变红。合成板幅度过小会一直 FAIL，请用真机做帽检。
             触诊：极轻碰一下，看哪格 <strong>µV 数字</strong> 先跳（0.5s 刷新）。
           </p>
           <div id="v4-metrics" class="v4-metrics"></div>
@@ -613,6 +632,7 @@
           </div>
           <div class="session-score-bar-wrap">
             <div class="session-score-label">本场累计 <strong id="v3-session-score-num">0/54</strong></div>
+            <div id="v3-session-score-by" class="session-score-by">Left 0/18 · Right 0/18 · Cue前静息 0/18</div>
             <div id="v3-session-score-rules" class="session-score-rules">
               满分 <strong>54</strong>：Left 18 试 ×1 + Right 18 试 ×1 + Cue前静息 36 段 ×0.5
             </div>
@@ -700,6 +720,7 @@
           <button type="button" id="btn-reject">Reject</button>
           <button type="button" id="btn-reopen" class="primary">重新打开诱导页</button>
           <button type="button" id="btn-abort" class="danger">中止</button>
+          <button type="button" id="btn-v2-enter-game" class="primary hidden" title="跳过引导/标定/准入，直接进入游戏轮">直接进入游戏</button>
         </div>
         <p id="q-status-run" class="hint"></p>
         <p class="hint">快捷键：B 换场 · Q 问卷 · P 暂停 · N 代确认 · G 准入确认（v2 门控仅建议，须操作员确认进游戏）· R Reject · Esc 中止</p>
@@ -709,6 +730,7 @@
       <section id="view-summary" class="view hidden">
         <h1>结束与保存 <span id="verify-badge" class="na">—</span></h1>
         <p id="summary-msg" class="lead"></p>
+        <p id="summary-window-acc" class="summary-window-acc hidden">窗级识别率 <strong>—</strong></p>
         <p id="v2-accept-detail" class="hint"></p>
         <p id="v3-summary-detail" class="hint hidden"></p>
         <p id="v4-summary-detail" class="hint hidden"></p>
