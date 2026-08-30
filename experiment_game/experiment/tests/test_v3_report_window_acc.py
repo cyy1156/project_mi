@@ -57,3 +57,41 @@ def test_window_acc_differs_from_trial_majority():
     assert overall["n"] == 2
     assert overall["acc_argmax"] == 1.0
     assert report["blocks"]["sim_b1"]["accuracy"]["acc_window"] == overall["acc_window"]
+
+
+def test_window_acc_includes_rest():
+    # Rest 试次窗也计入窗级（三分类）
+    recs = {
+        "sim_b1": [
+            _fake_trial(0, [0, 0, 0, 0, 1]),
+            _fake_trial(1, [1, 1, 1, 1, 1]),
+        ]
+    }
+    report = build_v3_report(
+        block_order=["sim_b1"],
+        block_records=recs,
+        primary_judge_s=4.0,
+    )
+    overall = report["overall"]
+    # 仅 L/R 时 5 窗；含 Rest 后 10 窗
+    assert overall["n_windows"] == 10
+    assert overall["acc_window"] is not None
+
+
+def test_trial_majority_includes_rest():
+    # Rest 判对 + Left 判对 → 试次多数票 2/2；若只评 L/R 则 n=1
+    recs = {
+        "sim_b1": [
+            _fake_trial(0, [0, 0, 0, 1, 0]),
+            _fake_trial(1, [1, 1, 1, 1, 1]),
+            _fake_trial(2, [1, 1, 1, 1, 1]),  # Right 错
+        ]
+    }
+    report = build_v3_report(
+        block_order=["sim_b1"],
+        block_records=recs,
+        primary_judge_s=4.0,
+    )
+    overall = report["overall"]
+    assert overall["n"] == 3
+    assert overall["acc_argmax"] == round(2 / 3, 4)

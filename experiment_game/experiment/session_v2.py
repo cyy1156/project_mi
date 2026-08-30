@@ -389,18 +389,24 @@ def run_v2_session(
     bridge.clear_event("continue")
 
     _score_max = 0
-    if not skip_calibration:
-        _score_max += int(cfg.cal_rounds_max) * int(cfg.trials_per_round)
-    if not skip_game:
-        _score_max += int(cfg.game_rounds) * int(cfg.game_trials_per_round)
+    if getattr(cfg, "game_mode", "") == "v3_test":
+        _score_max = round(
+            int(cfg.v3test_n_rest) * float(cfg.v3test_rest_points)
+            + (int(cfg.v3test_n_left) + int(cfg.v3test_n_right))
+            * float(cfg.v3test_mi_points),
+            2,
+        )
+    else:
+        if not skip_calibration:
+            _score_max += int(cfg.cal_rounds_max) * int(cfg.trials_per_round)
+        if not skip_game:
+            _score_max += int(cfg.game_rounds) * int(cfg.game_trials_per_round)
+        from experiment_game.experiment.trial_scoring import session_score_max_openbmi as _ssm
+
+        _score_max = _ssm(_score_max, inter_trial_rest_s=float(cfg.inter_trial_rest_s))
     from experiment_game.experiment.trial_scoring import (
         add_session_score_points,
         empty_session_score_by,
-        session_score_max_openbmi,
-    )
-
-    _score_max = session_score_max_openbmi(
-        _score_max, inter_trial_rest_s=float(cfg.inter_trial_rest_s)
     )
     progress: Dict[str, object] = {
         "cal_round": 0,
@@ -742,6 +748,36 @@ def run_v2_session(
     gate_operator_confirmed = False
     drift_stats: List = []
     ctrl = gate = quiz = fin = drift = None
+
+    # —— v3 权重游戏测试（game_mode="v3_test"）：跳过引导/标定/准入/在线 FT ——
+    if getattr(cfg, "game_mode", "") == "v3_test" and not skip_game:
+        progress["session_score_max"] = round(
+            int(cfg.v3test_n_rest) * float(cfg.v3test_rest_points)
+            + (int(cfg.v3test_n_left) + int(cfg.v3test_n_right))
+            * float(cfg.v3test_mi_points),
+            2,
+        )
+        progress["game_mode"] = "v3_test"
+        from experiment_game.experiment.v3test_game import run_v3test_game
+
+        summary = run_v3test_game(
+            events,
+            markers,
+            bridge,
+            on_console,
+            cfg=cfg,
+            judgment_fn=None if degraded else judgment_fn,
+            on_stage=on_stage,
+            is_paused=bridge.is_paused,
+            should_abort=_should_abort,
+            seed=seed,
+        )
+        if buf is not None and close_buffer:
+            try:
+                buf.close()
+            except Exception as exc:  # noqa: BLE001
+                on_console(f"[v2·game] RingBuffer close 失败: {exc!r}")
+        return summary
 
     def _wait_operator_enter_game(
         *,

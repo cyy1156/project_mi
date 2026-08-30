@@ -12,6 +12,29 @@ function domRender(html) { const host = $c(); host.insertAdjacentHTML("beforeend
   document.getElementById("v2ov").innerHTML = html; }
 function domClear() { document.getElementById("v2ov")?.remove(); }
 
+/** 场景模式下的非遮挡文字横幅（cue/MI 阶段指导语）。pointer-events:none 不挡交互。 */
+let _bannerEl = null;
+function showBanner(text, sub = "") {
+  if (!text) { clearBanner(); return; }
+  if (!_bannerEl) {
+    _bannerEl = document.createElement("div");
+    _bannerEl.id = "v2-stage-banner";
+    _bannerEl.style.cssText =
+      "position:fixed;left:50%;top:9%;transform:translateX(-50%);text-align:center;" +
+      "color:#e8eefc;font-size:40px;font-weight:600;text-shadow:0 2px 8px #000a;" +
+      "pointer-events:none;z-index:40;max-width:80vw";
+    const subEl = document.createElement("div");
+    subEl.className = "banner-sub";
+    subEl.style.cssText = "font-size:20px;font-weight:400;opacity:.85;margin-top:10px";
+    _bannerEl.appendChild(document.createTextNode(""));
+    _bannerEl.appendChild(subEl);
+    document.body.appendChild(_bannerEl);
+  }
+  _bannerEl.firstChild.textContent = text;
+  _bannerEl.querySelector(".banner-sub").textContent = sub;
+}
+function clearBanner() { _bannerEl?.remove(); _bannerEl = null; }
+
 const MI_GUIDANCE = {
   1: "请想象左手正在握紧桌上的杯子，感受手指收紧、前臂用力，不要真的动。",
   2: "请想象右手正在握紧桌上的杯子，感受手指收紧、前臂用力，不要真的动。",
@@ -36,9 +59,35 @@ function setHud(title, sub = "", showCross = false) {
   const text = document.getElementById("hud-text");
   const subEl = document.getElementById("hud-sub");
   const cross = document.getElementById("cross");
-  if (text) text.textContent = title || "";
+  const phase = document.getElementById("phase-tag");
+  const t = title || "";
+  if (text) {
+    // cue 阶段：金色徽章，避免被换行/叠层「吃掉」英文 cue
+    const m = String(t).match(/^cue\s*[·\-–—|｜]?\s*([\s\S]*)$/i);
+    if (m) {
+      text.replaceChildren();
+      const badge = document.createElement("span");
+      badge.className = "cue-badge";
+      badge.textContent = "cue";
+      text.appendChild(badge);
+      const rest = (m[1] || "").trim();
+      if (rest) text.appendChild(document.createTextNode(rest));
+      if (phase) phase.textContent = "CUE";
+    } else {
+      text.textContent = t;
+      if (phase && String(phase.textContent).toUpperCase() === "CUE") {
+        phase.textContent = "";
+      }
+    }
+  }
   if (subEl) subEl.textContent = sub || "";
   if (cross) cross.classList.toggle("hidden", !showCross);
+}
+
+/** 与图三同构：仅 HUD 双层深色圆角框，不用 showBanner 浮层（避免叠字/断行）。 */
+function showPromptBoxes(title, sub = "", { cross = false } = {}) {
+  clearBanner();
+  setHud(title || "", sub || "", Boolean(cross));
 }
 
 function miSubtext(label) {
@@ -48,6 +97,27 @@ function miSubtext(label) {
 function cueText(label, rich = true) {
   const map = rich ? CUE : CUE_PLAIN;
   return map[label] ?? (rich ? "—" : "请按提示想象");
+}
+
+function cueTitle(label, data) {
+  // 固定以 "cue" 开头；正文与 MI 主框相同（或后端长句）
+  const lab = Number(label);
+  const plain =
+    CUE_PLAIN[lab] ??
+    CUE_PLAIN[label] ??
+    "请按提示想象";
+  let body = plain;
+  if (data?.cue_text != null && String(data.cue_text).trim()) {
+    body = String(data.cue_text).trim().replace(/^cue\s*[·\-–—|｜]?\s*/i, "");
+  }
+  return `cue ${body}`;
+}
+
+function miTitle(label, data) {
+  // 图三主框：短标题「想象：左/右手握紧杯子」；游戏测试长句仅作副文案时仍用短标题
+  if (label === 0) return CUE_PLAIN[0];
+  if (label === 1 || label === 2) return CUE_PLAIN[label];
+  return data?.cue_text || "持续想象";
 }
 
 function resolveRoundNo(ctx, data) {
@@ -95,7 +165,7 @@ function applyArmFeedback(s, data, label) {
 }
 
 export function handleV2Stage(stage, ctx, data) {
-  const s = S(); domClear();
+  const s = S(); domClear(); clearBanner();
   const label = ctx?.label;
   const mode = ctx?.mode || data?.mode;
   const game = isGameMode(mode, data);
@@ -132,42 +202,53 @@ export function handleV2Stage(stage, ctx, data) {
       break;
     }
     case "rest_start":
-    case "inter_trial_rest":
+    case "inter_trial_rest": {
+      const restDur = data?.duration_s != null ? `（${Number(data.duration_s).toFixed(0)} 秒）` : "";
+      const restText = data?.rest_text || "保持静息";
       s ? s.fixation() : domRender("🌙 静息");
-      setHud("静息", MI_GUIDANCE[0], true);
+      // 与图三同构：双框提示，不叠 showBanner / 不强制十字抢视觉
+      showPromptBoxes(`${restText}${restDur}`, MI_GUIDANCE[0], { cross: false });
       break;
+    }
     case "prep":
       s ? s.fixation() : domRender("➕");
-      setHud("", "注视十字，保持放松", true);
+      showPromptBoxes("", "注视十字，保持放松", { cross: true });
       break;
-    case "cue":
-      s ? s.cue(label) : domRender(`${CUE[label] ?? ""}<br/><small style="font-size:16px;opacity:.75">${miSubtext(label)}</small>`);
-      setHud(cueText(label, false), miSubtext(label));
+    case "cue": {
+      const title = cueTitle(label, data);
+      const sub = data?.cue_sub || miSubtext(label);
+      s ? s.v2Cue(label) : domRender(`${CUE[label] ?? ""}`);
+      showPromptBoxes(title, sub, { cross: false });
       break;
-    case "mi":
+    }
+    case "mi": {
+      const title = miTitle(label, data);
+      const sub = miSubtext(label);
       if (armFeedbackEnabled(mode, data) && Number(label) !== 0) {
         s ? s.gameLevel(0, false) : domRender(`${CUE[label] ?? "持续想象"}`);
-        setHud(cueText(label, false), miSubtext(label));
       } else if (armFeedbackEnabled(mode, data) && Number(label) === 0) {
         s ? s.fixation() : domRender(CUE[0]);
-        setHud(cueText(0, false), miSubtext(0));
       } else {
-        s ? s.fixation() : domRender(
-          `${CUE[label] ?? "持续想象"}<br/><small style="font-size:16px;opacity:.75">${miSubtext(label)}</small>`
-        );
-        setHud(cueText(label, false), miSubtext(label));
+        // 探针/无伸手反馈：保留场景，提示用图三双框
+        s ? s.fixation() : domRender(`${CUE[label] ?? "持续想象"}`);
       }
+      showPromptBoxes(title, sub, { cross: false });
       break;
+    }
     case "judge": {
       if (data?.signal_bad) {
-        setHud(cueText(label, false), "请保持放松，稍候继续");
+        showPromptBoxes(cueText(label, false), "请保持放松，稍候继续", { cross: false });
         break;
       }
       if (armFeedbackEnabled(mode, data)) {
         applyArmFeedback(s, data, label);
-        setHud(cueText(label, false), data?.cup_grasp ? "拿到了" : miSubtext(label));
+        showPromptBoxes(
+          cueText(label, false),
+          data?.cup_grasp ? "拿到了" : miSubtext(label),
+          { cross: false },
+        );
       } else {
-        setHud(cueText(label, false), miSubtext(label));
+        showPromptBoxes(cueText(label, false), miSubtext(label), { cross: false });
       }
       break;
     }
@@ -176,6 +257,14 @@ export function handleV2Stage(stage, ctx, data) {
       s ? s.iti() : domRender("😌");
       setHud("休息", "准备下一次试次");
       break;
+    case "game_end": {
+      const sc = Number(data?.score ?? 0);
+      const mx = Number(data?.score_max ?? 0);
+      const txt = mx > 0 ? `得分 ${sc} / ${mx}` : `得分 ${sc}`;
+      s ? s.idle({ title: "游戏结束", sub: txt }) : domRender(`🏁 游戏结束<br/><small style="font-size:22px">${txt}</small>`);
+      setHud("游戏结束", txt);
+      break;
+    }
     default:
       break;
   }

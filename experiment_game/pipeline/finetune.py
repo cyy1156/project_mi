@@ -219,7 +219,7 @@ def _build_session_windows_legacy(
     *,
     include_invalid: bool = True,
 ) -> Dict[str, np.ndarray]:
-    """历史 v3：mi_start+T0_MIN 前向切窗，含 Rest 想象试次。"""
+    """历史 / cue>0.5s 的 v3：MI 段切 L/R；Cue 前静息 = Rest(label=0)。"""
     t_lsl, x_raw = _load_eeg(session_dir)
     x_filt = notch_and_bandpass(car_reference(x_raw), FS, l_freq=8.0, h_freq=30.0)
     table = session_dir / "alignment" / "trial_table.csv"
@@ -252,6 +252,32 @@ def _build_session_windows_legacy(
             y_three.append(lab)
             y_task.append(0 if lab == 0 else 1)
             split_ids.append(sid)
+
+    # Cue 前静息（t_rest_*）= Rest / label=0（与在线判定、计分口径一致）
+    rest_sources = iter_rest_sources_from_table(
+        rows,
+        t_lsl,
+        skip_rejected=True,
+        skip_invalid=not include_invalid,
+        min_win_sec=WIN_SEC_3S,
+    )
+    n_rest_trials = 0
+    for tid, i0, i1 in rest_sources:
+        seg = extract_segment_baseline(x_filt, int(i0), int(i1), FS, baseline_sec=0.5)
+        if seg is None:
+            continue
+        seg_wins = segment_to_3s_hop100_windows(seg, FS, zscore=True)
+        ws = _seg_windows_to_ch_time(seg_wins)
+        if not ws:
+            continue
+        n_rest_trials += 1
+        sid = f"{sess_name}:pre_cue_rest_{tid}"
+        for w in ws:
+            wins.append(w)
+            y_three.append(0)
+            y_task.append(0)
+            split_ids.append(sid)
+    used_trials += n_rest_trials
 
     if not wins:
         raise RuntimeError(f"未切出任何训练窗：{session_dir}")

@@ -57,3 +57,25 @@ def test_match_preset():
     presets = {p["id"]: p for p in list_model_presets()}
     fnz = presets["fnz"]
     assert match_preset_id(fnz["task"], fnz["three"]) == "fnz"
+
+
+def test_session_id_tag_w_and_ws():
+    from experiment_game.experiment.model_presets import _lineage_run_span, _session_id_tag
+
+    assert _session_id_tag("w01") == "w01"
+    assert _session_id_tag("ws02") == "ws02"
+    assert _session_id_tag("v3_fnz0830_w01_20260830_151510") == "w01"
+    assert _session_id_tag("v3_fnz0830_w02_20260830_152619") == "w02"
+    assert _session_id_tag("syj0828_ws03_20260828_131522") == "ws03"
+    span = _lineage_run_span(
+        {
+            "leave_next": True,
+            "train_sessions": [
+                "v3_fnz0830_w01_20260830_151510",
+                "v3_fnz0830_w02_20260830_152619",
+            ],
+            "heldout_sessions": ["v3_fnz0830_w03_20260830_154343"],
+            "source_run": "w01",
+        }
+    )
+    assert span == "w01+w02→w03"

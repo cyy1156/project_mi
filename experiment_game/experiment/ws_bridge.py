@@ -22,7 +22,8 @@ _PUBLIC_CLIENT_EVENTS = frozenset(
 )
 # 破坏性/控制面事件：有 token 配置时必须校验
 _PROTECTED_CLIENT_EVENTS = frozenset(
-    {"abort", "gate_ok", "split_request", "v2_enter_game"}
+    {"abort", "gate_ok", "split_request", "v2_enter_game",
+     "finetune_start", "model_eval_grid"}
 )
 
 
@@ -350,11 +351,36 @@ class WsBridge:
                                 json.dumps(
                                     {
                                         "type": "auth_error",
-                                        "message": f"需要 token 才能发送 {mtype}",
+                                        "message": (
+                                            f"需要 token 才能发送 {mtype}。"
+                                            "请用命令窗口打印的操作台链接打开（含 ?token=）。"
+                                        ),
                                     },
                                     ensure_ascii=False,
                                 )
                             )
+                            if mtype == "finetune_start":
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "finetune_ack",
+                                            "ok": False,
+                                            "message": "鉴权失败：缺少或错误的 token，微调未启动",
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                )
+                            elif mtype == "model_eval_grid":
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "model_eval_ack",
+                                            "ok": False,
+                                            "message": "鉴权失败：缺少或错误的 token",
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                )
                         except Exception:  # noqa: BLE001
                             pass
                         continue
@@ -392,6 +418,54 @@ class WsBridge:
                         and self.auth_token
                         and not self._token_ok(msg)
                     ):
+                        # finetune_start / model_eval_grid 不在 _client_events，
+                        # 须回业务 ack，否则前端会一直停在「提交中」
+                        _LOG.warning("拒绝无 token 的受保护事件: type=%s", mtype)
+                        try:
+                            if mtype == "finetune_start":
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "finetune_ack",
+                                            "ok": False,
+                                            "message": (
+                                                "鉴权失败：缺少或错误的 token，微调未启动。"
+                                                "请关闭本页，用黑色命令窗口打印的操作台链接"
+                                                "（含 ?token=）重新打开。"
+                                            ),
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                )
+                            elif mtype == "model_eval_grid":
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "model_eval_ack",
+                                            "ok": False,
+                                            "message": (
+                                                "鉴权失败：缺少或错误的 token。"
+                                                "请用命令窗口打印的操作台链接重新打开。"
+                                            ),
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                )
+                            else:
+                                await ws.send(
+                                    json.dumps(
+                                        {
+                                            "type": "auth_error",
+                                            "message": (
+                                                f"需要 token 才能发送 {mtype}。"
+                                                "请用命令窗口打印的操作台链接打开（含 ?token=）。"
+                                            ),
+                                        },
+                                        ensure_ascii=False,
+                                    )
+                                )
+                        except Exception:  # noqa: BLE001
+                            pass
                         continue
                     self._on_message(msg)
         finally:

@@ -650,18 +650,23 @@ def run_v3_session(
 
     def _broadcast_block_stats() -> None:
         recs = block_records[current_cond]
-        lr = [
+        # 试次多数票：Rest/L/R；ERD 特征仍只看 L/R
+        scored = [
             r for r in recs
-            if r.get("label") in (1, 2) and r.get("valid") and not r.get("signal_bad")
+            if r.get("label") in (0, 1, 2) and r.get("valid") and not r.get("signal_bad")
+        ]
+        lr = [
+            r for r in scored
+            if r.get("label") in (1, 2)
         ]
         acc = None
-        if lr:
+        if scored:
             ok = 0
-            for r in lr:
+            for r in scored:
                 pj = r.get("primary_judge")
                 if pj and int(pj.get("pred", -1)) == int(r["label"]):
                     ok += 1
-            acc = ok / len(lr) if lr else None
+            acc = ok / len(scored) if scored else None
         erds = [
             float(r["features"]["mu_erd_contra"])
             for r in lr
@@ -679,7 +684,7 @@ def run_v3_session(
             "cond": current_cond,
             "trial_done": len(recs),
             "trials_per_block": cfg.trials_per_block,
-            "n_valid": len(lr),
+            "n_valid": len(scored),
             "n_lr": len([r for r in recs if r.get("label") in (1, 2)]),
             "n_signal_bad": sum(1 for r in recs if r.get("signal_bad")),
             "acc_argmax": round(acc, 3) if acc is not None else None,
@@ -911,7 +916,12 @@ def run_v3_session(
             bridge.broadcast({"type": "v3_report", "report": report})
             wa = overall.get("acc_window")
             wa_txt = "—" if wa is None else f"{100.0 * float(wa):.1f}%"
-            on_console(f"[v3] 窗级识别率={wa_txt}（{overall.get('n_windows') or 0} 窗 · L/R）")
+            on_console(f"[v3] 窗级识别率={wa_txt}（{overall.get('n_windows') or 0} 窗 · Rest/L/R）")
+            ta = overall.get("acc_argmax")
+            ta_txt = "—" if ta is None else f"{100.0 * float(ta):.1f}%"
+            on_console(
+                f"[v3] 试次多数票={ta_txt}（{overall.get('n') or 0} 试 · Rest/L/R）"
+            )
 
     except SessionAbort as exc:
         aborted = True

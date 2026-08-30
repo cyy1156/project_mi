@@ -33,6 +33,7 @@ def build_ws_dispatch_table(svc: "OperatorService") -> Dict[str, WsHandler]:
         "subject_info": svc._handle_subject_info,
         "finetune_start": svc._handle_finetune_start,
         "finetune_promote": svc._handle_finetune_promote,
+        "model_eval_grid": svc._handle_model_eval_grid,
         "session_exclude_record": svc._handle_session_exclude_record,
         "ramp_status": svc._handle_ramp_status,
         "sim_catalog": svc._handle_sim_catalog,

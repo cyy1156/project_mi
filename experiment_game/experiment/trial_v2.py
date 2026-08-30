@@ -1,8 +1,10 @@
 """v2 试次引擎（OpenBMI-Align v1 · MI 多数票计分 + 全程跑完）。
 
 范式（OpenBMI-Align v1）：
-  【每试次 Cue 前 4s Rest】→ prep → Cue=mi_start → MI 固定 4s → ITI
-  无 label=0「静息想象」试次；静息 = 块前 30s seed + 每试次 Cue 前 4s。
+  【每试次 Cue 前 4s Rest】→ prep → Cue → MI 固定 4s → ITI
+  无单独的 label=0「静息想象」试次行；Cue 前静息即 Rest（label=0）：
+  events ``rest_start/role=pre_cue_rest``，trial_table ``t_rest_start/end``，
+  在线判定与 FT 切窗均按 Rest 使用。另有块前 30s 基线 seed。
   计分：
     - MI：多数票 vs L/R → 正确 +1
     - Cue 前 Rest：多数票 vs Rest(0) → 正确 +0.5（36×0.5=18，与 L/R 各 18 对齐）
@@ -175,9 +177,28 @@ class TrialStateMachineV2:
         row = self._emit("prep_start", ctx)
         self._wait_after(row["t_lsl"], t.prep_s)
 
-        row = self._emit("cue", ctx, extra={"cue_kind": CUE_KIND.get(ctx.label, "icon_rest")})
+        _cue_plain = {
+            1: "想象：左手握紧杯子",
+            2: "想象：右手握紧杯子",
+            0: "保持静息",
+        }
+        cue_text = f"cue {_cue_plain.get(ctx.label, '请按提示想象')}"
+        cue_payload = {
+            "cue_kind": CUE_KIND.get(ctx.label, "icon_rest"),
+            "cue_s": float(t.cue_s),
+            "cue_text": cue_text,
+        }
+        row = self._emit("cue", ctx, extra=cue_payload)
         cue_t = row["t_lsl"]
-        self._notify("cue", ctx, {"cue_t": cue_t})
+        self._notify(
+            "cue",
+            ctx,
+            {
+                "cue_t": cue_t,
+                "cue_s": float(t.cue_s),
+                "cue_text": cue_text,
+            },
+        )
 
         if t.cue_s > 1e-6:
             self._wait_after(cue_t, t.cue_s)

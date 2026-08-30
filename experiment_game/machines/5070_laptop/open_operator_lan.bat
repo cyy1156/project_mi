@@ -19,7 +19,11 @@ if not defined PY (
 echo [5070_laptop] Using: %PY%
 echo.
 echo === Operator console ^(LAN / scheme B^) ===
-echo Bind: 0.0.0.0 — monitor opens http://^<lab-PC-IP^>:8080/operator.html
+echo Bind: 0.0.0.0
+echo.
+echo IMPORTANT for monitor PC:
+echo   Copy the FULL URL printed below ^(must contain ?token=...^)
+echo   Do NOT open bare operator.html without token.
 echo Subject display stays on this PC: http://127.0.0.1:8080/
 echo Keep this window open. Close it to stop the server.
 echo First time: allow firewall inbound for TCP 8080 and 8765.

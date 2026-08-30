@@ -47,7 +47,13 @@ def iter_rest_sources_from_table(
     skip_invalid: bool = True,
     min_win_sec: float = WIN_SEC,
 ) -> List[Tuple[int, int, int]]:
-    """从 trial_table 的 rest 打点提取源区间。返回 [(trial_id, t0, t1), ...]。"""
+    """从 trial_table 提取 Rest（label=0）源区间。返回 [(trial_id, t0, t1), ...]。
+
+    兼容两种表形态：
+    1) 独立 Rest 行：``phase=='rest'`` 且 ``label==0``（历史）
+    2) 现行 v3：Cue 前静息挂在 L/R 试次行的 ``t_rest_start``/``t_rest_end``
+       （语义即 Rest / label=0，不是单独「静息想象」试次行）
+    """
     out: List[Tuple[int, int, int]] = []
     min_len = int(round(float(min_win_sec) * FS))
     for r in rows:
@@ -55,17 +61,25 @@ def iter_rest_sources_from_table(
             continue
         if skip_invalid and str(r.get("invalid") or "0") == "1":
             continue
-        if str(r.get("phase") or "") != "rest":
-            continue
-        lab = int(r.get("label") or -1)
-        if lab != 0:
-            continue
         t_s = r.get("t_rest_start")
         t_e = r.get("t_rest_end")
-        if t_s in (None, "") or t_e in (None, ""):
+        try:
+            if t_s is None or t_e is None or t_s == "" or t_e == "":
+                continue
+            ts = float(t_s)
+            te = float(t_e)
+            if ts != ts or te != te or te - ts < float(min_win_sec) - 1e-6:
+                continue
+        except (TypeError, ValueError):
             continue
-        i0 = lsl_to_sample(t_lsl, float(t_s))
-        i1 = lsl_to_sample(t_lsl, float(t_e))
+        phase = str(r.get("phase") or "")
+        lab = int(float(r.get("label") or -1)) if r.get("label") not in (None, "") else -1
+        # 独立 Rest 行，或任意带 Cue 前静息打点的试次行
+        is_rest_row = phase == "rest" and lab == 0
+        if not is_rest_row and phase == "rest" and lab not in (0, -1):
+            continue
+        i0 = lsl_to_sample(t_lsl, ts)
+        i1 = lsl_to_sample(t_lsl, te)
         if i1 - i0 < min_len:
             continue
         out.append((int(r.get("trial_id") or 0), i0, i1))

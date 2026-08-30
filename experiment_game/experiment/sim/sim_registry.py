@@ -58,13 +58,17 @@ def sim_models_ft_runs(subject_id: str, *, repo_root: Optional[Path] = None) -> 
 
 
 def list_sim_sessions(subject_id: str, *, repo_root: Optional[Path] = None) -> List[Dict[str, Any]]:
-    from experiment_game.experiment.subject_registry import _session_metrics
+    from experiment_game.experiment.subject_registry import MODULE_PREFIXES, _session_metrics
 
     sid = validate_sim_subject_id(subject_id)
     base = sim_sessions_dir(sid, repo_root=repo_root)
     if not base.is_dir():
         return []
-    dirs = sorted(p for p in base.iterdir() if p.is_dir() and p.name.startswith(f"{sid}_"))
+    prefixes = (f"{sid}_",) + tuple(f"{m}_{sid}_" for m in MODULE_PREFIXES)
+    dirs = sorted(
+        p for p in base.iterdir()
+        if p.is_dir() and any(p.name.startswith(x) for x in prefixes)
+    )
     return [_session_metrics(d) for d in dirs]
 
 

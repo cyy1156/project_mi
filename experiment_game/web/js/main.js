@@ -1,6 +1,6 @@
 import { WsClient } from "./ws_client.js?v=20260825arm1";
 import { HomeDeskScene } from "./scene.js?v=20260825arm1";
-import { handleV2Stage, maybeDemo, setSubjectFeedbackMode } from "./v2_bridge.js?v=20260827m";
+import { handleV2Stage, maybeDemo, setSubjectFeedbackMode } from "./v2_bridge.js?v=20260830cue3";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
