@@ -106,3 +106,36 @@ def session_score_max_openbmi(
     if float(inter_trial_rest_s) <= 1e-6:
         return float(n)
     return float(n) + float(n) * PRE_CUE_REST_POINTS
+
+
+def empty_session_score_by() -> Dict[str, float]:
+    """本场分项：Left / Right / Cue前静息（正式 Rest 标签仅指 Cue前静息）。"""
+    return {"left": 0.0, "right": 0.0, "pre_cue_rest": 0.0}
+
+
+def session_score_by_max(
+    n_mi_trials: int,
+    *,
+    inter_trial_rest_s: float = 4.0,
+) -> Dict[str, float]:
+    """分项满分参考（L/R 按半场；Cue前静息 = n×0.5）。"""
+    n = max(0, int(n_mi_trials))
+    n_l = n // 2
+    n_r = n - n_l
+    cue_rest = float(n) * PRE_CUE_REST_POINTS if float(inter_trial_rest_s) > 1e-6 else 0.0
+    return {
+        "left": float(n_l),
+        "right": float(n_r),
+        "pre_cue_rest": cue_rest,
+    }
+
+
+def add_session_score_points(progress: Dict[str, Any], pts: float, *, bucket: str) -> None:
+    """累加总分，并写入 session_score_by 分项。"""
+    pts = float(pts or 0.0)
+    progress["session_score"] = float(progress.get("session_score") or 0) + pts
+    by = progress.get("session_score_by")
+    if not isinstance(by, dict):
+        by = empty_session_score_by()
+        progress["session_score_by"] = by
+    by[bucket] = float(by.get(bucket) or 0) + pts

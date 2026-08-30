@@ -18,6 +18,7 @@ PROTOCOL_LOCKED_ALLOW: Set[str] = {
     "s3_three_ckpt",
     "readout_mode",
     "e1f_config_path",
+    "e1f_overlay_path",
     "primary_judge_mode",
 }
 
@@ -101,6 +102,8 @@ class V3Config:
     # E1f 四成员集成（readout_mode=e1f 时启用）
     readout_mode: str = "serial_gating"
     e1f_config_path: str = "experiment_game/config/e1f_four_member.json"
+    # 被试 all4 FT 后 current/e1f_overlay.json（空=仅底座）
+    e1f_overlay_path: str = ""
 
     # 关闭信号质量门控：所有判定窗进入模型
     signal_quality_enabled: bool = False

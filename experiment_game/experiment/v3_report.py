@@ -39,6 +39,36 @@ def _acc_at_primary(records: List[Dict], primary_s: float) -> Dict[str, Any]:
     }
 
 
+def _acc_window(records: List[Dict]) -> Dict[str, Any]:
+    """窗级识别率：MI L/R 逐窗 pred==label（因果平滑后 argmax；非试次多数票）。"""
+    from experiment_game.experiment.judge_aggregate import apply_causal_smooth_to_judgments
+
+    hits: List[bool] = []
+    for r in records:
+        if r.get("label") not in (1, 2) or r.get("signal_bad"):
+            continue
+        # valid 缺省视为 True（兼容旧记录）
+        if r.get("valid") is False:
+            continue
+        js = [j for j in (r.get("judgments") or []) if not j.get("signal_bad")]
+        if not js:
+            continue
+        for j in apply_causal_smooth_to_judgments(js):
+            hits.append(int(j.get("pred")) == int(r["label"]))
+    n = len(hits)
+    if n == 0:
+        return {"n_windows": 0, "acc_window": None}
+    return {
+        "n_windows": n,
+        "acc_window": round(float(np.mean(hits)), 4),
+    }
+
+
+def window_accuracy_from_records(records: List[Dict]) -> Dict[str, Any]:
+    """对外：由试次记录（含 judgments）计算窗级 acc。"""
+    return _acc_window(records)
+
+
 def _primary_judge(record: Dict, primary_s: float) -> Optional[Dict]:
     pj = record.get("primary_judge")
     if pj:
@@ -146,6 +176,8 @@ def build_v3_report(
     for cond in block_order:
         recs = block_records.get(cond, [])
         acc = _acc_at_primary(recs, primary_judge_s)
+        win = _acc_window(recs)
+        acc = {**acc, **win}
         feat = _block_features(recs)
         blocks[cond] = {
             "n_trials": len(recs),
@@ -155,9 +187,21 @@ def build_v3_report(
             "features": feat,
         }
 
+    all_recs: List[Dict] = []
+    for cond in block_order:
+        all_recs.extend(block_records.get(cond, []))
+    overall_trial = _acc_at_primary(all_recs, primary_judge_s)
+    overall_win = _acc_window(all_recs)
+    overall = {
+        **overall_trial,
+        **overall_win,
+        # 兼容旧索引字段名；真正窗级请用 acc_window
+        "acc_argmax_all_trials": overall_trial.get("acc_argmax"),
+    }
+
     delta: Dict[str, Any] = {}
     if "no_guide" in blocks and "guided" in blocks:
-        for key in ("acc_argmax", "acc_gated", "margin_mean"):
+        for key in ("acc_argmax", "acc_gated", "margin_mean", "acc_window"):
             a = blocks["no_guide"]["accuracy"].get(key)
             b = blocks["guided"]["accuracy"].get(key)
             if a is not None and b is not None:
@@ -173,12 +217,22 @@ def build_v3_report(
     if guided_acc is None:
         guided_acc = blocks.get("no_guide", {}).get("accuracy", {}).get("acc_argmax")
         weak_frac = blocks.get("no_guide", {}).get("features", {}).get("weak_grade_frac")
+    if guided_acc is None:
+        # 仿真块等无 guided/no_guide：整场试次多数票（定级口径不变）
+        guided_acc = overall.get("acc_argmax")
+        weak_frac = None
+        for cond in block_order:
+            wf = (blocks.get(cond) or {}).get("features", {}).get("weak_grade_frac")
+            if wf is not None:
+                weak_frac = wf
+                break
 
     report = {
         "frozen": frozen,
         "block_order": block_order,
         "primary_judge_s": primary_judge_s,
         "blocks": blocks,
+        "overall": overall,
         "guidance_effect": delta,
         "quality_tier": _quality_tier(guided_acc, weak_frac),
         "invalid_streak_max": invalid_streak_max,
@@ -204,19 +258,35 @@ def _report_md(report: Dict[str, Any]) -> str:
         "",
         f"- 权重冻结：`{report.get('frozen')}`",
         f"- 块顺序：`{' → '.join(report.get('block_order') or [])}`",
-        f"- 主判定：MI 全程 **多数票**（rule=majority_vote；平票代表窗 tie-break @ {report.get('primary_judge_s')}s）",
+        f"- 主判定：MI 全程 **多数票**（报告另附 **窗级 acc**；平票代表窗 tie-break @ {report.get('primary_judge_s')}s）",
         f"- 底座质量定级：**{report.get('quality_tier')}**",
         "- 口径：特征卡 ERD 相对 **开场 30s seed**（换块保留）+ 试次间 Rest 滚动；操作台功率条相对同口径；信号质量不足的试次已从 acc/ERD 统计剔除",
         "",
+    ]
+    overall = report.get("overall") or {}
+    if overall:
+        lines.extend(
+            [
+                f"- 整场窗级识别率：**{_fmt_pct(overall.get('acc_window'))}**"
+                f"（{overall.get('n_windows', 0)} 窗 · L/R）",
+                f"- 整场试次多数票：**{_fmt_pct(overall.get('acc_argmax'))}**"
+                f"（{overall.get('n', 0)} 试）",
+                "",
+            ]
+        )
+    lines.extend(
+        [
         "## 分块准确率",
         "",
-        "| 条件 | n | acc(argmax) | acc(gated) | 裕度 |",
-        "|---|---:|---:|---:|---:|",
-    ]
+        "| 条件 | n试 | 窗级acc | n窗 | 试次多数票 | gated | 裕度 |",
+        "|---|---:|---:|---:|---:|---:|---:|",
+        ]
+    )
     for cond, blk in (report.get("blocks") or {}).items():
         acc = blk.get("accuracy") or {}
         lines.append(
             f"| {cond} | {acc.get('n', 0)} | "
+            f"{_fmt_pct(acc.get('acc_window'))} | {acc.get('n_windows', 0)} | "
             f"{_fmt_pct(acc.get('acc_argmax'))} | {_fmt_pct(acc.get('acc_gated'))} | "
             f"{acc.get('margin_mean') or '—'} |"
         )

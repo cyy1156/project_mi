@@ -89,6 +89,30 @@ def test_mi_tracker_pre_cue_rest_half_point():
     assert session_score_max_openbmi(36, inter_trial_rest_s=0) == 36.0
 
 
+def test_session_score_by_buckets():
+    from experiment_game.experiment.trial_scoring import (
+        add_session_score_points,
+        empty_session_score_by,
+        session_score_by_max,
+    )
+
+    assert session_score_by_max(36) == {
+        "left": 18.0,
+        "right": 18.0,
+        "pre_cue_rest": 18.0,
+    }
+    prog = {"session_score": 0.0, "session_score_by": empty_session_score_by()}
+    add_session_score_points(prog, 1.0, bucket="left")
+    add_session_score_points(prog, 0.5, bucket="pre_cue_rest")
+    add_session_score_points(prog, 1.0, bucket="right")
+    assert prog["session_score"] == 2.5
+    assert prog["session_score_by"] == {
+        "left": 1.0,
+        "right": 1.0,
+        "pre_cue_rest": 0.5,
+    }
+
+
 def test_scoring_replay_skips_pre_cue_rest_judges():
     import json
     import tempfile

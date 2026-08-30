@@ -46,7 +46,7 @@ def _load_openbmi_replay_pool(
         return None
     try:
         import numpy as np
-        from adapt_engine.ft import ReplayPool
+        from adapt_engine.ft import ReplayPool, ensure_windows_nct
         from data_paths import resolve_data
 
         data_dir, prefix = resolve_data("openbmi_3s_hop100")
@@ -54,8 +54,10 @@ def _load_openbmi_replay_pool(
         y = np.load(data_dir / f"{prefix}_y_three.npy")
         n = min(len(y), max_windows)
         idx = np.linspace(0, len(y) - 1, n, dtype=int)
-        pool = ReplayPool(np.array(X[idx], dtype=np.float32), np.asarray(y[idx], dtype=np.int64), seed=seed)
-        on_console(f"[v2] replay 池：{n} 窗（openbmi three）")
+        # OpenBMI 常为 (N,1,8,T)；在线窗为 (N,8,T)——入库前统一 NCT，避免轮间 FT 拼接炸维
+        X_nct = ensure_windows_nct(np.asarray(X[idx], dtype=np.float32))
+        pool = ReplayPool(X_nct, np.asarray(y[idx], dtype=np.int64), seed=seed)
+        on_console(f"[v2] replay 池：{n} 窗 shape={tuple(X_nct.shape[1:])}（openbmi three）")
         return pool
     except Exception as exc:
         on_console(f"[v2] ⚠️ replay 池加载失败：{exc}")
@@ -375,15 +377,27 @@ def run_v2_session(
     def _should_abort() -> bool:
         if bridge.should_abort():
             return True
+        # 游戏轮已开始则忽略「直接进入游戏」（避免误触中止试次）
+        if bridge.want_enter_game() and progress.get("phase_step") != "game":
+            raise SessionAbort("enter_game")
         _raise_if_eeg_stale()
         return False
+
+    bridge.clear_enter_game()
+    bridge.clear_event("v2_guidance_confirm")
+    bridge.clear_event("gate_ok")
+    bridge.clear_event("continue")
 
     _score_max = 0
     if not skip_calibration:
         _score_max += int(cfg.cal_rounds_max) * int(cfg.trials_per_round)
     if not skip_game:
         _score_max += int(cfg.game_rounds) * int(cfg.game_trials_per_round)
-    from experiment_game.experiment.trial_scoring import session_score_max_openbmi
+    from experiment_game.experiment.trial_scoring import (
+        add_session_score_points,
+        empty_session_score_by,
+        session_score_max_openbmi,
+    )
 
     _score_max = session_score_max_openbmi(
         _score_max, inter_trial_rest_s=float(cfg.inter_trial_rest_s)
@@ -396,6 +410,7 @@ def run_v2_session(
         "subblock": 0,
         "score": None,
         "session_score": 0,
+        "session_score_by": empty_session_score_by(),
         "session_trials_done": 0,
         "session_score_max": _score_max,
         "ft_status": "idle",
@@ -485,10 +500,12 @@ def run_v2_session(
             lab = getattr(ctx, "label", None)
             if stage == "pre_cue_rest_end" and summary is not None:
                 pts = float(summary.get("score") or 0.0)
-                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                add_session_score_points(progress, pts, bucket="pre_cue_rest")
             elif stage == "trial_end" and summary is not None and lab in (1, 2):
                 pts = float(summary.get("score") or 0.0)
-                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                add_session_score_points(
+                    progress, pts, bucket="left" if int(lab) == 1 else "right"
+                )
                 progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
         if ctx is not None and getattr(ctx, "subblock", None):
             progress["subblock"] = getattr(ctx, "subblock", 0)
@@ -502,6 +519,8 @@ def run_v2_session(
         lab = getattr(ctx, "label", None) if ctx else None
         if isinstance(data, dict):
             data = attach_judge_names(data, label=lab)
+        score_by = dict(progress.get("session_score_by") or {})
+        progress["session_score_by"] = score_by
         bridge.broadcast({
             "type": "v2_stage",
             "stage": stage,
@@ -514,9 +533,13 @@ def run_v2_session(
                 "subblock": getattr(ctx, "subblock", None) if ctx else None,
             },
             "data": _ser(data),
-            "progress": dict(progress),
+            "progress": {
+                **dict(progress),
+                "session_score_by": dict(score_by),
+            },
             "score": score,
             "session_score": progress.get("session_score"),
+            "session_score_by": dict(score_by),
             "session_score_max": progress.get("session_score_max"),
             "session_trials_done": progress.get("session_trials_done"),
         })
@@ -564,18 +587,34 @@ def run_v2_session(
             committed.append(tid)
         return committed
 
+    def _stack_trial_windows(wins: list) -> np.ndarray:
+        """list[(8,T) | (1,8,T)] → (n, 8, T)。"""
+        from adapt_engine.ft import ensure_windows_nct
+
+        if not wins:
+            return np.zeros((0, 8, 750), dtype=np.float32)
+        arrs = []
+        for w in wins:
+            w_arr = np.asarray(w, dtype=np.float32)
+            if w_arr.ndim == 3 and w_arr.shape[0] == 1:
+                w_arr = w_arr[0]
+            if w_arr.ndim != 2:
+                raise ValueError(f"判定窗期望 (C,T)，得到 {w_arr.shape}")
+            arrs.append(w_arr)
+        return ensure_windows_nct(np.stack(arrs, axis=0))
+
     def _ft_arrays(trial_ids: List[int]) -> Optional[Tuple[np.ndarray, np.ndarray]]:
         ids = [t for t in trial_ids if t in store.valid_trials and t in store.windows]
         if not ids:
             return None
-        X = np.concatenate([store.windows[t] for t in ids], axis=0)
+        X = np.concatenate([_stack_trial_windows(store.windows[t]) for t in ids], axis=0)
         y = np.concatenate([[store.labels[t]] * len(store.windows[t]) for t in ids])
         return X, y
 
     def _windows_of_trial(ti: int) -> np.ndarray:
         if ti not in store.valid_trials or ti not in store.windows:
             return np.zeros((0, 8, 750), dtype=np.float32)
-        return np.asarray(store.windows[ti], dtype=np.float32)
+        return _stack_trial_windows(store.windows[ti])
 
     def _label_of_trial(ti: int) -> int:
         return int(store.labels[ti])
@@ -843,6 +882,15 @@ def run_v2_session(
     if not aborted and not skip_calibration:
         progress["phase_step"] = "calibration"
         while round_no < cfg.cal_rounds_max and not aborted:
+            if bridge.want_enter_game():
+                bridge.clear_enter_game()
+                gate_operator_confirmed = True
+                if gate_status in (None, "pending", "degraded"):
+                    gate_status = "forced"
+                on_console("[v2] 操作员直接进入游戏（跳过剩余标定）")
+                events.emit("v2_enter_game", phase="v2", rounds=round_no, status=gate_status)
+                markers.push(f"v2_enter_game|rounds={round_no}")
+                break
             round_no += 1
             progress["cal_round"] = round_no
             labels = build_calibration_schedule(rng)
@@ -853,6 +901,21 @@ def run_v2_session(
                 sm.run_round(labels, mode="calibration", round_no=round_no, trial_id_offset=trial_offset)
             except SessionAbort as exc:
                 reason = getattr(exc, "reason", None) or str(exc) or "operator_abort"
+                if str(reason) == "enter_game" or str(reason).endswith("enter_game"):
+                    bridge.clear_enter_game()
+                    gate_operator_confirmed = True
+                    if gate_status in (None, "pending", "degraded"):
+                        gate_status = "forced"
+                    on_console("[v2] 操作员直接进入游戏（标定中打断）")
+                    events.emit(
+                        "v2_enter_game",
+                        phase="v2",
+                        rounds=round_no,
+                        status=gate_status,
+                        mid_round=True,
+                    )
+                    markers.push(f"v2_enter_game|rounds={round_no}|mid=1")
+                    break
                 eeg_stale = str(reason).startswith("eeg_stale")
                 on_console(f"[v2] 会话中止 · {reason}")
                 events.emit("v2_abort", phase="v2", reason=reason, eeg_stale=eeg_stale)
@@ -1073,6 +1136,7 @@ def run_v2_session(
                 return summary
 
         progress["phase_step"] = "game"
+        bridge.clear_enter_game()
         on_console(f"[v2] 游戏 {cfg.game_rounds} 轮（可配 {cfg.game_rounds_min}–{cfg.game_rounds_max}）")
         for g_round in range(1, cfg.game_rounds + 1):
             progress["game_round"] = g_round
@@ -1121,6 +1185,7 @@ def run_v2_session(
         "abort_reason": abort_reason,
         "valid_trials": len(store.valid_trials),
         "session_score": progress.get("session_score"),
+        "session_score_by": dict(progress.get("session_score_by") or {}),
         "session_score_max": progress.get("session_score_max"),
         "session_trials_done": progress.get("session_trials_done"),
         "labels": {str(k): v for k, v in store.labels.items() if k in store.valid_trials},

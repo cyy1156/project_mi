@@ -1,5 +1,5 @@
 # v4 实验前数据质量检测（无模型 · 仅质检报告 · 不 gate 丢弃数据）
-# 阈值按 Cyton 6 导帽 cyy_ws01_20260826 真机 3s 窗标定；Cz/CPz 配置为不用
+# 8 导全计分（含 CZ/CPZ）；阈值按 Cyton 真机 3s 窗标定
 duration_s: 90
 eval_interval_s: 3.0
 eval_window_s: 3.0
@@ -22,18 +22,18 @@ channel_labels:
   - CP4
 fs: 250
 
-# 仅以下 6 导参与 PASS/FAIL；Cz/CPz 卡轨为预期，不拖垮整窗
+# 8 导全部参与 PASS/FAIL（含中线 CZ/CPZ）
 scoring_channels:
-  - C3
-  - C4
-  - CP3
-  - FC4
   - FC3
-  - CP4
-unused_channels:
+  - C3
+  - CP3
   - CZ
   - CPZ
-unused_allow_rail: true
+  - FC4
+  - C4
+  - CP4
+unused_channels: []
+unused_allow_rail: false
 
 signal_quality_enabled: true
 signal_min_median_std_uv: 0.50
@@ -44,7 +44,7 @@ signal_max_ptp_uv: 600.0
 signal_max_peak_uv: 600.0
 signal_min_per_channel_std_uv: 0.40
 signal_max_per_channel_std_uv: 150.0
-signal_min_active_channels: 5
+signal_min_active_channels: 6
 signal_max_channel_std_ratio: 3.0
 signal_min_car_std_uv: 0.10
 signal_max_common_mode_ratio: 1.45
