@@ -98,12 +98,15 @@ def login_subject(
             "created_at": now,
             "last_login_at": now,
             "session_count": 0,
-            "next_session_suggest": "ws01",
+            "next_session_suggest": "w01",
             "notes": notes or "",
         }
     sub_json.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     index = build_index(sid, repo_root=repo_root)
+    by_board = index.get("suggest_session_ids_by_board") or suggest_session_ids_by_board(
+        sid, repo_root=repo_root
+    )
     return {
         "subject_id": sid,
         "subject_root": rel_repo_path(root, repo_root=repo_root),
@@ -112,7 +115,9 @@ def login_subject(
         "subject": data,
         "index": index,
         "sessions": index.get("sessions") or [],
-        "suggest_session_id": suggest_session_id(sid, repo_root=repo_root),
+        "suggest_session_id": index.get("suggest_session_id")
+        or suggest_session_id(sid, repo_root=repo_root),
+        "suggest_session_ids_by_board": by_board,
         "current_weights": current_model_paths(sid, repo_root=repo_root),
     }
 
@@ -149,25 +154,86 @@ def _discover_session_dirs(subject_id: str, *, repo_root: Optional[Path] = None)
     return sorted(found.values(), key=lambda p: p.name)
 
 
-def suggest_session_id(subject_id: str, *, repo_root: Optional[Path] = None) -> str:
-    dirs = _discover_session_dirs(subject_id, repo_root=repo_root)
-    ws_nums: List[int] = []
-    ses_nums: List[int] = []
-    for d in dirs:
-        _, sess, _ = _parse_session_name(d.name)
-        m_ws = re.match(r"^ws(\d+)$", sess, re.I)
-        m_ses = re.match(r"^ses(\d+)$", sess, re.I)
-        if m_ws:
-            ws_nums.append(int(m_ws.group(1)))
-        elif m_ses:
-            ses_nums.append(int(m_ses.group(1)))
-    if ws_nums:
-        n = max(ws_nums) + 1
-        return f"ws{n:02d}"
-    if ses_nums:
-        n = max(ses_nums) + 1
-        return f"ses{n:02d}"
-    return "ws01"
+def phase_mode_to_board(phase_mode: Optional[str]) -> str:
+    """phase_mode → 操作台板块标签（v1/v2/v3/v4/sim）。"""
+    pm = str(phase_mode or "").strip()
+    if pm == "v2_session":
+        return "v2"
+    if pm == "v3_session":
+        return "v3"
+    if pm == "v4_session":
+        return "v4"
+    if pm == "sim_v3_session":
+        return "sim"
+    if pm in ("phase2_full", "phase1", ""):
+        return "v1"
+    return "other"
+
+
+def _session_seq_num(session_id: str) -> Optional[int]:
+    """解析 w01 / ws01 / ses01 中的序号；无法解析则 None。"""
+    m = re.match(r"^(?:w|ws|ses)(\d+)$", str(session_id or "").strip(), re.I)
+    return int(m.group(1)) if m else None
+
+
+def _read_session_phase_mode(session_dir: Path) -> Optional[str]:
+    meta_path = Path(session_dir) / "session.meta.json"
+    if not meta_path.is_file():
+        return None
+    try:
+        meta = json.loads(meta_path.read_text(encoding="utf-8"))
+        pm = meta.get("phase_mode")
+        return str(pm) if pm else None
+    except Exception:
+        return None
+
+
+def suggest_session_id(
+    subject_id: str,
+    *,
+    repo_root: Optional[Path] = None,
+    phase_mode: Optional[str] = None,
+    board: Optional[str] = None,
+) -> str:
+    """建议下一会话编号。
+
+    默认按板块独立递增（``w01``、``w02``…）；``phase_mode`` / ``board`` 指定板块。
+    兼容历史 ``ws##`` / ``ses##`` 计入该板块序号。未指定板块时回退为跨板块全局递增。
+    """
+    want_board = str(board or "").strip() or None
+    if want_board is None and phase_mode is not None:
+        want_board = phase_mode_to_board(phase_mode)
+
+    nums: List[int] = []
+    if want_board:
+        for row in list_sessions(subject_id, repo_root=repo_root):
+            if phase_mode_to_board(row.get("phase_mode")) != want_board:
+                continue
+            n = _session_seq_num(str(row.get("session_id") or ""))
+            if n is not None:
+                nums.append(n)
+    else:
+        for d in _discover_session_dirs(subject_id, repo_root=repo_root):
+            if "_archived" in d.parts:
+                continue
+            _, sess, _ = _parse_session_name(d.name)
+            n = _session_seq_num(sess)
+            if n is not None:
+                nums.append(n)
+    nxt = (max(nums) + 1) if nums else 1
+    return f"w{nxt:02d}"
+
+
+def suggest_session_ids_by_board(
+    subject_id: str,
+    *,
+    repo_root: Optional[Path] = None,
+) -> Dict[str, str]:
+    """各板块下一号：``{"v1":"w01","v2":"w01",...}``。"""
+    return {
+        b: suggest_session_id(subject_id, repo_root=repo_root, board=b)
+        for b in ("v1", "v2", "v3", "v4")
+    }
 
 
 def list_dirs_for_session_id(
@@ -175,19 +241,32 @@ def list_dirs_for_session_id(
     session_id: str,
     *,
     repo_root: Optional[Path] = None,
+    phase_mode: Optional[str] = None,
+    board: Optional[str] = None,
 ) -> List[Path]:
-    """返回该被试下 session_id 匹配的已有会话目录（不含 _archived）。"""
+    """返回该被试下 session_id 匹配的已有会话目录（不含 _archived）。
+
+    若提供 ``phase_mode`` / ``board``，仅返回同板块目录（同号跨板块可并存）。
+    """
     sid = validate_subject_id(subject_id)
     want = str(session_id or "").strip().lower()
     if not want:
         return []
+    want_board = str(board or "").strip() or None
+    if want_board is None and phase_mode is not None:
+        want_board = phase_mode_to_board(phase_mode)
     out: List[Path] = []
     for d in _discover_session_dirs(sid, repo_root=repo_root):
         if "_archived" in d.parts:
             continue
         _, sess, _ = _parse_session_name(d.name)
-        if str(sess).lower() == want:
-            out.append(d)
+        if str(sess).lower() != want:
+            continue
+        if want_board is not None:
+            pm = _read_session_phase_mode(d)
+            if phase_mode_to_board(pm) != want_board:
+                continue
+        out.append(d)
     return out
 
 
@@ -196,15 +275,30 @@ def session_id_conflict(
     session_id: str,
     *,
     repo_root: Optional[Path] = None,
+    phase_mode: Optional[str] = None,
+    board: Optional[str] = None,
 ) -> Dict[str, Any]:
-    dirs = list_dirs_for_session_id(subject_id, session_id, repo_root=repo_root)
+    dirs = list_dirs_for_session_id(
+        subject_id,
+        session_id,
+        repo_root=repo_root,
+        phase_mode=phase_mode,
+        board=board,
+    )
     return {
         "subject_id": validate_subject_id(subject_id),
         "session_id": str(session_id or "").strip(),
+        "phase_mode": phase_mode,
+        "board": board or (phase_mode_to_board(phase_mode) if phase_mode else None),
         "exists": bool(dirs),
         "count": len(dirs),
         "dirs": [str(p) for p in dirs],
-        "suggest_session_id": suggest_session_id(subject_id, repo_root=repo_root),
+        "suggest_session_id": suggest_session_id(
+            subject_id,
+            repo_root=repo_root,
+            phase_mode=phase_mode,
+            board=board,
+        ),
     }
 
 
@@ -213,11 +307,19 @@ def archive_sessions_for_id(
     session_id: str,
     *,
     repo_root: Optional[Path] = None,
+    phase_mode: Optional[str] = None,
+    board: Optional[str] = None,
 ) -> List[str]:
-    """覆盖前：将同 session_id 的旧目录移入 sessions/_archived/。"""
+    """覆盖前：将同 session_id（可选同板块）的旧目录移入 sessions/_archived/。"""
     root = Path(repo_root or _REPO)
     sid = validate_subject_id(subject_id)
-    dirs = list_dirs_for_session_id(sid, session_id, repo_root=root)
+    dirs = list_dirs_for_session_id(
+        sid,
+        session_id,
+        repo_root=root,
+        phase_mode=phase_mode,
+        board=board,
+    )
     if not dirs:
         return []
     sess_root = sessions_dir(sid, repo_root=root)
@@ -306,8 +408,18 @@ def _session_metrics(session_dir: Path) -> Dict[str, Any]:
 
     if report:
         overall = report.get("overall") or {}
+        window_acc = overall.get("acc_window")
+        if window_acc is None:
+            window_acc = overall.get("acc_argmax_all_trials")
         primary_acc = overall.get("acc_argmax")
-        window_acc = overall.get("acc_argmax_all_trials") or overall.get("acc_argmax")
+        if primary_acc is None and not overall:
+            # 旧报告无 overall：回退到首块试次多数票
+            blocks = report.get("blocks") or {}
+            for blk in blocks.values():
+                acc = (blk or {}).get("accuracy") or {}
+                if acc.get("acc_argmax") is not None:
+                    primary_acc = acc.get("acc_argmax")
+                    break
         valid = report.get("valid_summary") or {}
         if valid.get("n_valid") and valid.get("n_total"):
             valid_rate = round(float(valid["n_valid"]) / float(valid["n_total"]), 3)
@@ -350,12 +462,18 @@ def build_index(subject_id: str, *, repo_root: Optional[Path] = None) -> Dict[st
     sid = validate_subject_id(subject_id)
     sessions = list_sessions(sid, repo_root=repo_root)
     current = current_model_paths(sid, repo_root=repo_root)
+    by_board = suggest_session_ids_by_board(sid, repo_root=repo_root)
+    # 默认建议偏向 v3（探针常用）；前端会按当前板块再取 by_board
+    default_sug = by_board.get("v3") or by_board.get("v2") or suggest_session_id(
+        sid, repo_root=repo_root
+    )
     idx = {
         "subject_id": sid,
         "updated_at": datetime.now().isoformat(timespec="seconds"),
         "sessions": sessions,
         "current_model": current,
-        "suggest_session_id": suggest_session_id(sid, repo_root=repo_root),
+        "suggest_session_id": default_sug,
+        "suggest_session_ids_by_board": by_board,
     }
     index_path = subject_root(sid, repo_root=repo_root) / "index.json"
     index_path.write_text(json.dumps(idx, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
@@ -365,6 +483,7 @@ def build_index(subject_id: str, *, repo_root: Optional[Path] = None) -> Dict[st
         data = json.loads(sub_json.read_text(encoding="utf-8"))
         data["session_count"] = len(sessions)
         data["next_session_suggest"] = idx["suggest_session_id"]
+        data["suggest_session_ids_by_board"] = by_board
         sub_json.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
 
     return idx
@@ -433,13 +552,25 @@ def promote_ft_to_current(
     atomic_copy_files_into(
         src,
         cur,
-        ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"),
+        (
+            "best_task.pt",
+            "best_three.pt",
+            "meta.json",
+            "report.md",
+            "release_gate.json",
+            "e1f_overlay.json",
+            "force_promote_warning.json",
+        ),
     )
+    from experiment_game.experiment.ft_promote_extras import promote_all4_extras
+
+    all4_info = promote_all4_extras(src, cur, repo_root=root)
 
     promote_log = {
         "promoted_at": datetime.now().isoformat(timespec="seconds"),
         "from_ft_run": rel_repo_path(src, repo_root=root),
         "reason": reason or "operator_confirmed",
+        "all4": all4_info,
     }
     atomic_write_json(cur / "promote_log.json", promote_log)
     build_index(sid, repo_root=root)
@@ -448,6 +579,7 @@ def promote_ft_to_current(
         "current_dir": rel_repo_path(cur, repo_root=root),
         "weights": current_model_paths(sid, repo_root=root),
         "promote_log": promote_log,
+        "all4": all4_info,
     }
 
 

@@ -169,12 +169,24 @@ def promote_sim_ft_to_current(
     atomic_copy_files_into(
         src,
         cur,
-        ("best_task.pt", "best_three.pt", "meta.json", "report.md", "release_gate.json"),
+        (
+            "best_task.pt",
+            "best_three.pt",
+            "meta.json",
+            "report.md",
+            "release_gate.json",
+            "e1f_overlay.json",
+            "force_promote_warning.json",
+        ),
     )
+    from experiment_game.experiment.ft_promote_extras import promote_all4_extras
+
+    all4_info = promote_all4_extras(src, cur, repo_root=root)
     promote_log = {
         "promoted_at": datetime.now().isoformat(timespec="seconds"),
         "from_ft_run": rel_repo_path(src, repo_root=root),
         "reason": reason or "operator_confirmed",
+        "all4": all4_info,
     }
     atomic_write_json(cur / "promote_log.json", promote_log)
     build_sim_index(sid, repo_root=root)
@@ -183,6 +195,7 @@ def promote_sim_ft_to_current(
         "current_dir": rel_repo_path(cur, repo_root=root),
         "weights": current_sim_model_paths(sid, repo_root=root),
         "promote_log": promote_log,
+        "all4": all4_info,
     }
 
 

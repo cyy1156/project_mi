@@ -25,9 +25,17 @@ from experiment_game.experiment.trial_v2 import (
     build_calibration_schedule,
 )
 from experiment_game.experiment.trial_sm import SessionAbort
-from experiment_game.experiment.trial_scoring import session_score_max_openbmi
+from experiment_game.experiment.trial_scoring import (
+    add_session_score_points,
+    empty_session_score_by,
+    session_score_max_openbmi,
+)
 from experiment_game.experiment.v3_config import V3Config
-from experiment_game.experiment.v3_report import build_v3_report, write_v3_report
+from experiment_game.experiment.v3_report import (  # noqa: E402
+    build_v3_report,
+    window_accuracy_from_records,
+    write_v3_report,
+)
 from experiment_game.experiment.ws_bridge import WsBridge
 from experiment_game.experiment.signal_quality import summarize_baseline_hat_check
 
@@ -276,6 +284,7 @@ def run_v3_session(
         "trials_per_block": cfg.trials_per_block,
         "blocks_total": cfg.blocks,
         "session_score": 0,
+        "session_score_by": empty_session_score_by(),
         "session_trials_done": 0,
         "session_score_max": session_score_max_openbmi(
             int(cfg.blocks) * int(cfg.trials_per_block),
@@ -367,26 +376,37 @@ def run_v3_session(
             lab_end = getattr(ctx, "label", None)
             if stage == "pre_cue_rest_end" and summary is not None:
                 pts = float(summary.get("score") or 0.0)
-                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                add_session_score_points(progress, pts, bucket="pre_cue_rest")
                 progress["score"] = pts
                 if score is None:
                     score = pts
             elif (
                 stage == "trial_end"
                 and summary is not None
-                and lab_end in (0, 1, 2)
+                and lab_end in (1, 2)  # 正式 MI 仅 Left/Right 计分；Rest 只走 Cue前静息
             ):
                 pts = float(summary.get("score") or 0.0)
-                progress["session_score"] = float(progress.get("session_score") or 0) + pts
+                bucket = "left" if int(lab_end) == 1 else "right"
+                add_session_score_points(progress, pts, bucket=bucket)
                 progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
                 progress["score"] = pts
                 if score is None:
                     score = pts
+            elif stage == "trial_end" and lab_end == 0:
+                # Rest(MI) 试次不计入本场得分；仍计完成数便于进度条
+                progress["session_trials_done"] = int(progress.get("session_trials_done") or 0) + 1
+                if isinstance(summary, dict) and summary.get("score") is not None:
+                    progress["score"] = float(summary.get("score") or 0.0)
+                    if score is None:
+                        score = progress["score"]
         from experiment_game.experiment.class_labels import attach_judge_names, label_name
 
         lab = getattr(ctx, "label", None) if ctx else None
         if isinstance(data, dict):
             data = attach_judge_names(data, label=lab)
+        # 深拷贝分项，避免广播后继续就地改同一 dict
+        score_by = dict(progress.get("session_score_by") or {})
+        progress["session_score_by"] = score_by
         bridge.broadcast({
             "type": "v2_stage",
             "stage": stage,
@@ -399,9 +419,13 @@ def run_v3_session(
                 "subblock": getattr(ctx, "subblock", None) if ctx else None,
             },
             "data": _ser(data),
-            "progress": dict(progress),
+            "progress": {
+                **dict(progress),
+                "session_score_by": dict(score_by),
+            },
             "score": score,
             "session_score": progress.get("session_score"),
+            "session_score_by": dict(score_by),
             "session_score_max": progress.get("session_score_max"),
             "session_trials_done": progress.get("session_trials_done"),
         })
@@ -662,6 +686,7 @@ def run_v3_session(
             "mu_erd_contra_mean": round(float(np.mean(erds)), 1) if erds else None,
             "laterality_pp_mean": round(float(np.mean(lats)), 1) if lats else None,
             "session_score": progress.get("session_score"),
+            "session_score_by": dict(progress.get("session_score_by") or {}),
             "session_score_max": progress.get("session_score_max"),
             "session_trials_done": progress.get("session_trials_done"),
             "progress": dict(progress),
@@ -688,7 +713,7 @@ def run_v3_session(
             "subtext": (
                 "合成/仿真：自动确认中…"
                 if auto_confirm_guidance
-                else "操作者抬臂 → 记住感觉 → 等待操作员确认"
+                else "两手分别抓握杯子 → 记住抓握动作 → 等待操作员确认"
             ),
             "show_cross": False,
         })
@@ -874,10 +899,19 @@ def run_v3_session(
                 invalid_streak_max=invalid_streak_max,
                 baseline=baseline_feat,
             )
+            # 兜底：overall 缺窗级时直接从试次 judgments 重算
+            overall = report.get("overall") if isinstance(report.get("overall"), dict) else {}
+            if overall.get("acc_window") is None and trial_records:
+                win = window_accuracy_from_records(trial_records)
+                overall = {**overall, **win}
+                report["overall"] = overall
             write_v3_report(session_dir, report)
             events.emit("v3_report", phase="v3", quality_tier=report.get("quality_tier"))
             markers.push("v3_report")
             bridge.broadcast({"type": "v3_report", "report": report})
+            wa = overall.get("acc_window")
+            wa_txt = "—" if wa is None else f"{100.0 * float(wa):.1f}%"
+            on_console(f"[v3] 窗级识别率={wa_txt}（{overall.get('n_windows') or 0} 窗 · L/R）")
 
     except SessionAbort as exc:
         aborted = True
@@ -914,8 +948,11 @@ def run_v3_session(
         "invalid_streak_max": invalid_streak_max,
         "n_trials": len(trial_records),
         "session_score": progress.get("session_score"),
+        "session_score_by": dict(progress.get("session_score_by") or {}),
         "session_score_max": progress.get("session_score_max"),
         "session_trials_done": progress.get("session_trials_done"),
+        "window_acc": (report.get("overall") or {}).get("acc_window"),
+        "window_acc_n": (report.get("overall") or {}).get("n_windows"),
         "report": report,
         "v3_config_effective": cfg.to_dict(),
         "protocol_locked": protocol_locked,

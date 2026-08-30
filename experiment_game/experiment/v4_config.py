@@ -36,9 +36,9 @@ class V4Config:
     lsl_timeout_s: float = 8.0
 
     channel_labels: Tuple[str, ...] = tuple(CHANNEL_ORDER)
-    scoring_channels: Tuple[str, ...] = ("C3", "C4", "CP3", "FC4", "FC3", "CP4")
-    unused_channels: Tuple[str, ...] = ("Cz", "CPz")
-    unused_allow_rail: bool = True
+    scoring_channels: Tuple[str, ...] = tuple(CHANNEL_ORDER)
+    unused_channels: Tuple[str, ...] = ()
+    unused_allow_rail: bool = False
     fs: int = 250
 
     signal_quality_enabled: bool = True
@@ -49,7 +49,7 @@ class V4Config:
     signal_max_peak_uv: float = 600.0
     signal_min_per_channel_std_uv: float = 0.40
     signal_max_per_channel_std_uv: float = 150.0
-    signal_min_active_channels: int = 5
+    signal_min_active_channels: int = 6
     signal_max_channel_std_ratio: float = 3.0
     signal_min_car_std_uv: float = 0.10
     signal_max_common_mode_ratio: float = 1.45

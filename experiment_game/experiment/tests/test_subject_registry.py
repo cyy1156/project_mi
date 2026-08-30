@@ -8,6 +8,7 @@ from experiment_game.experiment.session_electrode import scan_session_electrodes
 from experiment_game.experiment.subject_registry import (
     login_subject,
     suggest_session_id,
+    suggest_session_ids_by_board,
     validate_subject_id,
 )
 
@@ -28,6 +29,8 @@ def test_login_creates_dirs(tmp_path):
     assert info["subject_id"] == "tst01"
     assert "sessions" in info
     assert isinstance(info["sessions"], list)
+    assert "suggest_session_ids_by_board" in info
+    assert info["suggest_session_ids_by_board"]["v2"].startswith("w")
 
 
 def test_estimate_ft_windows():
@@ -43,13 +46,43 @@ def test_estimate_ft_windows():
     assert v2 < 36 * OPENBMI_WINDOWS_PER_MI_TRIAL
 
 
-def test_suggest_session_id_ws():
-    sid = suggest_session_id("fnz", repo_root=Path(__file__).resolve().parents[3])
-    # fnz has ws01-ws03 in data/sessions
-    assert sid.startswith("ws")
+def test_suggest_session_id_per_board(tmp_path):
+    from experiment_game.experiment.subject_registry import (
+        login_subject,
+        sessions_dir,
+    )
+
+    login_subject("abctest", repo_root=tmp_path)
+    sess = sessions_dir("abctest", repo_root=tmp_path)
+
+    d_v3 = sess / "abctest_ws01_20260828_120000"
+    d_v3.mkdir(parents=True)
+    (d_v3 / "session.meta.json").write_text(
+        '{"phase_mode":"v3_session"}', encoding="utf-8"
+    )
+    d_v4 = sess / "abctest_ws02_20260828_130000"
+    d_v4.mkdir(parents=True)
+    (d_v4 / "session.meta.json").write_text(
+        '{"phase_mode":"v4_session"}', encoding="utf-8"
+    )
+    d_v2 = sess / "abctest_w01_20260828_140000"
+    d_v2.mkdir(parents=True)
+    (d_v2 / "session.meta.json").write_text(
+        '{"phase_mode":"v2_session"}', encoding="utf-8"
+    )
+
+    # 各板块独立递增；历史 ws## 计入该板块序号
+    assert suggest_session_id("abctest", repo_root=tmp_path, board="v3") == "w02"
+    assert suggest_session_id("abctest", repo_root=tmp_path, board="v4") == "w03"
+    assert suggest_session_id("abctest", repo_root=tmp_path, board="v2") == "w02"
+    by = suggest_session_ids_by_board("abctest", repo_root=tmp_path)
+    assert by["v3"] == "w02"
+    assert by["v2"] == "w02"
+    assert by["v4"] == "w03"
+    assert by["v1"] == "w01"
 
 
-def test_session_id_conflict_and_archive(tmp_path):
+def test_session_id_conflict_and_archive_board_scoped(tmp_path):
     from experiment_game.experiment.subject_registry import (
         archive_sessions_for_id,
         login_subject,
@@ -60,22 +93,37 @@ def test_session_id_conflict_and_archive(tmp_path):
 
     login_subject("abctest", repo_root=tmp_path)
     sess = sessions_dir("abctest", repo_root=tmp_path)
-    d1 = sess / "abctest_ws07_20260828_120000"
-    d1.mkdir(parents=True)
-    (d1 / "session.meta.json").write_text('{"phase_mode":"v3_session"}', encoding="utf-8")
+    d_v3 = sess / "abctest_w07_20260828_120000"
+    d_v3.mkdir(parents=True)
+    (d_v3 / "session.meta.json").write_text(
+        '{"phase_mode":"v3_session"}', encoding="utf-8"
+    )
+    d_v2 = sess / "abctest_w07_20260828_121000"
+    d_v2.mkdir(parents=True)
+    (d_v2 / "session.meta.json").write_text(
+        '{"phase_mode":"v2_session"}', encoding="utf-8"
+    )
 
-    conflict = session_id_conflict("abctest", "ws07", repo_root=tmp_path)
-    assert conflict["exists"] is True
-    assert conflict["count"] == 1
-    assert conflict["suggest_session_id"] == "ws08"
+    conflict_v3 = session_id_conflict(
+        "abctest", "w07", repo_root=tmp_path, phase_mode="v3_session"
+    )
+    assert conflict_v3["exists"] is True
+    assert conflict_v3["count"] == 1
+    assert conflict_v3["suggest_session_id"] == "w08"
 
-    moved = archive_sessions_for_id("abctest", "ws07", repo_root=tmp_path)
+    # 覆盖 v3 不应动 v2 同号
+    moved = archive_sessions_for_id(
+        "abctest", "w07", repo_root=tmp_path, phase_mode="v3_session"
+    )
     assert len(moved) == 1
-    assert not d1.exists()
-    assert Path(moved[0]).is_dir()
-    conflict2 = session_id_conflict("abctest", "ws07", repo_root=tmp_path)
+    assert not d_v3.exists()
+    assert d_v2.exists()
+    conflict2 = session_id_conflict(
+        "abctest", "w07", repo_root=tmp_path, phase_mode="v3_session"
+    )
     assert conflict2["exists"] is False
-    assert suggest_session_id("abctest", repo_root=tmp_path) == "ws01"
+    assert suggest_session_id("abctest", repo_root=tmp_path, board="v2") == "w08"
+    assert suggest_session_id("abctest", repo_root=tmp_path, board="v3") == "w01"
 
 
 def test_scan_fnz_ws01():

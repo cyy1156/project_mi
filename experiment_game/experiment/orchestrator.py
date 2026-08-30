@@ -672,21 +672,113 @@ class OperatorService:
                         "out_dir": str(out_dir),
                     }
                 )
-                result = run_subject_finetune(
-                    session_dirs,
-                    out_dir,
-                    exclude_invalid=exclude_invalid,
-                    no_replay=job_no_replay,
-                    replay_ratio=job_replay_ratio,
-                    epochs=ft_epochs,
-                    early_stop=early_stop,
-                    max_epochs=max_epochs,
-                    patience=patience,
-                    deterministic=deterministic,
-                    seed=seed_i,
-                    verbose=False,
-                    heldout_session_dirs=heldout_dirs or None,
-                )
+                from experiment_game.pipeline.ft_policy import load_ft_policy
+
+                ft_policy = load_ft_policy()
+                ft_scope = str(ft_policy.get("ft_scope") or "all4")
+                if self._active_sim_mode:
+                    from experiment_game.experiment.sim.sim_registry import (
+                        sim_models_current,
+                    )
+
+                    subject_models_dir = sim_models_current(
+                        subject_id, repo_root=self.repo_root
+                    ).parent
+                else:
+                    from experiment_game.experiment.subject_registry import (
+                        models_current_dir,
+                    )
+
+                    subject_models_dir = models_current_dir(
+                        subject_id, repo_root=self.repo_root
+                    ).parent
+
+                if ft_scope == "all4":
+                    from experiment_game.pipeline.e1f_all4_ft import run_e1f_all4_finetune
+
+                    result = run_e1f_all4_finetune(
+                        session_dirs,
+                        out_dir,
+                        subject_models_dir=subject_models_dir,
+                        exclude_invalid=exclude_invalid,
+                        no_replay=job_no_replay,
+                        replay_ratio=job_replay_ratio,
+                        epochs=ft_epochs,
+                        early_stop=early_stop,
+                        max_epochs=max_epochs,
+                        patience=patience,
+                        deterministic=deterministic,
+                        seed=seed_i,
+                        verbose=False,
+                        heldout_session_dirs=heldout_dirs or None,
+                    )
+                else:
+                    result = run_subject_finetune(
+                        session_dirs,
+                        out_dir,
+                        exclude_invalid=exclude_invalid,
+                        no_replay=job_no_replay,
+                        replay_ratio=job_replay_ratio,
+                        epochs=ft_epochs,
+                        early_stop=early_stop,
+                        max_epochs=max_epochs,
+                        patience=patience,
+                        deterministic=deterministic,
+                        seed=seed_i,
+                        verbose=False,
+                        heldout_session_dirs=heldout_dirs or None,
+                    )
+                    result = dict(result)
+                    result.setdefault("ft_scope", ft_scope)
+
+                release_pass = bool(result.get("release_pass"))
+                auto_promote = bool(ft_policy.get("auto_promote_after_ft", True))
+                force_on_fail = bool(ft_policy.get("force_promote_on_gate_fail", True))
+                should_promote = auto_promote and (release_pass or force_on_fail)
+                force_promoted = False
+                promote_info = None
+                if should_promote:
+                    from experiment_game.experiment.ft_promote_extras import (
+                        write_force_promote_warning,
+                    )
+
+                    reason = (
+                        "auto_promote_pass"
+                        if release_pass
+                        else "auto_force_promote_on_gate_fail"
+                    )
+                    if not release_pass and force_on_fail:
+                        write_force_promote_warning(
+                            out_dir,
+                            release_gate=result.get("release_gate") or {},
+                            ft_scope=str(result.get("ft_scope") or ft_scope),
+                            subject_id=str(subject_id),
+                            reason=reason,
+                        )
+                        force_promoted = True
+                    if self._active_sim_mode:
+                        from experiment_game.experiment.sim.sim_registry import (
+                            promote_sim_ft_to_current,
+                        )
+
+                        promote_info = promote_sim_ft_to_current(
+                            subject_id,
+                            out_dir,
+                            repo_root=self.repo_root,
+                            reason=reason,
+                        )
+                    else:
+                        from experiment_game.experiment.subject_registry import (
+                            promote_ft_to_current,
+                        )
+
+                        promote_info = promote_ft_to_current(
+                            subject_id,
+                            out_dir,
+                            repo_root=self.repo_root,
+                            reason=reason,
+                        )
+
                 task_ckpt = out_dir / "best_task.pt"
                 three_ckpt = out_dir / "best_three.pt"
                 presets_payload = self._model_presets_payload()
@@ -747,6 +839,10 @@ class OperatorService:
                         "eval_run_id": eval_run_id or None,
                         "ramp_stage": ramp_stage_i,
                         "train_session_dirs": [str(p) for p in session_dirs],
+                        "ft_scope": str(result.get("ft_scope") or ft_scope),
+                        "auto_promoted": bool(should_promote),
+                        "force_promoted": bool(force_promoted),
+                        "promote": promote_info,
                         **presets_payload,
                     }
                 )
@@ -855,15 +951,22 @@ class OperatorService:
             return
         from experiment_game.experiment.subject_registry import archive_sessions_for_id
 
-        moved = archive_sessions_for_id(sid, sess, repo_root=self.repo_root)
+        phase_mode = str(exp.get("phase_mode") or "").strip() or None
+        moved = archive_sessions_for_id(
+            sid,
+            sess,
+            repo_root=self.repo_root,
+            phase_mode=phase_mode,
+        )
         if moved:
-            print(f"[operator] 已归档 {len(moved)} 个同编号会话: {sess}")
+            print(f"[operator] 已归档 {len(moved)} 个同板块同编号会话: {sess} ({phase_mode})")
             self.bridge.broadcast(
                 {
                     "type": "session_overwrite_ack",
                     "ok": True,
                     "subject_id": sid,
                     "session_id": sess,
+                    "phase_mode": phase_mode,
                     "archived": moved,
                     "message": f"已归档 {len(moved)} 个旧目录后重采 {sess}",
                 }
@@ -1790,7 +1893,10 @@ class OperatorService:
             "v3_summary": {
                 "session_score": (summary or {}).get("session_score"),
                 "session_score_max": (summary or {}).get("session_score_max"),
+                "session_score_by": (summary or {}).get("session_score_by"),
                 "session_trials_done": (summary or {}).get("session_trials_done"),
+                "window_acc": (summary or {}).get("window_acc"),
+                "window_acc_n": (summary or {}).get("window_acc_n"),
                 "quality_tier": (summary or {}).get("quality_tier"),
                 "n_trials": (summary or {}).get("n_trials"),
                 "frozen": (summary or {}).get("frozen"),
@@ -2208,7 +2314,10 @@ class OperatorService:
             "v3_summary": {
                 "session_score": (summary or {}).get("session_score"),
                 "session_score_max": (summary or {}).get("session_score_max"),
+                "session_score_by": (summary or {}).get("session_score_by"),
                 "session_trials_done": (summary or {}).get("session_trials_done"),
+                "window_acc": (summary or {}).get("window_acc"),
+                "window_acc_n": (summary or {}).get("window_acc_n"),
                 "quality_tier": (summary or {}).get("quality_tier"),
                 "n_trials": (summary or {}).get("n_trials"),
                 "frozen": (summary or {}).get("frozen"),
