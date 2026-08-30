@@ -35,6 +35,7 @@ class WsBridge:
             "gate_ok": threading.Event(),
             "split_request": threading.Event(),
             "v2_guidance_confirm": threading.Event(),
+            "v2_enter_game": threading.Event(),
         }
         self._on_message: Optional[Callable[[dict], None]] = None
         self._server = None
@@ -324,6 +325,20 @@ class WsBridge:
             self.clear_pending_prompt()
             self._client_events["gate_ok"].set()
             self._client_events["continue"].set()
+        elif action == "enter_game":
+            # v2：跳过引导/标定/准入，直接进游戏；同时解除各类等待
+            self.clear_pending_prompt()
+            self._client_events["v2_enter_game"].set()
+            self._client_events["v2_guidance_confirm"].set()
+            self._client_events["gate_ok"].set()
+            self._client_events["continue"].set()
+            self.broadcast({
+                "type": "v2_stage",
+                "stage": "enter_game_forced",
+                "ctx": None,
+                "data": {"by": "operator"},
+                "progress": None,
+            })
         elif action == "continue":
             self.clear_pending_prompt()
             self._client_events["continue"].set()
@@ -341,6 +356,12 @@ class WsBridge:
 
     def should_abort(self) -> bool:
         return self._client_events["abort"].is_set()
+
+    def want_enter_game(self) -> bool:
+        return self._client_events["v2_enter_game"].is_set()
+
+    def clear_enter_game(self) -> None:
+        self.clear_event("v2_enter_game")
 
     def is_rejected(self) -> bool:
         return bool(self.reject_requested)

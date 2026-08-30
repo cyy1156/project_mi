@@ -16,6 +16,9 @@ const el = {
   subjectBarWeights: document.getElementById("subject-bar-weights"),
   setupSubjectId: document.getElementById("setup-subject-id"),
   setupSessionId: document.getElementById("setup-session-id"),
+  sessionIdList: document.getElementById("session-id-list"),
+  sessionIdSuggestBtn: document.getElementById("session-id-suggest-btn"),
+  sessionIdBoardMap: document.getElementById("session-id-board-map"),
   sessionIdHint: document.getElementById("session-id-hint"),
   sessionOverwriteWrap: document.getElementById("session-overwrite-wrap"),
   sessionOverwrite: document.getElementById("session-overwrite"),
@@ -71,6 +74,7 @@ const el = {
   stAcq: document.getElementById("st-acq"),
   linkLine: document.getElementById("link-line"),
   summaryMsg: document.getElementById("summary-msg"),
+  summaryWindowAcc: document.getElementById("summary-window-acc"),
   summaryRoot: document.getElementById("summary-root"),
   summaryFiles: document.getElementById("summary-files"),
   verifyBadge: document.getElementById("verify-badge"),
@@ -117,6 +121,7 @@ const el = {
   v2SessionScoreFill: document.getElementById("v2-session-score-fill"),
   v2SessionScoreHint: document.getElementById("v2-session-score-hint"),
   v2SessionScoreRules: document.getElementById("v2-session-score-rules"),
+  v2SessionScoreBy: document.getElementById("v2-session-score-by"),
   v2WeakMi: document.getElementById("v2-weak-mi"),
   v2AcceptDetail: document.getElementById("v2-accept-detail"),
   p4SummaryV2: document.getElementById("p4-summary-v2"),
@@ -130,6 +135,7 @@ const el = {
   v3SessionScoreFill: document.getElementById("v3-session-score-fill"),
   v3SessionScoreHint: document.getElementById("v3-session-score-hint"),
   v3SessionScoreRules: document.getElementById("v3-session-score-rules"),
+  v3SessionScoreBy: document.getElementById("v3-session-score-by"),
   v3Eeg: document.getElementById("v3-eeg"),
   v3PowerBars: document.getElementById("v3-power-bars"),
   v3FeatureCards: document.getElementById("v3-feature-cards"),
@@ -497,11 +503,53 @@ let V3_POWER_ROWS = null;
 let V3_POWER_NOTE = null;
 
 /** 本场累计得分：MI 试次 +1，Cue前静息 +0.5；满分 = n_mi + n_mi×0.5（36→54） */
-const SESSION_SCORE = { score: 0, max: null, done: 0, nMi: null };
+const SESSION_SCORE = {
+  score: 0,
+  max: null,
+  done: 0,
+  nMi: null,
+  by: { left: 0, right: 0, pre_cue_rest: 0 },
+};
 
 function formatScoreHalf(v) {
   const n = Number(v) || 0;
   return Math.abs(n - Math.round(n)) < 1e-9 ? String(Math.round(n)) : n.toFixed(1);
+}
+
+function formatWindowAccPct(acc) {
+  if (acc == null || !Number.isFinite(Number(acc))) return null;
+  return `${(Number(acc) * 100).toFixed(0)}%`;
+}
+
+/** 结束页：本场得分 + 窗级识别率（非试次多数票） */
+function appendSessionScoreSummary(elMsg, vs) {
+  if (!elMsg || !vs) return;
+  if (vs.session_score != null && vs.session_score_max != null) {
+    elMsg.textContent +=
+      ` · 本场得分 ${formatScoreHalf(vs.session_score)}/${formatScoreHalf(vs.session_score_max)}`;
+  }
+  renderSummaryWindowAcc(vs);
+}
+
+function renderSummaryWindowAcc(vs) {
+  const node = el.summaryWindowAcc;
+  if (!node) return;
+  if (!vs) {
+    node.classList.add("hidden");
+    node.innerHTML = "窗级识别率 <strong>—</strong>";
+    return;
+  }
+  const wa = vs.window_acc ?? vs.report?.overall?.acc_window;
+  const waTxt = formatWindowAccPct(wa);
+  if (!waTxt) {
+    node.classList.add("hidden");
+    node.innerHTML = "窗级识别率 <strong>—</strong>";
+    return;
+  }
+  const n = vs.window_acc_n ?? vs.report?.overall?.n_windows;
+  const nTxt = n != null ? `（${n} 窗 · L/R）` : "（L/R 逐窗）";
+  node.classList.remove("hidden");
+  node.innerHTML = `模型窗级识别率 <strong>${waTxt}</strong> <span class="hint">${nTxt}</span>`;
 }
 
 /** OpenBMI：n MI 试次 → 满分 n + n×0.5（含 Cue前静息） */
@@ -511,10 +559,34 @@ function openbmiSessionScoreMax(nMi, interTrialRestS = 4) {
   return n + n * 0.5;
 }
 
+function sessionScoreByMax(nMi, interTrialRestS = 4) {
+  const n = Math.max(0, Math.round(Number(nMi) || 0));
+  const nL = Math.floor(n / 2);
+  const nR = n - nL;
+  const restMax = Number(interTrialRestS) > 1e-6 ? n * 0.5 : 0;
+  return { left: nL, right: nR, pre_cue_rest: restMax };
+}
+
+function scoreByText(by, nMi, interTrialRestS = 4) {
+  const caps = sessionScoreByMax(nMi, interTrialRestS);
+  const b = by || {};
+  const left = formatScoreHalf(b.left || 0);
+  const right = formatScoreHalf(b.right || 0);
+  const cueRest = formatScoreHalf(b.pre_cue_rest || 0);
+  const leftMax = caps.left > 0 ? formatScoreHalf(caps.left) : "—";
+  const rightMax = caps.right > 0 ? formatScoreHalf(caps.right) : "—";
+  const cueMax = caps.pre_cue_rest > 0 ? formatScoreHalf(caps.pre_cue_rest) : "—";
+  return (
+    `Left <strong>${left}/${leftMax}</strong> · ` +
+    `Right <strong>${right}/${rightMax}</strong> · ` +
+    `Cue前静息 <strong>${cueRest}/${cueMax}</strong>`
+  );
+}
+
 function scoreRulesText(nMi, interTrialRestS = 4) {
   const n = Math.max(0, Math.round(Number(nMi) || 0));
   if (!(n > 0)) {
-    return "计分：MI 判对 +1；Cue前静息判对 +0.5";
+    return "计分：MI Left/Right 判对 +1；Cue前静息（正式 Rest）判对 +0.5";
   }
   const nL = Math.floor(n / 2);
   const nR = n - nL;
@@ -535,6 +607,7 @@ function resetSessionScore(max, opts = {}) {
   SESSION_SCORE.score = 0;
   SESSION_SCORE.max = max != null && Number.isFinite(Number(max)) ? Number(max) : null;
   SESSION_SCORE.done = 0;
+  SESSION_SCORE.by = { left: 0, right: 0, pre_cue_rest: 0 };
   if (opts.nMi != null) SESSION_SCORE.nMi = Number(opts.nMi);
   else if (SESSION_SCORE.max != null && opts.inferNMi !== false) {
     // 54 → 36；无静息时 max=nMi
@@ -547,6 +620,35 @@ function resetSessionScore(max, opts = {}) {
   renderSessionScore();
 }
 
+function normalizeScoreBy(bySrc) {
+  if (!bySrc || typeof bySrc !== "object") return null;
+  return {
+    left: Number(bySrc.left) || 0,
+    right: Number(bySrc.right) || 0,
+    pre_cue_rest: Number(bySrc.pre_cue_rest) || 0,
+  };
+}
+
+/** 后端未带 session_score_by 时，按本条 stage 本地累加（防旧进程/漏字段） */
+function bumpScoreByFromStage(msg) {
+  const stage = msg?.stage;
+  const summary = msg?.data?.summary;
+  if (!summary || summary.score == null) return false;
+  const pts = Number(summary.score) || 0;
+  if (!(pts > 0)) return false;
+  const lab = msg?.ctx?.label;
+  let key = null;
+  if (stage === "pre_cue_rest_end") key = "pre_cue_rest";
+  else if (stage === "trial_end") {
+    // 正式 MI 仅 Left/Right；Rest(MI) 不计分
+    if (lab === 1 || lab === "1") key = "left";
+    else if (lab === 2 || lab === "2") key = "right";
+  }
+  if (!key) return false;
+  SESSION_SCORE.by[key] = (Number(SESSION_SCORE.by[key]) || 0) + pts;
+  return true;
+}
+
 function applySessionScore(msg) {
   if (!msg) return;
   const prog = msg.progress && typeof msg.progress === "object" ? msg.progress : null;
@@ -557,6 +659,12 @@ function applySessionScore(msg) {
   if (msg.session_score != null) SESSION_SCORE.score = Number(msg.session_score);
   if (src.session_trials_done != null) SESSION_SCORE.done = Number(src.session_trials_done);
   if (msg.session_trials_done != null) SESSION_SCORE.done = Number(msg.session_trials_done);
+  const bySrc = normalizeScoreBy(src.session_score_by || msg.session_score_by);
+  if (bySrc) {
+    SESSION_SCORE.by = bySrc;
+  } else {
+    bumpScoreByFromStage(msg);
+  }
   const blocks = src.blocks_total ?? msg.v3_config_effective?.blocks;
   const tpb = src.trials_per_block ?? msg.v3_config_effective?.trials_per_block;
   if (blocks != null && tpb != null) SESSION_SCORE.nMi = Number(blocks) * Number(tpb);
@@ -564,7 +672,7 @@ function applySessionScore(msg) {
 }
 
 function renderSessionScore() {
-  const { score, max, done, nMi } = SESSION_SCORE;
+  const { score, max, done, nMi, by } = SESSION_SCORE;
   const restS = SESSION_SCORE.restS != null ? SESSION_SCORE.restS : 4;
   const maxTxt = max != null ? formatScoreHalf(max) : "—";
   const scoreTxt = `${formatScoreHalf(score)}/${maxTxt}`;
@@ -575,7 +683,11 @@ function renderSessionScore() {
   const w = `${Math.min(100, Math.max(0, pct))}%`;
   if (el.v2SessionScoreFill) el.v2SessionScoreFill.style.width = w;
   if (el.v3SessionScoreFill) el.v3SessionScoreFill.style.width = w;
-  const rules = scoreRulesText(nMi != null ? nMi : (max != null ? Math.round(Number(max) / 1.5) : 0), restS);
+  const nForBy = nMi != null ? nMi : max != null ? Math.round(Number(max) / 1.5) : 0;
+  const byHtml = scoreByText(by, nForBy, restS);
+  if (el.v2SessionScoreBy) el.v2SessionScoreBy.innerHTML = byHtml;
+  if (el.v3SessionScoreBy) el.v3SessionScoreBy.innerHTML = byHtml;
+  const rules = scoreRulesText(nForBy, restS);
   if (el.v2SessionScoreRules) el.v2SessionScoreRules.textContent = rules;
   if (el.v3SessionScoreRules) el.v3SessionScoreRules.textContent = rules;
   const hint =
@@ -1416,10 +1528,11 @@ function readWeightOverrides() {
   if (preset?.readout_mode) {
     out.readout_mode = preset.readout_mode;
     if (preset.e1f_config_path) out.e1f_config_path = preset.e1f_config_path;
+    if (preset.e1f_overlay_path) out.e1f_overlay_path = preset.e1f_overlay_path;
     if (preset.primary_judge_mode) {
       out.primary_judge_mode = preset.primary_judge_mode;
     } else if (String(preset.readout_mode).toLowerCase() === "e1f") {
-      out.primary_judge_mode = "e1f_conf_stop";
+      out.primary_judge_mode = "majority";
     } else {
       out.primary_judge_mode = "majority";
     }
@@ -1477,7 +1590,7 @@ function startGuidanceCountdown(totalSec) {
   let left = Math.ceil(Number(totalSec));
   const tick = () => {
     if (el.v2GuidanceCountdown) {
-      el.v2GuidanceCountdown.textContent = `引导倒计时 ${left}s — 请完成抬臂引导后点「确认动觉引导完成」`;
+      el.v2GuidanceCountdown.textContent = `引导倒计时 ${left}s — 请完成双手分别抓握杯子引导后点「确认动觉引导完成」`;
       el.v2GuidanceCountdown.classList.toggle("urgent", left <= 15);
       el.v2GuidanceCountdown.classList.remove("hidden");
     }
@@ -2051,7 +2164,10 @@ function renderV4Metrics(msg) {
     },
     {
       k: "有效通道",
-      v: m.active_channels != null ? `${m.active_channels}/8` : "—",
+      v:
+        m.active_channels != null
+          ? `${m.active_channels}/${m.n_scoring_channels != null ? m.n_scoring_channels : 8}`
+          : "—",
       ok: m.ch_ok,
     },
     {
@@ -2229,6 +2345,7 @@ function syncWorkModeUi() {
       el.setupSessionId.disabled = true;
       el.setupSessionId.title = "仿真模式：会话编号与 run 一致，跑完自动切换";
     }
+    if (el.sessionIdSuggestBtn) el.sessionIdSuggestBtn.disabled = true;
     refreshSimRunSuggestion();
   } else {
     ensureExperimentPhaseMode();
@@ -2240,6 +2357,7 @@ function syncWorkModeUi() {
       el.setupSessionId.disabled = false;
       el.setupSessionId.title = "";
     }
+    if (el.sessionIdSuggestBtn) el.sessionIdSuggestBtn.disabled = false;
   }
   syncPhaseModeUi();
 }
@@ -2344,6 +2462,7 @@ function setV2RunPanel(on) {
   document.getElementById("p4-summary-v1")?.classList.toggle("hidden", on);
   el.p4SummaryV2?.classList.toggle("hidden", !on);
   document.getElementById("btn-gate")?.classList.toggle("hidden", !on);
+  document.getElementById("btn-v2-enter-game")?.classList.toggle("hidden", !on);
   document.getElementById("btn-split")?.classList.toggle("hidden", on);
   if (!on) stopGuidanceCountdown();
 }
@@ -2419,7 +2538,7 @@ el.form.querySelectorAll('input[name="phase_mode"]').forEach((r) => {
   r.addEventListener("change", () => {
     syncPhaseModeUi();
     if (!activeSimMode) {
-      const sug = activeSubjectInfo?.suggest_session_id;
+      const sug = syncSuggestSessionIdForBoard();
       fillSessionIdSelect(sug);
       if (sug) setSessionIdSelectValue(sug, { overwrite: false });
     }
@@ -2701,14 +2820,7 @@ function applySimRunToForm(runId) {
   if (!rid.startsWith("run")) return;
   const runInp = el.form?.querySelector('[name="sim_run_id"]');
   if (runInp) runInp.value = rid;
-  if (el.setupSessionId) {
-    el.setupSessionId.innerHTML = "";
-    const opt = document.createElement("option");
-    opt.value = rid;
-    opt.textContent = rid;
-    el.setupSessionId.appendChild(opt);
-    el.setupSessionId.value = rid;
-  }
+  if (el.setupSessionId) el.setupSessionId.value = rid;
 }
 
 function syncSimRunFromCampaignOrSuggest() {
@@ -2911,6 +3023,63 @@ function boardLabel(board) {
   return board || "未知";
 }
 
+/** 规范化手输编号：`1`/`01`→`w01`，`w1`→`w01`；保留 ws/ses 前缀 */
+function normalizeSessionIdInput(raw) {
+  let s = String(raw || "").trim().toLowerCase();
+  if (!s) return "";
+  if (/^\d+$/.test(s)) return `w${s.padStart(2, "0")}`;
+  const m = s.match(/^(w|ws|ses)(\d+)$/i);
+  if (m) return `${m[1].toLowerCase()}${m[2].padStart(2, "0")}`;
+  return s;
+}
+
+function readSetupSessionId() {
+  return normalizeSessionIdInput(el.setupSessionId?.value || "");
+}
+
+/** 从会话列表按板块计算下一号 wNN（兼容历史 ws/ses） */
+function computeSuggestSessionIdForBoard(board) {
+  let maxN = 0;
+  for (const s of subjectSessions()) {
+    if (phaseModeToBoard(s.phase_mode) !== board) continue;
+    const m = String(s.session_id || s.run_id || "").trim().match(/^(?:w|ws|ses)(\d+)$/i);
+    if (m) maxN = Math.max(maxN, Number(m[1]));
+  }
+  return `w${String(maxN + 1).padStart(2, "0")}`;
+}
+
+/** 当前板块的建议会话编号（优先服务端 by_board；若已占用则本地重算） */
+function suggestSessionIdForCurrentBoard() {
+  const board = currentProtocolBoard();
+  const by =
+    activeSubjectInfo?.suggest_session_ids_by_board ||
+    activeSubjectInfo?.index?.suggest_session_ids_by_board ||
+    {};
+  let sug = "";
+  if (by && by[board]) sug = String(by[board]).trim();
+  else if (board === "sim") {
+    sug = String(activeSubjectInfo?.suggest_session_id || "run1").trim();
+  } else {
+    sug = computeSuggestSessionIdForBoard(board);
+  }
+  // 服务端建议可能过期（仍指向已有编号）→ 按本机会话列表重算
+  if (board !== "sim" && sug && sessionsMatchingId(sug, { boardOnly: true }).length) {
+    sug = computeSuggestSessionIdForBoard(board);
+  }
+  return sug;
+}
+
+function syncSuggestSessionIdForBoard() {
+  if (!activeSubjectInfo || activeSimMode) return suggestSessionIdForCurrentBoard();
+  const sug = suggestSessionIdForCurrentBoard();
+  activeSubjectInfo.suggest_session_id = sug;
+  if (!activeSubjectInfo.suggest_session_ids_by_board) {
+    activeSubjectInfo.suggest_session_ids_by_board = {};
+  }
+  activeSubjectInfo.suggest_session_ids_by_board[currentProtocolBoard()] = sug;
+  return sug;
+}
+
 /** 统一取会话列表：登录包在 index.sessions，info 包在顶层 sessions */
 function subjectSessions(info = activeSubjectInfo) {
   if (!info) return [];
@@ -2937,9 +3106,9 @@ function listExistingSessionEntries() {
   }
   const out = [...byId.values()];
   out.sort((a, b) => {
-    const ma = a.id.match(/^(ws|ses|run)(\d+)$/i);
-    const mb = b.id.match(/^(ws|ses|run)(\d+)$/i);
-    if (ma && mb && ma[1].toLowerCase() === mb[1].toLowerCase()) {
+    const ma = a.id.match(/^(w|ws|ses|run)(\d+)$/i);
+    const mb = b.id.match(/^(w|ws|ses|run)(\d+)$/i);
+    if (ma && mb) {
       return Number(ma[2]) - Number(mb[2]);
     }
     return a.id.localeCompare(b.id, undefined, { numeric: true });
@@ -2954,20 +3123,154 @@ function uniqueExistingSessionIds({ board = null } = {}) {
   return entries.filter((e) => e.boards.includes(board)).map((e) => e.id);
 }
 
+/** 按板块汇总已有会话编号（同板块多场同号合并计数） */
+function listSessionIdsGroupedByBoard() {
+  const boards = ["v2", "v3", "v4", "v1"];
+  const map = Object.fromEntries(boards.map((b) => [b, new Map()]));
+  for (const s of subjectSessions()) {
+    const id = String(s.session_id || s.run_id || "").trim();
+    if (!id) continue;
+    const board = phaseModeToBoard(s.phase_mode);
+    if (!map[board]) map[board] = new Map();
+    const key = id.toLowerCase();
+    const prev = map[board].get(key);
+    if (prev) prev.count += 1;
+    else map[board].set(key, { id, count: 1 });
+  }
+  const sortIds = (arr) => {
+    arr.sort((a, b) => {
+      const ma = a.id.match(/^(w|ws|ses|run)(\d+)$/i);
+      const mb = b.id.match(/^(w|ws|ses|run)(\d+)$/i);
+      if (ma && mb) return Number(ma[2]) - Number(mb[2]);
+      return a.id.localeCompare(b.id, undefined, { numeric: true });
+    });
+    return arr;
+  };
+  return boards.map((board) => ({
+    board,
+    ids: sortIds([...(map[board]?.values() || [])]),
+    next: suggestSessionIdForBoardKey(board),
+  }));
+}
+
+function suggestSessionIdForBoardKey(board) {
+  const by =
+    activeSubjectInfo?.suggest_session_ids_by_board ||
+    activeSubjectInfo?.index?.suggest_session_ids_by_board ||
+    {};
+  let sug = by && by[board] ? String(by[board]).trim() : "";
+  if (!sug) return computeSuggestSessionIdForBoard(board);
+  const want = normalizeSessionIdInput(sug);
+  const taken = subjectSessions().some(
+    (s) =>
+      String(s.session_id || s.run_id || "").toLowerCase() === want &&
+      phaseModeToBoard(s.phase_mode) === board,
+  );
+  return taken ? computeSuggestSessionIdForBoard(board) : sug;
+}
+
+function pickSessionIdFromMap(sessionId, { fromBoard = null } = {}) {
+  if (activeSimMode) return;
+  const sid = normalizeSessionIdInput(sessionId);
+  if (!sid) return;
+  setSessionIdSelectValue(sid, { overwrite: false });
+  onSessionIdSelectChange();
+  renderSessionBoardMap();
+}
+
+/** 可见对照：各板块已有编号 + 下一建议号（点击填入） */
+function renderSessionBoardMap() {
+  const root = el.sessionIdBoardMap;
+  if (!root) return;
+  if (activeSimMode) {
+    root.classList.add("hidden");
+    root.innerHTML = "";
+    return;
+  }
+  root.classList.remove("hidden");
+  const current = currentProtocolBoard();
+  const selected = normalizeSessionIdInput(el.setupSessionId?.value || "");
+  const groups = listSessionIdsGroupedByBoard().filter(
+    (g) => g.ids.length > 0 || g.board === current || g.board === "v2" || g.board === "v3" || g.board === "v4",
+  );
+
+  root.innerHTML = "";
+  const title = document.createElement("p");
+  title.className = "session-board-map-title";
+  title.textContent = "各板块已有会话（点击编号填入；虚线 = 该板块建议下一号）";
+  root.appendChild(title);
+
+  for (const g of groups) {
+    // 无会话且非常用板块：跳过 v1 空行
+    if (!g.ids.length && g.board === "v1" && current !== "v1") continue;
+
+    const row = document.createElement("div");
+    row.className = "session-board-row" + (g.board === current ? " is-current" : "");
+    row.dataset.board = g.board;
+
+    const name = document.createElement("span");
+    name.className = "session-board-name";
+    name.textContent = boardLabel(g.board);
+    row.appendChild(name);
+
+    const nextHint = document.createElement("span");
+    nextHint.className = "session-board-next";
+    nextHint.textContent = `下一号 ${g.next}`;
+    row.appendChild(nextHint);
+
+    const chips = document.createElement("div");
+    chips.className = "session-board-chips";
+
+    if (!g.ids.length) {
+      const empty = document.createElement("span");
+      empty.className = "session-id-chip is-empty";
+      empty.textContent = "（尚无）";
+      chips.appendChild(empty);
+    } else {
+      for (const ent of g.ids) {
+        const btn = document.createElement("button");
+        btn.type = "button";
+        btn.className = "session-id-chip";
+        if (selected && ent.id.toLowerCase() === selected) btn.classList.add("is-selected");
+        btn.textContent = ent.count > 1 ? `${ent.id}×${ent.count}` : ent.id;
+        btn.title =
+          g.board === current
+            ? `填入 ${ent.id}（本板块已有，可能覆盖）`
+            : `填入 ${ent.id}（其他板块已有同号时可并存）`;
+        btn.addEventListener("click", () =>
+          pickSessionIdFromMap(ent.id, { fromBoard: g.board }),
+        );
+        chips.appendChild(btn);
+      }
+    }
+
+    const sugBtn = document.createElement("button");
+    sugBtn.type = "button";
+    sugBtn.className = "session-id-chip is-suggest";
+    if (selected && g.next.toLowerCase() === selected) sugBtn.classList.add("is-selected");
+    sugBtn.textContent = `新建 ${g.next}`;
+    sugBtn.title = `填入 ${g.board} 建议下一号 ${g.next}`;
+    sugBtn.addEventListener("click", () => {
+      if (g.board === current) {
+        applySuggestedSessionId({ force: true });
+      } else {
+        // 其他板块的「下一号」也可手选用（跨板块并存）
+        pickSessionIdFromMap(g.next, { fromBoard: g.board });
+      }
+      renderSessionBoardMap();
+    });
+    chips.appendChild(sugBtn);
+
+    row.appendChild(chips);
+    root.appendChild(row);
+  }
+}
+
 function setSessionIdSelectValue(sessionId, { overwrite = false } = {}) {
   if (!el.setupSessionId) return;
-  const want = String(sessionId || "").trim();
+  const want = normalizeSessionIdInput(sessionId);
   if (!want) return;
-  let opt = [...el.setupSessionId.options].find(
-    (o) => String(o.value).toLowerCase() === want.toLowerCase(),
-  );
-  if (!opt) {
-    opt = document.createElement("option");
-    opt.value = want;
-    opt.textContent = want;
-    el.setupSessionId.appendChild(opt);
-  }
-  el.setupSessionId.value = opt.value;
+  el.setupSessionId.value = want;
   if (el.sessionOverwrite) el.sessionOverwrite.checked = Boolean(overwrite);
   updateSessionIdConflictUi();
 }
@@ -2976,70 +3279,54 @@ function formatSessionOptionLabel(entry, currentBoard) {
   const boards = (entry.boards || []).map(boardLabel).join("/");
   const n = entry.count > 1 ? `（${entry.count} 场）` : "";
   const cur = entry.boards.includes(currentBoard) ? "" : " · 其他板块";
-  return `${entry.id} · ${boards || "?"}${n}${cur}`;
+  return `${entry.id}（${boards || "?"}${n}）${cur}`;
 }
 
-/** 填充会话编号下拉：新建建议 + 全部已有编号（标注板块） */
+/** 填充会话编号 datalist：建议号 + 已有编号；输入框可手输任意号 */
 function fillSessionIdSelect(preferredId) {
   if (!el.setupSessionId) return;
   if (activeSimMode) {
+    renderSessionBoardMap();
     return;
   }
   const board = currentProtocolBoard();
   const bl = boardLabel(board);
-  const sug = String(activeSubjectInfo?.suggest_session_id || "ws01").trim();
+  const sug = String(syncSuggestSessionIdForBoard() || "w01").trim();
   const entries = listExistingSessionEntries();
-  const prev = String(preferredId || el.setupSessionId.value || sug).trim();
-  el.setupSessionId.innerHTML = "";
+  const prev = normalizeSessionIdInput(preferredId || el.setupSessionId.value || sug);
 
-  const optNew = document.createElement("option");
-  optNew.value = sug;
-  optNew.dataset.kind = "new";
-  optNew.dataset.board = board;
-  optNew.textContent = `新建 · ${sug}（${bl}）`;
-  el.setupSessionId.appendChild(optNew);
-
-  const currentBoardEntries = entries.filter((e) => e.boards.includes(board));
-  const otherEntries = entries.filter((e) => !e.boards.includes(board));
-
-  const appendGroup = (label, list) => {
-    if (!list.length) return;
-    const group = document.createElement("optgroup");
-    group.label = label;
-    for (const ent of list) {
-      if (ent.id.toLowerCase() === sug.toLowerCase()) continue;
+  if (el.sessionIdList) {
+    el.sessionIdList.innerHTML = "";
+    const addOpt = (value, label) => {
       const opt = document.createElement("option");
-      opt.value = ent.id;
-      opt.dataset.kind = "existing";
-      opt.dataset.board = (ent.boards || []).join(",");
-      opt.textContent = formatSessionOptionLabel(ent, board);
-      group.appendChild(opt);
+      opt.value = value;
+      if (label) opt.label = label;
+      el.sessionIdList.appendChild(opt);
+    };
+    addOpt(sug, `新建建议 · ${sug}（${bl}）`);
+    for (const ent of entries) {
+      if (ent.id.toLowerCase() === sug.toLowerCase()) continue;
+      addOpt(ent.id, formatSessionOptionLabel(ent, board));
     }
-    if (group.childElementCount) el.setupSessionId.appendChild(group);
-  };
-
-  appendGroup(`已有 ${bl} 会话（选中将询问是否覆盖）`, currentBoardEntries);
-  appendGroup("其他板块已有会话（选中将询问是否覆盖）", otherEntries);
+  }
 
   const allIds = entries.map((e) => e.id);
   const matchExisting = allIds.find((id) => id.toLowerCase() === prev.toLowerCase());
-  if (matchExisting && matchExisting.toLowerCase() !== sug.toLowerCase()) {
-    el.setupSessionId.value = matchExisting;
-  } else {
-    el.setupSessionId.value = sug;
-  }
+  el.setupSessionId.value = matchExisting || prev || sug;
   if (el.sessionOverwrite) {
+    const boardHits = sessionsMatchingId(el.setupSessionId.value, { boardOnly: true });
     el.sessionOverwrite.checked =
-      Boolean(matchExisting) &&
-      matchExisting.toLowerCase() !== sug.toLowerCase() &&
+      boardHits.length > 0 &&
+      el.setupSessionId.value.toLowerCase() !== sug.toLowerCase() &&
       Boolean(el.sessionOverwrite.checked);
   }
   updateSessionIdConflictUi();
+  renderSessionBoardMap();
 }
 
 /** 冲突检测：同编号默认查全部板块（覆盖会归档全部同号目录） */
 function sessionsMatchingId(sessionId, { boardOnly = false } = {}) {
-  const want = String(sessionId || "").trim().toLowerCase();
+  const want = normalizeSessionIdInput(sessionId);
   if (!want) return [];
   const wantBoard = currentProtocolBoard();
   return subjectSessions().filter((s) => {
@@ -3056,42 +3343,65 @@ function updateSessionIdConflictUi() {
     el.sessionIdHint.textContent = "仿真模式：会话编号与 run 一致";
     el.sessionOverwriteWrap?.classList.add("hidden");
     if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
+    renderSessionBoardMap();
     return;
   }
   const board = currentProtocolBoard();
   const bl = boardLabel(board);
-  const sid = String(el.setupSessionId?.value || "").trim();
+  const sid = normalizeSessionIdInput(el.setupSessionId?.value || "");
   const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
-  const selected = el.setupSessionId?.selectedOptions?.[0];
   const boardHits = sessionsMatchingId(sid, { boardOnly: true });
   const allHits = sessionsMatchingId(sid);
-  const kind =
-    selected?.dataset?.kind ||
-    (boardHits.length ? "existing" : allHits.length ? "cross" : "new");
   if (!sid) {
     el.sessionIdHint.textContent = sug
-      ? `当前 ${bl}：请选择会话（建议新建 ${sug}）`
-      : `当前 ${bl}：请选择会话编号`;
+      ? `当前 ${bl}：可手输编号（建议 ${sug}），或点「建议号」/下方虚线芯片`
+      : `当前 ${bl}：请输入会话编号（如 w01）`;
     el.sessionOverwriteWrap?.classList.add("hidden");
+    highlightSessionBoardMapSelection();
     return;
   }
-  if (kind === "existing" || kind === "cross" || boardHits.length || allHits.length) {
-    const hits = boardHits.length ? boardHits : allHits;
+  if (boardHits.length) {
+    const hits = boardHits;
     const names = hits.map((s) => s.dir).slice(0, 3).join("、");
     const over = Boolean(el.sessionOverwrite?.checked);
-    const crossNote =
-      !boardHits.length && allHits.length
-        ? `（同号存在于其他板块）`
-        : "";
     el.sessionIdHint.textContent = over
-      ? `将覆盖 ${bl}「${sid}」${crossNote}（${hits.length || 1} 场：${names || sid}）→ 旧目录归档后重采`
-      : `已选 ${bl} 历史编号 ${sid}${crossNote}（${hits.length || 1} 场）。确认覆盖，或改选「新建」。`;
+      ? `将覆盖 ${bl}「${sid}」（${hits.length} 场：${names || sid}）→ 旧目录归档后重采`
+      : `本板块已有「${sid}」（${hits.length} 场）。勾选覆盖，或改输未用编号（建议 ${sug || "下一号"}）`;
     el.sessionOverwriteWrap?.classList.remove("hidden");
+  } else if (allHits.length && !boardHits.length) {
+    const boards = [
+      ...new Set(allHits.map((s) => boardLabel(phaseModeToBoard(s.phase_mode)))),
+    ];
+    el.sessionIdHint.textContent =
+      `当前 ${bl}：将新建 ${sid}（其他板块已有同号：${boards.join("/")}，可并存）`;
+    el.sessionOverwriteWrap?.classList.add("hidden");
+    if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
   } else {
-    el.sessionIdHint.textContent = `当前 ${bl}：将使用新编号 ${sid}`;
+    const isSug = sug && sid.toLowerCase() === sug.toLowerCase();
+    el.sessionIdHint.textContent = isSug
+      ? `当前 ${bl}：将新建建议号 ${sid}`
+      : `当前 ${bl}：将新建手输编号 ${sid}` + (sug ? `（系统建议 ${sug}）` : "");
     el.sessionOverwriteWrap?.classList.add("hidden");
     if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
   }
+  highlightSessionBoardMapSelection();
+}
+
+/** 仅更新芯片选中态（输入时不必整表重建） */
+function highlightSessionBoardMapSelection() {
+  const root = el.sessionIdBoardMap;
+  if (!root || root.classList.contains("hidden")) return;
+  const selected = normalizeSessionIdInput(el.setupSessionId?.value || "");
+  root.querySelectorAll(".session-id-chip").forEach((btn) => {
+    if (btn.classList.contains("is-empty")) return;
+    const raw = String(btn.textContent || "").replace(/×\d+$/, "").replace(/^新建\s+/, "").trim();
+    const id = normalizeSessionIdInput(raw);
+    btn.classList.toggle("is-selected", Boolean(selected) && id === selected);
+  });
+  const current = currentProtocolBoard();
+  root.querySelectorAll(".session-board-row").forEach((row) => {
+    row.classList.toggle("is-current", row.dataset.board === current);
+  });
 }
 
 function onSessionIdSelectChange() {
@@ -3100,30 +3410,23 @@ function onSessionIdSelectChange() {
     return;
   }
   const bl = boardLabel(currentProtocolBoard());
-  const sid = String(el.setupSessionId?.value || "").trim();
-  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
-  const allHits = sessionsMatchingId(sid);
-  const selected = el.setupSessionId?.selectedOptions?.[0];
-  const isExisting =
-    selected?.dataset?.kind === "existing" ||
-    (allHits.length > 0 && sid.toLowerCase() !== sug.toLowerCase());
+  const sid = readSetupSessionId();
+  if (el.setupSessionId) el.setupSessionId.value = sid;
+  const sug = String(syncSuggestSessionIdForBoard() || "").trim();
+  const boardHits = sessionsMatchingId(sid, { boardOnly: true });
 
-  if (isExisting) {
-    const boards = [
-      ...new Set(allHits.map((s) => boardLabel(phaseModeToBoard(s.phase_mode)))),
-    ];
-    const boardNote = boards.length ? `（原板块：${boards.join("/")}）` : "";
+  if (boardHits.length) {
     const ok = confirm(
-      `会话编号「${sid}」已存在${allHits.length ? ` ${allHits.length} 场` : ""}${boardNote}。\n\n` +
-        `当前将以 ${bl} 重新采集；确定则覆盖（旧目录移入 _archived）\n` +
-        `取消：改回新建 ${sug || "下一编号"}`,
+      `当前 ${bl} 已有会话编号「${sid}」（${boardHits.length} 场）。\n\n` +
+        `确定：覆盖（旧目录移入 _archived）\n` +
+        `取消：改回建议号 ${sug || "下一编号"}`,
     );
     if (ok) {
       if (el.sessionOverwrite) el.sessionOverwrite.checked = true;
       updateSessionIdConflictUi();
     } else {
       if (el.sessionOverwrite) el.sessionOverwrite.checked = false;
-      fillSessionIdSelect(sug);
+      setSessionIdSelectValue(sug || "w01", { overwrite: false });
     }
     return;
   }
@@ -3133,7 +3436,7 @@ function onSessionIdSelectChange() {
 
 function applySuggestedSessionId({ force = false } = {}) {
   if (activeSimMode) return;
-  const sug = String(activeSubjectInfo?.suggest_session_id || "").trim();
+  const sug = String(syncSuggestSessionIdForBoard() || "").trim();
   if (!sug) return;
   fillSessionIdSelect(force ? sug : undefined);
   setSessionIdSelectValue(sug, { overwrite: false });
@@ -3155,13 +3458,27 @@ function applySubjectToSetup(info) {
       activeSubjectInfo.suggest_session_id = info.suggest_session_id;
     }
   }
+  if (info.suggest_session_ids_by_board) {
+    if (!activeSubjectInfo) activeSubjectInfo = info;
+    activeSubjectInfo.suggest_session_ids_by_board = {
+      ...(activeSubjectInfo.suggest_session_ids_by_board || {}),
+      ...info.suggest_session_ids_by_board,
+    };
+  } else if (info.index?.suggest_session_ids_by_board) {
+    if (!activeSubjectInfo) activeSubjectInfo = info;
+    activeSubjectInfo.suggest_session_ids_by_board = {
+      ...(activeSubjectInfo.suggest_session_ids_by_board || {}),
+      ...info.index.suggest_session_ids_by_board,
+    };
+  }
   activeSimMode = Boolean(info.sim_mode);
   if (info.sim_mode) {
     // 仿真：会话编号 = run_id，优先服务端 suggest（跑完 run3 → run4）
     refreshSimRunSuggestion();
-  } else if (info.suggest_session_id && el.setupSessionId) {
-    fillSessionIdSelect(info.suggest_session_id);
-    setSessionIdSelectValue(info.suggest_session_id, { overwrite: false });
+  } else if (el.setupSessionId) {
+    const sug = syncSuggestSessionIdForBoard();
+    fillSessionIdSelect(sug);
+    setSessionIdSelectValue(sug, { overwrite: false });
   }
   updateSessionIdConflictUi();
   const paths = info.sim_mode
@@ -3558,7 +3875,7 @@ function formToRunConfig() {
       subject_id: String(fd.get("subject_id") || "").trim(),
       session_id: sim
         ? (simRunId || resolveSimRunId(false))
-        : String(fd.get("session_id") || "").trim(),
+        : normalizeSessionIdInput(fd.get("session_id") || ""),
       notes: String(fd.get("notes") || ""),
     },
     acquisition: {
@@ -3774,13 +4091,31 @@ function syncAcqUi() {
 }
 
 function showErrors(list) {
+  const busyHint = document.getElementById("setup-busy-hint");
   if (!list || !list.length) {
     el.errors.classList.add("hidden");
     el.errors.textContent = "";
+    busyHint?.classList.add("hidden");
     return;
   }
   el.errors.classList.remove("hidden");
   el.errors.textContent = list.join("\n");
+  const busy = list.some((x) => String(x).includes("已有会话在进行"));
+  busyHint?.classList.toggle("hidden", !busy);
+}
+
+function requestAbortSession({ fromSetup = false } = {}) {
+  const msg = fromSetup
+    ? "确认中止后台未结束的会话？已写入数据将尽量保留。"
+    : "确认中止本场实验？已写入数据将尽量保留。";
+  if (!confirm(msg)) return;
+  starting = false;
+  if (fromSetup) {
+    showErrors(["正在中止后台会话…（完成后可再点「开始实验」）"]);
+  } else {
+    showRunAlert("正在中止会话…", "abort");
+  }
+  send({ type: "operator", action: "abort" });
 }
 
 function setPhaseStep(phase) {
@@ -4110,13 +4445,20 @@ function handleMessage(msg) {
         .filter(([, ok]) => !ok)
         .map(([k]) => k);
       const saved = msg.weights_saved !== false;
+      const scopeLine = msg.ft_scope ? `范围 ${msg.ft_scope}` : "范围 —";
       const gateLine = pass
         ? `门控（参考）：PASS · pred ${JSON.stringify(gate.pred_labels || {})}`
         : `门控（参考）：FAIL${failBits.length ? ` · ${failBits.join(", ")}` : ""} · pred ${JSON.stringify(gate.pred_labels || {})}${saved ? " · 权重已写入预设" : " · 无权重文件"}`;
+      const promoteLine = msg.auto_promoted
+        ? msg.force_promoted
+          ? "已自动强制晋升 current（告警已落盘 force_promote_warning.json）"
+          : "已自动晋升 current"
+        : "未自动晋升";
       el.ftResult.innerHTML = [
-        `<div>${repLine} · ${esLine} · ${detLine}</div>`,
+        `<div>${scopeLine} · ${repLine} · ${esLine} · ${detLine}</div>`,
         `<div>three heldout <strong>${(msg.three_heldout * 100).toFixed(1)}%</strong> · task <strong>${(msg.task_heldout * 100).toFixed(1)}%</strong>（参考）</div>`,
         `<div>${gateLine}</div>`,
+        `<div>${promoteLine}</div>`,
         `<div class="muted">已保存 ${msg.out_dir}</div>`,
       ].join("");
     }
@@ -4124,6 +4466,10 @@ function handleMessage(msg) {
       if (msg.weights_saved === false) {
         el.ftStatus.textContent =
           "微调结束但未写出 best_*.pt（请重启服务后重跑；旧版本门控 FAIL 会删权重）";
+      } else if (msg.auto_promoted) {
+        el.ftStatus.textContent = msg.force_promoted
+          ? "微调完成；门控 FAIL，已强制晋升 current（告警已落盘）"
+          : "微调完成；门控 PASS，已自动晋升 current";
       } else {
         el.ftStatus.textContent = pass
           ? "微调完成；门控 PASS，可替换 current；预设列表已刷新"
@@ -4269,11 +4615,25 @@ function handleMessage(msg) {
     if (msg.phase === "begin") setPhaseStepV3("block");
   } else if (t === "v3_report") {
     setPhaseStepV3("report");
+    const r = msg.report || {};
+    const ov = r.overall || {};
+    renderSummaryWindowAcc({
+      window_acc: ov.acc_window,
+      window_acc_n: ov.n_windows,
+      report: r,
+    });
     if (el.v3SummaryDetail) {
       el.v3SummaryDetail.classList.remove("hidden");
-      const r = msg.report || {};
-      el.v3SummaryDetail.textContent =
-        `v3 报告 · 质量=${r.quality_tier || "—"} · frozen=${r.frozen}`;
+      const waTxt = formatWindowAccPct(ov.acc_window);
+      const parts = [
+        `v3 报告 · 质量=${r.quality_tier || "—"}`,
+        `frozen=${r.frozen}`,
+      ];
+      if (waTxt) {
+        const n = ov.n_windows;
+        parts.push(n != null ? `窗级识别率 ${waTxt}（${n} 窗）` : `窗级识别率 ${waTxt}`);
+      }
+      el.v3SummaryDetail.textContent = parts.join(" · ");
     }
   } else if (t === "eeg_stale") {
     const age = msg.age_s != null ? Number(msg.age_s).toFixed(1) : "?";
@@ -4335,7 +4695,7 @@ function handleMessage(msg) {
           stopGuidanceCountdown();
           el.btnV3Guidance?.classList.add("hidden");
         } else {
-          showRunAlert("动觉引导中 — 请完成抬臂后点「确认动觉引导完成」", "gate-pass");
+          showRunAlert("动觉引导中 — 请完成双手分别抓握杯子后点「确认动觉引导完成」", "gate-pass");
           startGuidanceCountdown(msg.data?.timeout_s ?? 600);
         }
       }
@@ -4427,10 +4787,7 @@ function handleMessage(msg) {
       el.summaryMsg.textContent = msg.message || "会话试次已结束，正在落盘…";
     }
     const vs = msg.v3_summary || {};
-    if (vs.session_score != null && vs.session_score_max != null && el.summaryMsg) {
-      el.summaryMsg.textContent +=
-        ` · 本场得分 ${formatScoreHalf(vs.session_score)}/${formatScoreHalf(vs.session_score_max)}`;
-    }
+    appendSessionScoreSummary(el.summaryMsg, vs);
     if (el.verifyBadge) {
       el.verifyBadge.textContent = "落盘中…";
       el.verifyBadge.className = "na";
@@ -4454,7 +4811,9 @@ function handleMessage(msg) {
     el.summaryMsg.textContent = msg.message || "会话已结束";
     const ss = msg.v2_summary?.session_score ?? msg.v3_summary?.session_score;
     const ssMax = msg.v2_summary?.session_score_max ?? msg.v3_summary?.session_score_max;
-    if (ss != null && ssMax != null) {
+    if (msg.v3_summary) {
+      appendSessionScoreSummary(el.summaryMsg, msg.v3_summary);
+    } else if (ss != null && ssMax != null) {
       el.summaryMsg.textContent += ` · 本场得分 ${formatScoreHalf(ss)}/${formatScoreHalf(ssMax)}`;
     }
     if (activeSubject || msg.subject_id) {
@@ -4533,8 +4892,21 @@ function handleMessage(msg) {
         if (el.v3SummaryDetail) {
           el.v3SummaryDetail.classList.remove("hidden");
           const r = vs.report || {};
-          el.v3SummaryDetail.textContent =
-            `块顺序 ${(vs.block_order || []).join("→")} · frozen=${vs.frozen} · ${r.quality_tier || vs.quality_tier || ""}`;
+          const ov = r.overall || {};
+          const wa = vs.window_acc ?? ov.acc_window;
+          const waTxt = formatWindowAccPct(wa);
+          const trialTxt = formatWindowAccPct(ov.acc_argmax);
+          const parts = [
+            `块顺序 ${(vs.block_order || []).join("→")}`,
+            `frozen=${vs.frozen}`,
+            r.quality_tier || vs.quality_tier || "",
+          ];
+          if (waTxt) {
+            const n = vs.window_acc_n ?? ov.n_windows;
+            parts.push(n != null ? `窗级识别率 ${waTxt}（${n} 窗）` : `窗级识别率 ${waTxt}`);
+          }
+          if (trialTxt) parts.push(`试次多数票 ${trialTxt}`);
+          el.v3SummaryDetail.textContent = parts.filter(Boolean).join(" · ");
         }
       } else if (msg.phase_mode === "v4_session" && msg.v4_summary) {
         const v = msg.v4_summary.verdict || "—";
@@ -4686,24 +5058,28 @@ function startSession() {
   lockedConfig = null;
   sessionRoot = "";
   if (!activeSimMode) {
-    const sid = String(el.setupSessionId?.value || "").trim();
+    const sid = readSetupSessionId();
+    if (el.setupSessionId) el.setupSessionId.value = sid;
     const bl = boardLabel(currentProtocolBoard());
     const boardHits = sessionsMatchingId(sid, { boardOnly: true });
-    const allHits = sessionsMatchingId(sid);
-    const hits = boardHits.length ? boardHits : allHits;
-    if (hits.length && !el.sessionOverwrite?.checked) {
-      const sug = activeSubjectInfo?.suggest_session_id || "";
-      const useSug = sug && confirm(
-        `当前 ${bl}：会话编号「${sid}」已存在 ${hits.length} 场。\n\n` +
-          `确定：改用新建 ${sug}\n取消：留在设置页（可选历史编号并确认覆盖）`,
-      );
-      if (useSug) {
-        fillSessionIdSelect(sug);
-        setSessionIdSelectValue(sug, { overwrite: false });
+    if (boardHits.length && !el.sessionOverwrite?.checked) {
+      const sug = syncSuggestSessionIdForBoard() || "";
+      if (!sug || sug.toLowerCase() === sid.toLowerCase()) {
+        showErrors([
+          `会话编号「${sid}」已存在，且无法算出可用新建号。请手改编号或勾选覆盖后重试。`,
+        ]);
+        return;
       }
-      return;
+      const useSug = confirm(
+        `当前 ${bl}：会话编号「${sid}」已存在 ${boardHits.length} 场。\n\n` +
+          `确定：改用新建 ${sug} 并开始实验\n取消：留在设置页（可选历史编号并确认覆盖）`,
+      );
+      if (!useSug) return;
+      fillSessionIdSelect(sug);
+      setSessionIdSelectValue(sug, { overwrite: false });
+      // 落定新编号后继续开场（勿 return）
     }
-    if (hits.length && el.sessionOverwrite?.checked) {
+    if (boardHits.length && el.sessionOverwrite?.checked) {
       const ok = confirm(
         `将覆盖 ${bl} 会话编号「${sid}」：旧目录移入 _archived，然后重新采集。\n确认继续？`,
       );
@@ -4823,6 +5199,20 @@ document.getElementById("btn-continue").addEventListener("click", () => {
 document.getElementById("btn-gate").addEventListener("click", () => {
   send({ type: "operator", action: "gate_ok" });
 });
+document.getElementById("btn-v2-enter-game")?.addEventListener("click", () => {
+  if (
+    !confirm(
+      "确认跳过引导 / 剩余标定 / 准入，直接进入游戏轮？\n（当前试次若正在进行会被打断）"
+    )
+  ) {
+    return;
+  }
+  send({ type: "operator", action: "enter_game" });
+  stopGuidanceCountdown();
+  if (el.btnV2Guidance) el.btnV2Guidance.disabled = true;
+  if (el.v2StageHint) el.v2StageHint.textContent = "已请求直接进入游戏…";
+  showRunAlert("已请求直接进入游戏（跳过引导/标定/准入）", "gate-pass");
+});
 el.btnV2Guidance?.addEventListener("click", () => {
   send({ type: "v2_guidance_confirm" });
   stopGuidanceCountdown();
@@ -4862,10 +5252,10 @@ el.btnV4ToV3?.addEventListener("click", () => {
   send({ type: "operator", action: "abort" });
 });
 document.getElementById("btn-abort").addEventListener("click", () => {
-  if (confirm("确认中止本场实验？已写入数据将尽量保留。")) {
-    showRunAlert("正在中止会话…", "abort");
-    send({ type: "operator", action: "abort" });
-  }
+  requestAbortSession({ fromSetup: false });
+});
+document.getElementById("btn-setup-abort")?.addEventListener("click", () => {
+  requestAbortSession({ fromSetup: true });
 });
 
 document.getElementById("btn-open-folder").addEventListener("click", () => {
@@ -4989,6 +5379,14 @@ el.ftLeaveNext?.addEventListener("change", () => {
 });
 
 el.setupSessionId?.addEventListener("change", () => onSessionIdSelectChange());
+el.setupSessionId?.addEventListener("input", () => updateSessionIdConflictUi());
+el.setupSessionId?.addEventListener("blur", () => {
+  if (activeSimMode) return;
+  const sid = readSetupSessionId();
+  if (el.setupSessionId && sid) el.setupSessionId.value = sid;
+  updateSessionIdConflictUi();
+});
+el.sessionIdSuggestBtn?.addEventListener("click", () => applySuggestedSessionId({ force: true }));
 el.sessionOverwrite?.addEventListener("change", () => updateSessionIdConflictUi());
 
 el.btnFtStart?.addEventListener("click", () => {
@@ -5115,9 +5513,18 @@ el.btnSessionNoRecord?.addEventListener("click", () => {
 });
 
 window.addEventListener("keydown", (e) => {
-  if (el.run.classList.contains("hidden")) return;
   if (!hotkeysEnabled) return;
   if (e.target && ["INPUT", "TEXTAREA"].includes(e.target.tagName)) return;
+  // 设置页也允许 Esc 中止卡住的后台会话
+  if (e.key === "Escape") {
+    const onRun = !el.run.classList.contains("hidden");
+    const onSetup = !el.setup.classList.contains("hidden");
+    if (onRun || onSetup) {
+      requestAbortSession({ fromSetup: onSetup && !onRun });
+    }
+    return;
+  }
+  if (el.run.classList.contains("hidden")) return;
   const k = e.key.toLowerCase();
   if (k === "b") send({ type: "operator", action: "split_session" });
   if (k === "q") send({ type: "questionnaire_open" });
@@ -5125,9 +5532,6 @@ window.addEventListener("keydown", (e) => {
   if (k === "n") send({ type: "operator", action: "continue" });
   if (k === "g") send({ type: "operator", action: "gate_ok" });
   if (k === "r") send({ type: "operator", action: "reject" });
-  if (e.key === "Escape") {
-    if (confirm("确认中止？")) send({ type: "operator", action: "abort" });
-  }
 });
 
 for (const prefix of ["v2", "v3"]) {

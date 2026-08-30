@@ -60,7 +60,7 @@ function guidanceIdle(data, ctx) {
   const isPhase0 = round === 0 || round == null;
   return {
     title: isPhase0 ? "动觉引导" : `动觉引导 · 第 ${round} 轮`,
-    sub: "操作者抬臂 → 记住感觉 → 睁眼按指导语想象复现",
+    sub: "两手分别抓握杯子 → 记住抓握动作 → 睁眼按指导语想象复现",
   };
 }
 
