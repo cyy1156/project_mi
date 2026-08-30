@@ -74,7 +74,16 @@ def slide_windows(
     win_sec: float = WIN_SEC,
     hop_sec: float = HOP_SEC,
 ) -> List[np.ndarray]:
-    """x_tc: (T, C) → list[(n_win, C)]，尾部不足一窗丢弃。"""
+    """连续段滑窗。
+
+    **布局约定（勿与 to_nchw 混用）：**
+    - 入参 ``x_tc``：``(T, C)``
+    - 返回：``list[(n_win, C)]``，OpenBMI 3s@250Hz 时为 ``(750, 8)``
+
+    进模型前必须先 ``wins_to_model``（或等价 ``.T``）得到 ``(C, T)``，
+    再交给 ``to_nchw``。直接 ``to_nchw(slide_windows(...))`` 会静默得到
+    ``(N,1,750,8)``（形状合法、语义错误）。
+    """
     n_win = int(round(win_sec * fs))
     hop = int(round(hop_sec * fs))
     if hop <= 0 or n_win <= 0:
@@ -213,7 +222,11 @@ def iter_rest_sources_cue_before(
 
 
 def wins_to_model(wins: Sequence[np.ndarray]) -> List[np.ndarray]:
-    """list[(T,C)] → list[(C,T)] float32，过滤非 3s 窗。"""
+    """``list[(T,C)]`` → ``list[(C,T)]`` float32，过滤非 3s 窗。
+
+    这是 ``slide_windows`` / ``segment_to_3s_hop100_windows`` 到 ``to_nchw``
+    之间的必经转置（与 preprocess_lab ``to_model_tensor`` 的 T↔C 同义）。
+    """
     n_need = int(round(WIN_SEC * FS))
     return [w.T.astype(np.float32) for w in wins if w.shape[0] == n_need]
 
@@ -227,7 +240,7 @@ def slide_3s_from_interval(
     t0_min: float = 0.0,
     zscore: bool = True,
 ) -> List[np.ndarray]:
-    """区间 [t_a+t0_min, t_b) 上 3s/hop100 → list[(8,750)]。"""
+    """区间 [t_a+t0_min, t_b) 上 3s/hop100 → list[(8,750)]（已转置，可直接 to_nchw）。"""
     if t_lsl.size == 0 or x_tc.size == 0:
         return []
     t0 = float(t_a) + float(t0_min)
@@ -244,8 +257,24 @@ def slide_3s_from_interval(
 
 
 def to_nchw(wins_ct: Sequence[np.ndarray]) -> np.ndarray:
-    """list[(C,T)] → (N,1,C,T)。"""
+    """``list[(C,T)]`` → ``(N,1,C,T)``。
+
+    入参必须是通道优先 ``(8, 750)``，不要传入 ``slide_windows`` 的 ``(750, 8)``。
+    若误传 ``(750, 8)``，本函数会主动报错，避免静默产出 ``(N,1,750,8)``。
+    """
     if not wins_ct:
         return np.zeros((0, 1, 8, N_TIMES), dtype=np.float32)
     stacked = np.stack([np.asarray(w, dtype=np.float32) for w in wins_ct], axis=0)
+    # (N, C, T) 期望 C=8、T=750；常见误用是直接塞 (T,C)
+    if stacked.ndim != 3:
+        raise ValueError(f"to_nchw 期望 list[(C,T)]，得到 stacked.ndim={stacked.ndim}")
+    c, t = int(stacked.shape[1]), int(stacked.shape[2])
+    if (c, t) == (N_TIMES, 8):
+        raise ValueError(
+            "to_nchw 收到疑似 (T,C)=(750,8) 窗；请先 wins_to_model(...) 转成 (C,T)=(8,750)"
+        )
+    if c != 8 or t != N_TIMES:
+        raise ValueError(
+            f"to_nchw 期望每窗 (C,T)=(8,{N_TIMES})，得到 ({c},{t})"
+        )
     return stacked[:, None, :, :]

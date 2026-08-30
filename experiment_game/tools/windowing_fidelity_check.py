@@ -104,4 +104,4 @@ print("\n" + ("=" * 46))
 if FAILS:
     print(f"结论: 存在 {len(FAILS)} 处数值差异 -> {FAILS}")
     raise SystemExit(1)
-print("结论: core/windowing 与训练侧原始实现逐值一致 ✅")
+print("结论: core/windowing 与训练侧原始实现逐值一致 [OK]")
