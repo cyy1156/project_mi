@@ -6,6 +6,7 @@
 from __future__ import annotations
 
 import csv
+import logging
 import threading
 import time
 from pathlib import Path
@@ -15,6 +16,8 @@ import numpy as np
 
 from experiment_game.core.atomic_io import atomic_write_json
 from experiment_game.core.channel_layout import DEVICE_CHANNEL_LABELS
+
+_LOG = logging.getLogger(__name__)
 
 
 class CsvRecorderSubscriber:
@@ -52,10 +55,17 @@ class CsvRecorderSubscriber:
                 try:
                     self._file.flush()
                     self._file.close()
-                except OSError:
-                    pass
-                self._file = None
-                self._writer = None
+                except OSError as exc:
+                    _LOG.error(
+                        "CsvRecorder close/flush 失败 path=%s rows=%s: %r",
+                        self.path,
+                        self.rows_written,
+                        exc,
+                    )
+                    raise
+                finally:
+                    self._file = None
+                    self._writer = None
 
     def on_chunk(self, t_lsl: np.ndarray, x: np.ndarray) -> None:
         if self._writer is None:

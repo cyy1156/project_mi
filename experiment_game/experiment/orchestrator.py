@@ -124,6 +124,7 @@ class OperatorService:
         phase4_runner: Optional[Callable[..., Dict[str, Any]]] = None,
         phase4_v2_pair_runner: Optional[Callable[..., Any]] = None,
         ft_runner: Optional[Callable[..., Dict[str, Any]]] = None,
+        ws_token: Optional[str] = None,
     ) -> None:
         self.repo_root = Path(repo_root) if repo_root else _REPO_ROOT
         self.web_root = Path(web_root) if web_root else _WEB_ROOT
@@ -135,7 +136,26 @@ class OperatorService:
         self._phase4_runner = phase4_runner
         self._phase4_v2_pair_runner = phase4_v2_pair_runner
         self._ft_runner = ft_runner
-        self.bridge = WsBridge(host=serve_host, port=ws_port)
+        # 控制面 token：未传则自动生成；操作台 URL 带 ?token=，诱导页 continue 无需 token
+        self.ws_token = (str(ws_token).strip() if ws_token else "") or WsBridge.make_token()
+        lan = serve_host not in ("127.0.0.1", "localhost", "::1")
+        origins = (
+            None
+            if lan
+            else [
+                # None 匹配"无 Origin 头"的连接：本机脚本/冒烟测试不带 Origin，
+                # 缺了它会被 websockets 17 直接 403（浏览器仍受白名单约束）
+                None,
+                f"http://127.0.0.1:{http_port}",
+                f"http://localhost:{http_port}",
+            ]
+        )
+        self.bridge = WsBridge(
+            host=serve_host,
+            port=ws_port,
+            auth_token=self.ws_token,
+            allowed_origins=origins,
+        )
         self.http = StaticServer(self.web_root, host=serve_host, port=http_port)
         self._lock = threading.Lock()
         self._busy = False
@@ -195,12 +215,14 @@ class OperatorService:
     @property
     def operator_url(self) -> str:
         # 本机浏览器仍用 127.0.0.1；LAN 地址在 start() 额外打印
-        return f"http://127.0.0.1:{self.http_port}/operator.html#setup"
+        tok = f"?token={self.ws_token}" if self.ws_token else ""
+        return f"http://127.0.0.1:{self.http_port}/operator.html{tok}#setup"
 
     @property
     def subject_url(self) -> str:
         # 不强制 ?ws=127.0.0.1：页面按 location.hostname 自动连 WS，
         # 本机与局域网监控端都能连上（需 open_operator_lan / --host 0.0.0.0）。
+        # 诱导页无需 token（continue/ready 为公开事件）。
         return f"http://127.0.0.1:{self.http_port}/"
 
     def _model_presets_payload(self) -> Dict[str, Any]:
@@ -273,12 +295,15 @@ class OperatorService:
         print(f"操作台: {self.operator_url}")
         print(f"诱导页: {self.subject_url}")
         print(f"WebSocket: ws://127.0.0.1:{self.ws_port}")
+        if self.ws_token:
+            print(f"WS 控制 token 已启用（abort/gate/operator 需带 token；诱导页 continue 免 token）")
         if self.serve_host not in ("127.0.0.1", "localhost"):
             print(f"绑定地址: {self.serve_host}:{self.http_port} / WS :{self.ws_port}")
             lan = _lan_ipv4_addrs()
             if lan:
                 for ip in lan:
-                    print(f"监控端打开: http://{ip}:{self.http_port}/operator.html#setup")
+                    tok = f"?token={self.ws_token}" if self.ws_token else ""
+                    print(f"监控端打开: http://{ip}:{self.http_port}/operator.html{tok}#setup")
                     print(f"  （WS 自动连 ws://{ip}:{self.ws_port}）")
             else:
                 print("未解析到局域网 IP；请在实验机执行 ipconfig 后告知监控端。")

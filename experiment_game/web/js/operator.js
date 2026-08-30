@@ -1,9 +1,20 @@
 const WS_URL =
   new URLSearchParams(location.search).get("ws") ||
   `ws://${location.hostname || "127.0.0.1"}:8765`;
+/** 操作台控制面鉴权（与 --ws-token / 启动打印的 URL ?token= 一致） */
+const WS_TOKEN = new URLSearchParams(location.search).get("token") || "";
 
 const STORAGE_KEY = "experiment_game_operator_defaults_v1";
 const SUBJECT_LOGIN_KEY = "experiment_game_subject_login_v1";
+
+function _escHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
 
 const el = {
   login: document.getElementById("view-login"),
@@ -180,9 +191,9 @@ function _voteCountFromMap(vc, cls) {
 }
 
 function _labelTag(label, name) {
-  if (label == null) return name || "—";
+  if (label == null) return _escHtml(name || "—");
   const nm = name || LIVE_LABEL_NAMES[label] || String(label);
-  return `${nm} (${label})`;
+  return `${_escHtml(nm)} (${_escHtml(label)})`;
 }
 
 function resetSessionVoteHistory() {
@@ -273,7 +284,7 @@ function renderVotePanel(prefix) {
     const mark = ok ? '<span class="vote-meta-correct">✓</span>' : fail ? '<span class="vote-meta-wrong">✗</span>' : "";
     if (meta) {
       meta.innerHTML =
-        `试次 ${viewing.trial_id} ${mark}<br>` +
+        `试次 ${_escHtml(viewing.trial_id)} ${mark}<br>` +
         `正式 ${_labelTag(viewing.label, viewing.label_name)} · ` +
         `预测 ${_labelTag(viewing.pred, viewing.pred_name)}`;
     }
@@ -547,9 +558,9 @@ function renderSummaryWindowAcc(vs) {
     return;
   }
   const n = vs.window_acc_n ?? vs.report?.overall?.n_windows;
-  const nTxt = n != null ? `（${n} 窗 · L/R）` : "（L/R 逐窗）";
+  const nTxt = n != null ? `（${n} 窗 · Rest/L/R）` : "（Rest/L/R 逐窗）";
   node.classList.remove("hidden");
-  node.innerHTML = `模型窗级识别率 <strong>${waTxt}</strong> <span class="hint">${nTxt}</span>`;
+  node.innerHTML = `模型窗级识别率 <strong>${_escHtml(waTxt)}</strong> <span class="hint">${_escHtml(nTxt)}</span>`;
 }
 
 /** OpenBMI：n MI 试次 → 满分 n + n×0.5（含 Cue前静息） */
@@ -2221,7 +2232,11 @@ function renderV4Diagnosis(problems) {
     return;
   }
   el.v4Problems.innerHTML = list
-    .map((p) => `<li>${p.hint || p.detail || p.reason}${p.channel ? ` (${p.channel})` : ""}</li>`)
+    .map((p) => {
+      const text = _escHtml(p.hint || p.detail || p.reason || "");
+      const ch = p.channel ? ` (${_escHtml(p.channel)})` : "";
+      return `<li>${text}${ch}</li>`;
+    })
     .join("");
 }
 
@@ -2860,7 +2875,7 @@ function renderSimRunQueue(runs, consumed = []) {
   }
   el.simRunQueue.innerHTML = list
     .map((r) => {
-      const rid = r.run_id || r;
+      const rid = String(r.run_id || r);
       const done = used.has(rid);
       const shard = r.shard_ok ? "shard✓" : "shard—";
       const total = r.n_total_trials ?? r.n_lr_trials;
@@ -2868,8 +2883,8 @@ function renderSimRunQueue(runs, consumed = []) {
         ? `Rest${r.n_rest_trials} L${r.n_left ?? "—"} R${r.n_right ?? "—"} · 共${total}`
         : `${r.n_lr_trials ?? "—"} L/R`;
       return `<label class="check sim-run-row${done ? " muted" : ""}">
-        <input type="checkbox" class="sim-run-cb" value="${rid}" ${done ? "disabled" : ""} />
-        ${rid} · ${detail} · ${shard}${done ? " · 已用" : ""}
+        <input type="checkbox" class="sim-run-cb" value="${_escHtml(rid)}" ${done ? "disabled" : ""} />
+        ${_escHtml(rid)} · ${_escHtml(detail)} · ${shard}${done ? " · 已用" : ""}
       </label>`;
     })
     .join("");
@@ -3848,7 +3863,8 @@ function setWsStatus(text, cls) {
 
 function send(msg) {
   if (ws && ws.readyState === WebSocket.OPEN) {
-    ws.send(JSON.stringify(msg));
+    const out = WS_TOKEN ? { ...msg, token: WS_TOKEN } : msg;
+    ws.send(JSON.stringify(out));
   }
 }
 
