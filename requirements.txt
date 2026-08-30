@@ -1,24 +1,15 @@
-# Unified MI project dependencies (install into repo-root .venv)
-#   .\.venv\Scripts\python.exe -m pip install -r requirements.txt
+# MI 仓库统一依赖（操作台 / 采集 / FT / 训练旁路）
+# 推荐从仓库根安装；框架清单以 experiment_game/requirements.txt 为准。
+#
+#   conda create -n cyy python=3.11 -y && conda activate cyy
+#   # 先装匹配本机的 torch，再：
+#   pip install -r requirements.txt
+#
+# 等价：
+#   pip install -r experiment_game/requirements.txt
 
-# preprocess_lab / MI_model
-numpy>=1.24
-scipy>=1.10
-mne>=1.0
-pandas>=1.3
-pyyaml>=6.0
-scikit-learn>=1.0
-matplotlib>=3.5
-joblib>=1.1
+-r experiment_game/requirements.txt
 
-# train_lab
-torch
-tqdm
-braindecode
-
-# experiment_game
-websockets>=12.0
-
-# collect_data / LSL_connect_model
-brainflow>=5.0
-pylsl>1.16
+# --- 训练旁路（code/train_lab；日常采/玩可不装，重训底座时需要）---
+# torch 已在上方说明中单独安装
+# braindecode / scikit-learn / tqdm 已包含在 experiment_game 清单
