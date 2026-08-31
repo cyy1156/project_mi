@@ -31,8 +31,8 @@ echo Bind: 0.0.0.0
 echo.
 echo IMPORTANT for monitor PC:
 echo   Do NOT open bare http://LAN-IP:8080/operator.html
-echo   Copy the FULL URL printed below ^(line starts with monitor URL^)
-echo   It MUST contain ?token=... or fine-tune / abort will be blocked.
+echo   Prefer bookmarking the URL with ?token=... ^(token is fixed in config^)
+echo   config: experiment_game\config\ws_control_token.txt
 echo.
 echo Subject screen on THIS PC: http://127.0.0.1:8080/
 echo Repo root: %CD%

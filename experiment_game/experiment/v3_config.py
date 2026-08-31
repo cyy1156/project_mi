@@ -73,7 +73,7 @@ class V3Config:
     primary_judge_mode: str = "majority"
     judgment_times: tuple = field(default_factory=tuple)
 
-    # 在线取窗：openbmi_hop100 = 与离线 preprocess 同构（3s/hop100 + Cue−0.5s 基线）
+    # 在线取窗：openbmi_hop100 = 与离线 preprocess 同构（3s/hop100 + 锚点前 0.5s 基线，相对 mi_start）
     online_window_mode: str = ONLINE_WINDOW_MODE_OPENBMI
     win_s: float = WIN_S
     win_hop_s: float = HOP_S
@@ -98,6 +98,10 @@ class V3Config:
 
     s3_task_ckpt: str = ""
     s3_three_ckpt: str = ""
+
+    # 优先被试 models/current（由 orchestrator 注入 subject_models_dir）
+    use_v3_weights: bool = True
+    subject_models_dir: str = ""
 
     # E1f 四成员集成（readout_mode=e1f 时启用）
     readout_mode: str = "serial_gating"

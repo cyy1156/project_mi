@@ -1,6 +1,6 @@
 """v2 会话模式：动觉引导 → 标定轮增量 FT → 准入建议（操作员确认）→ 游戏协同。
 
-OpenBMI-Align v1（与 v3 同构）：Cue=MI onset · MI 4s · 试次间 Rest 4s · 在线 3s/hop100 + Cue−0.5s 基线 · MI 阶段多数票。
+OpenBMI-Align v1（与 v3 同构）：Cue 先行 1s · MI 4s · 试次间 Rest 4s · 在线 3s/hop100 + 锚点前 0.5s 基线（相对 mi_start）· MI 阶段多数票。
 准入：小考门控仅作参考（pass / weak_mi），进入游戏须操作员确认（G / 准入）。
 """
 
@@ -322,7 +322,7 @@ def run_v2_session(
     window_cache: Dict[int, list] = {}
     trial_times: Dict[int, Dict[str, float]] = {}
     mi_times: Dict[int, float] = {}
-    arm_peak_by_trial: Dict[int, int] = {}
+    arm_peak_by_trial: Dict[int, float] = {}
     aborted = False
     abort_reason: Optional[str] = None
     eeg_stale_timeout_s = 3.0
@@ -441,12 +441,11 @@ def run_v2_session(
         mi_times[tid] = mi_t
         times = trial_times.setdefault(tid, {})
         times["mi_t"] = mi_t
-        cue_t = times.get("cue_t")
-        if cue_t is None:
-            cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
-            times["cue_t"] = cue_t
+        if times.get("cue_t") is None:
+            times["cue_t"] = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
         try:
-            j = infer.judge(float(cue_t), t_rel)
+            # 切窗锚点 = mi_start（与 trial 等待、离线 FT 一致）
+            j = infer.judge(float(mi_t), t_rel)
             if j is not None and j.get("eeg_stale"):
                 _raise_if_eeg_stale()
             if j is not None and j.get("signal_bad"):

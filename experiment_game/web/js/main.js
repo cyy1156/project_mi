@@ -1,6 +1,6 @@
 import { WsClient } from "./ws_client.js?v=20260825arm1";
 import { HomeDeskScene } from "./scene.js?v=20260825arm1";
-import { handleV2Stage, maybeDemo, setSubjectFeedbackMode } from "./v2_bridge.js?v=20260830cue3";
+import { handleV2Stage, maybeDemo, setSubjectFeedbackMode } from "./v2_bridge.js?v=20260831cue7";
 
 const params = new URLSearchParams(location.search);
 const wsUrl = params.get("ws") || `ws://${location.hostname || "127.0.0.1"}:8765`;
@@ -38,7 +38,8 @@ window.__miScene = scene;
 window.__v2scene = {
   fixation: () => scene.v2Fixation(),
   cue: (label) => scene.v2Cue(label),
-  gameLevel: (n, reach) => scene.v2GameLevel(n, reach),
+  v2Cue: (label) => scene.v2Cue(label), // 兼容旧调用名，避免 cue 阶段静默抛错
+  gameLevel: (n, reach, label, progress) => scene.v2GameLevel(n, reach, label, progress),
   iti: () => scene.v2Iti(),
   idle: (text) => scene.v2Idle(text),
 };
@@ -436,6 +437,10 @@ client = new WsClient(
       if (el.text) el.text.textContent = msg.text || "";
       if (el.sub) el.sub.textContent = msg.subtext || "";
       if (el.cross) el.cross.classList.toggle("hidden", !msg.show_cross);
+      if (el.phase) {
+        el.phase.classList.remove("phase-cue");
+        if (String(el.phase.textContent).toUpperCase() === "CUE") el.phase.textContent = "";
+      }
       if (msg.text) setStatus("进行中");
     } else if (msg.type === "stage") {
       // v2/v3/v4 会话忽略 v1 Phase2 舞台消息，避免画面串台

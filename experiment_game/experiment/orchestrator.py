@@ -241,6 +241,26 @@ class OperatorService:
         }
 
     @staticmethod
+    def _inject_v3_subject_weights(v3_cfg: Any, subject_id: str, *, repo_root: Path) -> None:
+        """若被试 models/current 存在则注入 subject_models_dir，供 build_registry 优先加载。"""
+        if not getattr(v3_cfg, "use_v3_weights", True):
+            return
+        if str(getattr(v3_cfg, "subject_models_dir", "") or "").strip():
+            return
+        from experiment_game.experiment.subject_registry import models_current_dir
+
+        cur = models_current_dir(subject_id, repo_root=repo_root)
+        if not cur.is_dir():
+            return
+        has_current = (
+            (cur / "members").is_dir()
+            or (cur / "e1f_overlay.json").is_file()
+            or (cur / "best_three.pt").is_file()
+        )
+        if has_current:
+            v3_cfg.subject_models_dir = str(cur.parent)
+
+    @staticmethod
     def _weights_from_cfg(cfg_obj: Any) -> Dict[str, Any]:
         from experiment_game.experiment.model_presets import (
             match_preset_id,
@@ -255,12 +275,17 @@ class OperatorService:
         preset_id = match_preset_id(task, three)
         if readout.lower() == "e1f":
             preset_id = "e1f_four_member"
+        from experiment_game.experiment.registry_factory import _use_subject_weights
+
+        using_current = _use_subject_weights(cfg_obj)
         weight_label = resolve_weight_display_label(
             task=task,
             three=three,
             preset_id=preset_id,
             readout_mode=readout,
         )
+        if using_current:
+            weight_label = "被试 current"
         model_label = resolve_model_display_label(
             task=task,
             three=three,
@@ -276,6 +301,7 @@ class OperatorService:
             "weight_label": weight_label,
             "model_label": model_label,
             "short_label": short_weight_label(three or task),
+            "weight_source": "subject_current" if using_current else "base",
         }
 
     def start(self) -> None:
@@ -874,7 +900,9 @@ class OperatorService:
                         "weights_saved": task_ckpt.is_file() and three_ckpt.is_file(),
                         "release_gate": result["release_gate"],
                         "release_pass": result["release_pass"],
-                        "three_heldout": result["three"]["acc_after_heldout"],
+                        "three_heldout": result["three"].get("acc_after_heldout_smooth")
+                        or result["three"]["acc_after_heldout"],
+                        "three_heldout_raw": result["three"]["acc_after_heldout"],
                         "task_heldout": result["task"]["acc_after_heldout"],
                         "three_ft": result["three"].get("ft"),
                         "report_path": str(out_dir / "report.md"),
@@ -1882,6 +1910,7 @@ class OperatorService:
         v3_overrides = exp.get("v3_overrides") if isinstance(exp.get("v3_overrides"), dict) else {}
         v3_path = exp.get("v3_config_path")
         v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+        self._inject_v3_subject_weights(v3_cfg, subject_id, repo_root=self.repo_root)
         ignored = v3_cfg.apply_overrides(v3_overrides, protocol_locked=protocol_locked)
         verr = v3_cfg.verify_errors()
         if verr:
@@ -2037,6 +2066,7 @@ class OperatorService:
                 "quality_tier": (summary or {}).get("quality_tier"),
                 "n_trials": (summary or {}).get("n_trials"),
                 "frozen": (summary or {}).get("frozen"),
+                "weight_source": (summary or {}).get("weight_source"),
             },
             "message": "v3 试次已结束，正在落盘…",
         })
@@ -2252,6 +2282,7 @@ class OperatorService:
         v3_overrides = dict(exp.get("v3_overrides") or {}) if isinstance(exp.get("v3_overrides"), dict) else {}
         v3_path = exp.get("v3_config_path")
         v3_cfg = V3Config.load_yaml(v3_path) if v3_path else V3Config.load_yaml()
+        self._inject_v3_subject_weights(v3_cfg, subject_id, repo_root=self.repo_root)
         v3_cfg.apply_overrides(v3_overrides, protocol_locked=protocol_locked)
 
         session_trials_total = int(
@@ -2458,6 +2489,7 @@ class OperatorService:
                 "quality_tier": (summary or {}).get("quality_tier"),
                 "n_trials": (summary or {}).get("n_trials"),
                 "frozen": (summary or {}).get("frozen"),
+                "weight_source": (summary or {}).get("weight_source"),
             },
             "message": f"仿真试次已结束，正在落盘… · {run_id}",
         })

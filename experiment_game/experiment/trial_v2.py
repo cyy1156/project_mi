@@ -182,7 +182,8 @@ class TrialStateMachineV2:
             2: "想象：右手握紧杯子",
             0: "保持静息",
         }
-        cue_text = f"cue {_cue_plain.get(ctx.label, '请按提示想象')}"
+        # Cue 段主框带字面 "cue · " 前缀；MI 段仍用无前缀短标题
+        cue_text = f"cue · {_cue_plain.get(ctx.label, '请按提示想象')}"
         cue_payload = {
             "cue_kind": CUE_KIND.get(ctx.label, "icon_rest"),
             "cue_s": float(t.cue_s),
@@ -213,6 +214,8 @@ class TrialStateMachineV2:
         good_ticks = 0
         ctx.score_phase = "mi"
 
+        # 判定/切窗锚定 MI：t_rel = 窗尾相对 mi_start；任务段 [mi_start, mi_end]
+        # cue_s>0 仅作 MI 前指导语展示，不参与切窗锚点（与离线 t_mi_start 一致）
         for t_rel in t.judgment_times:
             self._wait_after(mi_t, t_rel)
             if self.judgment_fn is None:
@@ -293,7 +296,6 @@ class TrialStateMachineV2:
 
         self._emit("trial_end", ctx, extra={
             "trial_score": summary_dict,
-            "score_v21": summary_dict,
         })
         self._notify("trial_end", ctx, {"summary": summary_dict})
 

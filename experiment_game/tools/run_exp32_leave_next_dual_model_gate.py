@@ -171,6 +171,24 @@ def _softmax_batch(model, X: np.ndarray, device: str, *, n_out: int = 3) -> np.n
     return np.concatenate(preds, axis=0) if preds else np.zeros((0, n_out), np.float32)
 
 
+def _window_acc_raw(
+    probs: np.ndarray,
+    y: np.ndarray,
+) -> Dict[str, Any]:
+    """窗级 raw argmax（门控口径 · 方案 A）。"""
+    pred = probs.argmax(axis=1).astype(np.int64)
+    acc = float((pred == y).mean()) if len(y) else float("nan")
+    m = np.isin(y, [1, 2])
+    acc_lr = float((pred[m] == y[m]).mean()) if m.any() else float("nan")
+    return {
+        "n_windows": int(len(y)),
+        "n_lr": int(m.sum()),
+        "acc_window_three": acc,
+        "acc_window_lr": acc_lr,
+        "pred": pred,
+    }
+
+
 def _window_acc_causal(
     probs: np.ndarray,
     y: np.ndarray,
@@ -178,7 +196,7 @@ def _window_acc_causal(
     *,
     lookback: int = CAUSAL_LOOKBACK,
 ) -> Dict[str, Any]:
-    """按 trial（split_id）因果平滑后窗级 argmax。"""
+    """按 trial（split_id）因果平滑后窗级 argmax（展示口径 · 方案 A）。"""
     order = defaultdict(list)
     for i, sid in enumerate(split_ids):
         order[str(sid)].append(i)
@@ -290,25 +308,29 @@ def _fused_gate_from_dirs(
     heldout_dir: Path,
     device: str,
 ) -> Dict[str, Any]:
-    """all4：在融合+因果平滑口径上算 heldout/train，再走 release_gate。"""
+    """all4 融合：门控用 raw；另附 smooth 展示字段（方案 A）。"""
     stack = _load_e1f_stack(member_three=member_three, member_task=member_task)
     reg = E1fRegistry(stack, device=device)
 
     ds_tr = build_dataset(train_dirs, include_invalid=True, protocol="auto")
     probs_tr = reg.forward_three_batch(ds_tr["X"])
-    m_tr = _window_acc_causal(probs_tr, ds_tr["y_three"], ds_tr["split_id"])
+    m_tr_raw = _window_acc_raw(probs_tr, ds_tr["y_three"])
+    m_tr_sm = _window_acc_causal(probs_tr, ds_tr["y_three"], ds_tr["split_id"])
 
     ds_te = build_dataset([heldout_dir], include_invalid=True, protocol="auto")
     probs_te = reg.forward_three_batch(ds_te["X"])
-    m_te = _window_acc_causal(probs_te, ds_te["y_three"], ds_te["split_id"])
+    m_te_raw = _window_acc_raw(probs_te, ds_te["y_three"])
+    m_te_sm = _window_acc_causal(probs_te, ds_te["y_three"], ds_te["split_id"])
     rep = {
-        "acc_after_heldout": m_te["acc_window_three"],
-        "acc_after_train": m_tr["acc_window_three"],
-        "heldout_pred_dist": _pred_dist(m_te["pred"]),
+        "acc_after_heldout": m_te_raw["acc_window_three"],
+        "acc_after_train": m_tr_raw["acc_window_three"],
+        "heldout_pred_dist": _pred_dist(m_te_raw["pred"]),
     }
-    gate = evaluate_release_gate(rep)
-    gate["train_windows"] = m_tr["n_windows"]
-    gate["heldout_windows"] = m_te["n_windows"]
+    gate = evaluate_release_gate(rep, y_heldout=ds_te["y_three"])
+    gate["train_windows"] = m_tr_raw["n_windows"]
+    gate["heldout_windows"] = m_te_raw["n_windows"]
+    gate["heldout_acc_smooth"] = m_te_sm["acc_window_three"]
+    gate["train_acc_smooth"] = m_tr_sm["acc_window_three"]
     return gate
 
 

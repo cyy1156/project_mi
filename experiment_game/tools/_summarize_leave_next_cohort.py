@@ -17,20 +17,22 @@ def _latest_summary(subject_id: str, *, stamp_prefix: str = "") -> Path | None:
     ft = SUBJECTS_ROOT / subject_id / "models" / "ft_runs"
     if not ft.is_dir():
         return None
-    cands = sorted(
-        ft.glob(f"{stamp_prefix}*{subject_id}*leave_next*f5_summary.json")
-        if stamp_prefix
-        else ft.glob(f"*{subject_id}*leave_next*f5_summary.json"),
-        key=lambda p: p.stat().st_mtime,
-        reverse=True,
-    )
-    if not cands:
-        cands = sorted(
-            ft.glob("*e1f_task_leave_next_f5_summary.json"),
-            key=lambda p: p.stat().st_mtime,
-            reverse=True,
-        )
-    return cands[0] if cands else None
+    pats = [
+        "*leave_next_all4_f5_summary.json",
+        "*leave_next*f5_summary.json",
+        "*e1f_task_leave_next_f5_summary.json",
+    ]
+    cands: list[Path] = []
+    for pat in pats:
+        if stamp_prefix:
+            cands.extend(ft.glob(f"{stamp_prefix}{pat}"))
+        else:
+            cands.extend(ft.glob(pat))
+    uniq = {c.resolve(): c for c in cands}
+    ordered = sorted(uniq.values(), key=lambda p: p.stat().st_mtime, reverse=True)
+    return ordered[0] if ordered else None
+
+
 
 
 def _f5_mi(pack: Dict[str, Any] | None) -> str:
@@ -57,8 +59,12 @@ def main(subjects: List[str], stamp: str) -> Path:
     lines = [
         f"# Leave-Next F5 复验（Cue前静息=Rest 切窗）· {stamp}",
         "",
+        "> 口径权威：[`docs/统计口径方案A_20260831.md`](../../docs/统计口径方案A_20260831.md)",
+        "",
         "口径：shallow three Leave-Next；F5=因果平滑 lookback=2 + 多数票；",
-        "FT 切窗已含 trial_table `t_rest_*`（Rest/label=0）。",
+        "FT 切窗 openbmi_align（Rest/label=0）。",
+        "**win heldout** = 方案 A 主展示列（planA 批次为 **smooth**；旧批次可能为 raw，看 JSON 是否含 `heldout_acc_raw`）。",
+        "**gate** = raw 门控 PASS/FAIL。",
         "",
     ]
     rows_all: List[Dict[str, Any]] = []
@@ -72,7 +78,7 @@ def main(subjects: List[str], stamp: str) -> Path:
         payload = json.loads(sp.read_text(encoding="utf-8"))
         lines.append(f"- summary: `{sp}`")
         lines.append("")
-        lines.append("| R | train→eval | replay | win heldout | gate | F5 FT | F5 base3 | pred |")
+        lines.append("| R | train→eval | replay | win heldout (smooth) | gate | F5 FT | F5 base3 | pred |")
         lines.append("|---|------------|--------|-------------|------|-------|----------|------|")
         for i, row in enumerate(payload.get("rows") or [], start=1):
             train = "+".join(row.get("train") or [])
@@ -125,5 +131,8 @@ if __name__ == "__main__":
         "fnz0830",
         "wzr0830",
         "xj0830",
+        "cjf0831",
+        "npl0831",
+        "ycx0831",
     ]
     main(subs, stamp)

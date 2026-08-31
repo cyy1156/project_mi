@@ -87,7 +87,7 @@ class V2Config:
     use_v3_weights: bool = True  # 用被试 v3 最终权重（current/members + overlay）
     subject_models_dir: str = ""  # orchestrator 注入 data/subjects/<sid>/models
     v3test_rest_s: float = 5.0
-    v3test_cue_s: float = 2.0
+    v3test_cue_s: float = 1.0
     v3test_mi_s: float = 10.0
     v3test_judge_interval_s: float = 0.5
     v3test_consecutive: int = 5
@@ -107,7 +107,7 @@ class V2Config:
     task_p_on: float = 0.0
 
     prep_s: float = 2.0
-    cue_s: float = 0.0
+    cue_s: float = 1.0
     imagine_s: float = MI_TASK_SEC_DEFAULT
     iti_s: float = 3.0
     inter_trial_rest_s: float = 4.0

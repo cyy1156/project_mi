@@ -5,7 +5,7 @@
 game_mode: v3_test
 use_v3_weights: true
 v3test_rest_s: 5.0
-v3test_cue_s: 2.0
+v3test_cue_s: 1.0
 v3test_mi_s: 10.0
 v3test_judge_interval_s: 0.5
 v3test_consecutive: 5
@@ -41,9 +41,9 @@ replay_ratio: 0.10
 drift_patience: 2
 task_p_on: 0.0
 
-# OpenBMI-Align v1（与 v3_session.yaml 一致）
+# OpenBMI-Align v1（与 v3_session.yaml / 冻结 F1 一致：Cue 先行 1s）
 prep_s: 2.0
-cue_s: 0.0
+cue_s: 1.0
 imagine_s: 4.0
 iti_s: 3.0
 inter_trial_rest_s: 4.0

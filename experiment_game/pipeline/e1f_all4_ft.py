@@ -37,6 +37,8 @@ from .finetune import (
     _trial_split,
 )
 
+# 方案 A：早停/展示 = 因果平滑；门控 = raw（见 docs/统计口径方案A_20260831.md）
+
 REPO_ROOT = Path(__file__).resolve().parents[2]
 DEFAULT_E1F_STACK = REPO_ROOT / "experiment_game" / "config" / "e1f_four_member.json"
 
@@ -128,10 +130,43 @@ def _eval_e1f_three(
     X: np.ndarray,
     y: np.ndarray,
 ) -> Dict[str, Any]:
+    """窗级 raw argmax（门控口径）。"""
     probs = registry.forward_three_batch(X)
     pred = probs.argmax(axis=1).astype(np.int64)
     acc = float((pred == y.astype(np.int64)).mean()) if len(y) else 0.0
-    return {"acc": acc, "pred_dist": _pred_dist_from_labels(pred), "n": int(len(y))}
+    return {
+        "acc": acc,
+        "pred": pred,
+        "probs": probs,
+        "pred_dist": _pred_dist_from_labels(pred),
+        "n": int(len(y)),
+    }
+
+
+def _acc_causal_from_probs(
+    probs: np.ndarray,
+    y: np.ndarray,
+    split_ids: np.ndarray,
+    *,
+    lookback: int = 2,
+) -> float:
+    """窗级因果平滑 acc（展示/对齐在线 acc_window）。"""
+    if len(y) == 0:
+        return float("nan")
+    from collections import defaultdict
+
+    from adapt_engine.readout import causal_smooth_pred_sequence
+
+    order: Dict[str, list] = defaultdict(list)
+    for i, sid in enumerate(split_ids):
+        order[str(sid)].append(i)
+    pred = np.zeros(len(y), dtype=np.int64)
+    for idxs in order.values():
+        seq = [probs[i] for i in idxs]
+        smoothed = causal_smooth_pred_sequence(seq, lookback=lookback)
+        for j, ix in enumerate(idxs):
+            pred[ix] = int(smoothed[j]["pred"])
+    return float((pred == y.astype(np.int64)).mean())
 
 
 def run_e1f_all4_finetune(
@@ -198,6 +233,8 @@ def run_e1f_all4_finetune(
     X_tr, y3_tr = X[tr_mask], y3[tr_mask]
     X_te, y3_te = X[te_mask], y3[te_mask]
     yt_tr, yt_te = y_task[tr_mask], y_task[te_mask]
+    split_te = split_id[te_mask]
+    split_tr = split_id[tr_mask]
 
     rep_ratio = 0.0 if no_replay else float(replay_ratio)
     recipe = FTRecipe(
@@ -232,6 +269,8 @@ def run_e1f_all4_finetune(
         "max_epochs": int(max_epochs),
         "patience": int(patience),
         "fixed_epochs": int(epochs),
+        # 方案 A：有 heldout split_id 时早停用因果平滑
+        "split_ids_te": split_te,
     }
 
     for m in stack.members:
@@ -304,6 +343,7 @@ def run_e1f_all4_finetune(
             "three_init": str(three_init),
             "three_out": str(three_path),
             "three_acc_heldout": float(three_rep["acc_after_heldout"]),
+            "three_acc_heldout_smooth": three_rep.get("acc_after_heldout_smooth"),
             "three_acc_train": float(three_rep["acc_after_train"]),
             "task_out": str(task_path) if task_path else None,
             "task_acc_heldout": (
@@ -311,7 +351,7 @@ def run_e1f_all4_finetune(
             ),
         }
 
-    # 融合评估（临时 registry）
+    # 融合评估（临时 registry）：raw → 门控；因果平滑 → 展示
     base_reg = E1fRegistry(stack, device=device)
     ft_stack = stack.with_member_overrides(overlay_members).resolve_paths(
         repo_root=REPO_ROOT
@@ -320,16 +360,23 @@ def run_e1f_all4_finetune(
     before = _eval_e1f_three(base_reg, X_te, y3_te)
     after_tr = _eval_e1f_three(ft_reg, X_tr, y3_tr)
     after_te = _eval_e1f_three(ft_reg, X_te, y3_te)
+    before_smooth = _acc_causal_from_probs(before["probs"], y3_te, split_te)
+    after_te_smooth = _acc_causal_from_probs(after_te["probs"], y3_te, split_te)
+    after_tr_smooth = _acc_causal_from_probs(after_tr["probs"], y3_tr, split_tr)
 
     fusion_rep = {
         "acc_before_heldout": before["acc"],
         "acc_after_train": after_tr["acc"],
         "acc_after_heldout": after_te["acc"],
+        "acc_before_heldout_smooth": before_smooth,
+        "acc_after_heldout_smooth": after_te_smooth,
+        "acc_after_train_smooth": after_tr_smooth,
         "heldout_pred_dist": after_te["pred_dist"],
         "n_train": after_tr["n"],
         "n_heldout": after_te["n"],
     }
-    gate = evaluate_release_gate(fusion_rep)
+    # 门控故意用 raw（方案 A §3.3）
+    gate = evaluate_release_gate(fusion_rep, y_heldout=y3_te)
     status = "PASS" if gate["pass"] else "FAIL"
     release_pass = bool(gate["pass"])
 
@@ -355,6 +402,7 @@ def run_e1f_all4_finetune(
         "device": device,
         "members": members_out,
         "fusion_heldout_acc": fusion_rep["acc_after_heldout"],
+        "fusion_heldout_acc_smooth": fusion_rep["acc_after_heldout_smooth"],
         "fusion_train_acc": fusion_rep["acc_after_train"],
         "release_gate": gate,
         "created_at": overlay["created_at"],
@@ -370,11 +418,16 @@ def run_e1f_all4_finetune(
         "",
         f"- status: **{status}**",
         (
-            f"- fusion heldout: `{fusion_rep['acc_before_heldout']:.3f}` → "
+            f"- fusion heldout raw (gate): `{fusion_rep['acc_before_heldout']:.3f}` → "
             f"`{fusion_rep['acc_after_heldout']:.3f}`"
         ),
         (
-            f"- train: `{fusion_rep['acc_after_train']:.3f}` | "
+            f"- fusion heldout smooth (display): "
+            f"`{fusion_rep['acc_before_heldout_smooth']:.3f}` → "
+            f"`{fusion_rep['acc_after_heldout_smooth']:.3f}`"
+        ),
+        (
+            f"- train raw: `{fusion_rep['acc_after_train']:.3f}` | "
             f"max_class_frac: `{gate['max_class_frac']:.3f}`"
         ),
         f"- sessions: `{meta['sessions']}` heldout: `{meta['heldout_sessions']}`",
@@ -386,6 +439,9 @@ def run_e1f_all4_finetune(
             f"- **{name}** ({info['arch']}): three heldout "
             f"`{info['three_acc_heldout']:.3f}`"
         )
+        sm = info.get("three_acc_heldout_smooth")
+        if sm is not None:
+            line += f" (smooth `{float(sm):.3f}`)"
         if info.get("task_acc_heldout") is not None:
             line += f", task `{info['task_acc_heldout']:.3f}`"
         report_lines.append(line)
@@ -395,17 +451,22 @@ def run_e1f_all4_finetune(
 
     if verbose:
         print(
-            f"[all4] done status={status} fusion_heldout={fusion_rep['acc_after_heldout']:.3f}",
+            f"[all4] done status={status} "
+            f"fusion_heldout_raw={fusion_rep['acc_after_heldout']:.3f} "
+            f"smooth={fusion_rep['acc_after_heldout_smooth']:.3f}",
             flush=True,
         )
 
-    # 兼容 orchestrator/operator：对齐 run_subject_finetune 返回形状
+    # 兼容 orchestrator/operator：对齐 run_subject_finetune 返回形状（方案 A）
     shallow = members_out.get("shallow") or {}
     three_rep_compat = {
         "acc_after_heldout": float(fusion_rep["acc_after_heldout"]),
         "acc_after_train": float(fusion_rep["acc_after_train"]),
+        "acc_before_heldout": float(fusion_rep["acc_before_heldout"]),
+        "acc_after_heldout_smooth": float(fusion_rep["acc_after_heldout_smooth"]),
+        "acc_before_heldout_smooth": float(fusion_rep["acc_before_heldout_smooth"]),
         "heldout_pred_dist": fusion_rep["heldout_pred_dist"],
-        "ft": {"ft_scope": "all4"},
+        "ft": {"ft_scope": "all4", "heldout_early_stop_metric": "causal_smooth"},
     }
     task_rep_compat = {
         "acc_after_heldout": float(shallow.get("task_acc_heldout") or 0.0),

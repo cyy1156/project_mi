@@ -28,3 +28,15 @@ def test_resolve_auto_confirm_guidance(use_synthetic, sim_meta, override, expect
     if auto is None:
         auto = bool(use_synthetic) or bool(sim_meta)
     assert bool(auto) is expect
+
+
+def test_block_order_places_guided_once():
+    from experiment_game.experiment.session_v3 import block_order
+
+    a = block_order(seed=0, subject_id="subjA")
+    b = block_order(seed=1, subject_id="subjA")
+    assert set(a) == {"guided", "no_guide"}
+    assert a.count("guided") == 1
+    assert set(b) == {"guided", "no_guide"}
+    # 不同 seed 可能同序，但函数始终恰好一块 guided
+    assert a == block_order(seed=0, subject_id="subjA")

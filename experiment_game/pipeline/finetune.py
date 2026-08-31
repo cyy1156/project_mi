@@ -75,6 +75,7 @@ LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
 
 # 发布验收（fnz 方案 §7.3）
 RELEASE_HELDOUT_ACC_MIN = 0.40
+RELEASE_HELDOUT_ACC_PRIOR_MARGIN = 0.05
 RELEASE_MAX_CLASS_FRAC = 0.60
 RELEASE_TRAIN_HELDOUT_GAP_MAX = 0.35
 
@@ -159,14 +160,39 @@ def is_sim_session(session_dir: Path) -> bool:
     return False
 
 
+def _has_align_v1_rest_markers(rows: List[Dict[str, Any]]) -> bool:
+    """Align v1：Cue 前静息打在 L/R 试次行的 t_rest_start/end（非独立 Rest 试次）。"""
+    for r in rows:
+        if _safe_int(r.get("rejected"), 0) == 1:
+            continue
+        if _safe_int(r.get("label"), -1) not in (1, 2):
+            continue
+        ts, te = r.get("t_rest_start"), r.get("t_rest_end")
+        if ts in (None, "") or te in (None, ""):
+            continue
+        try:
+            if float(te) - float(ts) >= 1.0:
+                return True
+        except (TypeError, ValueError):
+            continue
+    return False
+
+
 def detect_session_protocol(session_dir: Path) -> str:
-    """历史 v3：Cue 与 mi_start 间隔 >0.5s → legacy_v3；仿真 → sim_mat_cue；否则 openbmi_align。"""
+    """自动切窗协议。
+
+    - 仿真 → sim_mat_cue
+    - trial_table 含 Align v1 的 ``t_rest_*``（含 cue_s=1 的新 session）→ openbmi_align
+    - 仅 **无** rest 打点且 Cue 与 mi_start 间隔 >0.5s 的旧 ws01–ws03 → legacy_v3
+    """
     if is_sim_session(session_dir):
         return PROTOCOL_SIM_MAT
     table = session_dir / "alignment" / "trial_table.csv"
     if not table.is_file():
         return PROTOCOL_OPENBMI_ALIGN
     rows = pd.read_csv(table).to_dict(orient="records")
+    if _has_align_v1_rest_markers(rows):
+        return PROTOCOL_OPENBMI_ALIGN
     for r in rows:
         if _safe_int(r.get("rejected"), 0) == 1:
             continue
@@ -230,6 +256,7 @@ def _build_session_windows_legacy(
     y_task: List[int] = []
     split_ids: List[str] = []
     used_trials = 0
+    n_left = n_right = 0
     sess_name = session_dir.name
     for r in rows:
         if _safe_int(r.get("rejected"), 0) == 1:
@@ -246,6 +273,10 @@ def _build_session_windows_legacy(
         if not ws:
             continue
         used_trials += 1
+        if lab == 1:
+            n_left += 1
+        elif lab == 2:
+            n_right += 1
         sid = f"{sess_name}:{_safe_int(r.get('trial_id'), 0)}"
         for w in ws:
             wins.append(w)
@@ -254,6 +285,7 @@ def _build_session_windows_legacy(
             split_ids.append(sid)
 
     # Cue 前静息（t_rest_*）= Rest / label=0（与在线判定、计分口径一致）
+    max_rest = min(n_left, n_right) if (n_left + n_right) else 0
     rest_sources = iter_rest_sources_from_table(
         rows,
         t_lsl,
@@ -262,7 +294,7 @@ def _build_session_windows_legacy(
         min_win_sec=WIN_SEC_3S,
     )
     n_rest_trials = 0
-    for tid, i0, i1 in rest_sources:
+    for tid, i0, i1 in rest_sources[: int(max_rest)]:
         seg = extract_segment_baseline(x_filt, int(i0), int(i1), FS, baseline_sec=0.5)
         if seg is None:
             continue
@@ -293,15 +325,16 @@ def _build_session_windows_legacy(
 
 
 def _cue_time_from_row(r: Dict[str, Any]) -> Optional[float]:
-    tc, tm = r.get("t_cue"), r.get("t_mi_start")
-    if tc == tc and tm == tm:
-        if abs(float(tm) - float(tc)) <= 0.5:
-            return float(tc)
-        return float(tm)  # legacy fallback
-    if tc == tc:
-        return float(tc)
+    """L/R 任务切窗锚点 = ``t_mi_start``（与在线 judge 一致）；缺失时回退 ``t_cue``。
+
+    ``cue_s>0`` 时 cue 与 mi 相差约 1s：必须用 mi，不能用 cue，否则相对 OpenBMI
+    底座「段起点」语义虽同名不同时刻。Rest 专用段仍走 ``t_rest_*``，不经此函数。
+    """
+    tm, tc = r.get("t_mi_start"), r.get("t_cue")
     if tm == tm:
         return float(tm)
+    if tc == tc:
+        return float(tc)
     return None
 
 
@@ -549,8 +582,36 @@ def _trial_split(
     tr_mask = np.array([t in tr_set for t in split_ids])
     te_mask = np.array([t in te_set for t in split_ids])
     if not te_mask.any():
-        te_mask = tr_mask.copy()
+        raise ValueError(
+            f"_trial_split: heldout 窗为空（unique_trials={len(uniq)}），"
+            "拒绝用训练集冒充测试集；请增加试次或改用 Leave-Next。"
+        )
+    if (
+        len(uniq) == 1
+        and tr_mask.all()
+        and te_mask.all()
+    ):
+        import warnings
+
+        warnings.warn(
+            "_trial_split: 仅 1 个 split_id，train/heldout 完全重叠",
+            stacklevel=2,
+        )
     return tr_mask, te_mask
+
+
+def _heldout_acc_threshold(
+    y_heldout: Optional[np.ndarray],
+    *,
+    base_min: float = RELEASE_HELDOUT_ACC_MIN,
+    prior_margin: float = RELEASE_HELDOUT_ACC_PRIOR_MARGIN,
+) -> float:
+    """heldout 窗级 acc 下限：至少 base_min，且高于最大类先验 + margin。"""
+    if y_heldout is None or len(y_heldout) == 0:
+        return float(base_min)
+    _, counts = np.unique(np.asarray(y_heldout), return_counts=True)
+    prior_max = float(counts.max()) / float(len(y_heldout))
+    return max(float(base_min), prior_max + float(prior_margin))
 
 
 @torch.no_grad()
@@ -579,6 +640,54 @@ def _pred_distribution(model, X: np.ndarray, device: str) -> Dict[str, Any]:
         "mean_p": [float(x) for x in probs.mean(axis=0)],
         "max_class_frac": float(cnt.max() / len(pred)) if len(pred) else 0.0,
     }
+
+
+@torch.no_grad()
+def _eval_probs(model, X: np.ndarray, device: str) -> np.ndarray:
+    if len(X) == 0:
+        return np.zeros((0, 3), dtype=np.float32)
+    model.eval()
+    probs_list: List[np.ndarray] = []
+    bs = 64
+    for s in range(0, len(X), bs):
+        xb = torch.from_numpy(X[s : s + bs]).to(device)
+        try:
+            logits = model(xb)
+        except RuntimeError:
+            logits = model(xb.unsqueeze(1))
+        if logits.dim() == 3:
+            logits = logits.reshape(logits.shape[0], -1)
+        probs_list.append(torch.softmax(logits, dim=-1).cpu().numpy())
+    return np.concatenate(probs_list, axis=0).astype(np.float32)
+
+
+@torch.no_grad()
+def _eval_acc_causal(
+    model,
+    X: np.ndarray,
+    y: np.ndarray,
+    split_ids: np.ndarray,
+    device: str,
+    *,
+    lookback: int = 2,
+) -> float:
+    """窗级 acc：按 split_id 聚窗 → 因果平滑 lookback → argmax（与在线 acc_window 同口径）。"""
+    if len(X) == 0:
+        return float("nan")
+    from adapt_engine.readout import causal_smooth_pred_sequence
+    from collections import defaultdict
+
+    probs = _eval_probs(model, X, device)
+    order: Dict[str, List[int]] = defaultdict(list)
+    for i, sid in enumerate(split_ids):
+        order[str(sid)].append(i)
+    pred = np.zeros(len(y), dtype=np.int64)
+    for idxs in order.values():
+        seq = [probs[i] for i in idxs]
+        smoothed = causal_smooth_pred_sequence(seq, lookback=lookback)
+        for j, ix in enumerate(idxs):
+            pred[ix] = int(smoothed[j]["pred"])
+    return float((pred == y).mean())
 
 
 @torch.no_grad()
@@ -616,7 +725,8 @@ def _save_ckpt(path: Path, model, *, n_outputs: int, meta: Dict[str, Any]) -> No
 def evaluate_release_gate(
     rep: Dict[str, Any],
     *,
-    heldout_acc_min: float = RELEASE_HELDOUT_ACC_MIN,
+    y_heldout: Optional[np.ndarray] = None,
+    heldout_acc_min: Optional[float] = None,
     max_class_frac: float = RELEASE_MAX_CLASS_FRAC,
     train_gap_max: float = RELEASE_TRAIN_HELDOUT_GAP_MAX,
 ) -> Dict[str, Any]:
@@ -628,8 +738,13 @@ def evaluate_release_gate(
     gap = acc_tr - acc_te
     classes_present = {int(k) for k in pc.keys()}
     three_ok = classes_present == {0, 1, 2}
+    acc_min = (
+        float(heldout_acc_min)
+        if heldout_acc_min is not None
+        else _heldout_acc_threshold(y_heldout)
+    )
     checks = {
-        "heldout_acc": acc_te >= heldout_acc_min,
+        "heldout_acc": acc_te >= acc_min,
         "max_class_frac": mx < max_class_frac,
         "train_gap": gap < train_gap_max,
         "three_classes_pred": three_ok,
@@ -638,6 +753,7 @@ def evaluate_release_gate(
         "pass": all(checks.values()),
         "checks": checks,
         "heldout_acc": acc_te,
+        "heldout_acc_min": acc_min,
         "train_acc": acc_tr,
         "train_minus_heldout": gap,
         "max_class_frac": mx,
@@ -664,6 +780,7 @@ def finetune_head(
     patience: int = DEFAULT_FT_PATIENCE,
     fixed_epochs: int = DEFAULT_FT_EPOCHS_FIXED,
     build_fn=None,
+    split_ids_te: Optional[np.ndarray] = None,
 ) -> Dict[str, Any]:
     entry = load_head(
         ckpt, n_chans=8, n_times=N_TIMES, device=device, build_fn=build_fn
@@ -671,6 +788,20 @@ def finetune_head(
     model = entry.model
     acc0_tr = _eval_acc(model, X_tr, y_tr, device)
     acc0_te = _eval_acc(model, X_te, y_te, device)
+    acc0_te_smooth = (
+        _eval_acc_causal(model, X_te, y_te, split_ids_te, device)
+        if split_ids_te is not None and len(split_ids_te) == len(y_te)
+        else None
+    )
+
+    use_smooth_early_stop = (
+        split_ids_te is not None and len(split_ids_te) == len(y_te)
+    )
+
+    def _heldout_eval_for_early_stop() -> float:
+        if use_smooth_early_stop:
+            return _eval_acc_causal(model, X_te, y_te, split_ids_te, device)
+        return _eval_acc(model, X_te, y_te, device)
 
     fin = IncrementalFinetuner(
         model, recipe, replay_pool=replay_pool, device=device, ckpt_dir=None
@@ -679,7 +810,7 @@ def finetune_head(
         rec = fin.train_with_early_stop(
             X_tr,
             y_tr,
-            lambda: _eval_acc(model, X_te, y_te, device),
+            _heldout_eval_for_early_stop,
             max_epochs=int(max_epochs),
             patience=int(patience),
             min_epochs=1,
@@ -705,6 +836,11 @@ def finetune_head(
 
     acc1_tr = _eval_acc(model, X_tr, y_tr, device)
     acc1_te = _eval_acc(model, X_te, y_te, device)
+    acc1_te_smooth = (
+        _eval_acc_causal(model, X_te, y_te, split_ids_te, device)
+        if split_ids_te is not None and len(split_ids_te) == len(y_te)
+        else None
+    )
     pred_te = _pred_distribution(model, X_te, device)
     ft_meta = {
         **meta,
@@ -713,11 +849,17 @@ def finetune_head(
         "early_stop": bool(early_stop),
         "acc_before": {"train": acc0_tr, "heldout": acc0_te},
         "acc_after": {"train": acc1_tr, "heldout": acc1_te},
+        "acc_before_heldout_smooth": acc0_te_smooth,
+        "acc_after_heldout_smooth": acc1_te_smooth,
+        "heldout_early_stop_metric": (
+            "causal_smooth" if use_smooth_early_stop else "raw_argmax"
+        ),
     }
     if early_stop:
         ft_meta["max_epochs"] = int(max_epochs)
         ft_meta["patience"] = int(patience)
         ft_meta["best_epoch"] = rec.get("best_epoch")
+        # best_heldout_acc：早停所选 checkpoint 的 heldout 分数（leave-next 为 causal_smooth）
         ft_meta["best_heldout_acc"] = rec.get("best_heldout_acc")
     else:
         ft_meta["fixed_epochs"] = int(fixed_epochs)
@@ -732,6 +874,8 @@ def finetune_head(
         "acc_before_heldout": acc0_te,
         "acc_after_train": acc1_tr,
         "acc_after_heldout": acc1_te,
+        "acc_before_heldout_smooth": acc0_te_smooth,
+        "acc_after_heldout_smooth": acc1_te_smooth,
         "heldout_pred_dist": pred_te,
         "ft": rec,
         "out": str(out_path),
@@ -1087,11 +1231,19 @@ def run_subject_finetune(
         replay_pool=replay_pool,
         out_path=three_tmp,
         meta=base_meta,
+        split_ids_te=split_ids[te_m],
         **ft_kw,
     )
     if verbose:
+        smooth_txt = ""
+        if three_rep.get("acc_after_heldout_smooth") is not None:
+            smooth_txt = (
+                f" smooth={three_rep['acc_before_heldout_smooth']:.3f}"
+                f"→{three_rep['acc_after_heldout_smooth']:.3f}"
+            )
         print(
-            f"  three heldout {three_rep['acc_before_heldout']:.3f} → {three_rep['acc_after_heldout']:.3f}",
+            f"  three heldout {three_rep['acc_before_heldout']:.3f} → {three_rep['acc_after_heldout']:.3f}"
+            f"{smooth_txt}",
             flush=True,
         )
 
@@ -1117,7 +1269,7 @@ def run_subject_finetune(
             flush=True,
         )
 
-    release = evaluate_release_gate(three_rep)
+    release = evaluate_release_gate(three_rep, y_heldout=y3[te_m])
     if verbose:
         print(f"[4/4] 发布验收 three（参考）: {'PASS' if release['pass'] else 'FAIL'}", flush=True)
         for k, ok in release["checks"].items():

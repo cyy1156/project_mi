@@ -1,4 +1,4 @@
-"""v3 零样本探针会话：冻结权重 · A/B 引导 · 实时脑电 + 特征卡。
+"""v3 探针会话：A/B 引导 · 实时脑电 + 特征卡 · 优先被试 current 权重。
 
 无 FT / 准入 / 游戏；缺模型或 LSL 时拒跑（非演练）。
 """
@@ -8,6 +8,7 @@ from __future__ import annotations
 import hashlib
 import json
 import sys
+import time
 from pathlib import Path
 from typing import Any, Callable, Dict, List, Optional, Tuple
 
@@ -33,6 +34,7 @@ from experiment_game.experiment.trial_scoring import (
 from experiment_game.experiment.v3_config import V3Config
 from experiment_game.experiment.v3_report import (  # noqa: E402
     build_v3_report,
+    records_for_acc_scoring,
     window_accuracy_from_records,
     write_v3_report,
 )
@@ -178,6 +180,14 @@ def run_v3_session(
         f"在线窗 {cfg.online_window_mode} ×{len(cfg.judgment_times)} 档"
         f"{f' · seed={seed}' if seed is not None else ''}"
     )
+    guided_at = next((i + 1 for i, c in enumerate(order) if c == "guided"), None)
+    if guided_at is not None:
+        on_console(
+            f"[v3] 动觉引导仅在 guided 块出现（本场为第 {guided_at} 块）；"
+            f"no_guide 块不显示引导文案"
+        )
+    else:
+        on_console("[v3] 本场无 guided 块，不会出现动觉引导文案")
 
     if deps is not None:
         reg, buf, _, infer = deps
@@ -260,6 +270,20 @@ def run_v3_session(
     infer.stale_check_enabled = eeg_watchdog
     pre_feat = OnlinePreprocessor()
     fp_start = _weight_fingerprint(reg)
+    from experiment_game.experiment.registry_factory import _use_subject_weights
+
+    weight_source = (
+        "subject_current" if _use_subject_weights(cfg) else "base"
+    )
+    on_console(
+        f"[v3] 推理权重："
+        f"{'被试 current' if weight_source == 'subject_current' else '底座零样本'}"
+        + (
+            f" ({cfg.subject_models_dir}/current)"
+            if weight_source == "subject_current"
+            else ""
+        )
+    )
     eeg_pub = EegFramePublisher(buf, bridge, cfg, pre=pre_feat, on_console=on_console)
     eeg_pub.start()
 
@@ -302,7 +326,7 @@ def run_v3_session(
             }
         return None
 
-    arm_peak_by_trial: Dict[int, int] = {}
+    arm_peak_by_trial: Dict[int, float] = {}
     _judge_err_logged = False
     _sim_live_baseline_sent = False
 
@@ -380,6 +404,8 @@ def run_v3_session(
                 progress["score"] = pts
                 if score is None:
                     score = pts
+                if ctx is not None:
+                    _finalize_pre_cue_rest(ctx, summary)
             elif (
                 stage == "trial_end"
                 and summary is not None
@@ -454,13 +480,12 @@ def run_v3_session(
 
         times = trial_times.setdefault(tid, {})
         times["mi_t"] = mi_t
-        cue_t = times.get("cue_t")
-        if cue_t is None:
-            cue_t = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
-            times["cue_t"] = cue_t
+        if times.get("cue_t") is None:
+            times["cue_t"] = mi_t if cfg.cue_s <= 1e-6 else mi_t - cfg.cue_s
         try:
             _raise_if_eeg_stale()
-            j = infer.judge(float(cue_t), t_rel)
+            # 切窗锚点 = mi_start（与 trial 等待、离线 FT 一致）
+            j = infer.judge(float(mi_t), t_rel)
             if j is None:
                 return None
             if j.get("eeg_stale"):
@@ -553,6 +578,7 @@ def run_v3_session(
         tid = ctx.trial_id
         times = trial_times.get(tid, {})
         cue_t = times.get("cue_t")
+        mi_t = times.get("mi_t")
         js = trial_judgments.get(tid, [])
         js_ok = [j for j in js if not j.get("signal_bad")]
         # 多数判定窗信号差 → 整试次剔除：不算特征、不进滚动 Rest 基线、不进块统计
@@ -565,9 +591,10 @@ def run_v3_session(
                 "signal_bad": True,
                 "verdict_text": "信号质量不足，本试次不计统计（acc/ERD 均已剔除）",
             }
-        elif cue_t is not None:
+        elif mi_t is not None:
+            # 特征/存段与判定同锚：MI 段 [mi_start, mi_end]
             mi_seg_raw = _extract_segment(
-                buf, cue_t, cue_t + float(cfg.imagine_s), lsl_eeg_scale=lsl_eeg_scale
+                buf, mi_t, mi_t + float(cfg.imagine_s), lsl_eeg_scale=lsl_eeg_scale
             )
             if mi_seg_raw is not None and mi_seg_raw.shape[0] >= int(FS):
                 mi_filt = pre_feat.process_segment(mi_seg_raw)
@@ -578,8 +605,8 @@ def run_v3_session(
                 if cfg.save_trial_segments:
                     seg_raw = _extract_segment(
                         buf,
-                        cue_t - float(getattr(cfg, "baseline_before_cue_s", 0.5)),
-                        cue_t + cfg.imagine_s + cfg.cue_s,
+                        mi_t - float(getattr(cfg, "baseline_before_cue_s", 0.5)),
+                        mi_t + float(cfg.imagine_s),
                         lsl_eeg_scale=lsl_eeg_scale,
                     )
                     if seg_raw is not None:
@@ -622,6 +649,7 @@ def run_v3_session(
             "score": summary.get("score"),
             "signal_bad": signal_bad,
             "signal_reason": signal_reason,
+            "invalid_reason": summary.get("invalid_reason"),
             "judgments": js,
             "primary_judge": primary,
             "features": feat,
@@ -648,13 +676,51 @@ def run_v3_session(
         })
         _broadcast_block_stats()
 
+    def _finalize_pre_cue_rest(ctx: TrialContextV2, summary: Dict) -> None:
+        if bridge.should_abort():
+            return
+        tid = ctx.trial_id
+        wjs = summary.get("window_judgments") or []
+        js = [
+            {
+                "t_rel": w.get("t_rel"),
+                "pred": w.get("pred"),
+                "gated_pred": w.get("gated_pred", w.get("pred")),
+                "p_three": w.get("p_three"),
+                "p_max": w.get("p_max"),
+                "win_start_rel": w.get("win_start_rel"),
+                "win_end_rel": w.get("win_end_rel"),
+            }
+            for w in wjs
+        ]
+        invalid_reason = summary.get("invalid_reason")
+        # 仅真信号质量差记 signal_bad；no_judgments 等只落 invalid_reason
+        signal_bad = bool(summary.get("signal_bad")) or (
+            invalid_reason == "trial_invalid_signal_quality"
+        )
+        record = {
+            "trial_id": tid,
+            "label": 0,
+            "role": "pre_cue_rest",
+            "block": block_idx + 1,
+            "cond": current_cond,
+            "valid": bool(summary.get("valid")),
+            "score": summary.get("score"),
+            "signal_bad": signal_bad,
+            "invalid_reason": invalid_reason,
+            "judgments": js,
+            "primary_judge": summary.get("primary_judge"),
+            "features": {},
+        }
+        trial_records.append(record)
+        block_records[current_cond].append(record)
+        with features_path.open("a", encoding="utf-8") as f:
+            f.write(json.dumps(record, ensure_ascii=False) + "\n")
+        _broadcast_block_stats()
+
     def _broadcast_block_stats() -> None:
         recs = block_records[current_cond]
-        # 试次多数票：Rest/L/R；ERD 特征仍只看 L/R
-        scored = [
-            r for r in recs
-            if r.get("label") in (0, 1, 2) and r.get("valid") and not r.get("signal_bad")
-        ]
+        scored = records_for_acc_scoring(recs)
         lr = [
             r for r in scored
             if r.get("label") in (1, 2)
@@ -685,7 +751,9 @@ def run_v3_session(
             "trial_done": len(recs),
             "trials_per_block": cfg.trials_per_block,
             "n_valid": len(scored),
-            "n_lr": len([r for r in recs if r.get("label") in (1, 2)]),
+            "n_lr": len([r for r in scored if r.get("label") in (1, 2)]),
+            "n_rest_scored": len([r for r in scored if r.get("label") == 0]),
+            "weight_source": weight_source,
             "n_signal_bad": sum(1 for r in recs if r.get("signal_bad")),
             "acc_argmax": round(acc, 3) if acc is not None else None,
             "mu_erd_contra_mean": round(float(np.mean(erds)), 1) if erds else None,
@@ -706,6 +774,7 @@ def run_v3_session(
             "ctx": None,
             "data": {
                 "round": block_no,
+                "block": block_no,
                 "timeout_s": timeout_s,
                 "auto": bool(auto_confirm_guidance),
             },
@@ -730,7 +799,11 @@ def run_v3_session(
         )
         markers.push(f"v3_guidance_begin|block={block_no}")
         if auto_confirm_guidance:
-            on_console("[v3] 合成/仿真：自动确认动觉引导")
+            on_console(
+                f"[v3] 合成/仿真：自动确认动觉引导（第 {block_no} 块 · 展示约 1.5s）"
+            )
+            # begin→end 若零延迟，被试页文案一闪即被 round_start 覆盖，像「随机出现」
+            time.sleep(1.5)
             confirmed = True
         else:
             confirmed = bridge.wait_client_event(
@@ -837,6 +910,10 @@ def run_v3_session(
 
             if cond == "guided":
                 _run_guidance(block_idx + 1)
+            else:
+                on_console(
+                    f"[v3] 第 {block_idx + 1} 块 cond={cond}：跳过动觉引导"
+                )
 
             events.emit("v3_block_begin", phase="v3", block=block_idx + 1, cond=cond)
             markers.push(f"v3_block_begin|block={block_idx + 1}|cond={cond}")
@@ -901,6 +978,7 @@ def run_v3_session(
                 block_records=block_records,
                 primary_judge_s=cfg.primary_judge_s,
                 frozen=frozen,
+                weight_source=weight_source,
                 invalid_streak_max=invalid_streak_max,
                 baseline=baseline_feat,
             )
@@ -955,6 +1033,7 @@ def run_v3_session(
         "readout_mode": getattr(cfg, "readout_mode", None),
         "block_order": order,
         "frozen": fp_start == _weight_fingerprint(reg) if reg else False,
+        "weight_source": weight_source,
         "invalid_streak_max": invalid_streak_max,
         "n_trials": len(trial_records),
         "session_score": progress.get("session_score"),

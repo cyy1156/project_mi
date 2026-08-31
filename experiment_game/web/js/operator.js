@@ -234,16 +234,24 @@ function resetSessionVoteHistory() {
   }
 }
 
-function recordTrialVoteHistory(prefix, ctx, summary) {
+function recordTrialVoteHistory(prefix, ctx, summary, { role = "mi" } = {}) {
   if (!summary?.vote_counts) return;
   const vc = summary.vote_counts;
   const state = SESSION_TRIAL_VOTES[prefix];
   const label = summary.label ?? ctx?.label;
   const pred = summary.pred;
+  const trialId = ctx?.trial_id ?? state.history.length + 1;
+  const roleKey = role === "pre_cue_rest" ? "pre_cue_rest" : "mi";
+  const histKey = `${trialId}:${roleKey}`;
   const rec = {
-    trial_id: ctx?.trial_id ?? state.history.length + 1,
+    hist_key: histKey,
+    role: roleKey,
+    trial_id: trialId,
     label,
-    label_name: ctx?.label_name || LIVE_LABEL_NAMES[label] || String(label ?? "—"),
+    label_name:
+      roleKey === "pre_cue_rest"
+        ? "Rest · Cue前"
+        : ctx?.label_name || LIVE_LABEL_NAMES[label] || String(label ?? "—"),
     pred,
     pred_name: pred != null ? LIVE_LABEL_NAMES[pred] ?? String(pred) : "—",
     correct: summary.correct,
@@ -253,10 +261,10 @@ function recordTrialVoteHistory(prefix, ctx, summary) {
       2: _voteCountFromMap(vc, 2),
     },
   };
-  const dup = state.history.findIndex((h) => h.trial_id === rec.trial_id);
+  const dup = state.history.findIndex((h) => h.hist_key === histKey);
   if (dup >= 0) state.history[dup] = rec;
   else state.history.push(rec);
-  state.view = "live";
+  // 正在回看时不要跳到最新试次，方便检查
   applyTrialVotesFromSummary(prefix, summary);
   renderVotePanel(prefix);
 }
@@ -312,9 +320,13 @@ function renderVotePanel(prefix) {
     const ok = viewing.correct === true;
     const fail = viewing.correct === false;
     const mark = ok ? '<span class="vote-meta-correct">✓</span>' : fail ? '<span class="vote-meta-wrong">✗</span>' : "";
+    const roleTag =
+      viewing.role === "pre_cue_rest"
+        ? '<span class="vote-meta-role">Cue前静息</span> '
+        : "";
     if (meta) {
       meta.innerHTML =
-        `试次 ${_escHtml(viewing.trial_id)} ${mark}<br>` +
+        `${roleTag}试次 ${_escHtml(viewing.trial_id)} ${mark}<br>` +
         `正式 ${_labelTag(viewing.label, viewing.label_name)} · ` +
         `预测 ${_labelTag(viewing.pred, viewing.pred_name)}`;
     }
@@ -324,8 +336,10 @@ function renderVotePanel(prefix) {
 
 function resetTrialVotes(prefix) {
   LIVE_TRIAL_VOTES[prefix] = { 0: 0, 1: 0, 2: 0 };
-  SESSION_TRIAL_VOTES[prefix].view = "live";
-  renderVotePanel(prefix);
+  // 回看中保持当前位置，不强制跳到当前试次
+  if (SESSION_TRIAL_VOTES[prefix].view === "live") {
+    renderVotePanel(prefix);
+  }
 }
 
 function renderTrialVotes(prefix) {
@@ -412,9 +426,26 @@ function updateLiveJudge(prefix, msg) {
     if (stage === "trial_start") resetLiveJudge(prefix);
   }
 
+  if (stage === "rest_start" || stage === "inter_trial_rest") {
+    // Cue前静息单独计票：清空 live 桶，但不打断回看位置
+    LIVE_TRIAL_VOTES[prefix] = { 0: 0, 1: 0, 2: 0 };
+    if (SESSION_TRIAL_VOTES[prefix].view === "live") renderVotePanel(prefix);
+  }
+
+  if (stage === "pre_cue_rest_end") {
+    const sum = data.summary;
+    if (sum?.vote_counts) {
+      recordTrialVoteHistory(prefix, { ...ctx, label: 0, label_name: "Rest" }, sum, {
+        role: "pre_cue_rest",
+      });
+    }
+  }
+
   if (stage === "trial_end") {
     const sum = data.summary;
-    if (sum?.vote_counts) recordTrialVoteHistory(prefix, ctx, sum);
+    if (sum?.vote_counts) {
+      recordTrialVoteHistory(prefix, ctx, sum, { role: "mi" });
+    }
   }
 
   const lab = ctx.label;
@@ -1186,7 +1217,8 @@ function updateV3Block(msg) {
   if (el.v3BlockNlr) el.v3BlockNlr.textContent = String(msg.n_lr ?? "—");
   if (msg.acc_argmax != null && el.v3BlockAcc) {
     const cls = msg.acc_argmax >= 0.6 ? "stat-ok" : msg.acc_argmax >= 0.45 ? "stat-mid" : "stat-bad";
-    el.v3BlockAcc.innerHTML = `<span class="${cls}">${(msg.acc_argmax * 100).toFixed(1)}%</span>`;
+    const ws = msg.weight_source === "subject_current" ? "current" : "base";
+    el.v3BlockAcc.innerHTML = `<span class="${cls}">${(msg.acc_argmax * 100).toFixed(1)}%</span> <span class="hint">(${ws})</span>`;
   }
   if (msg.mu_erd_contra_mean != null && el.v3BlockErd) {
     const cls = msg.mu_erd_contra_mean <= V3_MU_ERD_OK ? "stat-ok" : "stat-mid";
@@ -1649,7 +1681,7 @@ function startGuidanceCountdown(totalSec) {
 }
 
 const V23_TIMING_PRESETS = {
-  // 正式范式：Cue 1s（文案=MI +「cue」前缀）+ MI 4s；块间见 v3_block_gap_s 默认 30
+  // 正式范式：Cue 1s（HUD 双行 cue）+ MI 4s；块间见 v3_block_gap_s 默认 30
   openbmi: { prep_s: 2, cue_s: 1, imagine_s: 4, iti_s: 3, inter_trial_rest_s: 4 },
   legacy: { prep_s: 2, cue_s: 2, imagine_s: 6, iti_s: 3, inter_trial_rest_s: 0 },
 };
@@ -2062,11 +2094,12 @@ function applyV3OverridesToForm(ov) {
   renderSetupTimelineV3();
 }
 
-/** 旧 OpenBMI 默认 Cue=0 / 块间 90 → 新范式 Cue=1 / 块间 30（仅迁移精确旧值）。 */
+/** 旧 OpenBMI 默认 Cue=0 / 块间 90 → 新范式 Cue=1 / 块间 30（仅迁移精确旧值）。
+ *  短暂误设为 Cue=2 的表单也拉回 1。 */
 function migrateV3ParadigmFormDefaults() {
   const cue = el.form?.elements?.namedItem("v3_cue_s");
   const gap = el.form?.elements?.namedItem("v3_block_gap_s");
-  if (cue && Number(cue.value) === 0) cue.value = "1";
+  if (cue && (Number(cue.value) === 0 || Number(cue.value) === 2)) cue.value = "1";
   if (gap && Number(gap.value) === 90) gap.value = "30";
 }
 
@@ -4456,7 +4489,9 @@ function handleMessage(msg) {
       saveSubjectLoginLocal(msg.active_subject_info);
       applySubjectToSetup(msg.active_subject_info);
       send({ type: "subject_info", subject_id: activeSubject });
-      showView("setup");
+      // 勿在 hello 强行踢回 setup：若会话仍在跑，随后 pending 的 session_started 会切 run
+      const h = (location.hash || "").replace("#", "");
+      if (h !== "run" && h !== "summary") showView("setup");
     } else {
       const saved = loadSubjectLoginLocal();
       if (saved?.subject_id) {
@@ -4625,16 +4660,31 @@ function handleMessage(msg) {
       const saved = msg.weights_saved !== false;
       const scopeLine = msg.ft_scope ? `范围 ${msg.ft_scope}` : "范围 —";
       const gateLine = pass
-        ? `门控（参考）：PASS · pred ${JSON.stringify(gate.pred_labels || {})}`
-        : `门控（参考）：FAIL${failBits.length ? ` · ${failBits.join(", ")}` : ""} · pred ${JSON.stringify(gate.pred_labels || {})}${saved ? " · 权重已写入预设" : " · 无权重文件"}`;
+        ? `门控（参考·窗级 raw）：PASS · pred ${JSON.stringify(gate.pred_labels || {})}`
+        : `门控（参考·窗级 raw）：FAIL${failBits.length ? ` · ${failBits.join(", ")}` : ""} · pred ${JSON.stringify(gate.pred_labels || {})}${saved ? " · 权重已写入预设" : " · 无权重文件"}`;
       const promoteLine = msg.auto_promoted
         ? msg.force_promoted
           ? "已自动强制晋升 current（告警已落盘 force_promote_warning.json）"
           : "已自动晋升 current"
         : "未自动晋升";
+      const heldoutPct =
+        msg.three_heldout != null && Number.isFinite(Number(msg.three_heldout))
+          ? `${(Number(msg.three_heldout) * 100).toFixed(1)}%`
+          : "—";
+      const heldoutRawPct =
+        msg.three_heldout_raw != null && Number.isFinite(Number(msg.three_heldout_raw))
+          ? `${(Number(msg.three_heldout_raw) * 100).toFixed(1)}%`
+          : null;
+      const taskPct =
+        msg.task_heldout != null && Number.isFinite(Number(msg.task_heldout))
+          ? `${(Number(msg.task_heldout) * 100).toFixed(1)}%`
+          : "—";
+      const heldoutLine = heldoutRawPct
+        ? `three heldout <strong>${heldoutPct}</strong>（<strong>窗级</strong>·因果平滑·主展示）· raw ${heldoutRawPct}（窗级·门控）· task ${taskPct}（参考）`
+        : `three heldout <strong>${heldoutPct}</strong>（<strong>窗级</strong>·非试次多数票）· task ${taskPct}（参考）`;
       el.ftResult.innerHTML = [
         `<div>${scopeLine} · ${repLine} · ${esLine} · ${detLine}</div>`,
-        `<div>three heldout <strong>${(msg.three_heldout * 100).toFixed(1)}%</strong> · task <strong>${(msg.task_heldout * 100).toFixed(1)}%</strong>（参考）</div>`,
+        `<div>${heldoutLine}</div>`,
         `<div>${gateLine}</div>`,
         `<div>${promoteLine}</div>`,
         `<div class="muted">已保存 ${msg.out_dir}</div>`,
@@ -4712,6 +4762,9 @@ function handleMessage(msg) {
     const v3 = msg.phase_mode === "v3_session" || msg.phase_mode === "sim_v3_session";
     const v4 = msg.phase_mode === "v4_session";
     const sim = msg.phase_mode === "sim_v3_session";
+    // 刷新/重连：hello 会先落到 setup；若后端仍在跑，pending 重放本消息后必须回到运行页
+    starting = true;
+    showView("run");
     setV2RunPanel(v2);
     setV3RunPanel(v3);
     setV4RunPanel(v4);
@@ -5066,7 +5119,7 @@ function handleMessage(msg) {
       } else if (msg.phase_mode === "v3_session" || msg.phase_mode === "sim_v3_session") {
         const vs = msg.v3_summary || {};
         badge.textContent = `v3 ${vs.quality_tier || "—"}`;
-        badge.className = vs.frozen ? "pass" : "warn";
+        badge.className = vs.weight_source === "subject_current" ? "pass" : vs.frozen ? "pass" : "warn";
         if (el.v3SummaryDetail) {
           el.v3SummaryDetail.classList.remove("hidden");
           const r = vs.report || {};
@@ -5074,9 +5127,11 @@ function handleMessage(msg) {
           const wa = vs.window_acc ?? ov.acc_window;
           const waTxt = formatWindowAccPct(wa);
           const trialTxt = formatWindowAccPct(ov.acc_argmax);
+          const ws = vs.weight_source || r.weight_source || "base";
+          const wsLabel = ws === "subject_current" ? "被试 current" : "底座零样本";
           const parts = [
             `块顺序 ${(vs.block_order || []).join("→")}`,
-            `frozen=${vs.frozen}`,
+            `权重=${wsLabel}`,
             r.quality_tier || vs.quality_tier || "",
           ];
           if (waTxt) {
