@@ -22,7 +22,7 @@ echo === Operator console ^(LAN / scheme B^) ===
 echo Bind: 0.0.0.0
 echo.
 echo IMPORTANT for monitor PC:
-echo   Copy the FULL URL printed below ^(must contain ?token=...^)
+echo   Bookmark URL with ?token=... ^(fixed in experiment_game\config\ws_control_token.txt^)
 echo   Do NOT open bare operator.html without token.
 echo Subject display stays on this PC: http://127.0.0.1:8080/
 echo Keep this window open. Close it to stop the server.

@@ -162,20 +162,19 @@ body,
   overflow-wrap: break-word;
 }
 
-#hud-text .cue-badge {
-  display: inline-block;
-  vertical-align: middle;
-  margin-right: 0.55em;
-  padding: 0.12em 0.55em;
-  border-radius: 8px;
-  background: #c4a574;
-  color: #1a1f24;
-  font-size: 0.72em;
+#hud-text .cue-line {
+  font-size: 1.25em;
   font-weight: 800;
-  letter-spacing: 0.08em;
+  letter-spacing: 0.28em;
   text-transform: lowercase;
-  text-shadow: none;
   line-height: 1.2;
+  margin-bottom: 0.2em;
+}
+
+#hud-text .cue-body {
+  font-size: 0.92em;
+  font-weight: 650;
+  letter-spacing: 0.04em;
 }
 
 #hud-text:empty {
@@ -213,6 +212,15 @@ body,
   background: rgba(255, 255, 255, 0.72);
   padding: 4px 10px;
   border-radius: 999px;
+}
+
+#phase-tag.phase-cue {
+  font-size: 16px;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  color: #fff;
+  background: rgba(12, 14, 18, 0.85);
+  padding: 6px 12px;
 }
 
 #helpbar {

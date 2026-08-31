@@ -9,15 +9,15 @@ primary_judge_mode: majority
 mu_hz: [8.0, 13.0]
 beta_l_hz: [13.0, 20.0]
 beta_h_hz: [20.0, 30.0]
-# OpenBMI-Align v1：Cue 先行 1s（文字=MI 指导语加 cue 前缀，被试从 cue 起开始想象），
+# OpenBMI-Align v1：Cue 先行 1s（文字=MI 短标题，主框上行单独 cue），
 # 随后 MI 4s；试次间 Rest 4s；块间休息 30s（block_gap_s）
-# 注意：cue_s>0 时判定窗仍锚定 cue 起点（cue_t = mi_t - cue_s），与 OpenBMI 训练对齐一致
+# 判定窗 / 离线切窗锚定 mi_start（相对 MI [0,4)），与 cue 事件时刻解耦
 prep_s: 2.0
 cue_s: 1.0
 imagine_s: 4.0
 iti_s: 3.0
 inter_trial_rest_s: 4.0
-# 在线取窗：3s/hop100，Cue−0.5s 段级基线；判定点 = 窗尾 3.0…4.0s（11 档）
+# 在线取窗：3s/hop100，锚点前 0.5s 段级基线；判定点 = 窗尾相对 MI 3.0…4.0s（11 档）
 online_window_mode: openbmi_hop100
 win_s: 3.0
 win_hop_s: 0.1

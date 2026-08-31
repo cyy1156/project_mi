@@ -1,0 +1,167 @@
+# Marker / 事件规格
+
+> **版本**：v0.2  
+> **日期**：2026-08-22 · **状态标注修订：2026-08-29**  
+> **状态**：**Phase 1 历史规格（归档）** —— 下表 17s / Cue2s+MI 晚 2s **不是**现行 OpenBMI-Align。  
+> **现行时序与打点**：见 [`范式对齐_OpenBMI与fnz_v3_20260827.md`](范式对齐_OpenBMI与fnz_v3_20260827.md) §2 · [`框架冻结确认_20260829.md`](框架冻结确认_20260829.md)  
+> 配套（历史）：`游戏内容规格.md`、旧 `项目计划.md`
+
+权威时钟：`pylsl.local_clock()`（下称 `t_lsl`）。  
+控制器在每个阶段边界**先**取 `t_lsl`，再写 `events.jsonl` 并推 LSL Marker；前端不参与打标。
+
+---
+
+## ⚠ 现行 Align 单 Trial（请用这个，不要用 §1 旧表）
+
+```text
+专用 Rest 4s → prep 2s → Cue 先行 1s → MI 4s → ITI 3s
+```
+
+- Rest：`rest_start` / `rest_end`（**不含 prep**）  
+- **Cue 先行 1s**（`cue_s=1.0`）：MI 前展示指导语；被试端 HUD **双行**：上行字面 `cue`、下行短标题（与 MI 同）；随后 `mi_start`…`mi_end` 共 4s  
+- **切窗 / 判定锚定 `mi_start`**：相对 MI `[0,4)` + Rest `[t_rest_start,t_rest_end)`（与 `cue` 事件时刻解耦；窗数仍为 3s/hop100 → **11 档**）  
+- 冻结依据：[`框架冻结确认_20260829.md`](框架冻结确认_20260829.md) **F1**
+
+以下 §1 仅保留 Phase1 追溯。
+
+---
+
+## 1. 单 Trial 时间轴（Phase1 默认值 · 历史）
+
+墙钟合计 **17 s**（含 Transition）。相对 `trial_start`：
+
+| 相对 t (s) | 时长 | 阶段 | 发出的事件（起点，除非注明） | 训练窗 |
+|------------|------|------|------------------------------|--------|
+| 0 | 2 | Fixation | `fixation` | 否 |
+| 2 | 2 | Cue | `cue`（含 `label`∈{1,2}） | 对齐参考 |
+| 4 | 4 | MI | `mi_start`；结束时 `mi_end` | **是** Left/Right |
+| 8 | 1 | PostMI_hold | （可选不单独打点；计入 trial 内） | 否 Discard |
+| 9 | 4 | Rest | `rest_start`；结束时 `rest_end`（`label=0`） | **是** Rest |
+| 13 | 3 | Transition | `transition` | 否 Discard |
+
+**切窗约定（与离线对齐）：**
+
+- MI 窗：[`mi_start`, `mi_end`)，时长 4.0 s；等价于 `cue` 后 **+2.0 s 起**连续 4.0 s（Cue 展示 2 s 结束后进入纯静想象）。
+- Rest 窗：[`rest_start`, `rest_end`)，时长 4.0 s；**不含** Transition。
+- **离线 Phase4 训练切窗**：只取 `mi_start`/`rest_start` 起连续 **2.0 s → 500@250Hz**（与 BCI2a/Stieger 统一）；在线仍按上表 4.0 s 呈现与校验。
+- 若下游习惯「cue 后 0–4 s」语义，本系统提供显式 `mi_*`；适配器应优先用 `mi_start`/`mi_end`，避免把 Cue 展示段误切进训练窗。
+
+### 1.1 时序可配置（v0.2）
+
+上表时长为**默认值**。操作台 Setup 页「试次时序」可逐段修改（含 MI 4/6/8s 预设），校验规则：
+
+- 各段 0.2–30s；**MI ≥ 1s**；**Rest ≥ 4s**（Phase4 切 4s 静息窗的下限）；Transition ≥ 0.5s。
+- 会话开始时把 `experiment.timing` 快照写入 `run_config.json` 与 `session.meta.json`（`timing` + `trial_total_s` 字段），事后可追溯当场的范式时长。
+- 事件名与打标逻辑不变；`mi_end`/`rest_end` 始终跟随时长闭合，切窗适配器无需感知配置。
+
+---
+
+## 2. `events.jsonl` 行格式
+
+每行一个 JSON 对象，UTF-8，字段：
+
+| 字段 | 类型 | 必填 | 说明 |
+|------|------|------|------|
+| `t_lsl` | number | ✓ | `local_clock()` |
+| `event` | string | ✓ | 见下表 |
+| `trial_id` | int \| null | 试次级必填 | 从 1 递增；会话级事件可为 null |
+| `label` | int \| null | cue/mi/rest 必填 | 0=Rest, 1=Left, 2=Right |
+| `phase` | string | 建议 | `adapt` / `learn` / `acquire` |
+| `object` | string | trial 建议 | 如 `cup` |
+| `scene` | string | trial 建议 | 如 `home_desk` |
+| `subject_id` | string | 会话级 | |
+| `session_id` | string | 会话级 | |
+| `reason` | string | reject 时 | |
+| `payload` | string | 可选 | 与 LSL Marker 字符串一致 |
+
+### 事件字典
+
+| event | 何时 | 必要附加字段 |
+|-------|------|----------------|
+| `session_start` / `session_end` | 会话起止 | `subject_id`, `session_id` |
+| `phase_start` / `phase_end` | 大阶段 | `phase` |
+| `trial_start` / `trial_end` | 每 trial | `trial_id`, `object`, `scene`, `label`（本 trial 任务侧；Rest 段另见 rest_*） |
+| `fixation` | 注视开始 | `trial_id` |
+| `cue` | Cue 画面/提示开始 | `trial_id`, `label`∈{1,2} |
+| `mi_start` / `mi_end` | MI 窗起止 | `trial_id`, `label`∈{1,2} |
+| `rest_start` / `rest_end` | Rest 窗起止 | `trial_id`, `label=0` |
+| `transition` | Transition 开始 | `trial_id` |
+| `object_change` | 换物 | 新 `object` |
+| `scene_change` | 换景 | 新 `scene` |
+| `trial_reject` | 无效试次 | `trial_id`, `reason` |
+
+`trial_start.label`：本 trial 的 Left/Right 任务标签（1 或 2），不是 Rest。
+
+---
+
+## 3. LSL `OpenBCI_Markers`
+
+| 项 | 值 |
+|----|-----|
+| name | `OpenBCI_Markers` |
+| type | `Markers` |
+| channel_count | 1 |
+| nominal_srate | 0（不规则） |
+| channel_format | `string` |
+| source_id | `experiment_game_markers` |
+
+**样本内容**：与对应 `events.jsonl` 的 `payload` 相同，推荐：
+
+```text
+{event}|trial={trial_id}|label={label}|phase={phase}
+```
+
+例：`cue|trial=3|label=1|phase=acquire`
+
+推送时间戳：与该行 `t_lsl` 相同（`outlet.push_sample([payload], timestamp=t_lsl)`）。
+
+---
+
+## 4. 会话目录
+
+```text
+data/sessions/{subject_id}_{session_id}_{YYYYMMDD_HHMMSS}/
+  session.meta.json
+  eeg.csv                 # lsl_connect Recorder：lsl_time + 8ch
+  eeg.csv.meta.json       # 录制器 sidecar（可保留）
+  events.jsonl
+```
+
+`session.meta.json` 至少含：`subject_id`, `session_id`, `phase_mode`, `sample_rate_hz=250`, `channel_labels`, `use_synthetic`, `trial_count`, `created_at`, 路径引用。
+
+通道顺序（冻结）：
+
+```text
+C3, C4, CZ, CP3, CP4, CPZ, FC3, FC4
+```
+
+---
+
+## 5. Phase 1 验收（对齐）
+
+1. synthetic 连续 ≥20 trial  
+2. 每个正式 trial：`mi_end - mi_start ≈ 4.0`（容差 ±0.05 s）  
+3. 每个正式 trial：`rest_end - rest_start ≈ 4.0`  
+4. `events` 的 `t_lsl` 落在 `eeg.csv` 的 `lsl_time` 覆盖区间内（会话中段）  
+5. `t_lsl` 序列无系统性倒退  
+
+工具：`tools/run_phase1_block.py`、`tools/verify_phase1_alignment.py`
+
+---
+
+## 6. 事件字典增补（v0.3 · 2026-08-29）
+
+在 v0.2 基础上登记现行已用事件，并预留断流/完整性：
+
+| event | 何时 | 附加字段 |
+|-------|------|----------|
+| `prep_start` | cue 前准备段 | trial_id, label |
+| `iti_start` | MI 后 ITI | trial_id, label |
+| `judge` | 每个在线判定窗 | trial_id, t_rel, pred, gated_pred, p_three[], …；规划 `buf_age_s` |
+| `v3_baseline_end` / `v3_block_begin` / `v3_block_end` | v3 块结构 | block, cond |
+| `v3_self_check_ok` | 开场自检 | — |
+| `eeg_stale` | 推理缓冲陈旧（现网已推 marker） | age |
+| `eeg_stall` / `eeg_resume` | **规划**：总线断流告警/恢复（EEGBus 接线后） | last_sample_t, gap_s |
+| `session_integrity` | 收尾完整性 | 落盘为 `session_integrity.json` + meta 字段 |
+
+通道序以 [`框架冻结确认_20260829.md`](框架冻结确认_20260829.md) / `core.channel_layout` 为准（**FC3…CP4**）；上文 §4 旧序仅 Phase1 历史。

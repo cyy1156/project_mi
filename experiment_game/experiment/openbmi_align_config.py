@@ -28,7 +28,7 @@ def build_openbmi_judgment_times(
     win_s: float = WIN_S,
     hop_s: float = HOP_S,
 ) -> Tuple[float, ...]:
-    """判定点 = 3s 前向窗的窗尾（相对 Cue）。MI=4s → 11 档：3.0…4.0。"""
+    """判定点 = 3s 前向窗的窗尾（相对 mi_start）。MI=4s → 11 档：3.0…4.0。"""
     if float(imagine_s) < float(win_s) - 1e-9:
         return ()
     out: List[float] = []
@@ -63,9 +63,10 @@ def rebuild_judgment_times(cfg: _JudgmentTimesCfg) -> None:
 
 
 def openbmi_timing_field_defaults() -> dict[str, Any]:
+    """现行默认与 v3_session.yaml / 冻结 F1 对齐（Cue 先行 1s）。"""
     return {
         "prep_s": 2.0,
-        "cue_s": 0.0,
+        "cue_s": 1.0,
         "imagine_s": MI_TASK_SEC_DEFAULT,
         "iti_s": 3.0,
         "inter_trial_rest_s": 4.0,

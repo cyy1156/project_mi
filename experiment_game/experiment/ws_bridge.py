@@ -25,13 +25,31 @@ _PROTECTED_CLIENT_EVENTS = frozenset(
     {"abort", "gate_ok", "split_request", "v2_enter_game",
      "finetune_start", "model_eval_grid"}
 )
+# 刷新后重放的消息类型（每类只保留最后一条）
+_PENDING_TYPES = frozenset(
+    {
+        "prompt",
+        "questionnaire",
+        "stage",
+        "hud",
+        "session",
+        "operator_state",
+        "session_saved",
+        "session_finishing",
+        "session_started",
+        "v2_stage",
+    }
+)
+_SEND_TIMEOUT_S = 0.4
+_EEG_FAIL_DROP_THRESHOLD = 8
 
 
 class WsBridge:
     """
     在后台线程跑 asyncio WebSocket 服务。
     主线程用 broadcast() 推消息；wait_client_event() 等浏览器 continue/ready。
-    新连接会重放 pending 的 prompt/stage/hud/session_saved，避免刷新后卡死。
+    新连接会重放 pending 的 prompt/stage/hud/session_started/v2_stage/session_saved，
+    避免刷新后卡在 idle。
 
     鉴权：``auth_token`` 非空时，``operator`` 动作与 abort/gate_ok 等须带匹配 token；
     诱导页的 continue/ready 仍可无 token。
@@ -73,6 +91,9 @@ class WsBridge:
         self.paused = False
         self.reject_requested = False
         self._operator_hook: Optional[Callable[[str, dict], None]] = None
+        # 慢客户端：eeg_frame 可丢；连续失败达阈值再踢线
+        self._send_inflight: dict[int, bool] = {}
+        self._send_fail_counts: dict[int, int] = {}
 
     @staticmethod
     def make_token() -> str:
@@ -97,6 +118,8 @@ class WsBridge:
     def set_pending(self, message: dict[str, Any]) -> None:
         with self._lock:
             mtype = message.get("type")
+            if mtype not in _PENDING_TYPES:
+                return
             if mtype == "prompt":
                 self._pending = [m for m in self._pending if m.get("type") != "prompt"]
                 self._pending.append(dict(message))
@@ -106,10 +129,22 @@ class WsBridge:
                     m for m in self._pending if m.get("type") != "questionnaire"
                 ]
                 self._pending.append(dict(message))
-            elif mtype in ("stage", "hud", "session", "operator_state", "session_saved", "session_finishing"):
-                # session_saved / session_finishing：落盘/对齐期间可能断线，重连须能收到终态
+            elif mtype == "session_started":
+                # 新会话：清掉旧终态与旧画面快照，避免刷新误重放「本会话结束」
+                drop = {
+                    "session",
+                    "session_saved",
+                    "session_finishing",
+                    "v2_stage",
+                    "session_started",
+                }
+                self._pending = [
+                    m for m in self._pending if m.get("type") not in drop
+                ]
+                self._pending.append(dict(message))
+            else:
+                # session_saved / session_finishing / v2_stage / hud / …
                 self._pending = [m for m in self._pending if m.get("type") != mtype]
-                # session_saved 到达后不再需要 finishing 过渡态
                 if mtype == "session_saved":
                     self._pending = [
                         m for m in self._pending if m.get("type") != "session_finishing"
@@ -175,16 +210,7 @@ class WsBridge:
         self._clients.clear()
 
     def broadcast(self, message: dict[str, Any]) -> None:
-        if message.get("type") in (
-            "prompt",
-            "questionnaire",
-            "stage",
-            "hud",
-            "session",
-            "operator_state",
-            "session_saved",
-            "session_finishing",
-        ):
+        if message.get("type") in _PENDING_TYPES:
             self.set_pending(message)
         loop = self._loop
         if loop is None or not loop.is_running():
@@ -275,7 +301,7 @@ class WsBridge:
             self.host,
             self.port,
             ping_interval=20,
-            ping_timeout=20,
+            ping_timeout=40,
             **origin_kw,
         )
 
@@ -469,7 +495,10 @@ class WsBridge:
                         continue
                     self._on_message(msg)
         finally:
+            wid = id(ws)
             self._clients.discard(ws)
+            self._send_inflight.pop(wid, None)
+            self._send_fail_counts.pop(wid, None)
 
     def _handle_operator(self, msg: dict[str, Any]) -> None:
         action = str(msg.get("action") or "")
@@ -541,14 +570,32 @@ class WsBridge:
             data = json.dumps(message, ensure_ascii=False, default=str)
         except Exception as exc:  # noqa: BLE001
             raise RuntimeError(f"JSON 序列化失败 type={message.get('type')}: {exc}") from exc
+        mtype = message.get("type")
+        is_eeg = mtype == "eeg_frame"
         dead = []
         for ws in list(self._clients):
+            wid = id(ws)
+            if is_eeg and self._send_inflight.get(wid):
+                # 慢客户端：丢本帧波形，不堵 v2_stage / hud
+                continue
+            self._send_inflight[wid] = True
             try:
-                await ws.send(data)
+                await asyncio.wait_for(ws.send(data), timeout=_SEND_TIMEOUT_S)
+                self._send_fail_counts[wid] = 0
+            except asyncio.TimeoutError:
+                fails = int(self._send_fail_counts.get(wid, 0)) + 1
+                self._send_fail_counts[wid] = fails
+                if not is_eeg or fails >= _EEG_FAIL_DROP_THRESHOLD:
+                    dead.append(ws)
             except Exception:  # noqa: BLE001
                 dead.append(ws)
+            finally:
+                self._send_inflight[wid] = False
         for ws in dead:
+            wid = id(ws)
             self._clients.discard(ws)
+            self._send_inflight.pop(wid, None)
+            self._send_fail_counts.pop(wid, None)
 
 
 def hand_from_label(label: Optional[int]) -> str:

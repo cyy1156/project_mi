@@ -1,6 +1,6 @@
 """OpenBMI-Align 切窗权威实现（重构阶段 3）。
 
-协议：Cue+0~4s 任务段 → 3s / hop100 滑窗 → (8, 750) float32；
+协议：任务段起点+0~4s（OpenBMI=Cue onset；Align=`mi_start`） → 3s / hop100 滑窗 → (8, 750) float32；
 Rest：Cue 前专用段或 cue-before 回退；Cue 前 0.5s 基线。
 
 零项目依赖：仅标准库 + numpy + scipy（与 channel_layout 同层约定）。

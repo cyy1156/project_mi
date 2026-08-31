@@ -241,3 +241,63 @@ def test_trial_runs_full_mi_no_early_stop():
         ev_names = [e["event"] for e in rows]
         assert "score_reach" not in ev_names
         assert "trial_invalid" not in ev_names
+
+
+def test_mi_judgment_wait_is_mi_relative_when_cue_s_gt_0():
+    """cue_s>0 时判定等待锚点必须是 mi_t（MI 段起止切窗），不能是 cue_t。"""
+    waits: list[tuple[float, float]] = []
+
+    def capture_wait(self, t_start, duration_s):
+        waits.append((float(t_start), float(duration_s)))
+
+    tv2._wu = _noop_wait
+    orig = tv2.TrialStateMachineV2._wait_after
+    tv2.TrialStateMachineV2._wait_after = capture_wait
+    try:
+        timing = TrialTimingV2(
+            prep_s=0.0,
+            cue_s=1.0,
+            imagine_s=4.0,
+            iti_s=0.0,
+            inter_trial_rest_s=0.0,
+            judgment_times=(3.0, 4.0),
+        )
+        with tempfile.TemporaryDirectory() as td:
+            events = EventLogger(Path(td) / "events.jsonl")
+            markers = MarkerPublisher(enabled=False)
+            cue_t_box = {"t": None}
+            mi_t_box = {"t": None}
+
+            def judgment_fn(mi_t, t_rel, ctx):
+                mi_t_box["t"] = float(mi_t)
+                return {"pred": 1, "p_max": 0.9, "gated": False}
+
+            def on_stage(stage, ctx, data=None):
+                if stage == "cue" and isinstance(data, dict):
+                    cue_t_box["t"] = float(data["cue_t"])
+                if stage == "mi_start" and isinstance(data, dict):
+                    mi_t_box["t"] = float(data["mi_t"])
+
+            sm = TrialStateMachineV2(
+                events,
+                markers,
+                timing,
+                judgment_fn=judgment_fn,
+                on_stage=on_stage,
+            )
+            ctx = TrialContextV2(trial_id=1, label=1, mode="calibration", round_no=1)
+            sm.run_trial(ctx)
+            events.close()
+
+        assert cue_t_box["t"] is not None and mi_t_box["t"] is not None
+        cue_t = cue_t_box["t"]
+        mi_t = mi_t_box["t"]
+        # _wait_after 被 stub 时墙钟不前进；改为断言 Cue 段等待 (cue_t, cue_s=1)
+        assert any(abs(a - cue_t) < 1e-6 and abs(d - 1.0) < 1e-9 for a, d in waits)
+        # 必须存在相对 mi 的判定等待；不得用 cue 锚 3.0s 判定
+        assert any(abs(a - mi_t) < 1e-6 and abs(d - 3.0) < 1e-9 for a, d in waits)
+        assert any(abs(a - mi_t) < 1e-6 and abs(d - 4.0) < 1e-9 for a, d in waits)
+        assert not any(abs(a - cue_t) < 1e-6 and abs(d - 3.0) < 1e-9 for a, d in waits)
+    finally:
+        tv2.TrialStateMachineV2._wait_after = orig
+        tv2._wu = _noop_wait

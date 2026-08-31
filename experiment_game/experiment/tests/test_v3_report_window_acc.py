@@ -60,11 +60,15 @@ def test_window_acc_differs_from_trial_majority():
 
 
 def test_window_acc_includes_rest():
-    # Rest 试次窗也计入窗级（三分类）
+    # 完整采集 L/R 对称时 max_rest=min(L,R)≥1，截断后 Rest 窗计入三分类窗级
+    # （仅 1L+0R 时 max_rest=0，Rest 全丢——那是截断语义，见 test_max_rest_truncates）
+    rest = _fake_trial(0, [0, 0, 0, 0, 1])
+    rest["role"] = "pre_cue_rest"
     recs = {
         "sim_b1": [
-            _fake_trial(0, [0, 0, 0, 0, 1]),
+            rest,
             _fake_trial(1, [1, 1, 1, 1, 1]),
+            _fake_trial(2, [2, 2, 2, 2, 2]),
         ]
     }
     report = build_v3_report(
@@ -73,8 +77,8 @@ def test_window_acc_includes_rest():
         primary_judge_s=4.0,
     )
     overall = report["overall"]
-    # 仅 L/R 时 5 窗；含 Rest 后 10 窗
-    assert overall["n_windows"] == 10
+    # L5 + R5 + Rest5（max_rest=min(1,1)=1）→ 15 窗
+    assert overall["n_windows"] == 15
     assert overall["acc_window"] is not None
 
 
@@ -82,11 +86,13 @@ def test_trial_majority_includes_rest():
     # Rest 判对 + Left 判对 → 试次多数票 2/2；若只评 L/R 则 n=1
     recs = {
         "sim_b1": [
-            _fake_trial(0, [0, 0, 0, 1, 0]),
+            _fake_trial(0, [0, 0, 0, 1, 0], valid=True),
             _fake_trial(1, [1, 1, 1, 1, 1]),
             _fake_trial(2, [1, 1, 1, 1, 1]),  # Right 错
         ]
     }
+    # mark rest as pre_cue_rest
+    recs["sim_b1"][0]["role"] = "pre_cue_rest"
     report = build_v3_report(
         block_order=["sim_b1"],
         block_records=recs,
@@ -95,3 +101,26 @@ def test_trial_majority_includes_rest():
     overall = report["overall"]
     assert overall["n"] == 3
     assert overall["acc_argmax"] == round(2 / 3, 4)
+
+
+def test_max_rest_truncates_pre_cue_rest():
+    from experiment_game.experiment.v3_report import records_for_acc_scoring
+
+    recs = []
+    for i in range(3):
+        r = _fake_trial(1, [1, 1, 1, 1, 1])
+        r["trial_id"] = i + 1
+        recs.append(r)
+    for i in range(3):
+        r = _fake_trial(2, [2, 2, 2, 2, 2])
+        r["trial_id"] = 10 + i
+        recs.append(r)
+    for i in range(5):
+        r = _fake_trial(0, [0, 0, 0, 0, 0])
+        r["role"] = "pre_cue_rest"
+        r["trial_id"] = 100 + i
+        recs.append(r)
+    scored = records_for_acc_scoring(recs)
+    assert len([r for r in scored if r["label"] == 1]) == 3
+    assert len([r for r in scored if r["label"] == 2]) == 3
+    assert len([r for r in scored if r["label"] == 0]) == 3  # min(3,3)=3

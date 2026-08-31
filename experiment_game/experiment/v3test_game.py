@@ -3,7 +3,7 @@
 试次结构（需求 2026-08-30）：
   - 静息试次（label=0，10 个）：仅 Rest 5s，全程计时、不提前结束；
     连续 5 窗判定为静息 → +0.5 分。
-  - MI 试次（label=1/2，各 5 个）：Rest 5s 引入（不计分）→ Cue 2s
+  - MI 试次（label=1/2，各 5 个）：Rest 5s 引入（不计分）→ Cue 1s
     （文字「接下来请你想象用左手/右手拿前面的杯子」）→ MI 10s；
     连续 5 窗识别出对应手 → 手拿杯子（cup_grasp）、MI 提前结束、+1 分；
     未成功则跑满 10s、不得分。
@@ -97,7 +97,7 @@ def run_v3test_game(
 
     rng = random.Random(seed) if seed is not None else random.Random()
     rest_s = float(getattr(cfg, "v3test_rest_s", 5.0))
-    cue_s = float(getattr(cfg, "v3test_cue_s", 2.0))
+    cue_s = float(getattr(cfg, "v3test_cue_s", 1.0))
     mi_s = float(getattr(cfg, "v3test_mi_s", 10.0))
     iv = float(getattr(cfg, "v3test_judge_interval_s", 0.5) or 0.5)
     need = int(getattr(cfg, "v3test_consecutive", 5))
@@ -179,10 +179,9 @@ def run_v3test_game(
             row = _emit("rest_start", ctx, extra={"label": 0, "role": "v3test_rest"})
             rest_t = row["t_lsl"]
             rest_hit = False
-            prev_rel = 0.0
             for t_rel in rest_times:
-                _wait_after(rest_t, float(t_rel) - prev_rel)
-                prev_rel = float(t_rel)
+                # _wait_after(t0, dur) = 等到 t0+dur；须传相对 rest_t 的绝对偏移 t_rel
+                _wait_after(rest_t, float(t_rel))
                 if judgment_fn is None:
                     continue
                 rest_ctx = TrialContextV2(
@@ -227,11 +226,11 @@ def run_v3test_game(
                 _emit("trial_end", ctx, extra={"trial_score": {**summary, "score": 0.0}})
                 continue
 
-            # —— Cue 2s ——
+            # —— Cue（默认 1s，与 Align 一致）——
             side = "左手" if label == LABEL_LEFT else "右手"
             # cue 阶段：与 MI 同义指导语，最前面加 cue（游戏测试用长句）
             mi_line = f"接下来请你想象用{side}拿前面的杯子"
-            cue_text = f"cue {mi_line}"
+            cue_text = f"cue · {mi_line}"
             on_stage("cue", ctx, {"cue_text": cue_text, "cue_s": cue_s})
             row = _emit("cue", ctx, extra={"cue_kind": "v3test", "cue_text": cue_text})
             cue_t = row["t_lsl"]
@@ -244,10 +243,9 @@ def run_v3test_game(
             mi_t = row["t_lsl"]
             on_stage("mi_start", ctx, {"mi_t": mi_t, "cue_t": cue_t, "mi_end_t": mi_t + mi_s})
             success = False
-            prev_rel = 0.0
             for t_rel in mi_times:
-                _wait_after(cue_t, float(t_rel) - prev_rel)
-                prev_rel = float(t_rel)
+                # mi_times 为相对 cue_t 的绝对偏移（含 cue_s 段）；勿传相邻差，否则判定瞬间爆发
+                _wait_after(cue_t, float(t_rel))
                 if judgment_fn is None:
                     continue
                 j = judgment_fn(cue_t, float(t_rel), ctx)

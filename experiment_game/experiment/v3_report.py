@@ -11,6 +11,28 @@ import numpy as np
 LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
 
 
+def records_for_acc_scoring(records: List[Dict]) -> List[Dict]:
+    """试次/窗级 acc 统计集：L/R 全保留；Cue前静息 Rest 按 max_rest=min(n_left,n_right) 截断。"""
+    base = [
+        r
+        for r in records
+        if r.get("valid") and not r.get("signal_bad") and r.get("label") in (0, 1, 2)
+    ]
+    lr = [r for r in base if int(r.get("label", -1)) in (1, 2)]
+    n_left = sum(1 for r in lr if int(r.get("label")) == 1)
+    n_right = sum(1 for r in lr if int(r.get("label")) == 2)
+    max_rest = min(n_left, n_right) if (n_left + n_right) else 0
+    rest = [
+        r
+        for r in base
+        if int(r.get("label", -1)) == 0
+        and r.get("role") in (None, "pre_cue_rest")
+    ]
+    rest.sort(key=lambda r: (int(r.get("block") or 0), int(r.get("trial_id") or 0)))
+    rest_kept = rest[: int(max_rest)] if max_rest > 0 else []
+    return lr + rest_kept
+
+
 def _acc_at_primary(records: List[Dict], primary_s: float) -> Dict[str, Any]:
     """试次多数票识别率：Rest/L/R 三分类（primary_judge pred==label）。"""
     scored = [
@@ -170,29 +192,32 @@ def build_v3_report(
     block_records: Dict[str, List[Dict]],
     primary_judge_s: float,
     frozen: bool = True,
+    weight_source: str = "base",
     invalid_streak_max: int = 0,
     baseline: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     blocks: Dict[str, Any] = {}
     for cond in block_order:
         recs = block_records.get(cond, [])
-        acc = _acc_at_primary(recs, primary_judge_s)
-        win = _acc_window(recs)
-        acc = {**acc, **win}
+        scored = records_for_acc_scoring(recs)
+        acc = _acc_at_primary(scored, primary_judge_s)
+        win = _acc_window(scored)
+        acc = {**acc, **win, "n_scored": acc.get("n"), "max_rest": _max_rest_cap(scored)}
         feat = _block_features(recs)
         blocks[cond] = {
             "n_trials": len(recs),
             "accuracy": acc,
-            "confusion_argmax": _confusion(recs, primary_judge_s, gated=False),
-            "confusion_gated": _confusion(recs, primary_judge_s, gated=True),
+            "confusion_argmax": _confusion(scored, primary_judge_s, gated=False),
+            "confusion_gated": _confusion(scored, primary_judge_s, gated=True),
             "features": feat,
         }
 
     all_recs: List[Dict] = []
     for cond in block_order:
         all_recs.extend(block_records.get(cond, []))
-    overall_trial = _acc_at_primary(all_recs, primary_judge_s)
-    overall_win = _acc_window(all_recs)
+    all_scored = records_for_acc_scoring(all_recs)
+    overall_trial = _acc_at_primary(all_scored, primary_judge_s)
+    overall_win = _acc_window(all_scored)
     overall = {
         **overall_trial,
         **overall_win,
@@ -230,6 +255,7 @@ def build_v3_report(
 
     report = {
         "frozen": frozen,
+        "weight_source": weight_source,
         "block_order": block_order,
         "primary_judge_s": primary_judge_s,
         "blocks": blocks,
@@ -253,11 +279,21 @@ def write_v3_report(session_dir: Path, report: Dict[str, Any]) -> None:
     (session_dir / "v3_report.md").write_text(md, encoding="utf-8")
 
 
+def _max_rest_cap(scored: List[Dict]) -> int:
+    lr = [r for r in scored if int(r.get("label", -1)) in (1, 2)]
+    n_left = sum(1 for r in lr if int(r.get("label")) == 1)
+    n_right = sum(1 for r in lr if int(r.get("label")) == 2)
+    return min(n_left, n_right) if (n_left + n_right) else 0
+
+
 def _report_md(report: Dict[str, Any]) -> str:
+    ws = report.get("weight_source") or "base"
+    ws_txt = "被试 current 权重" if ws == "subject_current" else "底座零样本权重"
     lines = [
-        "# v3 零样本探针报告",
+        "# v3 探针报告",
         "",
-        f"- 权重冻结：`{report.get('frozen')}`",
+        f"- 推理权重：`{ws_txt}`（`weight_source={ws}`）",
+        f"- 会话内权重未变：`{report.get('frozen')}`",
         f"- 块顺序：`{' → '.join(report.get('block_order') or [])}`",
         f"- 主判定：MI 全程 **多数票**（报告另附 **窗级 acc**；平票代表窗 tie-break @ {report.get('primary_judge_s')}s）",
         f"- 底座质量定级：**{report.get('quality_tier')}**",

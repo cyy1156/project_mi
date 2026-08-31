@@ -16,7 +16,7 @@ def main() -> None:
     assert v2.game_mode == "v3_test", v2.game_mode
     assert v2.use_v3_weights is True
     assert abs(v2.v3test_rest_s - 5) < 1e-9
-    assert abs(v2.v3test_cue_s - 2) < 1e-9
+    assert abs(v2.v3test_cue_s - 1) < 1e-9
     assert abs(v2.v3test_mi_s - 10) < 1e-9
     assert v2.v3test_n_rest == 10 and v2.v3test_n_left == 5 and v2.v3test_n_right == 5
     mx = (
@@ -90,7 +90,7 @@ def main() -> None:
         "phase_mode !== \"v3_session\"",
     ):
         assert needle in js, needle
-    assert "cue-badge" in (Path(_REPO) / "experiment_game/web/js/v2_bridge.js").read_text(encoding="utf-8")
+    assert "cueSplit" in (Path(_REPO) / "experiment_game/web/js/v2_bridge.js").read_text(encoding="utf-8")
     assert "cue_text" in (Path(_REPO) / "experiment_game/experiment/trial_v2.py").read_text(encoding="utf-8")
     print("OK operator/bridge wiring")
 

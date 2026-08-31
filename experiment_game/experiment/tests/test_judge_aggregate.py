@@ -23,6 +23,24 @@ def test_majority_vote_wins():
     assert pj.get("rule") == "causal_smooth_majority"
 
 
+def test_majority_pred_from_votes_tie_break_by_probs():
+    import numpy as np
+    from experiment_game.experiment.judge_aggregate import majority_pred_from_votes
+
+    preds = np.array([1, 2], dtype=np.int64)
+    probs = np.array([[0.1, 0.4, 0.5], [0.1, 0.2, 0.8]], dtype=np.float64)
+    assert majority_pred_from_votes(preds, probs) == 2
+
+
+def test_majority_pred_from_votes_clear_winner():
+    import numpy as np
+    from experiment_game.experiment.judge_aggregate import majority_pred_from_votes
+
+    preds = np.array([1, 1, 2], dtype=np.int64)
+    probs = np.zeros((3, 3), dtype=np.float64)
+    assert majority_pred_from_votes(preds, probs) == 1
+
+
 def test_majority_tie_break_by_p_three():
     js = [
         {"pred": 1, "gated_pred": 1, "t_rel": 0.6, "p_three": [0.1, 0.4, 0.5]},
@@ -31,3 +49,4 @@ def test_majority_tie_break_by_p_three():
     pj = primary_judge_from_judgments(js, mode="majority", primary_s=4.0)
     assert pj is not None
     assert pj["pred"] == 2
+

@@ -236,10 +236,10 @@ class OnlinePreprocessor:
         baseline_sec: float = BASELINE_BEFORE_CUE_S,
         zscore: bool = True,
     ) -> Optional[np.ndarray]:
-        """OpenBMI 对齐：段 [Cue−baseline, Cue+win_end] 滤波后减 Cue 前基线，取 3s 窗 z-score。
+        """OpenBMI 对齐：段 [锚点−baseline, 锚点+win_end] 滤波后减锚点前基线，取 3s 窗 z-score。
 
-        raw_tail_tc 须覆盖整段且尾样本对齐 Cue+win_end_rel。
-        win_start_rel / win_end_rel 相对 Cue（秒）。
+        raw_tail_tc 须覆盖整段且尾样本对齐 锚点+win_end_rel。
+        win_start_rel / win_end_rel 相对任务段起点（正式 SOP = mi_start；秒）。
         """
         seg_n = int(round(seg_len_s * FS))
         if raw_tail_tc.shape[0] < seg_n:
@@ -264,8 +264,9 @@ class OnlinePreprocessor:
 
 
 class InferenceService:
-    """判定服务：judge(t_cue_lsl, t_rel) → {"pred","p_max","gated"} 或 signal_bad。
+    """判定服务：judge(t_anchor_lsl, t_rel) → {"pred","p_max","gated"} 或 signal_bad。
 
+    正式 SOP：t_anchor_lsl = mi_start，t_rel = 窗尾相对 MI（秒）。
     registry: adapt_engine.ModelRegistry；readout 默认串行门控。
     """
 
@@ -313,7 +314,8 @@ class InferenceService:
             out.setdefault("stale", False)
         return out
 
-    def judge(self, t_cue_lsl: float, t_rel: float) -> Optional[Dict]:
+    def judge(self, t_anchor_lsl: float, t_rel: float) -> Optional[Dict]:
+        """t_anchor_lsl：任务段起点（正式 SOP = mi_start；Rest 相位 = rest_start）。"""
         if self.stale_check_enabled:
             stale = self.buffer.stale_status()
             if stale is not None:
@@ -329,13 +331,13 @@ class InferenceService:
                     }
                 )
         if self.window_mode == "openbmi_hop100":
-            out = self.judge_openbmi_hop100(t_cue_lsl, t_rel)
+            out = self.judge_openbmi_hop100(t_anchor_lsl, t_rel)
             return self._annotate_buf_age(out) if out is not None else None
-        out = self._judge_legacy(t_cue_lsl, t_rel)
+        out = self._judge_legacy(t_anchor_lsl, t_rel)
         return self._annotate_buf_age(out) if out is not None else None
 
-    def judge_openbmi_hop100(self, t_cue_lsl: float, t_win_end_rel: float) -> Optional[Dict]:
-        """OpenBMI 3s/hop100：t_win_end_rel 为窗尾（相对 Cue）；窗 [end−3, end] ⊆ [0, MI]。"""
+    def judge_openbmi_hop100(self, t_anchor_lsl: float, t_win_end_rel: float) -> Optional[Dict]:
+        """OpenBMI 3s/hop100：t_win_end_rel 为窗尾（相对 mi_start）；窗 [end−3, end] ⊆ [0, MI]。"""
         from pylsl import local_clock
 
         from experiment_game.experiment.signal_quality import assess_eeg_window
@@ -345,7 +347,7 @@ class InferenceService:
         if win_start < -1e-9 or win_end > self.mi_task_sec + 1e-9:
             return None
 
-        t_seg_end = self._lsl_at_eeg_rel(t_cue_lsl, win_end)
+        t_seg_end = self._lsl_at_eeg_rel(t_anchor_lsl, win_end)
         seg_len_s = self.baseline_before_cue_s + win_end
         now = local_clock()
 

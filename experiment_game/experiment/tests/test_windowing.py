@@ -31,7 +31,7 @@ def test_constants_match_openbmi_protocol():
 
 
 def test_n_windows_4s_task_segment():
-    # Cue+0~4s → 理论 11 窗（(4-3)/0.1 + 1）
+    # 任务段 0~4s → 理论 11 窗（(4-3)/0.1 + 1）
     assert n_windows_3s_hop100(4.0) == 11
     assert n_windows_3s_hop100(3.0) == 1
     assert n_windows_3s_hop100(2.9) == 0

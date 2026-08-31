@@ -1296,7 +1296,10 @@ export class HomeDeskScene {
     if (fill) fill.style.width = `${Math.min(100, Math.max(0, t * 100))}%`;
   }
 
-  v2GameLevel(level, reach) {
+  v2GameLevel(level, reach, labelOpt, progress) {
+    if (labelOpt === 1 || labelOpt === 2) {
+      this._v2GameLabel = Number(labelOpt);
+    }
     const label = this._v2GameLabel;
     if (!label || label === 0) {
       this.v2Fixation();
@@ -1318,8 +1321,13 @@ export class HomeDeskScene {
       return;
     }
 
-    const lv = Math.max(0, Math.min(4, Number(level) || 0));
-    const target = lv / 4;
+    let target;
+    if (progress != null && Number.isFinite(Number(progress))) {
+      target = Math.max(0, Math.min(1, Number(progress)));
+    } else {
+      const lv = Math.max(0, Math.min(4, Number(level) || 0));
+      target = lv / 4;
+    }
     // 同试次只前进不回缩
     this._v2ArmLevelTarget = Math.max(this._v2ArmLevelTarget || 0, target);
     if (this.anim !== "v2_grasp") {

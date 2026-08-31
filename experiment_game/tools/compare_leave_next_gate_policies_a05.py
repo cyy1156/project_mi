@@ -179,13 +179,21 @@ def run_policy(
             three_rep = meta.get("three") or three_rep
 
         promoted = False
+        heldout_raw = float(
+            three_rep.get("acc_after_heldout") or gate.get("heldout_acc") or 0
+        )
+        heldout_smooth = three_rep.get("acc_after_heldout_smooth")
+        if heldout_smooth is None:
+            heldout_smooth = heldout_raw
+        else:
+            heldout_smooth = float(heldout_smooth)
         if gate_pass or force_promote:
             current_task = out_dir / "best_task.pt"
             current_three = out_dir / "best_three.pt"
             promoted = True
             print(
                 f"  → promote {'FORCE' if (not gate_pass and force_promote) else 'PASS'} "
-                f"heldout={float(three_rep.get('acc_after_heldout') or gate.get('heldout_acc') or 0):.3f}",
+                f"heldout_smooth={heldout_smooth:.3f} raw={heldout_raw:.3f}",
                 flush=True,
             )
         else:
@@ -209,8 +217,10 @@ def run_policy(
             "current_acc_window": cur_ev["acc_window_three"],
             "current_acc_lr": cur_ev["acc_window_lr"],
             "n_windows_eval": base_ev["n_windows"],
-            "heldout_acc_after": three_rep.get("acc_after_heldout") or gate.get("heldout_acc"),
+            "heldout_acc_after": heldout_smooth,
+            "heldout_acc_after_raw": heldout_raw,
             "heldout_acc_before": three_rep.get("acc_before_heldout"),
+            "heldout_acc_before_smooth": three_rep.get("acc_before_heldout_smooth"),
             "train_acc_after": three_rep.get("acc_after_train") or gate.get("train_acc"),
             "train_gap": gate.get("train_minus_heldout"),
             "gate_checks": gate.get("checks"),

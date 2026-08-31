@@ -1,7 +1,7 @@
 """实验 29 / 27 · heldout 发布门控 vs 在线 trial acc 审计。
 
-检验 fnz 文档 §7.3 门控阈值能否预测下一场在线表现：
-  G1 heldout acc ≥ 0.40
+检验门控阈值能否预测下一场在线表现（与 ``finetune.evaluate_release_gate`` 同口径）：
+  G1 heldout acc ≥ max(0.40, 类先验_max + 0.05)（有 y 计数时自适应）
   G2 heldout max_class_frac < 0.60
   G3 train − heldout < 0.35
   G4 heldout 三类均有预测
@@ -28,7 +28,12 @@ import numpy as np
 _REPO = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO))
 
-from experiment_game.tools.ft_subject_from_v3 import evaluate_release_gate
+from experiment_game.pipeline.finetune import (
+    RELEASE_HELDOUT_ACC_MIN,
+    RELEASE_MAX_CLASS_FRAC,
+    RELEASE_TRAIN_HELDOUT_GAP_MAX,
+    evaluate_release_gate,
+)
 
 OUT_DIR = _REPO / "experiment_game/data/models/bci2a/exp29"
 FNZ_OUT = _REPO / "experiment_game/data/models/fnz/exp27"
@@ -36,9 +41,9 @@ OUT_JSON = OUT_DIR / "heldout_gate_audit.json"
 OUT_MD = OUT_DIR / "heldout_gate_audit.md"
 
 LABEL_MAP = {"Rest": 0, "Left": 1, "Right": 2}
-GATE_HELDOUT_MIN = 0.40
-GATE_MAX_FRAC = 0.60
-GATE_TRAIN_GAP = 0.35
+GATE_HELDOUT_BASE_MIN = RELEASE_HELDOUT_ACC_MIN
+GATE_MAX_FRAC = RELEASE_MAX_CLASS_FRAC
+GATE_TRAIN_GAP = RELEASE_TRAIN_HELDOUT_GAP_MAX
 ONLINE_TARGET = 0.60
 ONLINE_FNZ_REF = 0.45
 
@@ -50,7 +55,26 @@ def _pred_counts_to_int(pc: Dict[str, int]) -> Dict[int, int]:
             out[int(k)] = int(v)
         elif str(k) in LABEL_MAP:
             out[LABEL_MAP[str(k)]] = int(v)
+        else:
+            try:
+                out[int(k)] = int(v)
+            except (TypeError, ValueError):
+                continue
     return out
+
+
+def _y_from_counts(counts: Optional[Dict]) -> Optional[np.ndarray]:
+    pc = _pred_counts_to_int(counts or {})
+    if not pc:
+        return None
+    parts = [
+        np.full(int(c), int(lab), dtype=np.int64)
+        for lab, c in sorted(pc.items())
+        if int(c) > 0
+    ]
+    if not parts:
+        return None
+    return np.concatenate(parts)
 
 
 def gate_from_row(
@@ -59,6 +83,7 @@ def gate_from_row(
     acc_after_train: float,
     heldout_pred_counts: Optional[Dict],
     heldout_max_class_frac: Optional[float] = None,
+    heldout_y_counts: Optional[Dict] = None,
 ) -> Dict[str, Any]:
     pc = _pred_counts_to_int(heldout_pred_counts or {})
     if heldout_max_class_frac is None and pc:
@@ -72,7 +97,8 @@ def gate_from_row(
             "max_class_frac": heldout_max_class_frac or 1.0,
         },
     }
-    return evaluate_release_gate(rep)
+    y_heldout = _y_from_counts(heldout_y_counts)
+    return evaluate_release_gate(rep, y_heldout=y_heldout)
 
 
 def audit_exp29_row(row: Dict[str, Any], *, source: str, arm: str) -> Optional[Dict[str, Any]]:
@@ -81,11 +107,17 @@ def audit_exp29_row(row: Dict[str, Any], *, source: str, arm: str) -> Optional[D
     heldout_pc = row.get("heldout_pred_counts")
     if not heldout_pc and row.get("heldout_after"):
         heldout_pc = row["heldout_after"].get("pred_counts")
+    y_counts = (
+        row.get("heldout_y_counts")
+        or row.get("y_three_counts")
+        or row.get("heldout_label_counts")
+    )
     gate = gate_from_row(
         acc_after_heldout=float(row["acc_after_heldout"]),
         acc_after_train=float(row.get("acc_after_train", row["acc_after_heldout"])),
         heldout_pred_counts=heldout_pc,
         heldout_max_class_frac=row.get("heldout_max_class_frac"),
+        heldout_y_counts=y_counts,
     )
     online = float(row["online_trial_acc"])
     return {
@@ -99,6 +131,7 @@ def audit_exp29_row(row: Dict[str, Any], *, source: str, arm: str) -> Optional[D
         "gate_pass": gate["pass"],
         "gate_checks": gate["checks"],
         "heldout_acc": gate["heldout_acc"],
+        "heldout_acc_min": gate.get("heldout_acc_min", GATE_HELDOUT_BASE_MIN),
         "train_minus_heldout": gate["train_minus_heldout"],
         "heldout_max_class_frac": gate["max_class_frac"],
         "heldout_pred_labels": gate["pred_labels"],
@@ -135,6 +168,8 @@ def audit_exp27() -> List[Dict[str, Any]]:
                 acc_after_train=float(arm_row["acc_after_train"]),
                 heldout_pred_counts=pc,
                 heldout_max_class_frac=arm_row.get("heldout_max_class_frac"),
+                heldout_y_counts=arm_row.get("heldout_y_counts")
+                or arm_row.get("y_three_counts"),
             )
             online = float(on["online_trial_acc"])
             rows.append(
@@ -149,6 +184,7 @@ def audit_exp27() -> List[Dict[str, Any]]:
                     "gate_pass": gate["pass"],
                     "gate_checks": gate["checks"],
                     "heldout_acc": gate["heldout_acc"],
+                    "heldout_acc_min": gate.get("heldout_acc_min", GATE_HELDOUT_BASE_MIN),
                     "train_minus_heldout": gate["train_minus_heldout"],
                     "heldout_max_class_frac": gate["max_class_frac"],
                     "heldout_pred_labels": gate["pred_labels"],
@@ -273,7 +309,8 @@ def summarize_pool(rows: List[Dict[str, Any]], *, label: str) -> Dict[str, Any]:
                 "gate_pass": r["gate_pass"],
             }
             for r in rows
-            if r["heldout_acc"] < 0.40 and r["online_trial_acc"] >= 0.55
+            if r["heldout_acc"] < float(r.get("heldout_acc_min", GATE_HELDOUT_BASE_MIN))
+            and r["online_trial_acc"] >= 0.55
         ],
     }
 
@@ -284,13 +321,16 @@ def write_md(payload: Dict[str, Any], path: Path) -> None:
         "",
         f"生成：{payload['generated_at']}",
         "",
-        "门控（fnz 文档 §7.3 · three 头）：",
-        f"- G1 heldout acc ≥ {GATE_HELDOUT_MIN}",
+        "门控（与 finetune.evaluate_release_gate 同口径）：",
+        (
+            f"- G1 heldout acc ≥ max({GATE_HELDOUT_BASE_MIN}, "
+            "类先验_max+0.05)（有 heldout_y_counts 时自适应）"
+        ),
         f"- G2 max_class_frac < {GATE_MAX_FRAC}",
         f"- G3 train−heldout < {GATE_TRAIN_GAP}",
         "- G4 heldout 三类均有预测",
         "",
-        "**用途：发布参考，不自动晋升 current。**",
+        "**用途：发布参考审计；现场晋升以 F8 / ft_policy 为准。**",
         "",
         "## 汇总",
         "",
@@ -397,7 +437,8 @@ def main() -> None:
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "gate_thresholds": {
-            "heldout_acc_min": GATE_HELDOUT_MIN,
+            "heldout_acc_base_min": GATE_HELDOUT_BASE_MIN,
+            "heldout_acc_rule": "max(base_min, prior_max+0.05) when y_counts present",
             "max_class_frac": GATE_MAX_FRAC,
             "train_gap_max": GATE_TRAIN_GAP,
         },

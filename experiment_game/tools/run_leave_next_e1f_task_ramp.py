@@ -1,13 +1,19 @@
 """Leave-Next 爬坡 + F5 试次级读出（因果平滑 + 多数票）。
 
+统计口径 · 方案 A（2026-08-31）——详见 docs/统计口径方案A_20260831.md：
+  · 展示 heldout_acc = 窗级因果平滑（对齐在线 acc_window）
+  · 早停 checkpoint = 因果平滑
+  · 门控 release_pass = raw heldout_acc_raw + max_class_frac + train_gap
+  · F5 = 试次级 smooth + 多数票（MI +1 / Rest +0.5）
+
 沿用 2026-08-28 模式：
   syj0828 · 仅 v3 ws01–ws06（排除 v4 ws01_124816）
-  fnz0828 · 仅 v3 ws02–ws06（排除 v4 ws01、电极异常 ws07）
-  R1–R3 replay=0.1；R4–R5 --no-replay（fnz 至 R4）
+  fnz0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
+  R1–R3 replay=0.1；R4–R5 --no-replay
 
 每档：
-  1) 前序 session FT shallow task+three（heldout 早停）
-  2) heldout 上报告窗级 three acc（门控）
+  1) 前序 session FT shallow task+three（heldout **早停=smooth**）
+  2) heldout 上报告窗级 three acc（**展示=smooth**；**门控=raw**）
   3) heldout 上按 F5 试次级：MI / Rest 因果平滑+多数票
 
 对照：同 heldout 上底座 three、以及 E1f 四成员零样本的 F5 MI acc。
@@ -71,9 +77,10 @@ RAMP_FNZ = [
     (["ws02", "ws03"], "ws04", True),
     (["ws02", "ws03", "ws04"], "ws05", True),
     (["ws02", "ws03", "ws04", "ws05"], "ws06", False),
+    (["ws02", "ws03", "ws04", "ws05", "ws06"], "ws07", False),
 ]
 
-# cyy0830 / fnz0830 / wzr0830 / xj0830 · v3 w01–w06
+# cyy0830 / fnz0830 / wzr0830 / xj0830 / *0831 · v3 w01–w06
 RAMP_W = [
     (["w01"], "w02", True),
     (["w01", "w02"], "w03", True),
@@ -82,11 +89,29 @@ RAMP_W = [
     (["w01", "w02", "w03", "w04", "w05"], "w06", False),
 ]
 
+# ycx0831：w06 半场（9:9）排除，用完整 w07 作为第 6 场
+RAMP_YCX = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", False),
+    (["w01", "w02", "w03", "w04", "w05"], "w07", False),
+]
+
 # 兼容旧名
 RAMP_CYY = RAMP_W
 RAMP_FNZ0830 = RAMP_W
+RAMP_W07 = RAMP_YCX  # 旧名指向新爬坡（已不含 w06）
 
-SUBJECTS_W = ("cyy0830", "fnz0830", "wzr0830", "xj0830")
+SUBJECTS_W = (
+    "cyy0830",
+    "fnz0830",
+    "wzr0830",
+    "xj0830",
+    "cjf0831",
+    "npl0831",
+    "ycx0831",
+)
 SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
 
 
@@ -95,6 +120,8 @@ def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Path]) -> list:
         cand = list(RAMP_SYJ)
     elif subject_id == "fnz0828":
         cand = list(RAMP_FNZ)
+    elif subject_id == "ycx0831":
+        cand = list(RAMP_YCX)
     elif subject_id in SUBJECTS_W:
         cand = list(RAMP_W)
     else:
@@ -139,9 +166,10 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Path]:
             continue
         if subject_id == "syj0828" and "124816" in d.name:
             continue
-        if subject_id == "fnz0828" and (
-            d.name.endswith("_152231") or "ws07" in d.name
-        ):
+        if subject_id == "fnz0828" and d.name.endswith("_152231"):
+            continue
+        # ycx0831 w06 半场（9:9），Leave-Next 排除，改用 w07
+        if subject_id == "ycx0831" and "_w06_" in d.name:
             continue
         meta = d / "session.meta.json"
         phase = ""
@@ -327,7 +355,14 @@ def eval_f5_e1f(
     }
 
 
-def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
+def run_ramp(
+    subject_id: str,
+    *,
+    promote_final: bool = False,
+    ft_scope: str = "all4",
+) -> Path:
+    from experiment_game.pipeline.e1f_all4_ft import run_e1f_all4_finetune
+
     by_ws = _list_v3_sessions(subject_id)
     ramp = _ramp_for_subject(subject_id, by_ws)
     if not ramp:
@@ -336,13 +371,17 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
     ft_root = SUBJECTS_ROOT / subject_id / "models" / "ft_runs"
     ft_root.mkdir(parents=True, exist_ok=True)
     device = "cuda" if torch.cuda.is_available() else "cpu"
+    ft_scope = str(ft_scope or "all4").strip().lower()
+    if ft_scope not in ("all4", "so"):
+        raise ValueError(f"ft_scope 须为 all4|so，收到 {ft_scope!r}")
 
     assert DEFAULT_TASK.is_file(), f"缺 task 底座: {DEFAULT_TASK}"
     assert DEFAULT_THREE.is_file(), f"缺 three 底座: {DEFAULT_THREE}"
-    print(f"[{subject_id}] device={device}")
+    print(f"[{subject_id}] device={device} ft_scope={ft_scope}（方案 A）")
     print(f"[{subject_id}] E1f shallow base task={DEFAULT_TASK}")
     print(f"[{subject_id}] E1f shallow base three={DEFAULT_THREE}")
-    print(f"[{subject_id}] v3 sessions: { {k: v.name for k, v in sorted(by_ws.items())} }")
+    sess_map = {k: v.name for k, v in sorted(by_ws.items())}
+    print(f"[{subject_id}] v3 sessions: {sess_map}")
     print(f"[{subject_id}] Leave-Next 档数={len(ramp)}")
     print(f"[{subject_id}] F5 = causal_smooth(lookback={CAUSAL_LOOKBACK}) + majority")
 
@@ -371,13 +410,17 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
         train_dirs = [by_ws[k] for k in train_keys]
         hold_dirs = [by_ws[hold_key]]
         tag = f"leave_next_{_tag_from_ws(train_keys)}_eval_{hold_key}"
+        if ft_scope == "all4":
+            tag += "_all4"
         if not use_replay:
             tag += "_noreplay"
         out_dir = ft_root / f"{stamp}_{tag}"
-        print(f"\n=== R{i} {subject_id} train={train_keys} hold={hold_key} replay={use_replay} ===")
+        print(
+            f"\n=== R{i} {subject_id} train={train_keys} hold={hold_key} "
+            f"replay={use_replay} scope={ft_scope} ==="
+        )
         print(f"  out={out_dir}")
 
-        # 底座对照（FT 前）
         print("  [F5] 底座 three → heldout …")
         base_three = eval_f5_three_ckpt(DEFAULT_THREE, hold_dirs, device=device)
         base_e1f = None
@@ -385,26 +428,59 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
             print("  [F5] E1f 四成员 → heldout …")
             base_e1f = eval_f5_e1f(hold_dirs, device=device, e1f_registry=e1f_reg)
 
-        result = run_subject_finetune(
-            train_dirs,
-            out_dir,
-            task_ckpt=DEFAULT_TASK,
-            three_ckpt=DEFAULT_THREE,
-            heldout_session_dirs=hold_dirs,
-            replay_ratio=0.1 if use_replay else 0.0,
-            no_replay=not use_replay,
-            early_stop=True,
-            verbose=True,
-            device=device,
-        )
-        three = result.get("three") or {}
-        release = result.get("release_gate") or {}
+        if ft_scope == "all4":
+            # out_dir 无 current → 每档从底座初值 FT
+            result = run_e1f_all4_finetune(
+                train_dirs,
+                out_dir,
+                subject_models_dir=out_dir,
+                heldout_session_dirs=hold_dirs,
+                replay_ratio=0.1 if use_replay else 0.0,
+                no_replay=not use_replay,
+                early_stop=True,
+                verbose=True,
+                device=device,
+            )
+            three = result.get("three") or {}
+            release = result.get("release_gate") or {}
+            print("  [F5] FT all4 融合 → heldout …")
+            ov_path = out_dir / "e1f_overlay.json"
+            if ov_path.is_file():
+                ov = json.loads(ov_path.read_text(encoding="utf-8"))
+                ft_stack = (
+                    E1fStackConfig.load_json(E1F_CONFIG, repo_root=_REPO)
+                    .with_member_overrides(ov.get("members") or {})
+                    .resolve_paths(repo_root=_REPO)
+                )
+                ft_reg = E1fRegistry(ft_stack, device=device)
+                ft_f5 = eval_f5_e1f(hold_dirs, device=device, e1f_registry=ft_reg)
+            else:
+                ft_f5 = eval_f5_three_ckpt(
+                    out_dir / "best_three.pt", hold_dirs, device=device
+                )
+        else:
+            result = run_subject_finetune(
+                train_dirs,
+                out_dir,
+                task_ckpt=DEFAULT_TASK,
+                three_ckpt=DEFAULT_THREE,
+                heldout_session_dirs=hold_dirs,
+                replay_ratio=0.1 if use_replay else 0.0,
+                no_replay=not use_replay,
+                early_stop=True,
+                verbose=True,
+                device=device,
+            )
+            three = result.get("three") or {}
+            release = result.get("release_gate") or {}
+            print("  [F5] FT three → heldout …")
+            ft_f5 = eval_f5_three_ckpt(
+                out_dir / "best_three.pt", hold_dirs, device=device
+            )
 
-        ft_three_path = out_dir / "best_three.pt"
-        print("  [F5] FT three → heldout …")
-        ft_f5 = eval_f5_three_ckpt(ft_three_path, hold_dirs, device=device)
-
-        def _pack(tag_name: str, blob: Optional[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
+        def _pack(
+            tag_name: str, blob: Optional[Dict[str, Any]]
+        ) -> Optional[Dict[str, Any]]:
             if blob is None:
                 return None
             f5 = blob["f5"]
@@ -427,6 +503,8 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
         row = {
             "r_stage": i,
             "protocol": "leave_next_f5",
+            "ft_scope": ft_scope,
+            "metric_note": "heldout_acc=窗级smooth；gate=窗级raw；f5=试次级",
             "judge_rule": "causal_smooth_majority",
             "causal_lookback": CAUSAL_LOOKBACK,
             "train": [d.name for d in train_dirs],
@@ -435,20 +513,30 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
             "replay_ratio": 0.1 if use_replay else 0.0,
             "out_dir": str(out_dir),
             "release_pass": bool(result.get("release_pass")),
-            "heldout_acc": three.get("acc_after_heldout"),
+            "heldout_acc": three.get("acc_after_heldout_smooth"),
+            "heldout_acc_raw": three.get("acc_after_heldout"),
+            "heldout_acc_smooth": three.get("acc_after_heldout_smooth"),
             "train_acc": three.get("acc_after_train"),
-            "max_class_frac": (three.get("heldout_pred_dist") or {}).get("max_class_frac"),
-            "pred_labels": (release.get("pred_labels") if isinstance(release, dict) else None),
+            "max_class_frac": (three.get("heldout_pred_dist") or {}).get(
+                "max_class_frac"
+            ),
+            "pred_labels": (
+                release.get("pred_labels") if isinstance(release, dict) else None
+            ),
             "train_minus_heldout": None,
             "task_heldout_acc": (result.get("task") or {}).get("acc_after_heldout"),
             "base_task_ckpt": str(DEFAULT_TASK),
             "base_three_ckpt": str(DEFAULT_THREE),
-            "f5_ft": _pack("ft_three", ft_f5),
+            "f5_ft": _pack("ft_all4" if ft_scope == "all4" else "ft_three", ft_f5),
             "f5_base_three": _pack("base_three", base_three),
             "f5_base_e1f": _pack("base_e1f", base_e1f),
         }
-        if row["train_acc"] is not None and row["heldout_acc"] is not None:
-            row["train_minus_heldout"] = float(row["train_acc"]) - float(row["heldout_acc"])
+        if row["heldout_acc"] is None and row.get("heldout_acc_raw") is not None:
+            row["heldout_acc"] = row["heldout_acc_raw"]
+        if row["train_acc"] is not None and row.get("heldout_acc_raw") is not None:
+            row["train_minus_heldout"] = float(row["train_acc"]) - float(
+                row["heldout_acc_raw"]
+            )
         if isinstance(release, dict) and release.get("checks"):
             row["checks"] = release["checks"]
         summary.append(row)
@@ -470,20 +558,36 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
             return " | ".join(parts)
 
         ft = row["f5_ft"]
+        ha = row.get("heldout_acc")
+        ha_txt = f"{ha:.3f}" if ha is not None else "nan"
         print(
-            f"  → window heldout={row['heldout_acc']:.3f} PASS={row['release_pass']} | "
-            f"F5 total={ft['score']:.1f}/{ft.get('score_max', 54):.1f}"
+            f"  → window heldout={ha_txt} (smooth·展示)"
+            + (
+                f" raw={row['heldout_acc_raw']:.3f} (gate)"
+                if row.get("heldout_acc_raw") is not None
+                else ""
+            )
+            + f" PASS={row['release_pass']} | "
+            f"F5 total={(ft or {}).get('score')}/{(ft or {}).get('score_max', 54)}"
         )
         print(f"     FT  {_lab_line(ft)}")
         print(f"     base3 {_lab_line(row.get('f5_base_three'))}")
         if row.get("f5_base_e1f"):
             print(f"     e1f  {_lab_line(row.get('f5_base_e1f'))}")
 
-    sum_path = ft_root / f"{stamp}_{subject_id}_e1f_task_leave_next_f5_summary.json"
+    sum_name = (
+        f"{stamp}_{subject_id}_leave_next_all4_f5_summary.json"
+        if ft_scope == "all4"
+        else f"{stamp}_{subject_id}_e1f_task_leave_next_f5_summary.json"
+    )
+    sum_path = ft_root / sum_name
     payload = {
         "generated_at": datetime.now().isoformat(timespec="seconds"),
         "subject_id": subject_id,
         "protocol": "leave_next_f5",
+        "ft_scope": ft_scope,
+        "planA": True,
+        "metric_note": "heldout_acc=窗级smooth；gate=窗级raw；f5=试次级",
         "judge_rule": "causal_smooth_majority",
         "causal_lookback": CAUSAL_LOOKBACK,
         "device": device,
@@ -505,16 +609,23 @@ def run_ramp(subject_id: str, *, promote_final: bool = False) -> Path:
 
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--subject", choices=SUBJECTS_ALL, action="append")
+    ap.add_argument("--all", action="store_true", help="仅 syj0828+fnz0828")
     ap.add_argument(
-        "--subject",
-        choices=SUBJECTS_ALL,
-        action="append",
+        "--cohort-real",
+        action="store_true",
+        help="全部真人：0828+0830+0831",
     )
-    ap.add_argument("--all", action="store_true", help="syj0828+fnz0828")
     ap.add_argument(
         "--cohort-0828-0830",
         action="store_true",
-        help="syj0828 fnz0828 + 全部 *0830 真被试",
+        help="同 --cohort-real（兼容旧旗标）",
+    )
+    ap.add_argument(
+        "--ft-scope",
+        choices=("all4", "so"),
+        default="all4",
+        help="默认 all4（现行 SOP）",
     )
     ap.add_argument(
         "--promote-final",
@@ -523,12 +634,16 @@ def main() -> None:
     )
     args = ap.parse_args()
     subjects = list(args.subject or [])
-    if args.cohort_0828_0830:
+    if args.cohort_real or args.cohort_0828_0830:
         subjects = list(SUBJECTS_ALL)
     elif args.all or not subjects:
         subjects = ["syj0828", "fnz0828"]
     for sid in subjects:
-        run_ramp(sid, promote_final=bool(args.promote_final))
+        run_ramp(
+            sid,
+            promote_final=bool(args.promote_final),
+            ft_scope=str(args.ft_scope),
+        )
 
 
 if __name__ == "__main__":

@@ -80,7 +80,7 @@ def _table_stats(session: Path) -> dict:
 
 def main() -> int:
     print(f"theo windows / 4s segment (3s hop100) = {n_windows_3s_hop100(4.0)}")
-    print("FT path: openbmi_align · L/R from Cue+0..4s; Rest from t_rest_start/end")
+    print("FT path: openbmi_align · L/R from mi_start+0..4s (Align); Rest from t_rest_start/end")
     print("Rest cap in ft_subject_from_v3: min(n_left, n_right) when no label=0 trials\n")
 
     grand = Counter()

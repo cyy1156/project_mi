@@ -12,7 +12,7 @@ from experiment_game.experiment.v2_config import V2Config  # noqa: E402
 
 def test_v2_config_openbmi_grid():
     cfg = V2Config.load_yaml()
-    assert cfg.cue_s == 0.0
+    assert cfg.cue_s == 1.0
     assert cfg.imagine_s == 4.0
     assert cfg.online_window_mode == "openbmi_hop100"
     assert len(cfg.judgment_times) == 11

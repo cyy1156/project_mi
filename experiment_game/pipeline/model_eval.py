@@ -2,7 +2,9 @@
 
 对被试留存的每套权重（current + models/ft_runs/<stamp>）× 每个 v3 会话：
 离线切窗（与训练同构 openbmi_align）→ E1f 三分类推理 →
-窗级 / 试次级（split_id 多数票）准确率。CPU 推理，按模型依次构建、复用评所有会话。
+窗级因果平滑（对齐在线 acc_window）/ 试次级因果平滑+多数票（对齐 F5）；
+另附窗级 raw 字段便于诊断。
+CPU 推理，按模型依次构建、复用评所有会话。
 """
 
 from __future__ import annotations
@@ -10,7 +12,7 @@ from __future__ import annotations
 import json
 from collections import defaultdict
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 
@@ -125,7 +127,46 @@ def list_weight_sets(subject_models_dir: Path | str) -> List[Dict[str, Any]]:
     return out
 
 
-def _majority_by_trial(preds: np.ndarray, y: np.ndarray, split_ids: np.ndarray) -> Dict[str, float]:
+def _window_acc_causal(
+    probs: np.ndarray,
+    y: np.ndarray,
+    split_ids: np.ndarray,
+    *,
+    lookback: int = 2,
+    lr_only: bool = False,
+) -> Optional[float]:
+    """窗级因果平滑 acc（对齐在线 acc_window / 方案 A）。"""
+    from adapt_engine.readout import causal_smooth_pred_sequence
+
+    if len(y) == 0:
+        return None
+    groups: Dict[str, List[int]] = defaultdict(list)
+    for i, sid in enumerate(split_ids):
+        groups[str(sid)].append(i)
+    pred = np.zeros(len(y), dtype=np.int64)
+    for idxs in groups.values():
+        seq = [np.asarray(probs[i], dtype=np.float32) for i in idxs]
+        smoothed = causal_smooth_pred_sequence(seq, lookback=lookback)
+        for j, ix in enumerate(idxs):
+            pred[ix] = int(smoothed[j]["pred"])
+    mask = (y != 0) if lr_only else np.ones(len(y), dtype=bool)
+    if not mask.any():
+        return None
+    return float((pred[mask] == y[mask]).mean())
+
+
+def _majority_by_trial(
+    preds: np.ndarray,
+    y: np.ndarray,
+    split_ids: np.ndarray,
+    probs: np.ndarray | None = None,
+    *,
+    causal_lookback: int = 2,
+) -> Dict[str, float]:
+    """试次级多数票；默认因果平滑后投票（对齐在线 F5 / 方案 A）。"""
+    from adapt_engine.readout import causal_smooth_pred_sequence
+    from experiment_game.experiment.judge_aggregate import majority_pred_from_votes
+
     groups: Dict[str, List[int]] = defaultdict(list)
     for i, sid in enumerate(split_ids):
         groups[str(sid)].append(i)
@@ -133,9 +174,19 @@ def _majority_by_trial(preds: np.ndarray, y: np.ndarray, split_ids: np.ndarray) 
     n = 0
     for _sid, idxs in groups.items():
         labels = y[idxs]
-        # 同一试次标签唯一；取多数票 pred
-        vals, counts = np.unique(preds[idxs], return_counts=True)
-        pred = int(vals[np.argmax(counts)])
+        idx_arr = np.asarray(idxs, dtype=int)
+        if probs is not None and len(idx_arr) > 0:
+            seq = [np.asarray(probs[i], dtype=np.float32) for i in idx_arr]
+            smoothed = causal_smooth_pred_sequence(seq, lookback=causal_lookback)
+            preds_use = np.asarray([int(s["pred"]) for s in smoothed], dtype=np.int64)
+            p_slice = np.stack(
+                [np.asarray(s["p_three"], dtype=np.float64) for s in smoothed],
+                axis=0,
+            )
+        else:
+            preds_use = preds[idx_arr]
+            p_slice = None
+        pred = majority_pred_from_votes(preds_use, p_slice)
         n_correct += int(pred == int(labels[0]))
         n += 1
     return {"acc_trial_majority": round(n_correct / n, 4) if n else None, "n_trials": n}
@@ -165,17 +216,22 @@ def evaluate_weight_set(
             probs = reg.forward_three_batch(X)
             preds = probs.argmax(axis=1).astype(np.int64)
             y = y.astype(np.int64)
-            lr = y != 0  # 窗级准确率按 L/R 计算（与在线判定口径一致）
-            acc_lr = (
+            # 窗级：展示用因果平滑（对齐在线 acc_window）；另附 raw 便于诊断
+            acc_lr = _window_acc_causal(probs, y, split_ids, lr_only=True)
+            acc_all = _window_acc_causal(probs, y, split_ids, lr_only=False)
+            lr = y != 0
+            acc_lr_raw = (
                 float((preds[lr] == y[lr]).mean()) if lr.any() else None
             )
-            acc_all = float((preds == y).mean())
-            maj = _majority_by_trial(preds, y, split_ids)
+            acc_all_raw = float((preds == y).mean())
+            maj = _majority_by_trial(preds, y, split_ids, probs)
             rows.append({
                 "session": sd.name,
                 "n_windows": int(len(X)),
                 "acc_window_lr": round(acc_lr, 4) if acc_lr is not None else None,
-                "acc_window_all": round(acc_all, 4),
+                "acc_window_all": round(acc_all, 4) if acc_all is not None else None,
+                "acc_window_lr_raw": round(acc_lr_raw, 4) if acc_lr_raw is not None else None,
+                "acc_window_all_raw": round(acc_all_raw, 4),
                 **maj,
             })
         except Exception as exc:  # noqa: BLE001

@@ -103,7 +103,7 @@ def main():
 
     # replay with merged fnz weights
     if (SES / "eeg.csv").is_file() and (SES / "alignment/trial_table.csv").is_file():
-        from experiment_game.tools._analyze_fnz_ws02 import feed_buffer, judge_at
+        from experiment_game.tools.archive._analyze_fnz_ws02 import feed_buffer, judge_at
         from experiment_game.experiment.inference_v2 import OnlinePreprocessor, RingBuffer
         from adapt_engine.registry import ModelRegistry
 

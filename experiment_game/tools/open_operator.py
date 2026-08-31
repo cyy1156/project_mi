@@ -25,6 +25,31 @@ if str(_CODE_ROOT) not in sys.path:
 
 from experiment_game.experiment.orchestrator import OperatorService
 
+_DEFAULT_TOKEN_FILE = (
+    Path(__file__).resolve().parents[1] / "config" / "ws_control_token.txt"
+)
+
+
+def _load_fixed_ws_token() -> str | None:
+    """固定控制面 token：CLI / EG_WS_TOKEN / config/ws_control_token.txt。
+
+    有固定值时操作台 URL 的 ?token= 每次启动不变，便于局域网收藏。
+    """
+    import os
+
+    env = (os.environ.get("EG_WS_TOKEN") or "").strip()
+    if env:
+        return env
+    path = _DEFAULT_TOKEN_FILE
+    if path.is_file():
+        raw = path.read_text(encoding="utf-8").strip()
+        # 允许一行注释；取首个非空非 # 行
+        for line in raw.splitlines():
+            s = line.strip()
+            if s and not s.startswith("#"):
+                return s
+    return None
+
 
 def _wire_implementations(svc: OperatorService) -> None:
     """入口层负责注入 offline/tools 具体实现（依赖倒置，见重构实施方案 §3.3）。
@@ -53,15 +78,16 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument(
         "--ws-token",
         default=None,
-        help="WS 控制面 token（默认自动生成；也可用环境变量 EG_WS_TOKEN）",
+        help=(
+            "WS 控制面 token；默认读 EG_WS_TOKEN 或 "
+            "experiment_game/config/ws_control_token.txt；皆无则随机生成"
+        ),
     )
     p.add_argument("--open-browser", action="store_true", default=True)
     p.add_argument("--no-browser", action="store_true")
     args = p.parse_args(argv)
 
-    import os
-
-    token = args.ws_token or os.environ.get("EG_WS_TOKEN") or None
+    token = (str(args.ws_token).strip() if args.ws_token else "") or _load_fixed_ws_token()
     svc = OperatorService(
         http_port=args.http_port,
         ws_port=args.ws_port,
@@ -74,6 +100,10 @@ def main(argv: list[str] | None = None) -> int:
     print("=== 操作者采集控制台 ===")
     print("关闭本窗口即结束服务。")
     print("默认：采集开 + 合成板；真机请在 Setup 选 Cyton，串口填设备管理器中的 COM（当前机常见 COM3）。")
+    if token:
+        print(f"WS token：固定（来自 --ws-token / EG_WS_TOKEN / config/ws_control_token.txt）")
+    else:
+        print("WS token：本次随机（未配置固定 token）")
     if args.host not in ("127.0.0.1", "localhost"):
         print(f"远程模式：--host {args.host}（监控端用下方打印的局域网 URL，须含 token）")
 

@@ -21,6 +21,36 @@ def _sum_p_three(judgments: List[Dict[str, Any]], pred: int) -> float:
     return total
 
 
+def majority_pred_from_votes(
+    preds: np.ndarray,
+    probs: Optional[np.ndarray] = None,
+) -> int:
+    """试次级硬票多数；平票时按各类概率和破平（与 F5 primary_judge 一致）。
+
+    ``probs`` 形状 (n_win, 3)；缺省时平票取 **最小类别 id**（与旧 model_eval 相同，不推荐）。
+    """
+    preds = np.asarray(preds, dtype=np.int64).reshape(-1)
+    if preds.size == 0:
+        raise ValueError("majority_pred_from_votes: empty preds")
+    cnt = Counter(int(p) for p in preds)
+    top = cnt.most_common()
+    if len(top) == 1 or top[0][1] > top[1][1]:
+        return int(top[0][0])
+    tied = [int(p) for p, n in top if n == top[0][1]]
+    if probs is None:
+        return int(min(tied))
+    prob_arr = np.asarray(probs, dtype=np.float64)
+    if prob_arr.ndim == 1:
+        prob_arr = prob_arr.reshape(-1, 3)
+
+    def _score(c: int) -> float:
+        mask = preds == c
+        if not mask.any():
+            return 0.0
+        return float(prob_arr[mask, c].sum())
+
+    return int(max(tied, key=_score))
+
 def apply_causal_smooth_to_judgments(
     judgments: List[Dict[str, Any]],
     *,
@@ -95,7 +125,11 @@ def primary_judge_from_judgments(
         out = dict(rep)
         out["pred"] = winner
         out["rule"] = "causal_smooth_majority"
-        out["vote_counts"] = {int(k): int(v) for k, v in cnt.items()}
+        # 固定含 Rest/Left/Right，避免缺键时前端回看看起来像「没有 Rest」
+        vc = {0: 0, 1: 0, 2: 0}
+        for k, v in cnt.items():
+            vc[int(k)] = int(v)
+        out["vote_counts"] = vc
         out["causal_lookback"] = int(causal_lookback)
         return out
 
