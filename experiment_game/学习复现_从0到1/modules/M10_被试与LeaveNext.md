@@ -1,48 +1,114 @@
-# M10 · 被试登录与 Leave-Next 微调
+# M10 · Leave-Next 调度（详细：参考谁、怎么写）
 
-## 目标
+---
 
-分清：**会话中不在线改权重**；采后用 Leave-Next 爬坡，再 promote 到 `models/current`。
+## 一句话目标
 
-## 概念
+自己写：**选哪些场训练、hold 哪一场、循环跑 FT、写 summary**。  
+真正的梯度更新可调用原版 `pipeline/finetune.py`。
 
-| 模式 | 含义 |
-|------|------|
-| 轮间在线 FT | 旧方案；**现行关闭**（F7） |
-| **Leave-Next** | 用前面若干 run 训练，hold 下一个 run 评估，逐步爬坡 |
-| promote | 把某次 `ft_runs` 权重提升为 `models/current` |
-| 强制晋升 | 门控 FAIL 仍可警告后替换（F8，如 fnz） |
+---
 
-replay 默认 **0.10** 混入源域窗防遗忘（F9）。
+## 原版精读表
 
-## 对应代码
+| 步 | 文件 | 搜 / 读 | 看懂即停 |
+|----|------|---------|----------|
+| 1 | `docs/被试登录与按session微调方案_20260827.md` | 前半目录约定 | subjects 树 |
+| 2 | 冻结表 | F7 在线 FT 关；F8 promote；F9 replay；F11 只要 v3 | 政策 |
+| 3 | `experiment_game/tools/run_leave_next_e1f_task_ramp.py` | **文件头注释** + `RAMP_` 列表 | 爬坡长什么样 |
+| 4 | 同上 | `_list_v3_sessions` / 过滤函数 | 如何筛 v3 |
+| 5 | 同上 | `_ramp_for_subject` | 缺场如何 skip |
+| 6 | `experiment_game/pipeline/finetune.py` | 搜 `def run_subject_finetune` 或主入口 | **只读签名+docstring** |
+| 7 | `tools/ft_subject_from_v3.py` | argparse | CLI 如何传参 |
+| 8 | 一场现成 `*leave_next*summary.json` | 字段 | 你的 summary 子集对齐 |
+| 9 | `orchestrator.py` | 只搜 `_handle_finetune` | 操作台如何触发（了解即可） |
 
-| 内容 | 路径 | 看什么 |
-|------|------|--------|
-| 微调主实现 | `pipeline/finetune.py` | `run_subject_finetune` |
-| CLI 壳 | `tools/ft_subject_from_v3.py` | 参数如何进 pipeline |
-| Leave-Next 工具 | `tools/run_leave_next_e1f_task_ramp.py` | 过滤 `phase_mode==v3_session` |
-| 操作台触发 | `orchestrator.py` `_handle_finetune_*` | 线程跑 FT、promote |
-| 文档 | `docs/被试登录与按session微调方案_20260827.md` | |
-| 真人证据 | `资料/模型训练/31_.../总结/结果登记表.md` | syj / fnz |
+---
 
-## 精读顺序
+## 你要写的签名草稿
 
-1. 被试登录文档前半：目录约定  
-2. `run_leave_next_e1f_task_ramp.py` 文件头注释 + 过滤 v3 的函数  
-3. `pipeline/finetune.py`：只读函数签名与 docstring（全文很长，抓协议 `openbmi_align`）  
-4. 冻结 F7/F8/F9/F11  
+### `ft_filters.py`
 
-## 动手题
+```python
+def is_trainable_session(meta: dict) -> bool:
+    if meta.get("phase_mode") != "v3_session":
+        return False
+    if meta.get("complete") is False:
+        return False
+    return True
+```
 
-1. 解释：为何 v4 帽检 session 不能进 Leave-Next 训练集。  
-2. 对照方案 31：syj 末档 MI 94.4% 与零样本对比说明什么。  
-3. （有数据时）在 Summary 走一遍 FT；或只读已有 `ft_runs/*summary.json`。
+### `leave_next.py`
+
+```python
+def build_ramp(session_keys: list[str]) -> list[tuple[list[str], str, bool]]:
+    """
+    例如 keys=[w01..w06]
+    返回 [([w01],w02,True), ([w01,w02],w03,True), ...]
+    对照原版 RAMP_W；replay 布尔可先简化
+    """
+    out = []
+    for i in range(1, len(session_keys)):
+        train = session_keys[:i]
+        hold = session_keys[i]
+        use_replay = i < 3  # 示例：前几档 True，对照原版改
+        out.append((train, hold, use_replay))
+    return out
+```
+
+打开原版 `RAMP_W` / `RAMP_YCX`，把 True/False 抄准。
+
+### `tools/run_leave_next.py`
+
+```python
+# 1. 列出 subject 下 session
+# 2. 过滤
+# 3. for train, hold, replay in build_ramp(...):
+#        调用 FakeFT 或真 finetune
+#        写 summary 一行/一个 json
+```
+
+### FakeFT（先通调度）
+
+```python
+def fake_finetune(train_dirs, hold_dir, out_dir) -> dict:
+    return {"release_pass": False, "heldout_acc": 0.0, "note": "fake"}
+```
+
+真 FT：读 `run_subject_finetune` 签名，用子进程或 import 调用；失败时看原版 CLI 参数。
+
+### 测试
+
+- 6 个 key → 5 档；hold 分别是第 2…6 场。  
+- meta incomplete 的场不会出现在 keys。  
+- v4 meta 被拒。
+
+---
+
+## 逐步仿写
+
+1. 只测 `build_ramp` / `is_trainable_session`（不需 GPU）。  
+2. CLI + FakeFT 写出 summary 文件。  
+3. 有环境再换真 finetune。  
+4. promote：显式函数 `promote(run_dir, current_dir)`，gate FAIL 默认不覆盖。
+
+---
+
+## 常见坑
+
+| 坑 | 做法 |
+|----|------|
+| 把帽检 v4 训进去 | 过滤 phase_mode |
+| 半场当满场 | complete 标志 |
+| 一上来就调全员 all4 GPU | 先 FakeFT |
+
+---
 
 ## 验收
 
-- [ ] 能画出「多场 v3 → Leave-Next → current」  
-- [ ] 能说出 replay=0.10 的用途  
+- [ ] 能画 Leave-Next 图  
+- [ ] 过滤+ramp 测试绿  
+- [ ] README 声明 finetune 是否复用原版 |
 
 ## 下一模块
 
