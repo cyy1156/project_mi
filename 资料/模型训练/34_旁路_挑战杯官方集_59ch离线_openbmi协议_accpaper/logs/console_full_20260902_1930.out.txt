@@ -1,0 +1,61 @@
+[2026-09-02 19:33:54] === Exp34 FULL start run_tag=full_20260902_1930 py=C:\Users\yy\.conda\envs\cyy\python.exe only=all ===
+[2026-09-02 19:33:54] skip preprocess (exists (900, 1, 59, 750) / (900, 1, 8, 750))
+[2026-09-02 19:33:54] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:34:36] OK (42.2s)
+[2026-09-02 19:34:36] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow_b.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:35:18] OK (41.4s)
+[2026-09-02 19:35:18] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_eegnet.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:36:47] OK (89.3s)
+[2026-09-02 19:36:47] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_conformer.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:41:20] OK (273.6s)
+[2026-09-02 19:41:20] EXEC C:\Users\yy\.conda\envs\cyy\python.exe fit_e1f_a59.py --member-runs shallow=D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\shallow_challenge_mi_3s_59ch\challenge_mi_3s_59ch\run_full_20260902_1930\three shallow_b=D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\shallow_b_challenge_mi_3s_59ch\challenge_mi_3s_59ch\run_full_20260902_1930\three eegnet=D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\eegnet_challenge_mi_3s_59ch\challenge_mi_3s_59ch\run_full_20260902_1930\three conformer=D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\conformer_challenge_mi_3s_59ch\challenge_mi_3s_59ch\run_full_20260902_1930\three --out D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\e1f_a59\e1f_full_full_20260902_1930.json  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:41:22] OK (1.2s)
+[2026-09-02 19:41:22] EXEC C:\Users\yy\.conda\envs\cyy\python.exe predict_e1f_submission.py --e1f-json D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\e1f_a59\e1f_full_full_20260902_1930.json --out-csv D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\submissions\submission_exp34_e1f_a59_sens_full_20260902_1930.csv  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_59ch_accpaper)
+[2026-09-02 19:41:28] OK (6.8s)
+[2026-09-02 19:41:28] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:41:42] OK (13.6s)
+[2026-09-02 19:41:42] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow_b.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:41:54] OK (11.5s)
+[2026-09-02 19:41:54] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_eegnet.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:42:08] OK (14.3s)
+[2026-09-02 19:42:08] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_conformer.py --run-tag full_20260902_1930  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:42:38] OK (30.2s)
+[2026-09-02 19:42:38] EXEC C:\Users\yy\.conda\envs\cyy\python.exe fit_e1f_b8.py --arm ft --member-runs shallow=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\shallow_challenge_mi_3s_8ch_ft\challenge_mi_3s_8ch\run_full_20260902_1930\three shallow_b=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\shallow_b_challenge_mi_3s_8ch_ft\challenge_mi_3s_8ch\run_full_20260902_1930\three eegnet=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\eegnet_challenge_mi_3s_8ch_ft\challenge_mi_3s_8ch\run_full_20260902_1930\three conformer=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\conformer_challenge_mi_3s_8ch_ft\challenge_mi_3s_8ch\run_full_20260902_1930\three  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:42:39] OK (0.7s)
+[2026-09-02 19:42:39] EXEC C:\Users\yy\.conda\envs\cyy\python.exe predict_e1f_submission.py --e1f-json D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\e1f_b8\e1f_ft_20260902_194239.json --out-csv D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\submissions\submission_exp34_e1f_b8_sens_ft_full_20260902_1930.csv  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:42:43] OK (4.5s)
+[2026-09-02 19:42:43] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow.py --run-tag full_20260902_1930 --scratch  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:43:01] OK (17.3s)
+[2026-09-02 19:43:01] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_shallow_b.py --run-tag full_20260902_1930 --scratch  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:43:16] OK (15.3s)
+[2026-09-02 19:43:16] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_eegnet.py --run-tag full_20260902_1930 --scratch  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:43:30] OK (14.2s)
+[2026-09-02 19:43:30] EXEC C:\Users\yy\.conda\envs\cyy\python.exe baseline_conformer.py --run-tag full_20260902_1930 --scratch  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:44:15] OK (44.5s)
+[2026-09-02 19:44:15] EXEC C:\Users\yy\.conda\envs\cyy\python.exe fit_e1f_b8.py --arm scratch --member-runs shallow=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\shallow_challenge_mi_3s_8ch_scratch\challenge_mi_3s_8ch\run_full_20260902_1930\three shallow_b=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\shallow_b_challenge_mi_3s_8ch_scratch\challenge_mi_3s_8ch\run_full_20260902_1930\three eegnet=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\eegnet_challenge_mi_3s_8ch_scratch\challenge_mi_3s_8ch\run_full_20260902_1930\three conformer=D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\conformer_challenge_mi_3s_8ch_scratch\challenge_mi_3s_8ch\run_full_20260902_1930\three  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:44:15] OK (0.6s)
+[2026-09-02 19:44:15] EXEC C:\Users\yy\.conda\envs\cyy\python.exe predict_e1f_submission.py --e1f-json D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\e1f_b8\e1f_scratch_20260902_194415.json --out-csv D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\submissions\submission_exp34_e1f_b8_sens_scratch_full_20260902_1930.csv  (cwd=D:\MI\code\train_lab\src\step\5070_challenge_mi_8ch_ft_accpaper)
+[2026-09-02 19:44:20] OK (4.7s)
+[2026-09-02 19:44:20] EXEC C:\Users\yy\.conda\envs\cyy\python.exe -m experiment_game.tools.run_leave_next_e1f_task_ramp --subject syj0828 --subject fnz0828 --ft-scope all4  (cwd=D:\MI)
+[2026-09-02 19:50:49] OK (389.4s)
+[2026-09-02 19:50:49] === Exp34 FULL DONE ===
+[2026-09-02 19:50:50] {
+  "run_tag": "full_20260902_1930",
+  "log": "D:\\MI\\资料\\模型训练\\34_旁路_挑战杯官方集_59ch离线_openbmi协议_accpaper\\logs\\exp34_full_20260902_1930.log",
+  "submission_A": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\submissions\\submission_exp34_e1f_a59_sens_full_20260902_1930.csv",
+  "e1f_A": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\e1f_a59\\e1f_full_full_20260902_1930.json",
+  "submission_B_ft": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\submissions\\submission_exp34_e1f_b8_sens_ft_full_20260902_1930.csv",
+  "submission_B_scratch": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\submissions\\submission_exp34_e1f_b8_sens_scratch_full_20260902_1930.csv",
+  "track_C": "syj0828,fnz0828",
+  "status_md": "D:\\MI\\资料\\模型训练\\34_旁路_挑战杯官方集_59ch离线_openbmi协议_accpaper\\总结\\全量运行状态_full_20260902_1930.md"
+}
+
+Artifacts:
+  run_tag: full_20260902_1930
+  log: D:\MI\资料\模型训练\34_旁路_挑战杯官方集_59ch离线_openbmi协议_accpaper\logs\exp34_full_20260902_1930.log
+  submission_A: D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\submissions\submission_exp34_e1f_a59_sens_full_20260902_1930.csv
+  e1f_A: D:\MI\code\train_lab\out\5070_challenge_mi_59ch_accpaper\e1f_a59\e1f_full_full_20260902_1930.json
+  submission_B_ft: D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\submissions\submission_exp34_e1f_b8_sens_ft_full_20260902_1930.csv
+  submission_B_scratch: D:\MI\code\train_lab\out\5070_challenge_mi_8ch_ft_accpaper\submissions\submission_exp34_e1f_b8_sens_scratch_full_20260902_1930.csv
+  track_C: syj0828,fnz0828
+  status_md: D:\MI\资料\模型训练\34_旁路_挑战杯官方集_59ch离线_openbmi协议_accpaper\总结\全量运行状态_full_20260902_1930.md

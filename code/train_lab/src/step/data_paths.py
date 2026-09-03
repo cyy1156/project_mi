@@ -27,6 +27,9 @@ DATA_TAGS: dict[str, tuple[str, str]] = {
     "stieger_1s": ("stieger_1s", "stieger"),
     "stieger_2s_hop100": ("stieger_2s_hop100", "stieger"),
     "stieger_3s_hop100": ("stieger_3s_hop100", "stieger"),
+    # Exp34 · 挑战杯官方指定集
+    "challenge_mi_3s_59ch": ("challenge_mi_3s_59ch", "challenge"),
+    "challenge_mi_3s_8ch": ("challenge_mi_3s_8ch", "challenge"),
 }
 
 

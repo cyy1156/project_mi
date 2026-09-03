@@ -1,0 +1,189 @@
+{
+  "tag": "full_20260902_1930",
+  "A": {
+    "shallow": {
+      "acc": 0.4533333333333333,
+      "acc_std": 0.06746192341692543,
+      "macro_r": 0.4533333333333333,
+      "macro_r_std": 0.0674619234169254,
+      "macro_s": 0.7266666666666667,
+      "macro_s_std": 0.03373096170846276
+    },
+    "shallow_b": {
+      "acc": 0.44999999999999996,
+      "acc_std": 0.08791409948858539,
+      "macro_r": 0.45000000000000007,
+      "macro_r_std": 0.08791409948858539,
+      "macro_s": 0.725,
+      "macro_s_std": 0.04395704974429268
+    },
+    "eegnet": {
+      "acc": 0.3855555555555556,
+      "acc_std": 0.036127346777547684,
+      "macro_r": 0.38555555555555554,
+      "macro_r_std": 0.036127346777547684,
+      "macro_s": 0.6927777777777778,
+      "macro_s_std": 0.018063673388773835
+    },
+    "conformer": {
+      "acc": 0.5111111111111112,
+      "acc_std": 0.06568161138457301,
+      "macro_r": 0.5111111111111111,
+      "macro_r_std": 0.06568161138457301,
+      "macro_s": 0.7555555555555555,
+      "macro_s_std": 0.03284080569228651
+    },
+    "E1f": {
+      "acc": 0.5577777777777778,
+      "acc_std": 0.06949553676049726,
+      "macro_r": 0.5577777777777778,
+      "macro_r_std": 0.06949553676049729,
+      "macro_s": 0.778888888888889,
+      "macro_s_std": 0.03474776838024866
+    }
+  },
+  "B_ft": {
+    "shallow": {
+      "acc": 0.5233333333333333,
+      "acc_std": 0.12341438777999553,
+      "macro_r": 0.5233333333333333,
+      "macro_r_std": 0.12341438777999553,
+      "macro_s": 0.7616666666666666,
+      "macro_s_std": 0.061707193889997736
+    },
+    "shallow_b": {
+      "acc": 0.5277777777777778,
+      "acc_std": 0.12984891505415339,
+      "macro_r": 0.5277777777777778,
+      "macro_r_std": 0.12984891505415339,
+      "macro_s": 0.7638888888888888,
+      "macro_s_std": 0.06492445752707668
+    },
+    "eegnet": {
+      "acc": 0.5066666666666667,
+      "acc_std": 0.10624918300339486,
+      "macro_r": 0.5066666666666666,
+      "macro_r_std": 0.10624918300339485,
+      "macro_s": 0.7533333333333334,
+      "macro_s_std": 0.05312459150169745
+    },
+    "conformer": {
+      "acc": 0.5266666666666667,
+      "acc_std": 0.1258570617804182,
+      "macro_r": 0.5266666666666667,
+      "macro_r_std": 0.1258570617804182,
+      "macro_s": 0.7633333333333333,
+      "macro_s_std": 0.06292853089020908
+    },
+    "E1f": {
+      "acc": 0.5733333333333333,
+      "acc_std": 0.14028542333400146,
+      "macro_r": 0.5733333333333334,
+      "macro_r_std": 0.14028542333400146,
+      "macro_s": 0.7866666666666666,
+      "macro_s_std": 0.07014271166700074,
+      "json": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\e1f_b8\\e1f_ft_20260902_194239.json"
+    }
+  },
+  "B_scratch": {
+    "shallow": {
+      "acc": 0.45,
+      "acc_std": 0.05621387729022077,
+      "macro_r": 0.45,
+      "macro_r_std": 0.05621387729022077,
+      "macro_s": 0.7249999999999999,
+      "macro_s_std": 0.02810693864511038
+    },
+    "shallow_b": {
+      "acc": 0.4566666666666667,
+      "acc_std": 0.06062636023674484,
+      "macro_r": 0.45666666666666667,
+      "macro_r_std": 0.06062636023674486,
+      "macro_s": 0.7283333333333334,
+      "macro_s_std": 0.030313180118372415
+    },
+    "eegnet": {
+      "acc": 0.3622222222222223,
+      "acc_std": 0.049829338375729636,
+      "macro_r": 0.3622222222222222,
+      "macro_r_std": 0.04982933837572965,
+      "macro_s": 0.6811111111111111,
+      "macro_s_std": 0.024914669187864814
+    },
+    "conformer": {
+      "acc": 0.5022222222222222,
+      "acc_std": 0.08760179264189788,
+      "macro_r": 0.5022222222222222,
+      "macro_r_std": 0.08760179264189788,
+      "macro_s": 0.7511111111111111,
+      "macro_s_std": 0.04380089632094895
+    },
+    "E1f": {
+      "acc": 0.5233333333333333,
+      "acc_std": 0.08140434058861154,
+      "macro_r": 0.5233333333333333,
+      "macro_r_std": 0.0814043405886115,
+      "macro_s": 0.7616666666666667,
+      "macro_s_std": 0.040702170294305756,
+      "json": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\e1f_b8\\e1f_scratch_20260902_194415.json"
+    }
+  },
+  "C": {
+    "syj0828": {
+      "summary": "D:\\MI\\experiment_game\\data\\subjects\\syj0828\\models\\ft_runs\\20260902_194423_syj0828_leave_next_all4_f5_summary.json",
+      "keys": [
+        "generated_at",
+        "subject_id",
+        "protocol",
+        "ft_scope",
+        "planA",
+        "metric_note",
+        "judge_rule",
+        "causal_lookback",
+        "device",
+        "rows"
+      ]
+    },
+    "fnz0828": {
+      "summary": "D:\\MI\\experiment_game\\data\\subjects\\fnz0828\\models\\ft_runs\\20260902_194757_fnz0828_leave_next_all4_f5_summary.json",
+      "keys": [
+        "generated_at",
+        "subject_id",
+        "protocol",
+        "ft_scope",
+        "planA",
+        "metric_note",
+        "judge_rule",
+        "causal_lookback",
+        "device",
+        "rows"
+      ]
+    }
+  },
+  "csv": {
+    "submission_exp34_e1f_a59_sens_full_20260902_1930.csv": {
+      "n": 120,
+      "labels": {
+        "2": 47,
+        "1": 44,
+        "0": 29
+      }
+    },
+    "submission_exp34_e1f_b8_sens_ft_full_20260902_1930.csv": {
+      "n": 120,
+      "labels": {
+        "2": 57,
+        "0": 42,
+        "1": 21
+      }
+    },
+    "submission_exp34_e1f_b8_sens_scratch_full_20260902_1930.csv": {
+      "n": 120,
+      "labels": {
+        "0": 56,
+        "2": 49,
+        "1": 15
+      }
+    }
+  }
+}
