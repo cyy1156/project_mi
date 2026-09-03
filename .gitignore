@@ -59,6 +59,16 @@ code/train_lab/out/5070_shallow_impl_audit_accpaper/**/*.log
 !code/train_lab/out/5070_mech_verify_accpaper/
 !code/train_lab/out/5070_mech_verify_accpaper/**
 code/train_lab/out/5070_mech_verify_accpaper/**/*.pt
+# 实验 34/35：官方挑战杯双路径 + 排名翻转旁路（含权重与 JSON/CSV；约 100MB .pt）
+!code/train_lab/out/5070_challenge_mi_59ch_accpaper/
+!code/train_lab/out/5070_challenge_mi_59ch_accpaper/**
+!code/train_lab/out/5070_challenge_mi_8ch_ft_accpaper/
+!code/train_lab/out/5070_challenge_mi_8ch_ft_accpaper/**
+!code/train_lab/out/5070_challenge_rankflip_accpaper/
+!code/train_lab/out/5070_challenge_rankflip_accpaper/**
+code/train_lab/out/5070_challenge_mi_59ch_accpaper/**/*.log
+code/train_lab/out/5070_challenge_mi_8ch_ft_accpaper/**/*.log
+code/train_lab/out/5070_challenge_rankflip_accpaper/**/*.log
 !code/train_lab/out/5090_mech_verify_accpaper/
 !code/train_lab/out/5090_mech_verify_accpaper/**
 code/train_lab/out/5090_mech_verify_accpaper/**/*.pt
@@ -93,6 +103,9 @@ code/train_lab/out/**/_cache_*.npy
 *.png
 *.npy
 !experiment_game/data/epochs/**/*.npy
+!code/train_lab/out/5070_challenge_mi_59ch_accpaper/**/*.npy
+!code/train_lab/out/5070_challenge_mi_8ch_ft_accpaper/**/*.npy
+!code/train_lab/out/5070_challenge_rankflip_accpaper/**/*.npy
 
 # Nested-repo backup (LSL_connect_model had its own .git)
 _git_backup_LSL_connect_model/

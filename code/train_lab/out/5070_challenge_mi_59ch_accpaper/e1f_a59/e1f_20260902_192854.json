@@ -1,0 +1,73 @@
+{
+  "experiment": 34,
+  "track": "A59",
+  "device": "5070",
+  "member_dirs": {
+    "shallow": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_smoke_fold0\\three",
+    "shallow_b": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_smoke_fold0\\three"
+  },
+  "n_folds": 1,
+  "val_acc_mean": 0.4066666666666667,
+  "val_acc_std": 0.0,
+  "folds": [
+    {
+      "fold": 0,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b"
+        ],
+        "temperatures": [
+          9.999993259188475,
+          9.99998620542486
+        ],
+        "weights": [
+          0.0,
+          1.0
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.4066666666666667
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.4066666666666667,
+        "acc_paper": 0.4066666666666667,
+        "macro_recall": 0.4066666666666667,
+        "macro_specificity": 0.7033333333333333,
+        "per_class_recall": [
+          0.36,
+          0.28,
+          0.58
+        ],
+        "per_class_specificity": [
+          0.64,
+          0.78,
+          0.69
+        ],
+        "confusion_matrix": [
+          [
+            18,
+            10,
+            22
+          ],
+          [
+            27,
+            14,
+            9
+          ],
+          [
+            9,
+            12,
+            29
+          ]
+        ]
+      },
+      "n_members": 2,
+      "members": [
+        "shallow",
+        "shallow_b"
+      ]
+    }
+  ],
+  "time": "2026-09-02T19:28:54"
+}

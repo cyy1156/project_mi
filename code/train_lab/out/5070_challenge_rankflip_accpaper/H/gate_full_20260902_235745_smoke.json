@@ -1,0 +1,569 @@
+{
+  "generated_at": "2026-09-02T23:59:00",
+  "arms": [
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H0",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 20,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 4,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.5,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:08",
+      "n_folds": 1,
+      "val_acc_mean": 0.4,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 13,
+          "best_val_acc": 0.4,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.4,
+            "acc_paper": 0.4,
+            "macro_recall": 0.39999999999999997,
+            "macro_specificity": 0.7000000000000001,
+            "per_class_recall": [
+              0.3,
+              0.4,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.75,
+              0.74,
+              0.61
+            ],
+            "confusion_matrix": [
+              [
+                15,
+                11,
+                24
+              ],
+              [
+                15,
+                20,
+                15
+              ],
+              [
+                10,
+                15,
+                25
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_full_20260902_235745_smoke_H0\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 9.173599004745483,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_full_20260902_235745_smoke_H0\\three",
+      "gap_vs_conformer_anchor": 0.11099999999999999,
+      "delta_vs_shallow_anchor": -0.05299999999999999
+    },
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H1",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 20,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 8,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.5,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H1_accumx2",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:17",
+      "n_folds": 1,
+      "val_acc_mean": 0.37333333333333335,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 28,
+          "best_val_acc": 0.37333333333333335,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.37333333333333335,
+            "acc_paper": 0.37333333333333335,
+            "macro_recall": 0.37333333333333335,
+            "macro_specificity": 0.6866666666666665,
+            "per_class_recall": [
+              0.34,
+              0.34,
+              0.44
+            ],
+            "per_class_specificity": [
+              0.63,
+              0.73,
+              0.7
+            ],
+            "confusion_matrix": [
+              [
+                17,
+                13,
+                20
+              ],
+              [
+                23,
+                17,
+                10
+              ],
+              [
+                14,
+                14,
+                22
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H1\\run_full_20260902_235745_smoke_H1\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 8.33179521560669,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H1\\run_full_20260902_235745_smoke_H1\\three",
+      "gap_vs_conformer_anchor": 0.13766666666666666,
+      "delta_vs_shallow_anchor": -0.07966666666666666
+    },
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H2",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 20,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 4,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.25,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H2_drop0.25",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:25",
+      "n_folds": 1,
+      "val_acc_mean": 0.34,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 4,
+          "best_val_acc": 0.34,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.34,
+            "acc_paper": 0.34,
+            "macro_recall": 0.34,
+            "macro_specificity": 0.6699999999999999,
+            "per_class_recall": [
+              0.5,
+              0.3,
+              0.22
+            ],
+            "per_class_specificity": [
+              0.5,
+              0.77,
+              0.74
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                9,
+                16
+              ],
+              [
+                25,
+                15,
+                10
+              ],
+              [
+                25,
+                14,
+                11
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H2\\run_full_20260902_235745_smoke_H2\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 4.509743690490723,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H2\\run_full_20260902_235745_smoke_H2\\three",
+      "gap_vs_conformer_anchor": 0.17099999999999999,
+      "delta_vs_shallow_anchor": -0.11299999999999999
+    },
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H3",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 40,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 4,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.5,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H3_pat40",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:30",
+      "n_folds": 1,
+      "val_acc_mean": 0.35333333333333333,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 1,
+          "best_val_acc": 0.35333333333333333,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.35333333333333333,
+            "acc_paper": 0.35333333333333333,
+            "macro_recall": 0.35333333333333333,
+            "macro_specificity": 0.6766666666666667,
+            "per_class_recall": [
+              0.2,
+              0.84,
+              0.02
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.24,
+              1.0
+            ],
+            "confusion_matrix": [
+              [
+                10,
+                40,
+                0
+              ],
+              [
+                8,
+                42,
+                0
+              ],
+              [
+                13,
+                36,
+                1
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H3\\run_full_20260902_235745_smoke_H3\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 7.345035552978516,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H3\\run_full_20260902_235745_smoke_H3\\three",
+      "gap_vs_conformer_anchor": 0.15766666666666668,
+      "delta_vs_shallow_anchor": -0.09966666666666668
+    },
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H4",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 20,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 4,
+        "lr": 0.0003,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.5,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H4_lr3e-4",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:37",
+      "n_folds": 1,
+      "val_acc_mean": 0.44,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 59,
+          "best_val_acc": 0.44,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.44,
+            "acc_paper": 0.44,
+            "macro_recall": 0.43999999999999995,
+            "macro_specificity": 0.7200000000000001,
+            "per_class_recall": [
+              0.26,
+              0.44,
+              0.62
+            ],
+            "per_class_specificity": [
+              0.84,
+              0.76,
+              0.56
+            ],
+            "confusion_matrix": [
+              [
+                13,
+                10,
+                27
+              ],
+              [
+                11,
+                22,
+                17
+              ],
+              [
+                5,
+                14,
+                31
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H4\\run_full_20260902_235745_smoke_H4\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 14.224657535552979,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H4\\run_full_20260902_235745_smoke_H4\\three",
+      "gap_vs_conformer_anchor": 0.07100000000000001,
+      "delta_vs_shallow_anchor": -0.013000000000000012
+    },
+    {
+      "experiment": 35,
+      "track": "H",
+      "arm": "H5",
+      "hp": {
+        "data_tag": "challenge_mi_3s_59ch",
+        "n_folds": 6,
+        "seed": 42,
+        "max_epochs": 300,
+        "patience": 20,
+        "batch_train": 32,
+        "batch_eval": 64,
+        "grad_accum": 4,
+        "lr": 0.0001,
+        "weight_decay": 0.0001,
+        "drop_prob": 0.5,
+        "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H5_near_s3",
+        "early_stop": "acc",
+        "train_sampler": "balanced_invfreq",
+        "n_chans_expected": 59,
+        "n_times_expected": 750,
+        "n_outputs": 3,
+        "num_workers": 0,
+        "pin_memory": false,
+        "use_amp": true,
+        "torch_num_threads": 8,
+        "cudnn_benchmark": false,
+        "non_blocking": true
+      },
+      "anchor_shallow": 0.453,
+      "anchor_conformer": 0.511,
+      "started": "2026-09-02T23:58:52",
+      "n_folds": 1,
+      "val_acc_mean": 0.4266666666666667,
+      "val_acc_std": 0.0,
+      "folds": [
+        {
+          "fold": 0,
+          "val_subjects": [
+            "challenge:S01"
+          ],
+          "train_subjects": [
+            "challenge:S02",
+            "challenge:S03",
+            "challenge:S04",
+            "challenge:S05",
+            "challenge:S06"
+          ],
+          "best_epoch": 25,
+          "best_val_acc": 0.4266666666666667,
+          "best_val_metrics": {
+            "n": 150,
+            "acc": 0.4266666666666667,
+            "acc_paper": 0.4266666666666667,
+            "macro_recall": 0.4266666666666667,
+            "macro_specificity": 0.7133333333333334,
+            "per_class_recall": [
+              0.32,
+              0.48,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.69,
+              0.8,
+              0.65
+            ],
+            "confusion_matrix": [
+              [
+                16,
+                7,
+                27
+              ],
+              [
+                18,
+                24,
+                8
+              ],
+              [
+                13,
+                13,
+                24
+              ]
+            ]
+          },
+          "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H5\\run_full_20260902_235745_smoke_H5\\three\\fold0\\best_three.pt"
+        }
+      ],
+      "elapsed_sec": 8.23417592048645,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H5\\run_full_20260902_235745_smoke_H5\\three",
+      "gap_vs_conformer_anchor": 0.08433333333333332,
+      "delta_vs_shallow_anchor": -0.02633333333333332
+    }
+  ],
+  "fold0_gate": {
+    "promote_full": [
+      "H4",
+      "H5"
+    ],
+    "hold": [
+      "H1",
+      "H2",
+      "H3"
+    ]
+  },
+  "note": "仅对 promote_full 开 --max-folds 0；满折臂建议 ≤2"
+}

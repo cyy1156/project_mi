@@ -1,0 +1,50 @@
+{
+  "fold": 0,
+  "val_subjects": [
+    "challenge:S01"
+  ],
+  "train_subjects": [
+    "challenge:S02",
+    "challenge:S03",
+    "challenge:S04",
+    "challenge:S05",
+    "challenge:S06"
+  ],
+  "best_epoch": 23,
+  "best_val_acc": 0.4066666666666667,
+  "best_val_metrics": {
+    "n": 150,
+    "acc": 0.4066666666666667,
+    "acc_paper": 0.4066666666666667,
+    "macro_recall": 0.40666666666666673,
+    "macro_specificity": 0.7033333333333333,
+    "per_class_recall": [
+      0.42,
+      0.4,
+      0.4
+    ],
+    "per_class_specificity": [
+      0.68,
+      0.72,
+      0.71
+    ],
+    "confusion_matrix": [
+      [
+        21,
+        10,
+        19
+      ],
+      [
+        20,
+        20,
+        10
+      ],
+      [
+        12,
+        18,
+        20
+      ]
+    ]
+  },
+  "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H3\\run_multiseed_20260903_q4_H3_s43\\three\\fold0\\best_three.pt"
+}

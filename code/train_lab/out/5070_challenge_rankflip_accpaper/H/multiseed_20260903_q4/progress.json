@@ -1,0 +1,113 @@
+{
+  "generated_at": "2026-09-03T00:50:56",
+  "run_tag": "multiseed_20260903_q4",
+  "completed": {
+    "H0": 3,
+    "H1": 3,
+    "H2": 3,
+    "H3": 3,
+    "H4": 3,
+    "H5": 3
+  },
+  "adjudication": {
+    "arm_stats": {
+      "H0": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.4725925925925926,
+        "val_acc_std_across_seeds": 0.027785184197794164,
+        "seed_means": [
+          0.47333333333333333,
+          0.5,
+          0.4444444444444444
+        ],
+        "gap_vs_conformer": 0.03840740740740739,
+        "delta_vs_shallow_anchor": 0.019592592592592606
+      },
+      "H1": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.44037037037037036,
+        "val_acc_std_across_seeds": 0.019510469912690297,
+        "seed_means": [
+          0.42,
+          0.45888888888888896,
+          0.44222222222222224
+        ],
+        "gap_vs_conformer": 0.07062962962962965,
+        "delta_vs_shallow_anchor": -0.012629629629629657
+      },
+      "H2": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.472962962962963,
+        "val_acc_std_across_seeds": 0.018735762770284065,
+        "seed_means": [
+          0.46,
+          0.49444444444444446,
+          0.46444444444444444
+        ],
+        "gap_vs_conformer": 0.038037037037037036,
+        "delta_vs_shallow_anchor": 0.01996296296296296
+      },
+      "H3": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.48740740740740746,
+        "val_acc_std_across_seeds": 0.0025660011963983373,
+        "seed_means": [
+          0.48888888888888893,
+          0.4888888888888889,
+          0.48444444444444446
+        ],
+        "gap_vs_conformer": 0.023592592592592554,
+        "delta_vs_shallow_anchor": 0.03440740740740744
+      },
+      "H4": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.47851851851851857,
+        "val_acc_std_across_seeds": 0.027896044529852643,
+        "seed_means": [
+          0.5022222222222222,
+          0.44777777777777783,
+          0.4855555555555556
+        ],
+        "gap_vs_conformer": 0.032481481481481445,
+        "delta_vs_shallow_anchor": 0.02551851851851855
+      },
+      "H5": {
+        "n_seeds": 3,
+        "val_acc_mean_of_means": 0.46296296296296297,
+        "val_acc_std_across_seeds": 0.0263249713243213,
+        "seed_means": [
+          0.4488888888888889,
+          0.49333333333333335,
+          0.4466666666666666
+        ],
+        "gap_vs_conformer": 0.048037037037037045,
+        "delta_vs_shallow_anchor": 0.009962962962962951
+      }
+    },
+    "best_non_h0": {
+      "arm": "H3",
+      "n_seeds": 3,
+      "val_acc_mean_of_means": 0.48740740740740746,
+      "val_acc_std_across_seeds": 0.0025660011963983373,
+      "seed_means": [
+        0.48888888888888893,
+        0.4888888888888889,
+        0.48444444444444446
+      ],
+      "gap_vs_conformer": 0.023592592592592554,
+      "delta_vs_shallow_anchor": 0.03440740740740744
+    },
+    "verdict": "gray_zone",
+    "note": "H3 距 conformer 锚 0.024 ∈ [0.020, 0.030)",
+    "h0_repro": {
+      "mean_vs_anchor": 0.019592592592592606,
+      "seed_sigma": 0.027785184197794164,
+      "repro_band_ok": true,
+      "note": "若 seed σ 能解释 +2.7pp 漂移则复现链可接受；否则查训练链差异"
+    },
+    "anchors": {
+      "shallow": 0.453,
+      "conformer": 0.511
+    }
+  }
+}

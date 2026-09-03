@@ -1,0 +1,36 @@
+{
+  "generated_at": "2026-09-02T23:57:50",
+  "replay_json": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\replay\\replay_FM_latest.json",
+  "candidates": [
+    {
+      "id": "S0",
+      "source_arm": "F0",
+      "val_acc": 0.5577777777777778,
+      "priority": 0,
+      "desc": "Exp34 E1f 无约束基线",
+      "is_main": true
+    },
+    {
+      "id": "S1",
+      "source_arm": "M1",
+      "val_acc": 0.5111111111111112,
+      "priority": 1,
+      "desc": "conformer 单模",
+      "is_main": false
+    }
+  ],
+  "replace_gate": {
+    "allowed": false,
+    "reason": "not_met",
+    "main_id": "S0",
+    "main_val": 0.5577777777777778,
+    "s0_val": 0.5577777777777778
+  },
+  "csv_files": {
+    "S0": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\submissions\\submission_exp35_S0_F0_20260902_235750.csv",
+    "S1": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\submissions\\submission_exp35_S1_M1_20260902_235750.csv"
+  },
+  "hamming_vs_s0": {
+    "S1": 0.3
+  }
+}

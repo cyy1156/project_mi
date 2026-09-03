@@ -1,0 +1,6252 @@
+{
+  "experiment": 35,
+  "generated_at": "2026-09-02T23:57:48",
+  "suite": "FM",
+  "prefer_tag": "full_20260902_1930",
+  "anchor_e1f_a59": 0.558,
+  "anchor_conformer_a59": 0.511,
+  "results": {
+    "F0": {
+      "arm_id": "F0",
+      "desc": "Exp34 无约束复现",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726,
+      "w_eegnet": {
+        "mean": 0.4333333333333334,
+        "max": 0.7000000000000001,
+        "per_fold": [
+          0.6000000000000001,
+          0.7000000000000001,
+          0.1,
+          0.6000000000000001,
+          0.1,
+          0.5
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.3166666666666666,
+        "max": 0.9,
+        "per_fold": [
+          0.19999999999999996,
+          0.09999999999999987,
+          0.09999999999999998,
+          0.3999999999999999,
+          0.9,
+          0.19999999999999996
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.6000000000000001,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.7000000000000001,
+              0.09999999999999987
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6466666666666666,
+            "acc_paper": 0.6466666666666666,
+            "macro_recall": 0.6466666666666667,
+            "macro_specificity": 0.8233333333333334,
+            "per_class_recall": [
+              0.6,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.92,
+              0.79
+            ],
+            "confusion_matrix": [
+              [
+                30,
+                8,
+                12
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.5,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.58
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.58,
+            "acc_paper": 0.58,
+            "macro_recall": 0.5800000000000001,
+            "macro_specificity": 0.79,
+            "per_class_recall": [
+              0.54,
+              0.34,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.86,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                27,
+                12,
+                11
+              ],
+              [
+                8,
+                17,
+                25
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F1": {
+      "arm_id": "F1",
+      "desc": "OpenBMI 权重冻结 · T 可拟合",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5144444444444444,
+      "val_acc_std": 0.07948910943342187,
+      "w_eegnet": {
+        "mean": 0.3,
+        "max": 0.3,
+        "per_fold": [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.3,
+        "max": 0.3,
+        "per_fold": [
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3,
+          0.3
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.43333333333333335
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.43333333333333335,
+            "acc_paper": 0.43333333333333335,
+            "macro_recall": 0.43333333333333335,
+            "macro_specificity": 0.7166666666666667,
+            "per_class_recall": [
+              0.34,
+              0.42,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.61,
+              0.88,
+              0.66
+            ],
+            "confusion_matrix": [
+              [
+                17,
+                6,
+                27
+              ],
+              [
+                22,
+                21,
+                7
+              ],
+              [
+                17,
+                6,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.62
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.8099999999999999,
+            "per_class_recall": [
+              0.52,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.91,
+              0.76
+            ],
+            "confusion_matrix": [
+              [
+                26,
+                9,
+                15
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5533333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5533333333333333,
+            "acc_paper": 0.5533333333333333,
+            "macro_recall": 0.5533333333333333,
+            "macro_specificity": 0.7766666666666667,
+            "per_class_recall": [
+              0.7,
+              0.8,
+              0.16
+            ],
+            "per_class_specificity": [
+              0.78,
+              0.61,
+              0.94
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                11,
+                4
+              ],
+              [
+                8,
+                40,
+                2
+              ],
+              [
+                14,
+                28,
+                8
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.48
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.48,
+            "acc_paper": 0.48,
+            "macro_recall": 0.48,
+            "macro_specificity": 0.7400000000000001,
+            "per_class_recall": [
+              0.36,
+              0.72,
+              0.36
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.45,
+              0.9
+            ],
+            "confusion_matrix": [
+              [
+                18,
+                27,
+                5
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                28,
+                18
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4266666666666667,
+            "acc_paper": 0.4266666666666667,
+            "macro_recall": 0.4266666666666667,
+            "macro_specificity": 0.7133333333333333,
+            "per_class_recall": [
+              0.48,
+              0.72,
+              0.08
+            ],
+            "per_class_specificity": [
+              0.71,
+              0.44,
+              0.99
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                26,
+                0
+              ],
+              [
+                13,
+                36,
+                1
+              ],
+              [
+                16,
+                30,
+                4
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.3,
+              0.3
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5733333333333334
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5733333333333334,
+            "acc_paper": 0.5733333333333334,
+            "macro_recall": 0.5733333333333334,
+            "macro_specificity": 0.7866666666666666,
+            "per_class_recall": [
+              0.46,
+              0.42,
+              0.84
+            ],
+            "per_class_specificity": [
+              0.89,
+              0.82,
+              0.65
+            ],
+            "confusion_matrix": [
+              [
+                23,
+                15,
+                12
+              ],
+              [
+                6,
+                21,
+                23
+              ],
+              [
+                5,
+                3,
+                42
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F2": {
+      "arm_id": "F2",
+      "desc": "均匀融合",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5144444444444445,
+      "val_acc_std": 0.0883846810926636,
+      "w_eegnet": {
+        "mean": 0.25,
+        "max": 0.25,
+        "per_fold": [
+          0.25,
+          0.25,
+          0.25,
+          0.25,
+          0.25,
+          0.25
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.25,
+        "max": 0.25,
+        "per_fold": [
+          0.25,
+          0.25,
+          0.25,
+          0.25,
+          0.25,
+          0.25
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4266666666666667,
+            "acc_paper": 0.4266666666666667,
+            "macro_recall": 0.4266666666666667,
+            "macro_specificity": 0.7133333333333334,
+            "per_class_recall": [
+              0.3,
+              0.42,
+              0.56
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.86,
+              0.63
+            ],
+            "confusion_matrix": [
+              [
+                15,
+                7,
+                28
+              ],
+              [
+                20,
+                21,
+                9
+              ],
+              [
+                15,
+                7,
+                28
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6466666666666666,
+            "acc_paper": 0.6466666666666666,
+            "macro_recall": 0.6466666666666667,
+            "macro_specificity": 0.8233333333333334,
+            "per_class_recall": [
+              0.6,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.92,
+              0.79
+            ],
+            "confusion_matrix": [
+              [
+                30,
+                8,
+                12
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.68,
+              0.8,
+              0.22
+            ],
+            "per_class_specificity": [
+              0.81,
+              0.61,
+              0.93
+            ],
+            "confusion_matrix": [
+              [
+                34,
+                11,
+                5
+              ],
+              [
+                8,
+                40,
+                2
+              ],
+              [
+                11,
+                28,
+                11
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.48
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.48,
+            "acc_paper": 0.48,
+            "macro_recall": 0.48,
+            "macro_specificity": 0.7400000000000001,
+            "per_class_recall": [
+              0.38,
+              0.7,
+              0.36
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.46,
+              0.9
+            ],
+            "confusion_matrix": [
+              [
+                19,
+                26,
+                5
+              ],
+              [
+                10,
+                35,
+                5
+              ],
+              [
+                4,
+                28,
+                18
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.42
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.42,
+            "acc_paper": 0.42,
+            "macro_recall": 0.42,
+            "macro_specificity": 0.71,
+            "per_class_recall": [
+              0.5,
+              0.7,
+              0.06
+            ],
+            "per_class_specificity": [
+              0.67,
+              0.46,
+              1.0
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                25,
+                0
+              ],
+              [
+                15,
+                35,
+                0
+              ],
+              [
+                18,
+                29,
+                3
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.25,
+              0.25,
+              0.25,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5466666666666666,
+            "acc_paper": 0.5466666666666666,
+            "macro_recall": 0.5466666666666667,
+            "macro_specificity": 0.7733333333333334,
+            "per_class_recall": [
+              0.46,
+              0.38,
+              0.8
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.81,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                23,
+                16,
+                11
+              ],
+              [
+                6,
+                19,
+                25
+              ],
+              [
+                7,
+                3,
+                40
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F3": {
+      "arm_id": "F3",
+      "desc": "排名先验",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5544444444444445,
+      "val_acc_std": 0.06712067628670904,
+      "w_eegnet": {
+        "mean": 0.2666666666666667,
+        "max": 0.6000000000000001,
+        "per_fold": [
+          0.6000000000000001,
+          0.1,
+          0.1,
+          0.6000000000000001,
+          0.1,
+          0.1
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.4333333333333333,
+        "max": 0.9,
+        "per_fold": [
+          0.19999999999999996,
+          0.5,
+          0.09999999999999998,
+          0.3999999999999999,
+          0.9,
+          0.5
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.6000000000000001,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.1,
+              0.1,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.64
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.64,
+            "acc_paper": 0.64,
+            "macro_recall": 0.64,
+            "macro_specificity": 0.82,
+            "per_class_recall": [
+              0.48,
+              0.62,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.83,
+              0.88,
+              0.75
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                11,
+                15
+              ],
+              [
+                9,
+                31,
+                10
+              ],
+              [
+                8,
+                1,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.1,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.42,
+              0.42,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.91,
+              0.82,
+              0.62
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                15,
+                14
+              ],
+              [
+                5,
+                21,
+                24
+              ],
+              [
+                4,
+                3,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F4": {
+      "arm_id": "F4",
+      "desc": "w_eegnet≤0.15",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5488888888888889,
+      "val_acc_std": 0.07724899615792691,
+      "w_eegnet": {
+        "mean": 0.06666666666666667,
+        "max": 0.1,
+        "per_fold": [
+          0.1,
+          0.1,
+          0.1,
+          0.0,
+          0.1,
+          0.0
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.44999999999999996,
+        "max": 0.9,
+        "per_fold": [
+          0.7,
+          0.29999999999999993,
+          0.09999999999999998,
+          0.3999999999999999,
+          0.9,
+          0.29999999999999993
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.0,
+              0.2,
+              0.1,
+              0.7
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4533333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4533333333333333,
+            "acc_paper": 0.4533333333333333,
+            "macro_recall": 0.4533333333333333,
+            "macro_specificity": 0.7266666666666666,
+            "per_class_recall": [
+              0.22,
+              0.6,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.77,
+              0.84,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                11,
+                7,
+                32
+              ],
+              [
+                9,
+                30,
+                11
+              ],
+              [
+                14,
+                9,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.30000000000000004,
+              0.1,
+              0.29999999999999993
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6466666666666666,
+            "acc_paper": 0.6466666666666666,
+            "macro_recall": 0.6466666666666667,
+            "macro_specificity": 0.8233333333333334,
+            "per_class_recall": [
+              0.6,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.92,
+              0.79
+            ],
+            "confusion_matrix": [
+              [
+                30,
+                8,
+                12
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.6000000000000001,
+              0.0,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.44,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.46,
+              0.93
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                26,
+                2
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.1,
+              0.6000000000000001,
+              0.0,
+              0.29999999999999993
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.42,
+              0.46,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.92,
+              0.75,
+              0.68
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                20,
+                9
+              ],
+              [
+                4,
+                23,
+                23
+              ],
+              [
+                4,
+                5,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F5": {
+      "arm_id": "F5",
+      "desc": "w_conformer≥0.40",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5422222222222223,
+      "val_acc_std": 0.06541038540261414,
+      "w_eegnet": {
+        "mean": 0.26666666666666666,
+        "max": 0.6000000000000001,
+        "per_fold": [
+          0.5,
+          0.1,
+          0.1,
+          0.6000000000000001,
+          0.1,
+          0.2
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.5,
+        "max": 0.9,
+        "per_fold": [
+          0.4,
+          0.5,
+          0.4,
+          0.3999999999999999,
+          0.9,
+          0.3999999999999999
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.0,
+              0.1,
+              0.5,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.46
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.46,
+            "acc_paper": 0.46,
+            "macro_recall": 0.46,
+            "macro_specificity": 0.73,
+            "per_class_recall": [
+              0.36,
+              0.46,
+              0.56
+            ],
+            "per_class_specificity": [
+              0.66,
+              0.87,
+              0.66
+            ],
+            "confusion_matrix": [
+              [
+                18,
+                6,
+                26
+              ],
+              [
+                19,
+                23,
+                8
+              ],
+              [
+                15,
+                7,
+                28
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.1,
+              0.1,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.64
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.64,
+            "acc_paper": 0.64,
+            "macro_recall": 0.64,
+            "macro_specificity": 0.82,
+            "per_class_recall": [
+              0.48,
+              0.62,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.83,
+              0.88,
+              0.75
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                11,
+                15
+              ],
+              [
+                9,
+                31,
+                10
+              ],
+              [
+                8,
+                1,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.1,
+              0.4,
+              0.1,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.68,
+              0.78,
+              0.24
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.64,
+              0.92
+            ],
+            "confusion_matrix": [
+              [
+                34,
+                10,
+                6
+              ],
+              [
+                9,
+                39,
+                2
+              ],
+              [
+                12,
+                26,
+                12
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.2,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.58
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.58,
+            "acc_paper": 0.58,
+            "macro_recall": 0.58,
+            "macro_specificity": 0.79,
+            "per_class_recall": [
+              0.46,
+              0.42,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.83,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                23,
+                14,
+                13
+              ],
+              [
+                6,
+                21,
+                23
+              ],
+              [
+                4,
+                3,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F6": {
+      "arm_id": "F6",
+      "desc": "F4∧F5",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5377777777777778,
+      "val_acc_std": 0.06648865121763821,
+      "w_eegnet": {
+        "mean": 0.08333333333333333,
+        "max": 0.1,
+        "per_fold": [
+          0.1,
+          0.1,
+          0.1,
+          0.0,
+          0.1,
+          0.1
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.5666666666666667,
+        "max": 0.9,
+        "per_fold": [
+          0.7,
+          0.5,
+          0.4,
+          0.3999999999999999,
+          0.9,
+          0.5
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.0,
+              0.2,
+              0.1,
+              0.7
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4533333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4533333333333333,
+            "acc_paper": 0.4533333333333333,
+            "macro_recall": 0.4533333333333333,
+            "macro_specificity": 0.7266666666666666,
+            "per_class_recall": [
+              0.22,
+              0.6,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.77,
+              0.84,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                11,
+                7,
+                32
+              ],
+              [
+                9,
+                30,
+                11
+              ],
+              [
+                14,
+                9,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.1,
+              0.1,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.64
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.64,
+            "acc_paper": 0.64,
+            "macro_recall": 0.64,
+            "macro_specificity": 0.82,
+            "per_class_recall": [
+              0.48,
+              0.62,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.83,
+              0.88,
+              0.75
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                11,
+                15
+              ],
+              [
+                9,
+                31,
+                10
+              ],
+              [
+                8,
+                1,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.1,
+              0.4,
+              0.1,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.68,
+              0.78,
+              0.24
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.64,
+              0.92
+            ],
+            "confusion_matrix": [
+              [
+                34,
+                10,
+                6
+              ],
+              [
+                9,
+                39,
+                2
+              ],
+              [
+                12,
+                26,
+                12
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.6000000000000001,
+              0.0,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.44,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.46,
+              0.93
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                26,
+                2
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.2,
+              0.2,
+              0.1,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.42,
+              0.42,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.91,
+              0.82,
+              0.62
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                15,
+                14
+              ],
+              [
+                5,
+                21,
+                24
+              ],
+              [
+                4,
+                3,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "F7": {
+      "arm_id": "F7",
+      "desc": "温度夹紧 [0.5,5]",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5533333333333333,
+      "val_acc_std": 0.06915361322607967,
+      "w_eegnet": {
+        "mean": 0.3666666666666667,
+        "max": 0.7000000000000001,
+        "per_fold": [
+          0.7000000000000001,
+          0.30000000000000004,
+          0.1,
+          0.6000000000000001,
+          0.1,
+          0.4
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.36666666666666664,
+        "max": 0.9,
+        "per_fold": [
+          0.09999999999999987,
+          0.3999999999999999,
+          0.09999999999999998,
+          0.3999999999999999,
+          0.9,
+          0.29999999999999993
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              4.999994125744271,
+              3.9730145760362716,
+              0.5000063322577876,
+              4.999994205244104
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.7000000000000001,
+              0.09999999999999987
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.47333333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.47333333333333333,
+            "acc_paper": 0.47333333333333333,
+            "macro_recall": 0.47333333333333333,
+            "macro_specificity": 0.7366666666666667,
+            "per_class_recall": [
+              0.48,
+              0.46,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.63,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                5,
+                21
+              ],
+              [
+                19,
+                23,
+                8
+              ],
+              [
+                18,
+                8,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569428241363097,
+              1.4030049246249936,
+              4.99870267494214,
+              0.5000063322577876
+            ],
+            "weights": [
+              0.2,
+              0.1,
+              0.30000000000000004,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6333333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6333333333333333,
+            "acc_paper": 0.6333333333333333,
+            "macro_recall": 0.6333333333333334,
+            "macro_specificity": 0.8166666666666668,
+            "per_class_recall": [
+              0.56,
+              0.54,
+              0.8
+            ],
+            "per_class_specificity": [
+              0.78,
+              0.92,
+              0.75
+            ],
+            "confusion_matrix": [
+              [
+                28,
+                8,
+                14
+              ],
+              [
+                12,
+                27,
+                11
+              ],
+              [
+                10,
+                0,
+                40
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.2791531181796407,
+              2.2827931068062246,
+              0.5000063322577876,
+              4.999994826727879
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              4.999991329427932,
+              4.999987151164537,
+              0.8506432775341559,
+              3.647493763980216
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2739466971232813,
+              4.451494710561732,
+              0.6333891264785203,
+              1.873152299502755
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993846427699423,
+              1.409821102533317,
+              0.5000063322577876,
+              3.541741485802235
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.4,
+              0.29999999999999993
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.58
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.58,
+            "acc_paper": 0.58,
+            "macro_recall": 0.58,
+            "macro_specificity": 0.79,
+            "per_class_recall": [
+              0.44,
+              0.42,
+              0.88
+            ],
+            "per_class_specificity": [
+              0.89,
+              0.82,
+              0.66
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                15,
+                13
+              ],
+              [
+                8,
+                21,
+                21
+              ],
+              [
+                3,
+                3,
+                44
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M0": {
+      "arm_id": "M0",
+      "desc": "四成员 sanity=F0",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726,
+      "w_eegnet": {
+        "mean": 0.4333333333333334,
+        "max": 0.7000000000000001,
+        "per_fold": [
+          0.6000000000000001,
+          0.7000000000000001,
+          0.1,
+          0.6000000000000001,
+          0.1,
+          0.5
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.3166666666666666,
+        "max": 0.9,
+        "per_fold": [
+          0.19999999999999996,
+          0.09999999999999987,
+          0.09999999999999998,
+          0.3999999999999999,
+          0.9,
+          0.19999999999999996
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.6000000000000001,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.7000000000000001,
+              0.09999999999999987
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6466666666666666,
+            "acc_paper": 0.6466666666666666,
+            "macro_recall": 0.6466666666666667,
+            "macro_specificity": 0.8233333333333334,
+            "per_class_recall": [
+              0.6,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.92,
+              0.79
+            ],
+            "confusion_matrix": [
+              [
+                30,
+                8,
+                12
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.5,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.58
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.58,
+            "acc_paper": 0.58,
+            "macro_recall": 0.5800000000000001,
+            "macro_specificity": 0.79,
+            "per_class_recall": [
+              0.54,
+              0.34,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.86,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                27,
+                12,
+                11
+              ],
+              [
+                8,
+                17,
+                25
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M1": {
+      "arm_id": "M1",
+      "desc": "单 conformer",
+      "pool": [
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5111111111111112,
+      "val_acc_std": 0.06568161138457301,
+      "w_eegnet": {
+        "mean": 0.0,
+        "max": 0.0,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "w_conformer": {
+        "mean": 1.0,
+        "max": 1.0,
+        "per_fold": [
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0,
+          1.0
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              6.010130274291827
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4266666666666667,
+            "acc_paper": 0.4266666666666667,
+            "macro_recall": 0.4266666666666667,
+            "macro_specificity": 0.7133333333333334,
+            "per_class_recall": [
+              0.18,
+              0.6,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.77,
+              0.8,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                9,
+                9,
+                32
+              ],
+              [
+                9,
+                30,
+                11
+              ],
+              [
+                14,
+                11,
+                25
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              0.19707721874920983
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.62
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.8099999999999999,
+            "per_class_recall": [
+              0.32,
+              0.68,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.88,
+              0.77,
+              0.78
+            ],
+            "confusion_matrix": [
+              [
+                16,
+                21,
+                13
+              ],
+              [
+                7,
+                34,
+                9
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              5.534249808648015
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5466666666666666,
+            "acc_paper": 0.5466666666666666,
+            "macro_recall": 0.5466666666666666,
+            "macro_specificity": 0.7733333333333334,
+            "per_class_recall": [
+              0.7,
+              0.68,
+              0.26
+            ],
+            "per_class_specificity": [
+              0.7,
+              0.67,
+              0.95
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                12,
+                3
+              ],
+              [
+                14,
+                34,
+                2
+              ],
+              [
+                16,
+                21,
+                13
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              3.646891789615152
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666675,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.4,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.45,
+              0.92
+            ],
+            "confusion_matrix": [
+              [
+                20,
+                27,
+                3
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              1.8725779772159243
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.0,
+              0.74,
+              0.72
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.44
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                7,
+                43
+              ],
+              [
+                0,
+                37,
+                13
+              ],
+              [
+                0,
+                14,
+                36
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "conformer"
+            ],
+            "temperatures": [
+              3.542157268066214
+            ],
+            "weights": [
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.36,
+              0.32,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.89,
+              0.79,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                18,
+                16,
+                16
+              ],
+              [
+                7,
+                16,
+                27
+              ],
+              [
+                4,
+                5,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": null,
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M2": {
+      "arm_id": "M2",
+      "desc": "去 eegnet",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.54,
+      "val_acc_std": 0.07351492667781451,
+      "w_eegnet": {
+        "mean": 0.0,
+        "max": 0.0,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.5166666666666666,
+        "max": 1.0,
+        "per_fold": [
+          0.7,
+          0.6,
+          0.09999999999999987,
+          0.3999999999999999,
+          1.0,
+          0.29999999999999993
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.7
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.44666666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.44666666666666666,
+            "acc_paper": 0.44666666666666666,
+            "macro_recall": 0.4466666666666666,
+            "macro_specificity": 0.7233333333333333,
+            "per_class_recall": [
+              0.22,
+              0.6,
+              0.52
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.82,
+              0.56
+            ],
+            "confusion_matrix": [
+              [
+                11,
+                7,
+                32
+              ],
+              [
+                8,
+                30,
+                12
+              ],
+              [
+                13,
+                11,
+                26
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.1,
+              0.6
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6333333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6333333333333333,
+            "acc_paper": 0.6333333333333333,
+            "macro_recall": 0.6333333333333333,
+            "macro_specificity": 0.8166666666666668,
+            "per_class_recall": [
+              0.44,
+              0.64,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.84,
+              0.87,
+              0.74
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                12,
+                16
+              ],
+              [
+                8,
+                32,
+                10
+              ],
+              [
+                8,
+                1,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.6000000000000001,
+              0.09999999999999987
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6066666666666667,
+            "acc_paper": 0.6066666666666667,
+            "macro_recall": 0.6066666666666666,
+            "macro_specificity": 0.8033333333333333,
+            "per_class_recall": [
+              0.58,
+              0.74,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.91,
+              0.64,
+              0.86
+            ],
+            "confusion_matrix": [
+              [
+                29,
+                14,
+                7
+              ],
+              [
+                6,
+                37,
+                7
+              ],
+              [
+                3,
+                22,
+                25
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.44,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.46,
+              0.93
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                26,
+                2
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.0,
+              0.74,
+              0.72
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.44
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                7,
+                43
+              ],
+              [
+                0,
+                37,
+                13
+              ],
+              [
+                0,
+                14,
+                36
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              3.542157268066214
+            ],
+            "weights": [
+              0.1,
+              0.6000000000000001,
+              0.29999999999999993
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.42,
+              0.46,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.92,
+              0.75,
+              0.68
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                20,
+                9
+              ],
+              [
+                4,
+                23,
+                23
+              ],
+              [
+                4,
+                5,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M2c": {
+      "arm_id": "M2c",
+      "desc": "M2 + w_conformer≥0.40",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5333333333333333,
+      "val_acc_std": 0.06785605679999718,
+      "w_eegnet": {
+        "mean": 0.0,
+        "max": 0.0,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.6,
+        "max": 1.0,
+        "per_fold": [
+          0.7,
+          0.6,
+          0.4,
+          0.3999999999999999,
+          1.0,
+          0.5
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.7
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.44666666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.44666666666666666,
+            "acc_paper": 0.44666666666666666,
+            "macro_recall": 0.4466666666666666,
+            "macro_specificity": 0.7233333333333333,
+            "per_class_recall": [
+              0.22,
+              0.6,
+              0.52
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.82,
+              0.56
+            ],
+            "confusion_matrix": [
+              [
+                11,
+                7,
+                32
+              ],
+              [
+                8,
+                30,
+                12
+              ],
+              [
+                13,
+                11,
+                26
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.1,
+              0.6
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6333333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6333333333333333,
+            "acc_paper": 0.6333333333333333,
+            "macro_recall": 0.6333333333333333,
+            "macro_specificity": 0.8166666666666668,
+            "per_class_recall": [
+              0.44,
+              0.64,
+              0.82
+            ],
+            "per_class_specificity": [
+              0.84,
+              0.87,
+              0.74
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                12,
+                16
+              ],
+              [
+                8,
+                32,
+                10
+              ],
+              [
+                8,
+                1,
+                41
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              5.534249808648015
+            ],
+            "weights": [
+              0.1,
+              0.5,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666667,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.66,
+              0.76,
+              0.28
+            ],
+            "per_class_specificity": [
+              0.8,
+              0.65,
+              0.9
+            ],
+            "confusion_matrix": [
+              [
+                33,
+                11,
+                6
+              ],
+              [
+                8,
+                38,
+                4
+              ],
+              [
+                12,
+                24,
+                14
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.44,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.46,
+              0.93
+            ],
+            "confusion_matrix": [
+              [
+                22,
+                26,
+                2
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.0,
+              0.74,
+              0.72
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.44
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                7,
+                43
+              ],
+              [
+                0,
+                37,
+                13
+              ],
+              [
+                0,
+                14,
+                36
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              3.542157268066214
+            ],
+            "weights": [
+              0.2,
+              0.30000000000000004,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5666666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5666666666666667,
+            "acc_paper": 0.5666666666666667,
+            "macro_recall": 0.5666666666666668,
+            "macro_specificity": 0.7833333333333333,
+            "per_class_recall": [
+              0.38,
+              0.44,
+              0.88
+            ],
+            "per_class_specificity": [
+              0.91,
+              0.8,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                19,
+                17,
+                14
+              ],
+              [
+                6,
+                22,
+                22
+              ],
+              [
+                3,
+                3,
+                44
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M3": {
+      "arm_id": "M3",
+      "desc": "{S,C}",
+      "pool": [
+        "shallow",
+        "conformer"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5211111111111112,
+      "val_acc_std": 0.06591801866853392,
+      "w_eegnet": {
+        "mean": 0.0,
+        "max": 0.0,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.7666666666666666,
+        "max": 1.0,
+        "per_fold": [
+          0.5,
+          1.0,
+          0.3999999999999999,
+          1.0,
+          1.0,
+          0.7
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              6.010130274291827
+            ],
+            "weights": [
+              0.5,
+              0.5
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.43333333333333335
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.43333333333333335,
+            "acc_paper": 0.43333333333333335,
+            "macro_recall": 0.43333333333333335,
+            "macro_specificity": 0.7166666666666667,
+            "per_class_recall": [
+              0.18,
+              0.58,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.8,
+              0.78,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                9,
+                9,
+                32
+              ],
+              [
+                10,
+                29,
+                11
+              ],
+              [
+                10,
+                13,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.4266666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.0,
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.62
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.8099999999999999,
+            "per_class_recall": [
+              0.32,
+              0.68,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.88,
+              0.77,
+              0.78
+            ],
+            "confusion_matrix": [
+              [
+                16,
+                21,
+                13
+              ],
+              [
+                7,
+                34,
+                9
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.62
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              5.534249808648015
+            ],
+            "weights": [
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.56
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.56,
+            "acc_paper": 0.56,
+            "macro_recall": 0.5599999999999999,
+            "macro_specificity": 0.7799999999999999,
+            "per_class_recall": [
+              0.64,
+              0.84,
+              0.2
+            ],
+            "per_class_specificity": [
+              0.79,
+              0.6,
+              0.95
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                15,
+                3
+              ],
+              [
+                6,
+                42,
+                2
+              ],
+              [
+                15,
+                25,
+                10
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5466666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666675,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.4,
+              0.72,
+              0.34
+            ],
+            "per_class_specificity": [
+              0.86,
+              0.45,
+              0.92
+            ],
+            "confusion_matrix": [
+              [
+                20,
+                27,
+                3
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                5,
+                28,
+                17
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              1.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.0,
+              0.74,
+              0.72
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.44
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                7,
+                43
+              ],
+              [
+                0,
+                37,
+                13
+              ],
+              [
+                0,
+                14,
+                36
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.4866666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              3.542157268066214
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.7
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.54
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.54,
+            "acc_paper": 0.54,
+            "macro_recall": 0.54,
+            "macro_specificity": 0.77,
+            "per_class_recall": [
+              0.38,
+              0.38,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.83,
+              0.58
+            ],
+            "confusion_matrix": [
+              [
+                19,
+                16,
+                15
+              ],
+              [
+                4,
+                19,
+                27
+              ],
+              [
+                6,
+                1,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.5
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M4": {
+      "arm_id": "M4",
+      "desc": "{C,E}",
+      "pool": [
+        "conformer",
+        "eegnet"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5277777777777778,
+      "val_acc_std": 0.051193170840852786,
+      "w_eegnet": {
+        "mean": 0.5166666666666667,
+        "max": 0.8,
+        "per_fold": [
+          0.8,
+          0.8,
+          0.0,
+          0.6,
+          0.09999999999999998,
+          0.8
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.48333333333333334,
+        "max": 1.0,
+        "per_fold": [
+          0.2,
+          0.2,
+          1.0,
+          0.4,
+          0.9,
+          0.2
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              6.010130274291827,
+              0.31198802290315425
+            ],
+            "weights": [
+              0.2,
+              0.8
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.47333333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.47333333333333333,
+            "acc_paper": 0.47333333333333333,
+            "macro_recall": 0.47333333333333333,
+            "macro_specificity": 0.7366666666666667,
+            "per_class_recall": [
+              0.48,
+              0.48,
+              0.46
+            ],
+            "per_class_specificity": [
+              0.63,
+              0.86,
+              0.72
+            ],
+            "confusion_matrix": [
+              [
+                24,
+                5,
+                21
+              ],
+              [
+                19,
+                24,
+                7
+              ],
+              [
+                18,
+                9,
+                23
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.44
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              0.19707721874920983,
+              9.998627824566096
+            ],
+            "weights": [
+              0.2,
+              0.8
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.62
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.8099999999999999,
+            "per_class_recall": [
+              0.32,
+              0.68,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.88,
+              0.77,
+              0.78
+            ],
+            "confusion_matrix": [
+              [
+                16,
+                21,
+                13
+              ],
+              [
+                7,
+                34,
+                9
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.62,
+            0.34
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              5.534249808648015,
+              0.4620495957771082
+            ],
+            "weights": [
+              1.0,
+              0.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5466666666666666
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5466666666666666,
+            "acc_paper": 0.5466666666666666,
+            "macro_recall": 0.5466666666666666,
+            "macro_specificity": 0.7733333333333334,
+            "per_class_recall": [
+              0.7,
+              0.68,
+              0.26
+            ],
+            "per_class_specificity": [
+              0.7,
+              0.67,
+              0.95
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                12,
+                3
+              ],
+              [
+                14,
+                34,
+                2
+              ],
+              [
+                16,
+                21,
+                13
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.5466666666666666,
+            0.4066666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              3.646891789615152,
+              0.8511475586429964
+            ],
+            "weights": [
+              0.4,
+              0.6
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4866666666666667,
+            0.38666666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              1.8725779772159243,
+              0.6342920209100861
+            ],
+            "weights": [
+              0.9,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4866666666666667,
+            0.38666666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "conformer",
+              "eegnet"
+            ],
+            "temperatures": [
+              3.542157268066214,
+              0.17018175417613768
+            ],
+            "weights": [
+              0.2,
+              0.8
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.52
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.52,
+            "acc_paper": 0.52,
+            "macro_recall": 0.52,
+            "macro_specificity": 0.7599999999999999,
+            "per_class_recall": [
+              0.54,
+              0.24,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.73,
+              0.92,
+              0.63
+            ],
+            "confusion_matrix": [
+              [
+                27,
+                6,
+                17
+              ],
+              [
+                18,
+                12,
+                20
+              ],
+              [
+                9,
+                2,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.5,
+            0.35333333333333333
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    },
+    "M5": {
+      "arm_id": "M5",
+      "desc": "去 conformer",
+      "pool": [
+        "shallow",
+        "shallow_b",
+        "eegnet"
+      ],
+      "n_folds": 6,
+      "val_acc_mean": 0.5066666666666667,
+      "val_acc_std": 0.08432740427115679,
+      "w_eegnet": {
+        "mean": 0.36666666666666664,
+        "max": 0.6,
+        "per_fold": [
+          0.6,
+          0.3999999999999999,
+          0.19999999999999996,
+          0.6,
+          0.09999999999999998,
+          0.29999999999999993
+        ]
+      },
+      "w_conformer": {
+        "mean": 0.0,
+        "max": 0.0,
+        "per_fold": [
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0,
+          0.0
+        ]
+      },
+      "folds": [
+        {
+          "fold": 0,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425
+            ],
+            "weights": [
+              0.4,
+              0.0,
+              0.6
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.48
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.48,
+            "acc_paper": 0.48,
+            "macro_recall": 0.48,
+            "macro_specificity": 0.7400000000000001,
+            "per_class_recall": [
+              0.54,
+              0.46,
+              0.44
+            ],
+            "per_class_specificity": [
+              0.66,
+              0.81,
+              0.75
+            ],
+            "confusion_matrix": [
+              [
+                27,
+                9,
+                14
+              ],
+              [
+                16,
+                23,
+                11
+              ],
+              [
+                18,
+                10,
+                22
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4,
+            0.3933333333333333,
+            0.44
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 1,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.30000000000000004,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.56
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.56,
+            "acc_paper": 0.56,
+            "macro_recall": 0.5599999999999999,
+            "macro_specificity": 0.7799999999999999,
+            "per_class_recall": [
+              0.7,
+              0.44,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.62,
+              0.95,
+              0.77
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                3,
+                12
+              ],
+              [
+                17,
+                22,
+                11
+              ],
+              [
+                21,
+                2,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.52,
+            0.34
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 2,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082
+            ],
+            "weights": [
+              0.2,
+              0.6000000000000001,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6133333333333333
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6133333333333333,
+            "acc_paper": 0.6133333333333333,
+            "macro_recall": 0.6133333333333334,
+            "macro_specificity": 0.8066666666666666,
+            "per_class_recall": [
+              0.52,
+              0.78,
+              0.54
+            ],
+            "per_class_specificity": [
+              0.94,
+              0.64,
+              0.84
+            ],
+            "confusion_matrix": [
+              [
+                26,
+                15,
+                9
+              ],
+              [
+                4,
+                39,
+                7
+              ],
+              [
+                2,
+                21,
+                27
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.56,
+            0.5666666666666667,
+            0.4066666666666667
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 3,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964
+            ],
+            "weights": [
+              0.4,
+              0.0,
+              0.6
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4,
+            "acc_paper": 0.4,
+            "macro_recall": 0.39999999999999997,
+            "macro_specificity": 0.7000000000000001,
+            "per_class_recall": [
+              0.34,
+              0.38,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.85,
+              0.68,
+              0.57
+            ],
+            "confusion_matrix": [
+              [
+                17,
+                13,
+                20
+              ],
+              [
+                8,
+                19,
+                23
+              ],
+              [
+                7,
+                19,
+                24
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.37333333333333335,
+            0.36,
+            0.38666666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 4,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861
+            ],
+            "weights": [
+              0.9,
+              0.0,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4266666666666667
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4266666666666667,
+            "acc_paper": 0.4266666666666667,
+            "macro_recall": 0.42666666666666675,
+            "macro_specificity": 0.7133333333333333,
+            "per_class_recall": [
+              0.62,
+              0.56,
+              0.1
+            ],
+            "per_class_specificity": [
+              0.56,
+              0.61,
+              0.97
+            ],
+            "confusion_matrix": [
+              [
+                31,
+                18,
+                1
+              ],
+              [
+                20,
+                28,
+                2
+              ],
+              [
+                24,
+                21,
+                5
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.4266666666666667,
+            0.36666666666666664,
+            0.38666666666666666
+          ],
+          "relaxed": false
+        },
+        {
+          "fold": 5,
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768
+            ],
+            "weights": [
+              0.4,
+              0.30000000000000004,
+              0.29999999999999993
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.56
+          },
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.56,
+            "acc_paper": 0.56,
+            "macro_recall": 0.56,
+            "macro_specificity": 0.7799999999999999,
+            "per_class_recall": [
+              0.56,
+              0.34,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.85,
+              0.84,
+              0.65
+            ],
+            "confusion_matrix": [
+              [
+                28,
+                13,
+                9
+              ],
+              [
+                7,
+                17,
+                26
+              ],
+              [
+                8,
+                3,
+                39
+              ]
+            ]
+          },
+          "member_accs_calibrated": [
+            0.48,
+            0.49333333333333335,
+            0.35333333333333333
+          ],
+          "relaxed": false
+        }
+      ],
+      "track": "a59"
+    }
+  },
+  "decision": {
+    "F": {
+      "f0_acc": 0.5577777777777778,
+      "sanity_ok": true,
+      "promoted_plus1pp": [],
+      "robust": [],
+      "s2_candidate": null
+    },
+    "M": {
+      "s3_candidate": null,
+      "m1_enter_final": false,
+      "notes": [
+        "M1 sanity vs anchor: 0.5111 vs 0.5110 (OK)"
+      ]
+    }
+  },
+  "member_dirs_used": {
+    "a59": {
+      "shallow": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "shallow_b": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "eegnet": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\eegnet_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "conformer": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\conformer_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three"
+    }
+  }
+}

@@ -1,0 +1,413 @@
+{
+  "experiment": 34,
+  "track": "A59",
+  "device": "5070",
+  "member_dirs": {
+    "shallow": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+    "shallow_b": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+    "eegnet": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\eegnet_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+    "conformer": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\conformer_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three"
+  },
+  "n_folds": 6,
+  "val_acc_mean": 0.5577777777777778,
+  "val_acc_std": 0.06949553676049726,
+  "folds": [
+    {
+      "fold": 0,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          7.024152910813438,
+          3.9741009132801906,
+          0.31198802290315425,
+          6.010130274291827
+        ],
+        "weights": [
+          0.1,
+          0.1,
+          0.6000000000000001,
+          0.19999999999999996
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.4866666666666667
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.4866666666666667,
+        "acc_paper": 0.4866666666666667,
+        "macro_recall": 0.48666666666666664,
+        "macro_specificity": 0.7433333333333333,
+        "per_class_recall": [
+          0.5,
+          0.46,
+          0.5
+        ],
+        "per_class_specificity": [
+          0.65,
+          0.87,
+          0.71
+        ],
+        "confusion_matrix": [
+          [
+            25,
+            5,
+            20
+          ],
+          [
+            18,
+            23,
+            9
+          ],
+          [
+            17,
+            8,
+            25
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    },
+    {
+      "fold": 1,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          1.5569769353490444,
+          1.403198747284718,
+          9.998627824566096,
+          0.19707721874920983
+        ],
+        "weights": [
+          0.1,
+          0.1,
+          0.7000000000000001,
+          0.09999999999999987
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.6466666666666666
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.6466666666666666,
+        "acc_paper": 0.6466666666666666,
+        "macro_recall": 0.6466666666666667,
+        "macro_specificity": 0.8233333333333334,
+        "per_class_recall": [
+          0.6,
+          0.56,
+          0.78
+        ],
+        "per_class_specificity": [
+          0.76,
+          0.92,
+          0.79
+        ],
+        "confusion_matrix": [
+          [
+            30,
+            8,
+            12
+          ],
+          [
+            13,
+            28,
+            9
+          ],
+          [
+            11,
+            0,
+            39
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    },
+    {
+      "fold": 2,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          1.27918442115021,
+          2.282627434299101,
+          0.4620495957771082,
+          5.534249808648015
+        ],
+        "weights": [
+          0.30000000000000004,
+          0.5,
+          0.1,
+          0.09999999999999998
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.6266666666666667
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.6266666666666667,
+        "acc_paper": 0.6266666666666667,
+        "macro_recall": 0.6266666666666666,
+        "macro_specificity": 0.8133333333333334,
+        "per_class_recall": [
+          0.64,
+          0.76,
+          0.48
+        ],
+        "per_class_specificity": [
+          0.9,
+          0.66,
+          0.88
+        ],
+        "confusion_matrix": [
+          [
+            32,
+            11,
+            7
+          ],
+          [
+            7,
+            38,
+            5
+          ],
+          [
+            3,
+            23,
+            24
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    },
+    {
+      "fold": 3,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          9.316737060380687,
+          9.999911383105525,
+          0.8511475586429964,
+          3.646891789615152
+        ],
+        "weights": [
+          0.0,
+          0.0,
+          0.6000000000000001,
+          0.3999999999999999
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.5066666666666667
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.5066666666666667,
+        "acc_paper": 0.5066666666666667,
+        "macro_recall": 0.5066666666666667,
+        "macro_specificity": 0.7533333333333334,
+        "per_class_recall": [
+          0.42,
+          0.72,
+          0.38
+        ],
+        "per_class_specificity": [
+          0.87,
+          0.48,
+          0.91
+        ],
+        "confusion_matrix": [
+          [
+            21,
+            25,
+            4
+          ],
+          [
+            9,
+            36,
+            5
+          ],
+          [
+            4,
+            27,
+            19
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    },
+    {
+      "fold": 4,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          3.2731744646092387,
+          4.451687285297261,
+          0.6342920209100861,
+          1.8725779772159243
+        ],
+        "weights": [
+          0.0,
+          0.0,
+          0.1,
+          0.9
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.5
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.5,
+        "acc_paper": 0.5,
+        "macro_recall": 0.5,
+        "macro_specificity": 0.75,
+        "per_class_recall": [
+          0.0,
+          0.72,
+          0.78
+        ],
+        "per_class_specificity": [
+          1.0,
+          0.79,
+          0.46
+        ],
+        "confusion_matrix": [
+          [
+            0,
+            10,
+            40
+          ],
+          [
+            0,
+            36,
+            14
+          ],
+          [
+            0,
+            11,
+            39
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    },
+    {
+      "fold": 5,
+      "config": {
+        "member_names": [
+          "shallow",
+          "shallow_b",
+          "eegnet",
+          "conformer"
+        ],
+        "temperatures": [
+          1.3993812169978623,
+          1.4099058372997122,
+          0.17018175417613768,
+          3.542157268066214
+        ],
+        "weights": [
+          0.1,
+          0.2,
+          0.5,
+          0.19999999999999996
+        ],
+        "smooth_radius": 0,
+        "val_acc": 0.58
+      },
+      "val_metrics": {
+        "n": 150,
+        "acc": 0.58,
+        "acc_paper": 0.58,
+        "macro_recall": 0.5800000000000001,
+        "macro_specificity": 0.79,
+        "per_class_recall": [
+          0.54,
+          0.34,
+          0.86
+        ],
+        "per_class_specificity": [
+          0.87,
+          0.86,
+          0.64
+        ],
+        "confusion_matrix": [
+          [
+            27,
+            12,
+            11
+          ],
+          [
+            8,
+            17,
+            25
+          ],
+          [
+            5,
+            2,
+            43
+          ]
+        ]
+      },
+      "n_members": 4,
+      "members": [
+        "shallow",
+        "shallow_b",
+        "eegnet",
+        "conformer"
+      ]
+    }
+  ],
+  "time": "2026-09-02T19:41:22"
+}

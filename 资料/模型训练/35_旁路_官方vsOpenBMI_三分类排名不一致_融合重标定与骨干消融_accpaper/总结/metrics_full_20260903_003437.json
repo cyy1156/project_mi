@@ -1,0 +1,154 @@
+{
+  "experiment": 35,
+  "scheme_version": "v0.2.1",
+  "generated_at": "2026-09-03T00:34:37",
+  "status": "P0_D_closed_S0_final_H_multiseed_running",
+  "paths": {
+    "replay_FM": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\replay\\replay_FM_latest.json",
+    "replay_D": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\replay\\replay_D_latest.json",
+    "decision": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\submissions\\decision_latest.json",
+    "paired_sig": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\stats\\paired_sig_latest.json",
+    "ranking_doc": "D:\\MI\\资料\\模型训练\\跨域三分类成员排名对照表.md",
+    "registry": "D:\\MI\\资料\\模型训练\\35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper\\总结\\结果登记表.md",
+    "report_draft": "D:\\MI\\资料\\模型训练\\35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper\\总结\\初赛报告素材_模型选择与验证.md"
+  },
+  "external_submission": {
+    "id": "S0",
+    "structural": "S0",
+    "source_arm": "F0",
+    "val_acc": 0.5577777777777778,
+    "path_hint": "submission_exp34_e1f_a59_sens_full_20260902_1930.csv"
+  },
+  "replace_gate": {
+    "allowed": false,
+    "reason": "near_tie_same_pool_not_§12.1",
+    "main_id": "S2",
+    "structural": "C_fuse",
+    "main_val": 0.5544444444444445,
+    "s0_val": 0.5577777777777778,
+    "cand_pool_size": 4,
+    "max_w_eegnet": 0.6000000000000001,
+    "note": "allowed=false 时对外主交卷保持 S0；near_tie 仅作敏感性附报"
+  },
+  "exp34_csv_status": "final_S0",
+  "fm_decision": {
+    "F": {
+      "f0_acc": 0.5577777777777778,
+      "sanity_ok": true,
+      "promoted_plus1pp": [],
+      "robust": [],
+      "s2_candidate": null
+    },
+    "M": {
+      "s3_candidate": null,
+      "m1_enter_final": false,
+      "notes": [
+        "M1 sanity vs anchor: 0.5111 vs 0.5110 (OK)"
+      ]
+    }
+  },
+  "fm_arm_means": {
+    "F0": {
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726
+    },
+    "F1": {
+      "val_acc_mean": 0.5144444444444444,
+      "val_acc_std": 0.07948910943342187
+    },
+    "F2": {
+      "val_acc_mean": 0.5144444444444445,
+      "val_acc_std": 0.0883846810926636
+    },
+    "F3": {
+      "val_acc_mean": 0.5544444444444445,
+      "val_acc_std": 0.06712067628670904
+    },
+    "F4": {
+      "val_acc_mean": 0.5488888888888889,
+      "val_acc_std": 0.07724899615792691
+    },
+    "F5": {
+      "val_acc_mean": 0.5422222222222223,
+      "val_acc_std": 0.06541038540261414
+    },
+    "F6": {
+      "val_acc_mean": 0.5377777777777778,
+      "val_acc_std": 0.06648865121763821
+    },
+    "F7": {
+      "val_acc_mean": 0.5533333333333333,
+      "val_acc_std": 0.06915361322607967
+    },
+    "M0": {
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726
+    },
+    "M1": {
+      "val_acc_mean": 0.5111111111111112,
+      "val_acc_std": 0.06568161138457301
+    },
+    "M2": {
+      "val_acc_mean": 0.54,
+      "val_acc_std": 0.07351492667781451
+    },
+    "M2c": {
+      "val_acc_mean": 0.5333333333333333,
+      "val_acc_std": 0.06785605679999718
+    },
+    "M3": {
+      "val_acc_mean": 0.5211111111111112,
+      "val_acc_std": 0.06591801866853392
+    },
+    "M4": {
+      "val_acc_mean": 0.5277777777777778,
+      "val_acc_std": 0.051193170840852786
+    },
+    "M5": {
+      "val_acc_mean": 0.5066666666666667,
+      "val_acc_std": 0.08432740427115679
+    }
+  },
+  "d_arm_means": {
+    "D0": {
+      "val_acc_mean": 0.5233333333333333,
+      "val_acc_std": 0.08140434058861154
+    },
+    "D1": {
+      "val_acc_mean": 0.5733333333333333,
+      "val_acc_std": 0.14028542333400146
+    },
+    "D2": {
+      "val_acc_mean": 0.5333333333333333,
+      "val_acc_std": 0.13811428440083795
+    },
+    "D3": {
+      "val_acc_mean": 0.5544444444444444,
+      "val_acc_std": 0.12950618460850374
+    },
+    "D4": {
+      "val_acc_mean": 0.5222222222222223,
+      "val_acc_std": 0.08376333503566043
+    }
+  },
+  "paired_sig_summary": [
+    {
+      "id": "S1",
+      "arm": "M1",
+      "mean_diff": -0.04666666666666666,
+      "wilcoxon_p": 0.03125
+    },
+    {
+      "id": "S2",
+      "arm": "F3",
+      "mean_diff": -0.003333333333333318,
+      "wilcoxon_p": 0.5
+    },
+    {
+      "id": "S3",
+      "arm": "M2",
+      "mean_diff": -0.01777777777777778,
+      "wilcoxon_p": 0.03125
+    }
+  ]
+}

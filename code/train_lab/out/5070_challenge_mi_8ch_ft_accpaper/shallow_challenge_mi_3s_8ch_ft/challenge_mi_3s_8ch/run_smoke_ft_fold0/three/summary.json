@@ -1,0 +1,61 @@
+{
+  "model_name": "shallow",
+  "arm": "ft",
+  "n_folds": 1,
+  "val_acc_mean": 0.34,
+  "val_acc_std": 0.0,
+  "folds": [
+    {
+      "fold": 0,
+      "val_subjects": [
+        "challenge:S01"
+      ],
+      "train_subjects": [
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 28,
+      "best_val_acc": 0.34,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.34,
+        "acc_paper": 0.34,
+        "macro_recall": 0.34,
+        "macro_specificity": 0.67,
+        "per_class_recall": [
+          0.3,
+          0.48,
+          0.24
+        ],
+        "per_class_specificity": [
+          0.66,
+          0.54,
+          0.81
+        ],
+        "confusion_matrix": [
+          [
+            15,
+            23,
+            12
+          ],
+          [
+            19,
+            24,
+            7
+          ],
+          [
+            15,
+            23,
+            12
+          ]
+        ]
+      },
+      "init_from_openbmi": true,
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\shallow_challenge_mi_3s_8ch_ft\\challenge_mi_3s_8ch\\run_smoke_ft_fold0\\three\\fold0\\best_three.pt"
+    }
+  ],
+  "elapsed_sec": 4.244452238082886
+}

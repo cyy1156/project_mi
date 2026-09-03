@@ -1,0 +1,343 @@
+{
+  "experiment": 35,
+  "track": "H",
+  "arm": "H0",
+  "seed": 43,
+  "hp": {
+    "data_tag": "challenge_mi_3s_59ch",
+    "n_folds": 6,
+    "seed": 43,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "grad_accum": 4,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp",
+    "early_stop": "acc",
+    "train_sampler": "balanced_invfreq",
+    "n_chans_expected": 59,
+    "n_times_expected": 750,
+    "n_outputs": 3,
+    "num_workers": 0,
+    "pin_memory": false,
+    "use_amp": true,
+    "torch_num_threads": 8,
+    "cudnn_benchmark": false,
+    "non_blocking": true
+  },
+  "anchor_shallow": 0.453,
+  "anchor_conformer": 0.511,
+  "started": "2026-09-03T00:35:33",
+  "n_folds": 6,
+  "val_acc_mean": 0.5,
+  "val_acc_std": 0.07955431408094024,
+  "folds": [
+    {
+      "fold": 0,
+      "val_subjects": [
+        "challenge:S01"
+      ],
+      "train_subjects": [
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 13,
+      "best_val_acc": 0.4066666666666667,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.4066666666666667,
+        "acc_paper": 0.4066666666666667,
+        "macro_recall": 0.4066666666666667,
+        "macro_specificity": 0.7033333333333333,
+        "per_class_recall": [
+          0.52,
+          0.38,
+          0.32
+        ],
+        "per_class_specificity": [
+          0.54,
+          0.82,
+          0.75
+        ],
+        "confusion_matrix": [
+          [
+            26,
+            5,
+            19
+          ],
+          [
+            25,
+            19,
+            6
+          ],
+          [
+            21,
+            13,
+            16
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold0\\best_three.pt"
+    },
+    {
+      "fold": 1,
+      "val_subjects": [
+        "challenge:S02"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 69,
+      "best_val_acc": 0.5333333333333333,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.5333333333333333,
+        "acc_paper": 0.5333333333333333,
+        "macro_recall": 0.5333333333333333,
+        "macro_specificity": 0.7666666666666666,
+        "per_class_recall": [
+          0.82,
+          0.36,
+          0.42
+        ],
+        "per_class_specificity": [
+          0.46,
+          0.97,
+          0.87
+        ],
+        "confusion_matrix": [
+          [
+            41,
+            3,
+            6
+          ],
+          [
+            25,
+            18,
+            7
+          ],
+          [
+            29,
+            0,
+            21
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold1\\best_three.pt"
+    },
+    {
+      "fold": 2,
+      "val_subjects": [
+        "challenge:S03"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 48,
+      "best_val_acc": 0.58,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.58,
+        "acc_paper": 0.58,
+        "macro_recall": 0.58,
+        "macro_specificity": 0.79,
+        "per_class_recall": [
+          0.6,
+          0.84,
+          0.3
+        ],
+        "per_class_specificity": [
+          0.76,
+          0.66,
+          0.95
+        ],
+        "confusion_matrix": [
+          [
+            30,
+            15,
+            5
+          ],
+          [
+            8,
+            42,
+            0
+          ],
+          [
+            16,
+            19,
+            15
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold2\\best_three.pt"
+    },
+    {
+      "fold": 3,
+      "val_subjects": [
+        "challenge:S04"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 89,
+      "best_val_acc": 0.5733333333333334,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.5733333333333334,
+        "acc_paper": 0.5733333333333334,
+        "macro_recall": 0.5733333333333334,
+        "macro_specificity": 0.7866666666666666,
+        "per_class_recall": [
+          0.8,
+          0.58,
+          0.34
+        ],
+        "per_class_specificity": [
+          0.72,
+          0.72,
+          0.92
+        ],
+        "confusion_matrix": [
+          [
+            40,
+            6,
+            4
+          ],
+          [
+            17,
+            29,
+            4
+          ],
+          [
+            11,
+            22,
+            17
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold3\\best_three.pt"
+    },
+    {
+      "fold": 4,
+      "val_subjects": [
+        "challenge:S05"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S06"
+      ],
+      "best_epoch": 18,
+      "best_val_acc": 0.4,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.4,
+        "acc_paper": 0.4,
+        "macro_recall": 0.4000000000000001,
+        "macro_specificity": 0.6999999999999998,
+        "per_class_recall": [
+          0.42,
+          0.68,
+          0.1
+        ],
+        "per_class_specificity": [
+          0.69,
+          0.43,
+          0.98
+        ],
+        "confusion_matrix": [
+          [
+            21,
+            29,
+            0
+          ],
+          [
+            14,
+            34,
+            2
+          ],
+          [
+            17,
+            28,
+            5
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold4\\best_three.pt"
+    },
+    {
+      "fold": 5,
+      "val_subjects": [
+        "challenge:S06"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05"
+      ],
+      "best_epoch": 27,
+      "best_val_acc": 0.5066666666666667,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.5066666666666667,
+        "acc_paper": 0.5066666666666667,
+        "macro_recall": 0.5066666666666667,
+        "macro_specificity": 0.7533333333333334,
+        "per_class_recall": [
+          0.42,
+          0.38,
+          0.72
+        ],
+        "per_class_specificity": [
+          0.85,
+          0.81,
+          0.6
+        ],
+        "confusion_matrix": [
+          [
+            21,
+            14,
+            15
+          ],
+          [
+            6,
+            19,
+            25
+          ],
+          [
+            9,
+            5,
+            36
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three\\fold5\\best_three.pt"
+    }
+  ],
+  "elapsed_sec": 62.318991899490356,
+  "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H0\\run_multiseed_20260903_q4_H0_s43\\three",
+  "gap_vs_conformer_anchor": 0.01100000000000001,
+  "delta_vs_shallow_anchor": 0.046999999999999986
+}

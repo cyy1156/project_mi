@@ -1,0 +1,80 @@
+{
+  "generated_at": "2026-09-03T00:34:09",
+  "scheme_version": "v0.2.1",
+  "replay_json": "d:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\replay\\replay_FM_latest.json",
+  "structural_arms": {
+    "C_fuse": "F3",
+    "C_pool": "M2",
+    "C_conf": "M1",
+    "S0": "F0"
+  },
+  "candidates": [
+    {
+      "id": "S0",
+      "structural": "S0",
+      "source_arm": "F0",
+      "val_acc": 0.5577777777777778,
+      "priority": 0,
+      "desc": "Exp34 E1f 无约束基线（锚）",
+      "is_internal_main": false,
+      "is_main": false
+    },
+    {
+      "id": "S1",
+      "structural": "C_conf",
+      "source_arm": "M1",
+      "val_acc": 0.5111111111111112,
+      "priority": 1,
+      "desc": "conformer 单模（恒进）",
+      "is_internal_main": false,
+      "is_main": false
+    },
+    {
+      "id": "S2",
+      "structural": "C_fuse",
+      "source_arm": "F3",
+      "val_acc": 0.5544444444444445,
+      "priority": 2,
+      "desc": "约束融合最优 F3（恒进决赛）",
+      "is_internal_main": true,
+      "is_main": true
+    },
+    {
+      "id": "S3",
+      "structural": "C_pool",
+      "source_arm": "M2",
+      "val_acc": 0.54,
+      "priority": 3,
+      "desc": "缩池最优 M2（恒进决赛）",
+      "is_internal_main": false,
+      "is_main": false
+    }
+  ],
+  "internal_main": {
+    "id": "S2",
+    "structural": "C_fuse",
+    "source_arm": "F3",
+    "val_acc": 0.5544444444444445,
+    "desc": "约束融合最优 F3（恒进决赛）"
+  },
+  "external_submission": {
+    "id": "S0",
+    "structural": "S0",
+    "source_arm": "F0",
+    "val_acc": 0.5577777777777778,
+    "path_hint": "submission_exp34_e1f_a59_sens_full_20260902_1930.csv"
+  },
+  "replace_gate": {
+    "allowed": false,
+    "reason": "near_tie_same_pool_not_§12.1",
+    "main_id": "S2",
+    "structural": "C_fuse",
+    "main_val": 0.5544444444444445,
+    "s0_val": 0.5577777777777778,
+    "cand_pool_size": 4,
+    "max_w_eegnet": 0.6000000000000001,
+    "note": "allowed=false 时对外主交卷保持 S0；near_tie 仅作敏感性附报"
+  },
+  "exp34_csv_status": "final_S0",
+  "csv_files": {}
+}

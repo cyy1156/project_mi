@@ -1,0 +1,92 @@
+{
+  "experiment": 35,
+  "track": "H",
+  "arm": "H2",
+  "hp": {
+    "data_tag": "challenge_mi_3s_59ch",
+    "n_folds": 6,
+    "seed": 42,
+    "max_epochs": 300,
+    "patience": 20,
+    "batch_train": 32,
+    "batch_eval": 64,
+    "grad_accum": 4,
+    "lr": 0.0001,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.25,
+    "protocol": "challenge_mi_3s_59ch cut-then-filter LOSO6 device=5070 batch32x4 amp H2_drop0.25",
+    "early_stop": "acc",
+    "train_sampler": "balanced_invfreq",
+    "n_chans_expected": 59,
+    "n_times_expected": 750,
+    "n_outputs": 3,
+    "num_workers": 0,
+    "pin_memory": false,
+    "use_amp": true,
+    "torch_num_threads": 8,
+    "cudnn_benchmark": false,
+    "non_blocking": true
+  },
+  "anchor_shallow": 0.453,
+  "anchor_conformer": 0.511,
+  "started": "2026-09-02T23:58:25",
+  "n_folds": 1,
+  "val_acc_mean": 0.34,
+  "val_acc_std": 0.0,
+  "folds": [
+    {
+      "fold": 0,
+      "val_subjects": [
+        "challenge:S01"
+      ],
+      "train_subjects": [
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 4,
+      "best_val_acc": 0.34,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.34,
+        "acc_paper": 0.34,
+        "macro_recall": 0.34,
+        "macro_specificity": 0.6699999999999999,
+        "per_class_recall": [
+          0.5,
+          0.3,
+          0.22
+        ],
+        "per_class_specificity": [
+          0.5,
+          0.77,
+          0.74
+        ],
+        "confusion_matrix": [
+          [
+            25,
+            9,
+            16
+          ],
+          [
+            25,
+            15,
+            10
+          ],
+          [
+            25,
+            14,
+            11
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H2\\run_full_20260902_235745_smoke_H2\\three\\fold0\\best_three.pt"
+    }
+  ],
+  "elapsed_sec": 4.509743690490723,
+  "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_rankflip_accpaper\\H\\H2\\run_full_20260902_235745_smoke_H2\\three",
+  "gap_vs_conformer_anchor": 0.17099999999999999,
+  "delta_vs_shallow_anchor": -0.11299999999999999
+}

@@ -1,0 +1,309 @@
+{
+  "model_name": "shallow_b",
+  "n_folds": 6,
+  "val_acc_mean": 0.44999999999999996,
+  "val_acc_std": 0.08791409948858539,
+  "folds": [
+    {
+      "fold": 0,
+      "val_subjects": [
+        "challenge:S01"
+      ],
+      "train_subjects": [
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 3,
+      "best_val_acc": 0.3933333333333333,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.3933333333333333,
+        "acc_paper": 0.3933333333333333,
+        "macro_recall": 0.39333333333333337,
+        "macro_specificity": 0.6966666666666667,
+        "per_class_recall": [
+          0.4,
+          0.26,
+          0.52
+        ],
+        "per_class_specificity": [
+          0.68,
+          0.8,
+          0.61
+        ],
+        "confusion_matrix": [
+          [
+            20,
+            12,
+            18
+          ],
+          [
+            16,
+            13,
+            21
+          ],
+          [
+            16,
+            8,
+            26
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold0\\best_three.pt"
+    },
+    {
+      "fold": 1,
+      "val_subjects": [
+        "challenge:S02"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 16,
+      "best_val_acc": 0.52,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.52,
+        "acc_paper": 0.52,
+        "macro_recall": 0.52,
+        "macro_specificity": 0.7600000000000001,
+        "per_class_recall": [
+          0.6,
+          0.36,
+          0.6
+        ],
+        "per_class_specificity": [
+          0.65,
+          0.92,
+          0.71
+        ],
+        "confusion_matrix": [
+          [
+            30,
+            6,
+            14
+          ],
+          [
+            17,
+            18,
+            15
+          ],
+          [
+            18,
+            2,
+            30
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold1\\best_three.pt"
+    },
+    {
+      "fold": 2,
+      "val_subjects": [
+        "challenge:S03"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S04",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 36,
+      "best_val_acc": 0.5666666666666667,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.5666666666666667,
+        "acc_paper": 0.5666666666666667,
+        "macro_recall": 0.5666666666666668,
+        "macro_specificity": 0.7833333333333332,
+        "per_class_recall": [
+          0.4,
+          0.68,
+          0.62
+        ],
+        "per_class_specificity": [
+          0.94,
+          0.65,
+          0.76
+        ],
+        "confusion_matrix": [
+          [
+            20,
+            18,
+            12
+          ],
+          [
+            4,
+            34,
+            12
+          ],
+          [
+            2,
+            17,
+            31
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold2\\best_three.pt"
+    },
+    {
+      "fold": 3,
+      "val_subjects": [
+        "challenge:S04"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S05",
+        "challenge:S06"
+      ],
+      "best_epoch": 5,
+      "best_val_acc": 0.36,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.36,
+        "acc_paper": 0.36,
+        "macro_recall": 0.36000000000000004,
+        "macro_specificity": 0.68,
+        "per_class_recall": [
+          0.46,
+          0.4,
+          0.22
+        ],
+        "per_class_specificity": [
+          0.62,
+          0.66,
+          0.76
+        ],
+        "confusion_matrix": [
+          [
+            23,
+            10,
+            17
+          ],
+          [
+            23,
+            20,
+            7
+          ],
+          [
+            15,
+            24,
+            11
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold3\\best_three.pt"
+    },
+    {
+      "fold": 4,
+      "val_subjects": [
+        "challenge:S05"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S06"
+      ],
+      "best_epoch": 41,
+      "best_val_acc": 0.36666666666666664,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.36666666666666664,
+        "acc_paper": 0.36666666666666664,
+        "macro_recall": 0.3666666666666667,
+        "macro_specificity": 0.6833333333333332,
+        "per_class_recall": [
+          0.5,
+          0.54,
+          0.06
+        ],
+        "per_class_specificity": [
+          0.59,
+          0.47,
+          0.99
+        ],
+        "confusion_matrix": [
+          [
+            25,
+            25,
+            0
+          ],
+          [
+            22,
+            27,
+            1
+          ],
+          [
+            19,
+            28,
+            3
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold4\\best_three.pt"
+    },
+    {
+      "fold": 5,
+      "val_subjects": [
+        "challenge:S06"
+      ],
+      "train_subjects": [
+        "challenge:S01",
+        "challenge:S02",
+        "challenge:S03",
+        "challenge:S04",
+        "challenge:S05"
+      ],
+      "best_epoch": 27,
+      "best_val_acc": 0.49333333333333335,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.49333333333333335,
+        "acc_paper": 0.49333333333333335,
+        "macro_recall": 0.49333333333333335,
+        "macro_specificity": 0.7466666666666666,
+        "per_class_recall": [
+          0.44,
+          0.34,
+          0.7
+        ],
+        "per_class_specificity": [
+          0.89,
+          0.74,
+          0.61
+        ],
+        "confusion_matrix": [
+          [
+            22,
+            15,
+            13
+          ],
+          [
+            7,
+            17,
+            26
+          ],
+          [
+            4,
+            11,
+            35
+          ]
+        ]
+      },
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three\\fold5\\best_three.pt"
+    }
+  ],
+  "elapsed_sec": 36.93427300453186
+}
