@@ -8,6 +8,86 @@
 
 ---
 
+## 每个文件放在哪（两套目录对照）
+
+学习时你会碰到**两套路径**，不要混：
+
+| 角色 | 根目录 | 干什么 |
+|------|--------|--------|
+| **原版（只读对照）** | 仓库里的 `experiment_game/` | 精读表里打开的「标准答案」 |
+| **你的作业（自己写）** | `self_learing/` 或 README 说的 `mi_scratch/` | 本模块真正要提交的代码 |
+
+### A. 原版：结构已经在这些位置
+
+```text
+experiment_game/
+├── runtime/                          ← 「运行时」层：总线、落盘、健康
+│   ├── eeg_bus.py                    ← 类 EEGBus、EegSubscriber；publish / subscribe
+│   ├── csv_recorder.py               ← 类 CsvRecorderSubscriber（订阅 Bus 写 CSV）
+│   ├── eeg_health.py                 ← （可略）stall 健康
+│   └── board_source.py               ← 板卡源（本模块不写）
+│
+└── experiment/                       ← 「实验」层：组装采集链路、推理等
+    ├── live_capture.py               ← 类 LiveEegCapture：把 Buffer + Bus + CSV 串起来
+    └── inference_v2.py               ← 类 RingBuffer 在这里（不是 runtime/）
+                                      ← 同文件还有 InferenceService —— 本周禁止精读
+```
+
+**为什么 RingBuffer 不在 `runtime/`？**  
+原版历史原因：Buffer 与在线推理同文件；`live_capture.py` 文头也写了：归属 `experiment/`，避免 `runtime` 反向依赖推理。你**作业里可以拆开**成单独的 `ring_buffer.py`（学习路径推荐拆开）。
+
+数据流（原版真实接线）：
+
+```text
+源(LSL/合成) → RingBuffer.push
+                 ↓（attach_bus / LiveEegCapture）
+              EEGBus.publish
+                 ├─ CsvRecorderSubscriber → eeg.csv
+                 ├─ （以后）InferenceService
+                 └─ （以后）健康 / 波形
+```
+
+### B. 作业：建议你写在这些位置
+
+按 [`README.md`](../README.md) 推荐骨架（包名用你实际的，示例用 `self_learing`）：
+
+```text
+self_learing/   （或 mi_scratch/）
+├── README.md                         ← 写一张「原版路径 ↔ 我的路径」对照表
+├── src/
+│   └── self_learing/                 ← 包根（import 从这里进）
+│       ├── __init__.py
+│       ├── eeg_bus.py                ← 【本模块写】EegBus
+│       ├── ring_buffer.py            ← 【本模块写】RingBuffer（从 inference_v2 拆出来）
+│       ├── csv_recorder.py           ← 【本模块写】CsvRecorder
+│       ├── live_capture.py           ← 【本模块写】LiveCapture 组装
+│       └── sources.py                ← 【M01 已写】SyntheticSource（本模块复用）
+└── tests/
+    ├── test_bus_fanout.py            ← 【本模块写】双订阅者扇出
+    └── test_csv_rows.py              ← 【本模块写】500 样本行数
+```
+
+| 你要写的文件 | 对照原版 | 放在作业哪 | 里面该有什么结构（类/方法） |
+|--------------|----------|------------|------------------------------|
+| `eeg_bus.py` | `runtime/eeg_bus.py` | `src/.../eeg_bus.py` | `EegBus.__init__` / `subscribe` / `publish` |
+| `ring_buffer.py` | `experiment/inference_v2.py` 里的 `RingBuffer` | `src/.../ring_buffer.py`（单独文件） | `__init__(n_ch,fs,capacity_s)` / `push` / `__len__`；（可选）`get_latest` |
+| `csv_recorder.py` | `runtime/csv_recorder.py` | `src/.../csv_recorder.py` | `__init__(path, channel_names)` / `on_sample` / `close` |
+| `live_capture.py` | `experiment/live_capture.py` | `src/.../live_capture.py` | `LiveCapture.__init__(source, buffer, bus, recorder)` / `run_n_samples` |
+| `tests/test_bus_fanout.py` | （自测） | `tests/` | 两个 subscribe，一次 publish，两边值相同 |
+| `tests/test_csv_rows.py` | （自测） | `tests/` | `run_n_samples(500)` 后 CSV 数据行 == 500 |
+
+**教学示例（只看不交）**：`学习复现_从0到1/examples/M02_代码示例.md`（包名可能是 `teach_demo`，你作业里改成自己的包名）。
+
+### C. 本模块**不要**新建/不要动的
+
+| 路径 | 原因 |
+|------|------|
+| 原版整份 `inference_v2.py` 的 `InferenceService` | 精读表明确禁止本周读完整推理 |
+| 第二路「再拉一条 LSL 给推理」 | 纪律：只有一个水龙头进 Buffer |
+| 改现网 `experiment_game/runtime/*` 当练习 | 作业写在 `self_learing/`，原版只对照 |
+
+---
+
 ## 原版精读表（严格按序，每次只读点名方法）
 
 | 步 | 文件 | 搜这个名字 | 读完应能回答 |

@@ -26,7 +26,7 @@ class SyntheticSource(BaseSource):
         self._running=False
 
 
-    def iter_n(
+    def iter_samples(
             self,
             n:int,
             start_t:float=0.0,
