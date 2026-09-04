@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>MI-BCI 在线系统实时交互架构 · XH-202610</title>
+<style>
+  body { font-family: "Microsoft YaHei", "PingFang SC", sans-serif; margin: 0; background: #F4F6F9; color: #2B3A4A; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 24px; }
+  h1 { font-size: 22px; margin: 8px 0 2px; }
+  .sub { color: #66788A; font-size: 13px; margin-bottom: 18px; }
+  h2 { font-size: 17px; margin: 30px 0 10px; border-left: 4px solid #3D6FB4; padding-left: 10px; }
+  .card { background: #fff; border: 1px solid #DCE4EC; border-radius: 10px; padding: 18px; margin-bottom: 20px; }
+  svg text { font-family: "Microsoft YaHei", sans-serif; }
+  .legend { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; color: #55606B; margin: 6px 0 0; }
+  .legend span { display: inline-flex; align-items: center; gap: 6px; }
+  .chip { width: 14px; height: 14px; border-radius: 3px; display: inline-block; }
+  table.resp { width: 100%; border-collapse: collapse; font-size: 12.5px; }
+  table.resp th, table.resp td { border: 1px solid #D8E0E8; padding: 6px 9px; text-align: left; vertical-align: top; }
+  table.resp th { background: #EEF3F9; }
+  .flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; }
+  .lane { background: #F8FAFC; border: 1px solid #DCE4EC; border-radius: 8px; padding: 8px; }
+  .lane h3 { font-size: 13px; margin: 2px 4px 10px; color: #3D6FB4; }
+  .step { background: #fff; border: 1px solid #D8E0E8; border-left: 3px solid #3D6FB4; border-radius: 6px; padding: 7px 9px; font-size: 12px; margin-bottom: 10px; }
+  .step b { color: #24425F; }
+  .step .n { display: inline-block; background: #3D6FB4; color: #fff; border-radius: 50%; width: 17px; height: 17px; text-align: center; line-height: 17px; font-size: 11px; margin-right: 5px; }
+  .note { font-size: 12px; color: #66788A; }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>MI-BCI 在线系统 · 实时交互架构框架图</h1>
+  <div class="sub">题目 XH-202610 ｜ 三级优化系统在线主线：CausalFuse-8 / CausalFuse-8FT ｜ 因果滑窗 3 s / 100 ms ｜ 单窗前向 1.11 ms，判定延迟约 3.5 s</div>
+
+  <div class="card">
+  <svg viewBox="0 0 1200 1140" xmlns="http://www.w3.org/2000/svg" font-size="12">
+    <defs>
+      <marker id="ar" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+        <path d="M0,0 L9,4 L0,8 Z" fill="#33475B"/>
+      </marker>
+      <marker id="arG" markerWidth="9" markerHeight="8" refX="8" refY="4" orient="auto">
+        <path d="M0,0 L9,4 L0,8 Z" fill="#8A94A0"/>
+      </marker>
+    </defs>
+    <text x="34" y="34" font-size="18" font-weight="bold" fill="#24425F">系统分层架构总图（含数据流向与编号实时链路 ①–⑦）</text>
+
+    <!-- ============ L1 客户端层 ============ -->
+    <rect x="30" y="55" width="1140" height="185" rx="10" fill="#EEF3FB" stroke="#B9CCE8"/>
+    <text x="48" y="80" font-size="14" font-weight="bold" fill="#33517E">客户端层（Client Layer）</text>
+    <rect x="70" y="92" width="320" height="132" rx="8" fill="#FFFFFF" stroke="#7FA3D4"/>
+    <text x="84" y="114" font-size="13.5" font-weight="bold" fill="#24425F">① 游戏前端（被试视角）</text>
+    <text x="84" y="134" fill="#4A5A6A">Three.js 第一人称虚拟手与目标物</text>
+    <text x="84" y="152" fill="#4A5A6A">Cue HUD 动觉引导语（左手/右手抓握）</text>
+    <text x="84" y="170" fill="#4A5A6A">接收判定 → arm_reach 反馈动画</text>
+    <text x="84" y="188" fill="#4A5A6A">试次计分显示（MI +1 / Rest +0.5）</text>
+    <text x="84" y="210" fill="#8A94A0">职责：刺激呈现 · 反馈渲染 · 事件上报</text>
+
+    <rect x="435" y="92" width="320" height="132" rx="8" fill="#FFFFFF" stroke="#7FA3D4"/>
+    <text x="449" y="114" font-size="13.5" font-weight="bold" fill="#24425F">② 操作台（实验员控制面）</text>
+    <text x="449" y="134" fill="#4A5A6A">被试登录 / 会话号管理</text>
+    <text x="449" y="152" fill="#4A5A6A">实时波形、信号质量、三分类概率监视</text>
+    <text x="449" y="170" fill="#4A5A6A">门控确认、暂停 / Reject / 中止</text>
+    <text x="449" y="188" fill="#4A5A6A">按键化控制（P/N/G/R/Esc）</text>
+    <text x="449" y="210" fill="#8A94A0">职责：会话控制 · 实时监视 · 审计留痕</text>
+
+    <rect x="800" y="92" width="355" height="132" rx="8" fill="#FFFFFF" stroke="#7FA3D4"/>
+    <text x="814" y="114" font-size="13.5" font-weight="bold" fill="#24425F">③ 采集硬件（OpenBCI Cyton）</text>
+    <text x="814" y="134" fill="#4A5A6A">8 导运动皮层：FC3 C3 CP3 CZ CPZ FC4 C4 CP4</text>
+    <text x="814" y="152" fill="#4A5A6A">采样率 250 Hz</text>
+    <text x="814" y="170" fill="#4A5A6A">采集层滤波：0.5–45 Hz 带通 + 50 Hz 陷波</text>
+    <text x="814" y="188" fill="#4A5A6A">支持合成板调试模式</text>
+    <text x="814" y="210" fill="#8A94A0">职责：脑电信号获取（设备层）</text>
+
+    <!-- ============ L2 通信接入层 ============ -->
+    <rect x="30" y="262" width="1140" height="130" rx="10" fill="#FFF7E8" stroke="#E4CE9E"/>
+    <text x="48" y="287" font-size="14" font-weight="bold" fill="#8A6D2F">通信接入层（Communication Layer）</text>
+    <rect x="70" y="300" width="685" height="78" rx="8" fill="#FFFFFF" stroke="#D3B26A"/>
+    <text x="84" y="322" font-size="13.5" font-weight="bold" fill="#24425F">④ WebSocket 网关（双向消息通道）</text>
+    <text x="84" y="341" fill="#4A5A6A">控制面 token 鉴权 · 消息路由 · XSS 转义 · 心跳保活</text>
+    <text x="84" y="359" fill="#4A5A6A">JSON 消息契约：范式状态 / 判定结果 / 概率流 / 控制指令</text>
+    <rect x="800" y="300" width="355" height="78" rx="8" fill="#FFFFFF" stroke="#D3B26A"/>
+    <text x="814" y="322" font-size="13.5" font-weight="bold" fill="#24425F">⑤ LSL 因果推流通道</text>
+    <text x="814" y="341" fill="#4A5A6A">Lab Streaming Layer 因果时间戳推流</text>
+    <text x="814" y="359" fill="#4A5A6A">250 Hz 高频脑电流，仅供服务端消费</text>
+
+    <!-- ============ L3 服务层 ============ -->
+    <rect x="30" y="414" width="1140" height="300" rx="10" fill="#EDF7EE" stroke="#B5D6B8"/>
+    <text x="48" y="439" font-size="14" font-weight="bold" fill="#3E6B44">服务层（Server Layer）</text>
+    <rect x="70" y="452" width="340" height="120" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="84" y="474" font-size="13.5" font-weight="bold" fill="#24425F">⑥ 会话管理与范式状态机</text>
+    <text x="84" y="493" fill="#4A5A6A">被试登录、会话号分配与启停控制</text>
+    <text x="84" y="511" fill="#4A5A6A">v3 范式时序：Rest 4s→prep 2s→Cue 1s→MI 4s→ITI 3s</text>
+    <text x="84" y="529" fill="#4A5A6A">事件打标（Cue/MI 起止锚点）与试次计数</text>
+    <text x="84" y="552" fill="#8A94A0">职责：交互协议驱动 · 会话生命周期</text>
+
+    <rect x="435" y="452" width="340" height="120" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="449" y="474" font-size="13.5" font-weight="bold" fill="#24425F">⑦ 采集服务与信号质检</text>
+    <text x="449" y="493" fill="#4A5A6A">Cyton / 合成板接入，环形缓冲</text>
+    <text x="449" y="511" fill="#4A5A6A">健康监测：缓冲龄 / 信号质量 / 通道完整性</text>
+    <text x="449" y="529" fill="#4A5A6A">断流看门狗：停滞 2 s 告警 · 5 s 中止会话</text>
+    <text x="449" y="552" fill="#8A94A0">职责：信号接入 · 质量防线</text>
+
+    <rect x="800" y="452" width="355" height="120" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="814" y="474" font-size="13.5" font-weight="bold" fill="#24425F">⑧ 实时推理引擎（CausalFuse-8）</text>
+    <text x="814" y="493" fill="#4A5A6A">CAR → 8–30 Hz 带通 → 逐窗 z-score</text>
+    <text x="814" y="511" fill="#4A5A6A">3 s / 100 ms 因果滑窗 · 四成员并行前向</text>
+    <text x="814" y="529" fill="#4A5A6A">温度校准 + 固定权重融合（单窗 1.11 ms）</text>
+    <text x="814" y="552" fill="#8A94A0">职责：脑电解码 · 概率输出</text>
+
+    <rect x="70" y="588" width="340" height="110" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="84" y="610" font-size="13.5" font-weight="bold" fill="#24425F">⑨ 模型管理与晋升</text>
+    <text x="84" y="629" fill="#4A5A6A">按被试加载 subjects/*/models/current</text>
+    <text x="84" y="647" fill="#4A5A6A">无个人模型时回退通用底座</text>
+    <text x="84" y="665" fill="#4A5A6A">采后晋升 / 回滚 / 历史快照归档</text>
+    <text x="84" y="685" fill="#8A94A0">职责：个体适配模型的生命周期</text>
+
+    <rect x="435" y="588" width="340" height="110" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="449" y="610" font-size="13.5" font-weight="bold" fill="#24425F">⑩ 状态同步与判定分发</text>
+    <text x="449" y="629" fill="#4A5A6A">100 ms 节拍：范式状态 × 滑窗判定同步</text>
+    <text x="449" y="647" fill="#4A5A6A">因果平滑（lookback=2）+ 试次多数票</text>
+    <text x="449" y="665" fill="#4A5A6A">判定 / 概率广播至游戏前端与操作台</text>
+    <text x="449" y="685" fill="#8A94A0">职责：实时性枢纽 · 反馈触发源</text>
+
+    <rect x="800" y="588" width="355" height="110" rx="8" fill="#FFFFFF" stroke="#7BBF83"/>
+    <text x="814" y="610" font-size="13.5" font-weight="bold" fill="#24425F">⑪ 安全与审计</text>
+    <text x="814" y="629" fill="#4A5A6A">控制指令鉴权与非法输入过滤</text>
+    <text x="814" y="647" fill="#4A5A6A">操作审计日志 · 会话收尾崩溃安全落盘</text>
+    <text x="814" y="665" fill="#4A5A6A">核心流水线 pytest 回归覆盖</text>
+    <text x="814" y="685" fill="#8A94A0">职责：安全防线 · 可追溯性</text>
+
+    <!-- ============ L4 数据存储层 ============ -->
+    <rect x="30" y="736" width="1140" height="160" rx="10" fill="#F5EFFA" stroke="#D4C3E8"/>
+    <text x="48" y="761" font-size="14" font-weight="bold" fill="#5E4785">数据存储层（Data Layer · 全链路落盘，任何评测可从原始数据重放）</text>
+    <rect x="70" y="775" width="340" height="105" rx="8" fill="#FFFFFF" stroke="#B49BD6"/>
+    <text x="84" y="797" font-size="13.5" font-weight="bold" fill="#24425F">⑫ 会话原始数据</text>
+    <text x="84" y="816" fill="#4A5A6A">eeg.csv（原始脑电）· events.jsonl（事件标签）</text>
+    <text x="84" y="834" fill="#4A5A6A">manifest.json / session.meta.json（元数据）</text>
+    <text x="84" y="852" fill="#4A5A6A">continuous/ 与 by_phase/ 切分产物</text>
+    <rect x="435" y="775" width="340" height="105" rx="8" fill="#FFFFFF" stroke="#B49BD6"/>
+    <text x="449" y="797" font-size="13.5" font-weight="bold" fill="#24425F">⑬ 模型仓库</text>
+    <text x="449" y="816" fill="#4A5A6A">subjects/*/models/current（个人适配模型）</text>
+    <text x="449" y="834" fill="#4A5A6A">members/ + e1f_overlay.json（融合参数）</text>
+    <text x="449" y="852" fill="#4A5A6A">历史快照归档，可审计、可回滚</text>
+    <rect x="800" y="775" width="355" height="105" rx="8" fill="#FFFFFF" stroke="#B49BD6"/>
+    <text x="814" y="797" font-size="13.5" font-weight="bold" fill="#24425F">⑭ 配置权威与质检产物</text>
+    <text x="814" y="816" fill="#4A5A6A">v3_session.yaml / ft_policy.json / protocol.yaml</text>
+    <text x="814" y="834" fill="#4A5A6A">alignment/verify_report.json（对齐校验）</text>
+    <text x="814" y="852" fill="#4A5A6A">force_promote_warning.json（晋升告警）</text>
+
+    <!-- ============ 离线适配链路 ============ -->
+    <rect x="30" y="918" width="1140" height="98" rx="10" fill="#FDF0EE" stroke="#E8C0B8"/>
+    <text x="48" y="943" font-size="14" font-weight="bold" fill="#9C4A3C">离线适配链路（会话结束自动触发，不在实时判定路径上）</text>
+    <rect x="70" y="954" width="1060" height="50" rx="8" fill="#FFFFFF" stroke="#DCA79C"/>
+    <text x="84" y="975" font-size="13" font-weight="bold" fill="#24425F">⑮ Leave-Next 采后微调作业</text>
+    <text x="380" y="975" fill="#4A5A6A">全成员增量微调 + 10% 源域回放 → 门控（heldout 窗级 raw 准确率）</text>
+    <text x="84" y="994" fill="#4A5A6A">PASS → 晋升个人模型；FAIL → 告警落盘（默认强制晋升）；连续 FAIL → 回滚上一权重并降学习率</text>
+
+    <!-- ============ 箭头：编号实时链路 ============ -->
+    <!-- ① 操作台 -> 网关 : 控制指令 -->
+    <line x1="595" y1="224" x2="595" y2="298" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="604" y="266" fill="#33475B" font-size="12">① 会话控制指令（上行）</text>
+    <!-- ② 会话状态下行 会话管理->网关->游戏前端：网关->游戏前端 -->
+    <line x1="230" y1="298" x2="230" y2="228" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="150" y="266" fill="#33475B" font-size="12">② 范式状态 / 计分（下行）</text>
+    <!-- ③ Cyton -> LSL -> 采集服务 -->
+    <line x1="977" y1="224" x2="977" y2="298" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="986" y="266" fill="#33475B" font-size="12">③ 原始脑电 250 Hz</text>
+    <line x1="977" y1="378" x2="778" y2="450" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="800" y="432" fill="#33475B" font-size="12">③ LSL 因果推流</text>
+    <!-- 会话管理 -> 采集服务 -->
+    <line x1="410" y1="512" x2="433" y2="512" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="330" y="504" fill="#33475B" font-size="12">启停 / 节拍</text>
+    <!-- 采集服务 -> 推理 -->
+    <line x1="775" y1="512" x2="798" y2="512" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="764" y="500" fill="#33475B" font-size="12">④最新 3 s 窗</text>
+    <!-- 推理 -> 状态分发 : 沿行间走廊 -->
+    <path d="M 975 572 L 975 580 L 605 580 L 605 586" fill="none" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="700" y="577" fill="#33475B" font-size="12">⑤ 融合概率（100 ms 节拍）</text>
+    <!-- 状态分发 -> 网关 : 沿列间走廊 x=412 -->
+    <path d="M 433 643 L 412 643 L 412 380" fill="none" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="418" y="420" fill="#33475B" font-size="12">⑤ 判定 / 概率下行（推送双前端）</text>
+    <!-- 会话管理/采集 -> 会话原始数据 : 左外侧走廊 -->
+    <path d="M 68 512 L 46 512 L 46 828 L 68 828" fill="none" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="8" y="690" fill="#33475B" font-size="12" transform="rotate(-90 8 690)">⑥ 会话落盘（eeg / events / manifest）</text>
+    <!-- 模型管理 <-> 模型仓库 -->
+    <line x1="605" y1="698" x2="605" y2="773" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <line x1="590" y1="773" x2="590" y2="698" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="614" y="742" fill="#33475B" font-size="12">⑦ 加载 / 晋升</text>
+    <!-- 配置权威 -> 服务层 (dashed) -->
+    <line x1="977" y1="773" x2="977" y2="700" stroke="#8A94A0" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arG)"/>
+    <text x="985" y="742" fill="#66788A" font-size="12">配置加载（冻结口径）</text>
+    <!-- 数据层 -> 适配作业 -> 模型仓库 -->
+    <line x1="240" y1="880" x2="240" y2="952" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="248" y="922" fill="#33475B" font-size="12">历史场次数据</text>
+    <line x1="700" y1="954" x2="700" y2="882" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/>
+    <text x="708" y="922" fill="#33475B" font-size="12">⑦ 晋升个人模型（下场会话生效）</text>
+
+    <!-- 图例 -->
+    <text x="34" y="1042" font-size="12" fill="#66788A">图例：</text>
+    <rect x="76" y="1032" width="14" height="14" fill="#EEF3FB" stroke="#B9CCE8"/><text x="96" y="1044" font-size="12" fill="#66788A">客户端层</text>
+    <rect x="166" y="1032" width="14" height="14" fill="#FFF7E8" stroke="#E4CE9E"/><text x="186" y="1044" font-size="12" fill="#66788A">通信接入层</text>
+    <rect x="276" y="1032" width="14" height="14" fill="#EDF7EE" stroke="#B5D6B8"/><text x="296" y="1044" font-size="12" fill="#66788A">服务层</text>
+    <rect x="356" y="1032" width="14" height="14" fill="#F5EFFA" stroke="#D4C3E8"/><text x="376" y="1044" font-size="12" fill="#66788A">数据存储层</text>
+    <rect x="466" y="1032" width="14" height="14" fill="#FDF0EE" stroke="#E8C0B8"/><text x="486" y="1044" font-size="12" fill="#66788A">离线适配链路（非实时路径）</text>
+    <line x1="646" y1="1039" x2="690" y2="1039" stroke="#33475B" stroke-width="1.6" marker-end="url(#ar)"/><text x="700" y="1044" font-size="12" fill="#66788A">实时数据流（①–⑦ 编号对应下方全链路）</text>
+    <line x1="946" y1="1039" x2="990" y2="1039" stroke="#8A94A0" stroke-width="1.4" stroke-dasharray="5 4" marker-end="url(#arG)"/><text x="1000" y="1044" font-size="12" fill="#66788A">配置/旁路</text>
+    <text x="34" y="1078" font-size="12.5" fill="#4A5A6A">实时性要点：判定延迟由 3 s 窗口时程主导（因果平滑臂约 3.5 s），算法单窗前向仅 1.11 ms，远小于 100 ms 节拍；</text>
+    <text x="34" y="1098" font-size="12.5" fill="#4A5A6A">门控、微调、落盘均在会话末触发或旁路执行，不占用实时判定路径；断流看门狗与质量门控保证异常显式化而非静默吸收。</text>
+  </svg>
+  </div>
+
+  <h2>实时交互全链路（从被试进入会话到接收反馈的完整过程）</h2>
+  <div class="card">
+    <div class="flow">
+      <div class="lane"><h3>被试 / 游戏前端</h3>
+        <div class="step"><span class="n">1</span><b>进入会话</b>：被试就位，操作台完成登录与会话号分配，游戏前端加载个人模型（无则回退底座）。</div>
+        <div class="step"><span class="n">2</span><b>接收范式状态</b>：按 100 ms 节拍收到状态机广播（Rest→prep→Cue→MI），Cue 阶段 HUD 显示"左手/右手抓握"引导语。</div>
+        <div class="step"><span class="n">5</span><b>实时反馈</b>：判定窗命中后收到判定结果，虚拟手执行 arm_reach 到达/抓取动画（端到端感知延迟约 3.5 s，由窗口时程主导）。</div>
+        <div class="step"><span class="n">6</span><b>试次结算</b>：试次结束收到多数票判定与计分（MI +1 / Rest +0.5），连线试次连击反馈。</div>
+      </div>
+      <div class="lane"><h3>服务端 · 会话与采集</h3>
+        <div class="step"><span class="n">1</span><b>会话建立</b>：会话管理分配会话号，启动 v3 范式状态机与事件打标（Cue/MI 起止锚点）。</div>
+        <div class="step"><span class="n">3</span><b>信号接入</b>：Cyton 经 LSL 因果推流 250 Hz 脑电；采集服务缓冲并做健康监测（缓冲龄/信号质量/通道完整性），看门狗停滞 2 s 告警、5 s 中止。</div>
+        <div class="step"><span class="n">4</span><b>供窗</b>：按 100 ms 步长向推理引擎输出最新 3 s 窗（仅含历史数据，满足因果性）。</div>
+        <div class="step"><span class="n">7</span><b>落盘与校验</b>：会话结束将 eeg.csv / events.jsonl / manifest 落盘，并自动完成标记—脑电对齐校验，不合格会话不入库。</div>
+      </div>
+      <div class="lane"><h3>服务端 · 推理与分发</h3>
+        <div class="step"><span class="n">4</span><b>实时解码</b>：预处理（CAR→8–30 Hz→z-score）后四成员并行前向，温度校准 + 固定权重融合，单窗增量 1.11 ms。</div>
+        <div class="step"><span class="n">5</span><b>判定与分发</b>：因果平滑（lookback=2）+ argmax 得窗级判定；按 100 ms 节拍把概率流推送操作台、判定推送游戏前端。</div>
+        <div class="step"><span class="n">6</span><b>试次多数票</b>：11 档判定点多数票产生试次结果，驱动计分与反馈广播。</div>
+        <div class="step"><span class="n">8</span><b>采后适配</b>：会话结束触发 Leave-Next 全成员微调（10% 源域回放），门控（heldout 窗级 raw 准确率）通过后晋升个人模型。</div>
+      </div>
+      <div class="lane"><h3>操作台 / 数据存储</h3>
+        <div class="step"><span class="n">1</span><b>控制下发</b>：实验员经操作台下发启停/暂停/中止指令（token 鉴权，全部留审计日志）。</div>
+        <div class="step"><span class="n">4–6</span><b>实时监视</b>：持续接收波形、信号质量与三分类概率流，必要时执行门控确认或 Reject。</div>
+        <div class="step"><span class="n">7</span><b>数据归档</b>：原始脑电、事件、元数据、配置快照全链路落盘；对齐校验报告与晋升告警写入质检产物。</div>
+        <div class="step"><span class="n">8</span><b>模型归档</b>：晋升的个人模型写入 subjects/*/models/current，历史快照归档可审计，下一会话自动生效。</div>
+      </div>
+    </div>
+    <p class="note">编号 ①–⑧ 与上方架构图中的编号实时链路 ①–⑦ 对应：①会话控制 ②范式状态下行 ③脑电流 ④滑窗供窗与推理 ⑤判定/概率下行 ⑥会话落盘 ⑦采后微调晋升。</p>
+  </div>
+
+  <h2>核心模块职责速查表</h2>
+  <div class="card">
+    <table class="resp">
+      <tr><th style="width:15%">模块</th><th style="width:12%">所属层</th><th style="width:38%">核心职责</th><th style="width:20%">关键指标 / 机制</th><th style="width:15%">对外接口</th></tr>
+      <tr><td>游戏前端</td><td>客户端层</td><td>第一人称运动想象诱导（虚拟手/目标物/引导语），接收判定渲染反馈动画，试次计分展示，会话事件上报</td><td>反馈延迟由判定窗主导（约 3.5 s）</td><td>WebSocket（JSON）</td></tr>
+      <tr><td>操作台</td><td>客户端层</td><td>被试与会话管理、采集启停、实时波形与概率监视、门控确认、异常处置（暂停/Reject/中止）</td><td>按键化操作，全程审计日志</td><td>WebSocket（JSON）</td></tr>
+      <tr><td>采集硬件</td><td>客户端层</td><td>8 导运动皮层脑电获取，250 Hz 采样，采集层滤波</td><td>8–45 Hz 链路滤波，50 Hz 陷波</td><td>LSL 推流</td></tr>
+      <tr><td>WebSocket 网关</td><td>通信接入层</td><td>双前端的消息路由与双向推送：状态下行、判定/概率下行、控制与事件上行</td><td>token 鉴权、XSS 转义、心跳</td><td>WS 服务端</td></tr>
+      <tr><td>LSL 推流通道</td><td>通信接入层</td><td>脑电高频流的因果时间戳传输，仅服务端消费，支持合成板</td><td>250 Hz 连续流</td><td>LSL 协议</td></tr>
+      <tr><td>会话管理与状态机</td><td>服务层</td><td>会话生命周期、v3 范式时序驱动、事件打标与试次锚点</td><td>Rest 4s→prep 2s→Cue 1s→MI 4s→ITI 3s</td><td>网关 / 采集 / 落盘</td></tr>
+      <tr><td>采集服务与质检</td><td>服务层</td><td>信号接入与缓冲、健康监测、断流看门狗，向推理供最新窗</td><td>停滞 2 s 告警 / 5 s 中止</td><td>LSL 消费 / 内部接口</td></tr>
+      <tr><td>实时推理引擎</td><td>服务层</td><td>预处理、四成员并行前向、温度校准融合，输出三类概率</td><td>单窗前向 1.11 ms</td><td>内部（分发层）</td></tr>
+      <tr><td>状态同步与判定分发</td><td>服务层</td><td>范式状态与滑窗判定的节拍同步、因果平滑、多数票试次判定、反馈广播</td><td>lookback=2，100 ms 节拍</td><td>网关上行 / 推理下行</td></tr>
+      <tr><td>模型管理与晋升</td><td>服务层</td><td>个人模型加载与回退、采后晋升/回滚、快照归档</td><td>门控 raw 窗级准确率判定</td><td>模型仓库</td></tr>
+      <tr><td>安全与审计</td><td>服务层</td><td>指令鉴权、输入过滤、审计日志、崩溃安全落盘、回归测试覆盖</td><td>全操作可追溯</td><td>横切所有服务</td></tr>
+      <tr><td>会话原始数据</td><td>数据层</td><td>原始脑电、事件标签、元数据与配置快照落盘，支撑重放复现</td><td>对齐校验不合格不入库</td><td>微调作业 / 离线评测</td></tr>
+      <tr><td>模型仓库</td><td>数据层</td><td>个人适配模型与融合参数存储、历史快照</td><td>写入即原子落盘</td><td>模型管理读写</td></tr>
+      <tr><td>配置与质检产物</td><td>数据层</td><td>冻结口径的配置权威、对齐校验报告、晋升告警</td><td>文档与代码冲突以配置为准</td><td>全服务读取</td></tr>
+      <tr><td>Leave-Next 微调作业</td><td>离线适配链路</td><td>会话末全成员增量微调 + 源域回放，门控后晋升个人模型</td><td>门控 FAIL 告警强制晋升 / 回滚</td><td>读取数据层，写模型仓库</td></tr>
+    </table>
+  </div>
+
+  <h2>通信契约与实时性设计要点（讲解提纲）</h2>
+  <div class="card">
+    <table class="resp">
+      <tr><th style="width:20%">要点</th><th>说明</th></tr>
+      <tr><td>双通道分离</td><td>高频脑电流（250 Hz）走 LSL 单向因果推流，仅服务端消费；交互消息（状态/判定/控制）走 WebSocket 双向 JSON 通道。两条通道互不阻塞，保证推理节拍稳定。</td></tr>
+      <tr><td>节拍同步</td><td>全系统以 100 ms 窗步进为统一节拍：采集供窗、推理前向、状态分发同频推进；范式状态机提供试次锚点，判定窗固定锚定 Cue 后 3.0–4.0 s。</td></tr>
+      <tr><td>延迟构成</td><td>端到端判定延迟 ≈ 窗口时程（3 s）+ 判定点位置（约 0.5 s）≈ 3.5 s；算法增量 1.11 ms 占比可忽略。反馈的"实时性"由确定性的判定时刻保证，而非追求单窗低延迟。</td></tr>
+      <tr><td>无门控异步判别</td><td>三分类显式含空闲类，静息期持续输出空闲态监视；控制输出仅由结构化试次的多数票产生，弃权路径为零，交互行为确定可预期。</td></tr>
+      <tr><td>异常显式化</td><td>断流看门狗（2 s 告警 / 5 s 中止）、场次质量门控（FAIL 告警强制晋升）、连续无效熔断降级：所有异常落盘留痕，不静默吸收。</td></tr>
+      <tr><td>可复现闭环</td><td>每个会话全量落盘 + 配置快照，任意一次在线判定可离线重放；采后微调晋升的个人模型带历史快照，可审计、可回滚。</td></tr>
+    </table>
+  </div>
+
+  <div class="sub" style="margin-top:10px">配套文档：《技术报告 XH-202610》§2.5–2.6、附录 A/B ｜ 本图数据口径以冻结配置（v3_session.yaml / ft_policy.json / protocol.yaml）为准</div>
+</div>
+</body>
+</html>
