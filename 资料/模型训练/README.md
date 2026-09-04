@@ -1,7 +1,8 @@
 # 模型训练资料索引
 
-> 更新：2026-08-09 · **入口修订：2026-08-30**  
-> **线上/游戏现行**：`experiment_game` · **3s hop100 · E1f 四成员 · FT=all4+force**（见 `experiment_game/docs/框架冻结确认_20260829.md`）。  
+> 更新：2026-08-09 · **入口修订：2026-08-30** · **对外命名：2026-09-04**  
+> **对外模型名**：离线交卷 **QuadFold-59** · 在线主线 **CausalFuse-8** / **CausalFuse-8FT**（见 [`模型命名_QuadFold-CausalFuse.md`](./模型命名_QuadFold-CausalFuse.md)）。  
+> **线上/游戏现行**：`experiment_game` · **CausalFuse-8**（3s hop100 · E1f 四成员 · T/w 冻结）· FT=all4+force → **CausalFuse-8FT**（见 `experiment_game/docs/框架冻结确认_20260829.md`）。  
 > 本目录「2s 主线」为 **训练旁路历史主线**；E1f / Leave-Next / fnz FT 证据见方案 **24–31**；BCI2a 双底座×双门控见 **[`32`](./32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper/)**；真被试 all4 复验见 **[`33`](./33_旁路_真被试LeaveNext_all4复验_syj_fnz_openbmi_accpaper/)**；**真人全队列统一总账见 [`41`](./41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/)**。部署动作以 `experiment_game` 配置为准（冻结 F22）。
 
 ## 历史主线入口（2 s / 100 ms · 请知悉已非线上默认）

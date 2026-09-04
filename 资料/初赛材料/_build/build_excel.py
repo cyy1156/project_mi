@@ -78,16 +78,16 @@ setup_sheet(ws, title="离线性能验证总表（左手 MI / 右手 MI / 空闲
 c = CM["arm_C_trial_decision"]["test"]
 w = CM["arm_W_trial_decision"]["test"]
 rows = [
-    # —— 主办方指定集（60 分主读 · Exp34–40 · 2026-09-04 回填 · 交卷=S0）——
+    # —— 主办方指定集（60 分主读 · Exp34–40 · 2026-09-04 回填 · 交卷=QuadFold-59）——
     [1, "主办方指定标准数据集（6 人，Challenge MI）",
      "LOSO6 · leave-fold 嵌套 Val（主读数）",
-     "E1f-A59 从零（nested-S0 / N0；**交卷终态 S0**）", "试次级",
+     "QuadFold-59（nested / 内部 S0·E1f-A59；**交卷终态**）", "试次级",
      0.5111, 0.5111, "—", "—",
      "CSV=submission_exp34_e1f_a59_sens_full_20260902_1930.csv",
      "实验 37/39/40 · sheet 11"],
     [2, "主办方指定标准数据集（同上）",
      "LOSO6 · 折内 Val（融合参数本折拟合；附报双标注）",
-     "E1f-A59 折内（交卷栈同文件）", "试次级", 0.5580, 0.5580, 0.779, "—", "—",
+     "QuadFold-59 折内（交卷栈同文件）", "试次级", 0.5580, 0.5580, 0.779, "—", "—",
      "实验 34/35；嵌套对照 0.511（乐观≈+4.7pp）"],
     [3, "主办方指定标准数据集（同上）",
      "LOSO6 · leave-fold 嵌套 Val（备选归档）",
@@ -100,41 +100,41 @@ rows = [
      "实验 34；嵌套复核 0.540"],
     # —— 公开库 / 自采 ——
     [5, "OpenBMI（54 人，公开）", "被试独立五折 · test 试次级 Acc_paper（16,200 试次，每类 5,400）",
-     "E1f 四成员融合 + 因果平滑（C 臂，主结果）", "试次级", 0.6188, 0.6188, 0.8094, 0.6196,
+     "CausalFuse-8 + 因果滑窗（C 臂，主结果）", "试次级", 0.6188, 0.6188, 0.8094, 0.6196,
      "判定延迟 t̄≈3.50 s；单窗前向 1.11 ms（RTX 5070）", "实验 30 + 混淆矩阵复算（本表 sheet 01）"],
-    [6, "OpenBMI（54 人，公开）", "同上", "E1f 四成员融合 + 多数票读出（W 臂，现行线上读出）", "试次级",
+    [6, "OpenBMI（54 人，公开）", "同上", "CausalFuse-8 + 多数票读出（W 臂，现行线上读出）", "试次级",
      0.6125, 0.6125, 0.8062, 0.6132, "判定延迟 t̄≈4.00 s", "实验 30 + 混淆矩阵复算（sheet 01）"],
-    [7, "OpenBMI（54 人，公开）", "同上", "E1f 窗级 argmax（不作试次聚合）", "窗级",
+    [7, "OpenBMI（54 人，公开）", "同上", "CausalFuse-8 窗级 argmax（不作试次聚合）", "窗级",
      0.5925, 0.5925, 0.7962, 0.5930, "单窗 100 ms 步进", "混淆矩阵复算（sheet 01）"],
     [8, "OpenBMI（54 人，公开）", "被试独立五折 · 试次级", "ShallowFBCSPNet 3s 单模型（S3 底座）", "试次级",
      0.5876, "—", "—", "—", "—", "实验 20 登记表（0.5876±0.0296）"],
     [9, "OpenBMI（54 人，公开）", "被试独立五折 · 试次级", "Deep4Net 2s（11 模型基线最优）", "试次级",
      0.5431, 0.5605, 0.7754, 0.5324, "—", "5090 十一模型对比（sheet 02）"],
     [10, "BCI IV 2a（9 人，公开）", "Leave-Next 6 轮仿真 · 末档（R5）· 三分类含空闲",
-     "E1f 四成员 + all4 采后增量微调（force）", "窗级（heldout run）",
+     "CausalFuse-8FT（all4 采后增量微调 force）", "窗级（heldout run）",
      0.663, "—", "—", "—", "—", "实验 32 stamp=20260901_124502（sheet 03）"],
-    [11, "BCI IV 2a（9 人，公开）", "同上（底座零样本 R0）", "E1f 四成员零样本", "窗级", 0.338, "—", "—", "—", "—", "实验 32（sheet 03）"],
+    [11, "BCI IV 2a（9 人，公开）", "同上（底座零样本 R0）", "CausalFuse-8 零样本", "窗级", 0.338, "—", "—", "—", "—", "实验 32（sheet 03）"],
     [12, "Stieger2021（24 人，公开）", "跨库伪在线 · 前半训练后半评测", "Shallow 3s 零样本（跨库）", "试次级", 0.4198, "—", "—", "—", "—", "实验 07（sheet 04）"],
     [13, "Stieger2021（24 人，公开）", "同上", "Shallow 3s + 前半增量微调（FT）", "试次级", 0.6590, "—", "—", "—", "—", "实验 07（24/24 被试 ≥+3pp）"],
     [14, "Stieger2021（24 人，公开）", "同上 + 生理门控 H1", "Shallow 3s FT + ERD 门控", "试次级", 0.7003, "—", "—", "—", "—", "实验 07（sheet 04）"],
     [15, "自采（syj0828，8 通道 v3 范式）", "Leave-Next 采后增量微调 · 末档（R5）",
-     "E1f all4 个体模型（真实被试最优）", "窗级 heldout（smooth）", 0.924, "—", "—", "—",
+     "CausalFuse-8FT 个体模型（真实被试最优）", "窗级 heldout（smooth）", 0.924, "—", "—", "—",
      "F5 41.5/45；MI 33/36；Rest 17/18；门控 5/5 PASS", "Leave-Next all4 全表 20260831_233943（sheet 05）"],
-    [16, "自采（其余 v3 被试，含 ytl0901）", "同上 · 10 人全表", "E1f all4 个体模型", "窗级 heldout",
+    [16, "自采（其余 v3 被试，含 ytl0901）", "同上 · 10 人全表", "CausalFuse-8FT 个体模型", "窗级 heldout",
      "0.35–0.54（见 sheet 05）", "—", "—", "—", "门控合计 20/50 PASS；个体差异大", "Leave-Next all4 全表"],
 ]
 r = table(ws, 4, headers, rows, num_cols=(5, 6, 7, 8))
 r = caption(ws, r + 1, "注 1：OpenBMI 五折 test 划分为被试独立划分，指标为 test 试次级 Acc_paper（每试次一次判定）。")
 r = caption(ws, r, "注 2：召回率 macro = 三类召回率均值；特异性 macro = 三类特异性均值；每类明细与混淆矩阵见 sheet 01/02/11。")
-r = caption(ws, r, "注 3：指定集**交卷=S0**（E1f-A59 从零）：主读嵌套 0.511，折内 0.558 双标注。R-B8 nested=0.540 为 Exp39/40 备选归档（风险否决：test 预测 Rest≈51% 落在 Val 六折支撑外）。详见 sheet 07/11。")
-r = caption(ws, r, "注 4：指定集交卷栈为从零训练；OpenBMI 预训练用于系统底座/线上叙事，不作为指定集交卷依赖。赛规未禁止预训练微调，本队指定集路径选择从零以降低合规与外推风险。")
+r = caption(ws, r, "注 3：指定集**交卷=QuadFold-59**（内部 S0 / E1f-A59）：主读嵌套 0.511，折内 0.558 双标注。R-B8 nested=0.540 为 Exp39/40 备选归档（风险否决：test 预测 Rest≈51% 落在 Val 六折支撑外）。详见 sheet 07/11。")
+r = caption(ws, r, "注 4：QuadFold-59 为从零训练交卷；CausalFuse-8 为 OpenBMI 预训练在线底座，不作为指定集交卷依赖。赛规未禁止预训练微调，本队指定集路径选择从零以降低合规与外推风险。")
 auto_fit_columns(ws, min_width=8, max_width=42, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 ws.freeze_panes = "C5"
 
 # ---------------------------------------------------------------- 01 OpenBMI 主结果
 ws = wb.create_sheet("01_OpenBMI主结果")
-setup_sheet(ws, title="OpenBMI 54 人五折 · E1f 主结果明细（混淆矩阵与每类指标）", last_col=10)
+setup_sheet(ws, title="OpenBMI 54 人五折 · CausalFuse-8 主结果明细（混淆矩阵与每类指标）", last_col=10)
 
 
 def perclass_rows(block):
@@ -156,7 +156,7 @@ def confusion_rows(block):
 
 pc_headers = ["类别", "支持数（窗）", "召回率", "特异性", "精确率", "F1"]
 r = 4
-r = sub_title(ws, r, "① 主结果：E1f 四成员 + 因果平滑（C 臂）试次判定 · test 集准确率 0.6188（对账锚点一致）", 10)
+r = sub_title(ws, r, "① 主结果：CausalFuse-8 + 因果滑窗（C 臂）试次判定 · test 集准确率 0.6188（对账锚点一致）", 10)
 r = table(ws, r, pc_headers, perclass_rows(c), num_cols=(2, 1), num_fmt="0.0000")
 r = sub_title(ws, r, "C 臂混淆矩阵（行=真实，列=预测）", 10)
 r = table(ws, r, ["真实\\预测", "Rest", "Left", "Right"], confusion_rows(c), num_cols=(1, 2, 3), num_fmt="#,##0")
@@ -171,7 +171,7 @@ r = sub_title(ws, r, "③ 融合窗级 argmax 与单模型对照（窗级）", 1
 fw = CM["fused_window_argmax"]["test"]
 sh = CM["shallow_member_window_argmax"]["test"]
 rows = [
-    ["E1f 四成员融合 · 窗级 argmax", fw["accuracy"], fw["macro_f1"]],
+    ["CausalFuse-8 · 窗级 argmax", fw["accuracy"], fw["macro_f1"]],
     ["Shallow 单成员 · 窗级 argmax（S3 底座）", sh["accuracy"], sh["macro_f1"]],
 ]
 r = table(ws, r, ["方法", "窗级准确率", "macro-F1"], rows, num_cols=(1, 2), num_fmt="0.0000")
@@ -211,7 +211,7 @@ data = [
 r = table(ws, 4, headers, data, num_cols=tuple(range(3, 12)), num_fmt="0.0000")
 r = caption(ws, r + 1, "协议：OpenBMI 54 人被试独立五折，2s 窗 / hop100ms，统一预处理（8 通道序 Cz,C3,C4,CP3,FC4,FC3,CP4,CPz · 250Hz · 逐窗 z-score），统一超参（lr 1e-4 · wd 1e-4 · drop 0.5 · balbatch · Val Acc_paper 早停）。")
 r = caption(ws, r, "Sp = 特异性（真阴性率）；macro-F1 为三分类三类 F1 均值。")
-r = caption(ws, r, "3s 主线补充：Shallow 3s 单模型三分类 0.5876±0.0296（Task 二分类 0.7415±0.0306）；E1f 四成员融合三分类 0.6173（classic 臂）→ 因果平滑 0.6188（C 臂，见 sheet 01）。")
+r = caption(ws, r, "3s 主线补充：Shallow 3s 单模型三分类 0.5876±0.0296（Task 二分类 0.7415±0.0306）；CausalFuse-8 融合三分类 0.6173（classic 臂）→ 因果滑窗 0.6188（C 臂，见 sheet 01）。")
 auto_fit_columns(ws, min_width=8, max_width=26, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 ws.freeze_panes = "D5"
@@ -371,16 +371,16 @@ rows = [
      "采集层 0.5–45Hz 带通 + 50Hz 陷波 → LSL 推流 → CAR → 8–30Hz → 250Hz → 逐窗 z-score；EEG 看门狗 stall 2s / abort 5s",
      "Leave-Next：前一/数会话微调，下一会话 heldout 评测", "个体适配链在线/离线验证"],
     ["主办方指定标准数据集（Challenge MI）",
-     "主办方发放；**交卷栈=59ch 从零 E1f-A59（S0）**；OpenBMI 预训练仅用于系统底座/公开库叙事（非指定集交卷依赖）",
+     "主办方发放；**交卷栈=QuadFold-59**（内部 S0/E1f-A59）；CausalFuse-8 仅用于系统底座/公开库叙事（非指定集交卷依赖）",
      "6 被试 · LOSO6 · 每折 Val 150 试次（共 900）· 1 trial=1 窗 3s@250Hz",
      "交卷 59ch 从零；备选 8 导（Pz 代 CPz，OpenBMI→FT）已归档", "250 Hz",
-     "与 OpenBMI 同切窗口径；轨 A：59ch 从零（交卷）；轨 B：OpenBMI→8ch FT（备选）",
+     "与 OpenBMI 同切窗口径；轨 A：QuadFold-59（交卷）；轨 B：OpenBMI→8ch FT（备选）",
      "被试独立 LOSO6；主读=leave-fold 嵌套 Val；折内双标注",
-     "60 分项主体 · 交卷 S0 nested=0.511 / 折内 0.558（Exp40 风险否决回退）"],
+     "60 分项主体 · 交卷 QuadFold-59 nested=0.511 / 折内 0.558（Exp40 风险否决回退）"],
 ]
 r = table(ws, 4, headers, rows)
 r = caption(ws, r + 1, "统一口径：通道序同时作为模型输入通道轴顺序，所有数据集、训练、微调与在线推理均不重排（通道索引 0=Cz, 1=C3, 2=C4, 3=CP3, 4=FC4, 5=FC3, 6=CP4, 7=CPz）。")
-r = caption(ws, r, "交卷说明：指定集行为从零训练（S0）。OpenBMI 预训练是系统底座资产；R-B8 因 Val 支撑外推风险否决，CSV 保留归档不删。")
+r = caption(ws, r, "交卷说明：指定集交卷=QuadFold-59（从零）。CausalFuse-8 是系统底座资产；R-B8 因 Val 支撑外推风险否决，CSV 保留归档不删。")
 auto_fit_columns(ws, min_width=8, max_width=44, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
@@ -389,7 +389,7 @@ ws = wb.create_sheet("08_原始数据索引")
 setup_sheet(ws, title="原始验证数据索引（可追溯）", last_col=5)
 headers = ["实验", "内容", "文件路径（仓库根相对）"]
 rows = [
-    ["实验 30", "E1f 各臂 W/classic/S/C replay（0.6125/0.6173/0.6170/0.6188）",
+    ["实验 30", "CausalFuse-8 各臂 W/classic/S/C replay（0.6125/0.6173/0.6170/0.6188）",
      "code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/replay_classic_vs_causal.json"],
     ["实验 30 · 混淆矩阵", "C/W 臂 test 混淆矩阵与每类召回/特异性（本报告 sheet 01 数据）",
      "code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/cm_e1f_arms.json（副本：02_离线验证/原始数据_cm_e1f_arms.json）"],
@@ -397,7 +397,7 @@ rows = [
      "资料/实验结果/5090/openbmi滑窗_paper_acc/总结/11个模型在二分类、三分类及综合排名的对比分析.md"],
     ["实验 20（S3）", "Shallow 3s 正式权重五折（Task 0.7415 / Three 0.5876）",
      "资料/模型训练/20_旁路_shallow_3s滑窗100ms_openbmi_accpaper/总结/结果登记表.md"],
-    ["实验 26", "E1f 四成员融合 0.6173（classic）与配置",
+    ["实验 26", "CausalFuse-8（E1f）四成员融合 0.6173（classic）与配置",
      "资料/模型训练/26_旁路_集成推理满配与训练配方升级_openbmi_accpaper/总结/结果登记表.md"],
     ["实验 32", "BCI2a Leave-Next 双底座双门控仿真（all4 force R5=0.663 vs so 0.452）",
      "资料/模型训练/32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper/总结/结果登记表.md · 原始 exp32_20260901_124502/"],
@@ -409,7 +409,7 @@ rows = [
      "资料/伪在线实验/09_旁路_OpenBMI_3s滑窗_OTTA_EA_AdaBN_Stieger/总结/结果登记表.md"],
     ["真被试 Leave-Next 全表", "10 人 all4 · 门控 20/50 · syj R5 smooth 0.924",
      "experiment_game/data/subjects/_analysis/leave_next_all4_full_report_20260831_233943.md"],
-    ["实验 34", "指定集 LOSO6 · E1f-A59 折内 0.558 · E1f-B8-ft 折内 0.573",
+    ["实验 34", "指定集 LOSO6 · QuadFold-59 折内 0.558 · E1f-B8-ft 折内 0.573",
      "资料/模型训练/34_旁路_挑战杯官方集_59ch离线_openbmi协议_accpaper/总结/结果登记表.md"],
     ["实验 35", "排名翻转消融 · S0 定稿（折内尺子）",
      "资料/模型训练/35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper/总结/结果登记表.md"],
@@ -441,7 +441,7 @@ ws = wb.create_sheet("09_复现与截图")
 setup_sheet(ws, title="验证过程复现说明与截图清单", last_col=5)
 headers = ["编号", "复现步骤 / 截图内容", "命令或位置", "状态"]
 rows = [
-    ["R1", "主结果复现：E1f 各臂混淆矩阵与每类指标（自动对账锚点 0.6125/0.6188）",
+    ["R1", "主结果复现：CausalFuse-8 各臂混淆矩阵与每类指标（自动对账锚点 0.6125/0.6188）",
      "python code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/cm_e1f_arms.py", "【截图：控制台输出】"],
     ["R2", "融合各臂 replay（τ 网格与对账）",
      "python code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/replay_classic_vs_causal.py", "【截图：控制台输出】"],
@@ -477,7 +477,7 @@ rows = [
     ["BCI2a all4 末档九人均值", 0.663, 0.663, "实验 32 stamp=20260901_124502 P1 总表", "✓ PASS"],
     ["Stieger FT 增益（24/24 达标）", "+0.2471", "+0.2471", "实验 07 登记表", "✓ PASS"],
     ["真被试 syj0828 末档窗级 smooth", 0.924, 0.924, "leave_next_all4_full_report_20260831_233943", "✓ PASS"],
-    ["指定集工程主读 nested-S0（交卷）", 0.511, 0.511, "Exp37 N0 / Exp40 交卷", "✓ PASS"],
+    ["指定集工程主读 QuadFold-59 nested（交卷）", 0.511, 0.511, "Exp37 N0 / Exp40 交卷", "✓ PASS"],
     ["指定集备选 nested R-B8", 0.540, 0.540, "Exp39/40 归档", "✓ 备选"],
     ["指定集折内乐观（S0）", "+4.7pp", "0.558→0.511", "Exp34 折内 vs Exp37 嵌套", "✓ 已标注"],
 ]
@@ -490,7 +490,7 @@ ws = wb.create_sheet("11_指定集Exp34_40")
 setup_sheet(ws, title="主办方指定集 · Exp34–40 诚实口径与工程终态（2026-09-04 回填）", last_col=8)
 headers = ["实验", "臂 / 结论", "读数", "尺子", "过线/采纳", "备注"]
 rows = [
-    ["34", "E1f-A59（S0）", "0.558±0.069", "折内", "历史主 CSV", "科学叙事对照；嵌套后 0.511"],
+    ["34", "QuadFold-59（S0）", "0.558±0.069", "折内", "历史主 CSV", "科学叙事对照；嵌套后 0.511"],
     ["34", "E1f-B8-ft", "0.573±0.140", "折内", "对照 CSV", "嵌套复核 0.540（Exp39）"],
     ["35", "S0 定稿", "维持 0.558 折内", "折内 Wilcoxon", "科学 KEEP（后修正）", "Q1 显著性含拟合不对称；以 37/38 为准"],
     ["36", "M7 / M7_ABC", "0.604 / 0.626", "折内", "未过 p=0.062", "禁止作预期；嵌套后≈0.523/0.510"],
@@ -501,10 +501,10 @@ rows = [
     ["40", "MC-B8", "0.540（b≡0）", "嵌套", "平手→最简否决", "Rest 偏斜不可校"],
     ["40", "TTA-B8", "0.538（−0.2pp）", "嵌套", "未进候选", "向内缩 δ∈{0,20,40}"],
     ["40", "终态（§5 程序）", "R-B8_raw", "工程规则", "归档", "与 Exp39 CSV 字节相同"],
-    ["40", "**交卷（风险否决）**", "**S0**", "Val 外推诊断", "**采纳**", "test Rest≈51%∉Val；无 0.300 前科"],
+    ["40", "**交卷（风险否决）**", "**QuadFold-59**", "Val 外推诊断", "**采纳**", "test Rest≈51%∉Val；无 0.300 前科"],
 ]
 r = table(ws, 4, headers, rows)
-r = caption(ws, r + 1, "交卷=S0（nested 0.511 + 折内 0.558 双标注）。R-B8=0.540 为备选。风险否决未改 Val 门槛、未用 test 标签调参。")
+r = caption(ws, r + 1, "交卷=QuadFold-59（nested 0.511 + 折内 0.558 双标注）。R-B8=0.540 为备选。风险否决未改 Val 门槛、未用 test 标签调参。")
 r = sub_title(ws, r + 1, "R-B8 嵌套 OOF 混淆矩阵（900 试次；行=真，列=预；类序约 L/R/Rest 依 dump 标签）", 8)
 r = table(ws, r, ["", "pred0", "pred1", "pred2"], [
     ["true0", 181, 72, 47],

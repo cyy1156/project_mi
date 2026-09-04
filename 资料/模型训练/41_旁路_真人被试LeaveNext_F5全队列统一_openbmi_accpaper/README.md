@@ -2,7 +2,8 @@
 
 > 状态：**结构统一登记完成** · 2026-09-04  
 > 目录：`资料/模型训练/41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/`  
-> **主读**：[`总结/结果登记表.md`](总结/结果登记表.md)
+> **主读**：[`总结/结果登记表.md`](总结/结果登记表.md)  
+> **对外模型**：在线适配态 **CausalFuse-8FT**（底座 CausalFuse-8；官方交卷线仍为 QuadFold-59，见 [`../模型命名_QuadFold-CausalFuse.md`](../模型命名_QuadFold-CausalFuse.md)）
 
 ## 一句话
 
