@@ -24,7 +24,8 @@ HOP_SEC_100 = 0.1
 BASELINE_BEFORE_CUE_S = 0.5
 MI_TASK_SEC = 4.0
 # 真机：连续无新样本超过该秒数 → 判定 EEG 断流（勿再用陈旧窗推理）
-EEG_STALE_TIMEOUT_S = 3.0
+# 与 protocol.yaml eeg_watchdog.abort_s / EEGBus.lost_s 对齐（默认 5s）
+EEG_STALE_TIMEOUT_S = 5.0
 # judge 软陈旧（总册 §5.2）：缓冲年龄 >1s → stale=true，供计分排除
 JUDGE_BUF_STALE_S = 1.0
 

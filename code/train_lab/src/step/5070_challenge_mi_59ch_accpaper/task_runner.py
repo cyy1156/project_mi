@@ -277,7 +277,14 @@ def run_baseline_main(
     parser.add_argument("--max-folds", type=int, default=0, help="0=全部；1=只跑 fold0")
     parser.add_argument("--run-tag", type=str, default="")
     parser.add_argument("--data-tag", type=str, default=hp.data_tag)
+    parser.add_argument(
+        "--out-root-tag",
+        type=str,
+        default="",
+        help="覆盖 out/ 下实验根目录名（默认 shared_hparams.OUT_ROOT_TAG）",
+    )
     args, _unknown = parser.parse_known_args()
+    out_root_tag = args.out_root_tag.strip() or OUT_ROOT_TAG
 
     torch.set_num_threads(int(hp.torch_num_threads))
     if torch.cuda.is_available():
@@ -309,7 +316,7 @@ def run_baseline_main(
     run_dir = (
         Path(__file__).resolve().parents[3]
         / "out"
-        / OUT_ROOT_TAG
+        / out_root_tag
         / f"{model_name}_challenge_mi_3s_59ch"
         / args.data_tag
         / f"run_{tag}"

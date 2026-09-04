@@ -7,6 +7,7 @@
 - 被试：`syj0828` / `fnz0828`
 - 臂：`e1f_so_force` / `e1f_all4_force`
 - 主指标：F5（因果平滑 lookback=2 + 多数票）试次 MI acc
+- **全队列 all4 监测总账**：[`../41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/`](../41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/)
 
 ## 末档速览
 

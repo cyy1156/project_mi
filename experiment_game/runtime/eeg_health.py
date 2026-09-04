@@ -6,18 +6,29 @@ import time
 from typing import Any, Callable, Optional
 
 from experiment_game.runtime.eeg_bus import (
-    DEFAULT_STALL_S,
     EEGBus,
     health_ws_payload,
 )
 
 
-def ensure_session_bus(buf: Any, *, stall_s: float = DEFAULT_STALL_S) -> EEGBus:
-    """保证 RingBuffer 挂有 EEGBus；已有则复用。"""
+def ensure_session_bus(
+    buf: Any,
+    *,
+    stall_s: Optional[float] = None,
+    lost_s: Optional[float] = None,
+) -> EEGBus:
+    """保证 RingBuffer 挂有 EEGBus；已有则复用并同步阈值。"""
+    from experiment_game.runtime.eeg_bus import resolve_eeg_watchdog
+
+    wd = resolve_eeg_watchdog()
+    stall = float(wd["stall_s"] if stall_s is None else stall_s)
+    lost = float(wd["abort_s"] if lost_s is None else lost_s)
     bus = getattr(buf, "_bus", None)
     if isinstance(bus, EEGBus):
+        bus.stall_s = stall
+        bus.lost_s = lost
         return bus
-    bus = EEGBus(stall_s=float(stall_s))
+    bus = EEGBus(stall_s=stall, lost_s=lost)
     if hasattr(buf, "attach_bus"):
         buf.attach_bus(bus)
     else:

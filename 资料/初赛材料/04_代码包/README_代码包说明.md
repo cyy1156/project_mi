@@ -83,7 +83,9 @@ python code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/replay_classic
 |---|---|
 | `experiment_game/config/v3_session.yaml` | 范式时序：Rest 4s → prep 2s → Cue 1s → MI 4s → ITI 3s；在线窗 3s/hop100ms |
 | `experiment_game/config/ft_policy.json` | 微调策略：FT 范围 all4、replay 0.10、门控 FAIL 强制晋升 + 告警落盘 |
+| `experiment_game/config/protocol.yaml` | EEG 断流看门狗：stall 2.0 s 告警 / abort 5.0 s 中止会话 |
 | 通道序 | `Cz, C3, C4, CP3, FC4, FC3, CP4, CPz`（即模型输入通道轴顺序，禁止重排） |
+| 统计口径 | 展示 heldout_acc=因果平滑；门控=raw；F5=试次级平滑+多数票（`docs/统计口径方案A_20260831.md`） |
 
 ## 6. 数据与模型落盘
 

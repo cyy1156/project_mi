@@ -203,7 +203,9 @@ def run_v3_session(
     assert buf is not None and infer is not None
     lsl_eeg_scale = 1.0
     eeg_watchdog = not bool(sim_meta)  # 仿真回放不启断流看门狗
-    eeg_stale_timeout_s = 3.0
+    from experiment_game.runtime.eeg_bus import resolve_eeg_watchdog
+
+    eeg_stale_timeout_s = float(resolve_eeg_watchdog()["abort_s"])
     _eeg_stale_announced = {"done": False}
     _eeg_health = None
     if eeg_watchdog:

@@ -8,17 +8,49 @@ from __future__ import annotations
 
 import time
 from dataclasses import dataclass, field
-from typing import Any, Dict, List, Optional, Protocol
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Protocol, Union
 
 import numpy as np
 
 from experiment_game.runtime.board_source import StreamHealth
 
-# 总册阈值：>2s L2 暂停提示；>5s L3（现网 abort 仍可由会话用 3s 超时）
+# 总册阈值：>2s L2 告警；>5s L3 中止（与 protocol.yaml eeg_watchdog 一致）
 DEFAULT_STALL_S = 2.0
 DEFAULT_LOST_S = 5.0
 # judge 软陈旧：缓冲年龄超过该值标 stale=true（不计分侧可排除）
 DEFAULT_JUDGE_STALE_S = 1.0
+
+
+def resolve_eeg_watchdog(*, root: Optional[Union[Path, str]] = None) -> Dict[str, float]:
+    """读 protocol.yaml ``eeg_watchdog``；缺省回落到 DEFAULT_*。
+
+    返回 ``stall_s`` / ``abort_s``（= lost_s）/ ``judge_buf_stale_s``。
+    """
+    stall = float(DEFAULT_STALL_S)
+    abort = float(DEFAULT_LOST_S)
+    judge_stale = float(DEFAULT_JUDGE_STALE_S)
+    try:
+        from experiment_game.core.config import load_layered_config
+
+        cfg = load_layered_config(root=Path(root) if root is not None else None)
+        wd = cfg.get("eeg_watchdog") if isinstance(cfg, dict) else None
+        if isinstance(wd, dict):
+            if wd.get("stall_s") is not None:
+                stall = float(wd["stall_s"])
+            if wd.get("abort_s") is not None:
+                abort = float(wd["abort_s"])
+            elif wd.get("lost_s") is not None:
+                abort = float(wd["lost_s"])
+            if wd.get("judge_buf_stale_s") is not None:
+                judge_stale = float(wd["judge_buf_stale_s"])
+    except Exception:  # noqa: BLE001
+        pass
+    return {
+        "stall_s": max(0.1, stall),
+        "abort_s": max(stall, abort),
+        "judge_buf_stale_s": max(0.05, judge_stale),
+    }
 
 
 class EegSubscriber(Protocol):

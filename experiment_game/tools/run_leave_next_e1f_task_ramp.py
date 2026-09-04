@@ -11,6 +11,10 @@
   fnz0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
   R1–R3 replay=0.1；R4–R5 --no-replay
 
+纳入规则（2026-09-04）：
+  · 只要 v3_session；record_excluded / 硬排除半场仍踢出
+  · **电极 CZ/CPZ 饱和（ft_eligible=false）不再排除**
+
 每档：
   1) 前序 session FT shallow task+three（heldout **早停=smooth**）
   2) heldout 上报告窗级 three acc（**展示=smooth**；**门控=raw**）
@@ -98,6 +102,34 @@ RAMP_YCX = [
     (["w01", "w02", "w03", "w04", "w05"], "w07", False),
 ]
 
+# ytl0901（2026-09-01）：w02+w03 合并为一场（半场+断流续采）；含 w01；R5 持有 w07
+RAMP_YTL = [
+    (["w01"], "w02+w03", True),
+    (["w01", "w02+w03"], "w04", True),
+    (["w01", "w02+w03", "w04"], "w05", True),
+    (["w01", "w02+w03", "w04", "w05"], "w06", False),
+    (["w01", "w02+w03", "w04", "w05", "w06"], "w07", False),
+]
+
+# zyj0902（2026-09-02）：w03 缺 eeg / record_excluded，跳过；R5 持有 w07
+RAMP_ZYJ0902 = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w04", True),
+    (["w01", "w02", "w04"], "w05", True),
+    (["w01", "w02", "w04", "w05"], "w06", False),
+    (["w01", "w02", "w04", "w05", "w06"], "w07", False),
+]
+
+# lsm0903（2026-09-03）：强制纳入 w01/w03/w06（电极告警）；完整 w01–w07
+RAMP_LSM0903 = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", True),
+    (["w01", "w02", "w03", "w04", "w05"], "w06", False),
+    (["w01", "w02", "w03", "w04", "w05", "w06"], "w07", False),
+]
+
 # 兼容旧名
 RAMP_CYY = RAMP_W
 RAMP_FNZ0830 = RAMP_W
@@ -111,17 +143,44 @@ SUBJECTS_W = (
     "cjf0831",
     "npl0831",
     "ycx0831",
+    "ytl0901",
+    "djh0902",
+    "zcy0902",
+    "zyj0902",
+    "lsy0903",
+    "lsm0903",
 )
 SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
 
+# 历史兼容：曾按被试强制纳入 ft_eligible=false。
+# 2026-09-04 起：**电极 CZ/CPZ 饱和不再作为 Leave-Next 不可用条件**
+# （即全局不再因 ft_eligible=false 排除）；此集合保留为空，仅防旧脚本 import。
+INCLUDE_FT_INELIGIBLE: frozenset[str] = frozenset()
 
-def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Path]) -> list:
+
+def _session_dirs(by_ws: Dict[str, Any], key: str) -> List[Path]:
+    """解析 session 键；支持 ytl0901 的 w02+w03 合并场（Path 列表）。"""
+    if key not in by_ws:
+        raise KeyError(key)
+    v = by_ws[key]
+    if isinstance(v, list):
+        return [Path(p) for p in v]
+    return [Path(v)]
+
+
+def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
     if subject_id == "syj0828":
         cand = list(RAMP_SYJ)
     elif subject_id == "fnz0828":
         cand = list(RAMP_FNZ)
     elif subject_id == "ycx0831":
         cand = list(RAMP_YCX)
+    elif subject_id == "ytl0901":
+        cand = list(RAMP_YTL)
+    elif subject_id == "zyj0902":
+        cand = list(RAMP_ZYJ0902)
+    elif subject_id == "lsm0903":
+        cand = list(RAMP_LSM0903)
     elif subject_id in SUBJECTS_W:
         cand = list(RAMP_W)
     else:
@@ -148,14 +207,16 @@ def _session_key_from_dirname(name: str) -> Optional[str]:
     return None
 
 
-def _list_v3_sessions(subject_id: str) -> Dict[str, Path]:
-    """session_id(wsNN|wNN) -> 最新一条 v3 目录（排除 record_excluded / 非 v3）。"""
+def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
+    """session_id(wsNN|wNN|w02+w03) -> v3 目录或合并目录列表。"""
     root = SUBJECTS_ROOT / subject_id / "sessions"
     idx_path = SUBJECTS_ROOT / subject_id / "index.json"
     exclude: set[str] = set()
     if idx_path.is_file():
         idx = json.loads(idx_path.read_text(encoding="utf-8"))
         for s in idx.get("sessions") or []:
+            # 仅排除：显式 record_excluded，或非 v3。
+            # 电极 CZ/CPZ 饱和 → ft_eligible=false **不再**排除（2026-09-04）。
             if s.get("record_excluded") or s.get("phase_mode") != "v3_session":
                 exclude.add(str(s.get("dir") or ""))
     by_ws: Dict[str, Path] = {}
@@ -186,6 +247,14 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Path]:
         prev = by_ws.get(ws)
         if prev is None or d.name > prev.name:
             by_ws[ws] = d
+    if subject_id == "ytl0901":
+        merged: List[Path] = []
+        for part in ("w02", "w03"):
+            p = by_ws.pop(part, None)
+            if p is not None:
+                merged.append(p)
+        if merged:
+            by_ws["w02+w03"] = merged
     return by_ws
 
 
@@ -380,7 +449,12 @@ def run_ramp(
     print(f"[{subject_id}] device={device} ft_scope={ft_scope}（方案 A）")
     print(f"[{subject_id}] E1f shallow base task={DEFAULT_TASK}")
     print(f"[{subject_id}] E1f shallow base three={DEFAULT_THREE}")
-    sess_map = {k: v.name for k, v in sorted(by_ws.items())}
+    sess_map: Dict[str, Any] = {}
+    for k, v in sorted(by_ws.items()):
+        if isinstance(v, list):
+            sess_map[k] = [p.name for p in v]
+        else:
+            sess_map[k] = v.name
     print(f"[{subject_id}] v3 sessions: {sess_map}")
     print(f"[{subject_id}] Leave-Next 档数={len(ramp)}")
     print(f"[{subject_id}] F5 = causal_smooth(lookback={CAUSAL_LOOKBACK}) + majority")
@@ -407,8 +481,10 @@ def run_ramp(
         if missing:
             print(f"  [skip] 缺 session {missing}")
             continue
-        train_dirs = [by_ws[k] for k in train_keys]
-        hold_dirs = [by_ws[hold_key]]
+        train_dirs: List[Path] = []
+        for k in train_keys:
+            train_dirs.extend(_session_dirs(by_ws, k))
+        hold_dirs = _session_dirs(by_ws, hold_key)
         tag = f"leave_next_{_tag_from_ws(train_keys)}_eval_{hold_key}"
         if ft_scope == "all4":
             tag += "_all4"
@@ -508,7 +584,7 @@ def run_ramp(
             "judge_rule": "causal_smooth_majority",
             "causal_lookback": CAUSAL_LOOKBACK,
             "train": [d.name for d in train_dirs],
-            "heldout": hold_dirs[0].name,
+            "heldout": "+".join(d.name for d in hold_dirs),
             "use_replay": use_replay,
             "replay_ratio": 0.1 if use_replay else 0.0,
             "out_dir": str(out_dir),
