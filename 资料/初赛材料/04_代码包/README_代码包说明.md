@@ -1,6 +1,7 @@
 # 源代码包说明（XH-202610 · 随作品提交）
 
-> 本文档用于（a）随源代码压缩包提交给评审的《代码使用说明》，以及（b）打包操作清单。
+> 本文档用于（a）随源代码压缩包提交给评审的《代码使用说明》，以及（b）打包操作清单。  
+> **对外模型名**：离线交卷 **QuadFold-59** · 在线主线 **CausalFuse-8** / 个体适配 **CausalFuse-8FT**（工程内部仍用 S0 / E1f / F5 路径与 JSON id）。
 
 ## 1. 基本信息
 
@@ -23,8 +24,8 @@ MI/
 │   ├── tools/           入口脚本（open_operator 等）
 │   └── data/            会话数据与个体模型落盘（运行后生成）
 ├── code/
-│   ├── train_lab/       离线训练与评测（底座预训练、五折评测、E1f 融合复算）
-│   ├── adapt_engine/    E1f 融合 / 读出 / 增量微调实现（e1f.py、readout.py、ft.py）
+│   ├── train_lab/       离线训练与评测（QuadFold-59 / CausalFuse-8 底座预训练、五折、融合）
+│   ├── adapt_engine/    CausalFuse-8 融合 / 读出 / 增量微调（e1f.py、readout.py、ft.py）
 │   └── preprocess_lab/  公开数据集统一切窗预处理
 ├── collect_data/        采集软件（LSL 连接、滤波推流、控制面板）
 ├── requirements.txt     统一依赖清单
