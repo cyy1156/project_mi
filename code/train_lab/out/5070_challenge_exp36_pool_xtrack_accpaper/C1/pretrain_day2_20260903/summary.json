@@ -1,0 +1,72 @@
+{
+  "best_acc": 0.765,
+  "best_epoch": 80,
+  "best_val": {
+    "n": 2400,
+    "acc": 0.765,
+    "acc_paper": 0.765,
+    "macro_recall": 0.765,
+    "macro_specificity": 0.8825,
+    "per_class_recall": [
+      0.8925,
+      0.6275,
+      0.775
+    ],
+    "per_class_specificity": [
+      0.93875,
+      0.893125,
+      0.815625
+    ],
+    "confusion_matrix": [
+      [
+        714,
+        34,
+        52
+      ],
+      [
+        55,
+        502,
+        243
+      ],
+      [
+        43,
+        137,
+        620
+      ]
+    ]
+  },
+  "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+  "stage": "pretrain",
+  "data_tag": "openbmi_3s_fixed_45ch",
+  "val_subjects": [
+    "openbmi:subj06",
+    "openbmi:subj08",
+    "openbmi:subj18",
+    "openbmi:subj28",
+    "openbmi:subj38",
+    "openbmi:subj41",
+    "openbmi:subj52",
+    "openbmi:subj54"
+  ],
+  "elapsed_sec": 2308.9,
+  "hp": {
+    "n_chans": 45,
+    "n_times": 750,
+    "n_outputs": 3,
+    "seed": 42,
+    "max_epochs_pretrain": 80,
+    "max_epochs_ft": 200,
+    "patience": 15,
+    "batch_train": 16,
+    "batch_eval": 32,
+    "grad_accum": 8,
+    "lr_pretrain": 0.0001,
+    "lr_ft": 5e-05,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "use_amp": true,
+    "val_subject_ratio": 0.15,
+    "remap_labels_on_ft": true
+  },
+  "label_space": "openbmi Rest0 L1 R2"
+}

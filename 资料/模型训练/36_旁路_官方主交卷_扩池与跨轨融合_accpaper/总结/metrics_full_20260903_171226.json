@@ -1,0 +1,140 @@
+{
+  "experiment": 36,
+  "scheme_version": "v0.1",
+  "generated_at": "2026-09-03T17:12:26",
+  "status": "CLOSED_day0_day1_no_replace",
+  "day0_gates": {
+    "M7": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "MC0": {
+      "val_acc": 0.5577777777777778,
+      "delta_vs_s0": 0.0,
+      "wilcoxon_p": NaN,
+      "replace_line": 0.568,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "M7c": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    }
+  },
+  "day1_gates": {
+    "P0": {
+      "val_acc": 0.5577777777777778,
+      "delta_vs_s0": 0.0,
+      "wilcoxon_p": NaN,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "P1": {
+      "val_acc": 0.5233333333333333,
+      "delta_vs_s0": -0.0344444444444445,
+      "wilcoxon_p": 0.15625,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "P1b": {
+      "val_acc": 0.5422222222222223,
+      "delta_vs_s0": -0.015555555555555545,
+      "wilcoxon_p": 0.125,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "B3_pat40": {
+      "val_acc": 0.5,
+      "delta_vs_s0": -0.05777777777777782,
+      "wilcoxon_p": 0.0625,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "B3_drop025": {
+      "val_acc": 0.5077777777777778,
+      "delta_vs_s0": -0.050000000000000044,
+      "wilcoxon_p": 0.09375,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "M7b": {
+      "val_acc": 0.6033333333333333,
+      "delta_vs_s0": 0.04555555555555546,
+      "wilcoxon_p": 0.0625,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    }
+  },
+  "day1_any_pass": false,
+  "train_jobs": [
+    {
+      "arm": "B4",
+      "folder_name": "shallow_s43",
+      "member": "shallow",
+      "seed": 43,
+      "val_acc_mean": 0.5211111111111112,
+      "val_acc_std": 0.122812714988974,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\shallow_s43\\run_exp36_full_20260903\\three",
+      "elapsed_sec": 7.585250377655029
+    },
+    {
+      "arm": "B4",
+      "folder_name": "shallow_b_s43",
+      "member": "shallow_b",
+      "seed": 43,
+      "val_acc_mean": 0.5244444444444444,
+      "val_acc_std": 0.128628088632247,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\shallow_b_s43\\run_exp36_full_20260903\\three",
+      "elapsed_sec": 5.685648202896118
+    },
+    {
+      "arm": "B4",
+      "folder_name": "eegnet_s43",
+      "member": "eegnet",
+      "seed": 43,
+      "val_acc_mean": 0.5055555555555555,
+      "val_acc_std": 0.10408685831589919,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\eegnet_s43\\run_exp36_full_20260903\\three",
+      "elapsed_sec": 8.164323568344116
+    },
+    {
+      "arm": "B4",
+      "folder_name": "conformer_s43",
+      "member": "conformer",
+      "seed": 43,
+      "val_acc_mean": 0.5288888888888889,
+      "val_acc_std": 0.12290315368282942,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\conformer_s43\\run_exp36_full_20260903\\three",
+      "elapsed_sec": 23.37871217727661
+    },
+    {
+      "arm": "B4",
+      "folder_name": "conformer_s44",
+      "member": "conformer",
+      "seed": 44,
+      "val_acc_mean": 0.5155555555555557,
+      "val_acc_std": 0.11467183450886984,
+      "out_dir": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\conformer_s44\\run_exp36_full_20260903\\three",
+      "elapsed_sec": 20.299879789352417
+    }
+  ],
+  "c1": "deferred_pending_rules",
+  "conclusion": "No arm met Val>=0.568 AND Wilcoxon p<0.05. Keep Exp34 S0 CSV. M7/M7b strongest (~0.604, p=0.062). Pool expansion P1 negative."
+}

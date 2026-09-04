@@ -1,0 +1,51 @@
+{
+  "fold": 4,
+  "val_subjects": [
+    "challenge:S05"
+  ],
+  "train_subjects": [
+    "challenge:S01",
+    "challenge:S02",
+    "challenge:S03",
+    "challenge:S04",
+    "challenge:S06"
+  ],
+  "best_epoch": 2,
+  "best_val_acc": 0.4866666666666667,
+  "best_val_metrics": {
+    "n": 150,
+    "acc": 0.4866666666666667,
+    "acc_paper": 0.4866666666666667,
+    "macro_recall": 0.48666666666666675,
+    "macro_specificity": 0.7433333333333333,
+    "per_class_recall": [
+      0.2,
+      0.92,
+      0.34
+    ],
+    "per_class_specificity": [
+      0.97,
+      0.41,
+      0.85
+    ],
+    "confusion_matrix": [
+      [
+        10,
+        28,
+        12
+      ],
+      [
+        1,
+        46,
+        3
+      ],
+      [
+        2,
+        31,
+        17
+      ]
+    ]
+  },
+  "init_from_openbmi": true,
+  "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\B8ft\\B4\\shallow_b_s43\\run_exp36_full_20260903\\three\\fold4\\best_three.pt"
+}

@@ -1,0 +1,121 @@
+{
+  "experiment": 36,
+  "scheme_version": "v0.1",
+  "generated_at": "2026-09-03T18:25:24",
+  "status": "CLOSED_day0_day1_day2_no_replace",
+  "replace_line": 0.568,
+  "day0_gates": {
+    "M7": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "MC0": {
+      "val_acc": 0.5577777777777778,
+      "delta_vs_s0": 0.0,
+      "wilcoxon_p": NaN,
+      "replace_line": 0.568,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "M7c": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    }
+  },
+  "day1_gates": {
+    "P0": {
+      "val_acc": 0.5577777777777778,
+      "delta_vs_s0": 0.0,
+      "wilcoxon_p": NaN,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "P1": {
+      "val_acc": 0.5233333333333333,
+      "delta_vs_s0": -0.0344444444444445,
+      "wilcoxon_p": 0.15625,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "P1b": {
+      "val_acc": 0.5422222222222223,
+      "delta_vs_s0": -0.015555555555555545,
+      "wilcoxon_p": 0.125,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "B3_pat40": {
+      "val_acc": 0.5,
+      "delta_vs_s0": -0.05777777777777782,
+      "wilcoxon_p": 0.0625,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "B3_drop025": {
+      "val_acc": 0.5077777777777778,
+      "delta_vs_s0": -0.050000000000000044,
+      "wilcoxon_p": 0.09375,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "M7b": {
+      "val_acc": 0.6033333333333333,
+      "delta_vs_s0": 0.04555555555555546,
+      "wilcoxon_p": 0.0625,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    }
+  },
+  "day2_gates": {
+    "S0": {
+      "val_acc_mean": 0.5577777777777778,
+      "delta_vs_s0": -0.00022222222222223476,
+      "wilcoxon_p": 1.0,
+      "pass_replace": false
+    },
+    "C1": {
+      "val_acc_mean": 0.5277777777777778,
+      "delta_vs_s0": -0.03022222222222226,
+      "wilcoxon_p": 0.5625,
+      "pass_replace": false
+    },
+    "M7_AC": {
+      "val_acc_mean": 0.5777777777777778,
+      "delta_vs_s0": 0.019777777777777783,
+      "wilcoxon_p": 0.0625,
+      "pass_replace": false
+    },
+    "M7_ABC": {
+      "val_acc_mean": 0.6255555555555555,
+      "delta_vs_s0": 0.06755555555555548,
+      "wilcoxon_p": 0.0625,
+      "pass_replace": false
+    }
+  },
+  "day2_any_pass": false,
+  "c1_pretrain_val": 0.765,
+  "c1_ft": {
+    "val_acc_mean": 0.5277777777777778,
+    "val_acc_std": 0.12098974550976839
+  },
+  "best_day2": "M7_ABC",
+  "decision": "keep Exp34 S0 CSV; no arm passes Val>=0.568 AND wilcoxon p<0.05",
+  "channel_note": "OpenBMI intersect official = 45ch (not 51)"
+}

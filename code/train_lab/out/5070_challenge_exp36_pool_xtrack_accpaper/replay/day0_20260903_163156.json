@@ -1,0 +1,1347 @@
+{
+  "generated_at": "2026-09-03T16:31:56",
+  "scheme": "Exp36 v0.1 Day0",
+  "anchor_s0_expected": 0.558,
+  "prefer_tag": "full_20260902_1930",
+  "alignment": "A59/B8 val_y & val_idx asserted equal per fold",
+  "arms": {
+    "S0": {
+      "arm_id": "S0",
+      "desc": "E1f-A59 无约束（复现锚）",
+      "n_fit_params": 0,
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726,
+      "fold_accs": [
+        0.4866666666666667,
+        0.6466666666666666,
+        0.6266666666666667,
+        0.5066666666666667,
+        0.5,
+        0.58
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              7.024152910813438,
+              3.9741009132801906,
+              0.31198802290315425,
+              6.010130274291827
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.6000000000000001,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "n": 150
+        },
+        {
+          "fold": 1,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6466666666666666,
+            "acc_paper": 0.6466666666666666,
+            "macro_recall": 0.6466666666666667,
+            "macro_specificity": 0.8233333333333334,
+            "per_class_recall": [
+              0.6,
+              0.56,
+              0.78
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.92,
+              0.79
+            ],
+            "confusion_matrix": [
+              [
+                30,
+                8,
+                12
+              ],
+              [
+                13,
+                28,
+                9
+              ],
+              [
+                11,
+                0,
+                39
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.5569769353490444,
+              1.403198747284718,
+              9.998627824566096,
+              0.19707721874920983
+            ],
+            "weights": [
+              0.1,
+              0.1,
+              0.7000000000000001,
+              0.09999999999999987
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6466666666666666
+          },
+          "n": 150
+        },
+        {
+          "fold": 2,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6266666666666667,
+            "acc_paper": 0.6266666666666667,
+            "macro_recall": 0.6266666666666666,
+            "macro_specificity": 0.8133333333333334,
+            "per_class_recall": [
+              0.64,
+              0.76,
+              0.48
+            ],
+            "per_class_specificity": [
+              0.9,
+              0.66,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                32,
+                11,
+                7
+              ],
+              [
+                7,
+                38,
+                5
+              ],
+              [
+                3,
+                23,
+                24
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.27918442115021,
+              2.282627434299101,
+              0.4620495957771082,
+              5.534249808648015
+            ],
+            "weights": [
+              0.30000000000000004,
+              0.5,
+              0.1,
+              0.09999999999999998
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6266666666666667
+          },
+          "n": 150
+        },
+        {
+          "fold": 3,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5066666666666667,
+            "acc_paper": 0.5066666666666667,
+            "macro_recall": 0.5066666666666667,
+            "macro_specificity": 0.7533333333333334,
+            "per_class_recall": [
+              0.42,
+              0.72,
+              0.38
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.48,
+              0.91
+            ],
+            "confusion_matrix": [
+              [
+                21,
+                25,
+                4
+              ],
+              [
+                9,
+                36,
+                5
+              ],
+              [
+                4,
+                27,
+                19
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              9.316737060380687,
+              9.999911383105525,
+              0.8511475586429964,
+              3.646891789615152
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.6000000000000001,
+              0.3999999999999999
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5066666666666667
+          },
+          "n": 150
+        },
+        {
+          "fold": 4,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5,
+            "acc_paper": 0.5,
+            "macro_recall": 0.5,
+            "macro_specificity": 0.75,
+            "per_class_recall": [
+              0.0,
+              0.72,
+              0.78
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.79,
+              0.46
+            ],
+            "confusion_matrix": [
+              [
+                0,
+                10,
+                40
+              ],
+              [
+                0,
+                36,
+                14
+              ],
+              [
+                0,
+                11,
+                39
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              3.2731744646092387,
+              4.451687285297261,
+              0.6342920209100861,
+              1.8725779772159243
+            ],
+            "weights": [
+              0.0,
+              0.0,
+              0.1,
+              0.9
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5
+          },
+          "n": 150
+        },
+        {
+          "fold": 5,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.58,
+            "acc_paper": 0.58,
+            "macro_recall": 0.5800000000000001,
+            "macro_specificity": 0.79,
+            "per_class_recall": [
+              0.54,
+              0.34,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.86,
+              0.64
+            ],
+            "confusion_matrix": [
+              [
+                27,
+                12,
+                11
+              ],
+              [
+                8,
+                17,
+                25
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "shallow",
+              "shallow_b",
+              "eegnet",
+              "conformer"
+            ],
+            "temperatures": [
+              1.3993812169978623,
+              1.4099058372997122,
+              0.17018175417613768,
+              3.542157268066214
+            ],
+            "weights": [
+              0.1,
+              0.2,
+              0.5,
+              0.19999999999999996
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.58
+          },
+          "n": 150
+        }
+      ]
+    },
+    "M7": {
+      "arm_id": "M7",
+      "desc": "A59-E1f × B8-ft-E1f · w_B8≤0.4",
+      "n_fit_params": "≤3 per fold (2×T + w)",
+      "val_acc_mean": 0.6044444444444445,
+      "val_acc_std": 0.0836571486396621,
+      "fold_accs": [
+        0.4866666666666667,
+        0.7133333333333334,
+        0.6733333333333333,
+        0.62,
+        0.54,
+        0.5933333333333334
+      ],
+      "w_b8_mean": 0.2416666666666667,
+      "w_b8_max": 0.4,
+      "folds": [
+        {
+          "fold": 0,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.40835045136592096,
+              9.999888244058656
+            ],
+            "weights": [
+              1.0,
+              0.0
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.4866666666666667
+          },
+          "w_b8": 0.0,
+          "n": 150
+        },
+        {
+          "fold": 1,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.7133333333333334,
+            "acc_paper": 0.7133333333333334,
+            "macro_recall": 0.7133333333333333,
+            "macro_specificity": 0.8566666666666666,
+            "per_class_recall": [
+              0.74,
+              0.68,
+              0.72
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.97,
+              0.84
+            ],
+            "confusion_matrix": [
+              [
+                37,
+                3,
+                10
+              ],
+              [
+                10,
+                34,
+                6
+              ],
+              [
+                14,
+                0,
+                36
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.14327341871435945,
+              0.6255557483859173
+            ],
+            "weights": [
+              0.75,
+              0.25
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.7133333333333334
+          },
+          "w_b8": 0.25,
+          "n": 150
+        },
+        {
+          "fold": 2,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6733333333333333,
+            "acc_paper": 0.6733333333333333,
+            "macro_recall": 0.6733333333333333,
+            "macro_specificity": 0.8366666666666666,
+            "per_class_recall": [
+              0.8,
+              0.78,
+              0.44
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.74,
+              0.9
+            ],
+            "confusion_matrix": [
+              [
+                40,
+                4,
+                6
+              ],
+              [
+                7,
+                39,
+                4
+              ],
+              [
+                6,
+                22,
+                22
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.45769355670432776,
+              0.8952557197868233
+            ],
+            "weights": [
+              0.7,
+              0.30000000000000004
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.6733333333333333
+          },
+          "w_b8": 0.30000000000000004,
+          "n": 150
+        },
+        {
+          "fold": 3,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.81,
+            "per_class_recall": [
+              0.7,
+              0.66,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.8,
+              0.74,
+              0.89
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                10,
+                5
+              ],
+              [
+                11,
+                33,
+                6
+              ],
+              [
+                9,
+                16,
+                25
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.4264479404973757,
+              0.7274973364041294
+            ],
+            "weights": [
+              0.6,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.62
+          },
+          "w_b8": 0.4,
+          "n": 150
+        },
+        {
+          "fold": 4,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.54,
+            "acc_paper": 0.54,
+            "macro_recall": 0.54,
+            "macro_specificity": 0.77,
+            "per_class_recall": [
+              0.26,
+              0.98,
+              0.38
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.43,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                13,
+                26,
+                11
+              ],
+              [
+                0,
+                49,
+                1
+              ],
+              [
+                0,
+                31,
+                19
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.8493936536838433,
+              0.745693936417835
+            ],
+            "weights": [
+              0.6,
+              0.4
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.54
+          },
+          "w_b8": 0.4,
+          "n": 150
+        },
+        {
+          "fold": 5,
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5933333333333334,
+            "acc_paper": 0.5933333333333334,
+            "macro_recall": 0.5933333333333334,
+            "macro_specificity": 0.7966666666666667,
+            "per_class_recall": [
+              0.56,
+              0.36,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.86,
+              0.66
+            ],
+            "confusion_matrix": [
+              [
+                28,
+                12,
+                10
+              ],
+              [
+                8,
+                18,
+                24
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          },
+          "config": {
+            "member_names": [
+              "a59_e1f",
+              "b8_ft_e1f"
+            ],
+            "temperatures": [
+              0.2876686358930048,
+              0.885014556436101
+            ],
+            "weights": [
+              0.9,
+              0.1
+            ],
+            "smooth_radius": 0,
+            "val_acc": 0.5933333333333334
+          },
+          "w_b8": 0.1,
+          "n": 150
+        }
+      ]
+    },
+    "MC0": {
+      "arm_id": "MC0",
+      "desc": "类边际校正 on S0（主=nested）",
+      "n_fit_params": 3,
+      "nested": {
+        "val_acc_mean": 0.5577777777777778,
+        "val_acc_std": 0.06949553676049726,
+        "fold_accs": [
+          0.4866666666666667,
+          0.6466666666666666,
+          0.6266666666666667,
+          0.5066666666666667,
+          0.5,
+          0.58
+        ],
+        "folds": [
+          {
+            "fold": 0,
+            "bias": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.4866666666666667,
+              "acc_paper": 0.4866666666666667,
+              "macro_recall": 0.48666666666666664,
+              "macro_specificity": 0.7433333333333333,
+              "per_class_recall": [
+                0.5,
+                0.46,
+                0.5
+              ],
+              "per_class_specificity": [
+                0.65,
+                0.87,
+                0.71
+              ],
+              "confusion_matrix": [
+                [
+                  25,
+                  5,
+                  20
+                ],
+                [
+                  18,
+                  23,
+                  9
+                ],
+                [
+                  17,
+                  8,
+                  25
+                ]
+              ]
+            }
+          },
+          {
+            "fold": 1,
+            "bias": [
+              0.0,
+              1.7888813237203427e-06,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.6466666666666666,
+              "acc_paper": 0.6466666666666666,
+              "macro_recall": 0.6466666666666667,
+              "macro_specificity": 0.8233333333333334,
+              "per_class_recall": [
+                0.6,
+                0.56,
+                0.78
+              ],
+              "per_class_specificity": [
+                0.76,
+                0.92,
+                0.79
+              ],
+              "confusion_matrix": [
+                [
+                  30,
+                  8,
+                  12
+                ],
+                [
+                  13,
+                  28,
+                  9
+                ],
+                [
+                  11,
+                  0,
+                  39
+                ]
+              ]
+            }
+          },
+          {
+            "fold": 2,
+            "bias": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.6266666666666667,
+              "acc_paper": 0.6266666666666667,
+              "macro_recall": 0.6266666666666666,
+              "macro_specificity": 0.8133333333333334,
+              "per_class_recall": [
+                0.64,
+                0.76,
+                0.48
+              ],
+              "per_class_specificity": [
+                0.9,
+                0.66,
+                0.88
+              ],
+              "confusion_matrix": [
+                [
+                  32,
+                  11,
+                  7
+                ],
+                [
+                  7,
+                  38,
+                  5
+                ],
+                [
+                  3,
+                  23,
+                  24
+                ]
+              ]
+            }
+          },
+          {
+            "fold": 3,
+            "bias": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.5066666666666667,
+              "acc_paper": 0.5066666666666667,
+              "macro_recall": 0.5066666666666667,
+              "macro_specificity": 0.7533333333333334,
+              "per_class_recall": [
+                0.42,
+                0.72,
+                0.38
+              ],
+              "per_class_specificity": [
+                0.87,
+                0.48,
+                0.91
+              ],
+              "confusion_matrix": [
+                [
+                  21,
+                  25,
+                  4
+                ],
+                [
+                  9,
+                  36,
+                  5
+                ],
+                [
+                  4,
+                  27,
+                  19
+                ]
+              ]
+            }
+          },
+          {
+            "fold": 4,
+            "bias": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.5,
+              "acc_paper": 0.5,
+              "macro_recall": 0.5,
+              "macro_specificity": 0.75,
+              "per_class_recall": [
+                0.0,
+                0.72,
+                0.78
+              ],
+              "per_class_specificity": [
+                1.0,
+                0.79,
+                0.46
+              ],
+              "confusion_matrix": [
+                [
+                  0,
+                  10,
+                  40
+                ],
+                [
+                  0,
+                  36,
+                  14
+                ],
+                [
+                  0,
+                  11,
+                  39
+                ]
+              ]
+            }
+          },
+          {
+            "fold": 5,
+            "bias": [
+              0.0,
+              0.0,
+              0.0
+            ],
+            "val_metrics": {
+              "n": 150,
+              "acc": 0.58,
+              "acc_paper": 0.58,
+              "macro_recall": 0.5800000000000001,
+              "macro_specificity": 0.79,
+              "per_class_recall": [
+                0.54,
+                0.34,
+                0.86
+              ],
+              "per_class_specificity": [
+                0.87,
+                0.86,
+                0.64
+              ],
+              "confusion_matrix": [
+                [
+                  27,
+                  12,
+                  11
+                ],
+                [
+                  8,
+                  17,
+                  25
+                ],
+                [
+                  5,
+                  2,
+                  43
+                ]
+              ]
+            }
+          }
+        ]
+      },
+      "pooled_appendix": {
+        "bias": [
+          0.0,
+          0.0,
+          0.0
+        ],
+        "pooled_acc_all900": 0.5577777777777778,
+        "fold_accs_with_global_b": [
+          0.4866666666666667,
+          0.6466666666666666,
+          0.6266666666666667,
+          0.5066666666666667,
+          0.5,
+          0.58
+        ],
+        "val_acc_mean": 0.5577777777777778,
+        "val_acc_std": 0.06949553676049726,
+        "note": "乐观附报；主决策用 nested"
+      },
+      "fold_accs": [
+        0.4866666666666667,
+        0.6466666666666666,
+        0.6266666666666667,
+        0.5066666666666667,
+        0.5,
+        0.58
+      ],
+      "val_acc_mean": 0.5577777777777778,
+      "val_acc_std": 0.06949553676049726
+    },
+    "M7c": {
+      "arm_id": "M7c",
+      "desc": "M7 + nested 边际校正",
+      "n_fit_params": "M7 + 3",
+      "val_acc_mean": 0.6044444444444445,
+      "val_acc_std": 0.0836571486396621,
+      "fold_accs": [
+        0.4866666666666667,
+        0.7133333333333334,
+        0.6733333333333333,
+        0.62,
+        0.54,
+        0.5933333333333334
+      ],
+      "folds": [
+        {
+          "fold": 0,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.4866666666666667,
+            "acc_paper": 0.4866666666666667,
+            "macro_recall": 0.48666666666666664,
+            "macro_specificity": 0.7433333333333333,
+            "per_class_recall": [
+              0.5,
+              0.46,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.65,
+              0.87,
+              0.71
+            ],
+            "confusion_matrix": [
+              [
+                25,
+                5,
+                20
+              ],
+              [
+                18,
+                23,
+                9
+              ],
+              [
+                17,
+                8,
+                25
+              ]
+            ]
+          }
+        },
+        {
+          "fold": 1,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.7133333333333334,
+            "acc_paper": 0.7133333333333334,
+            "macro_recall": 0.7133333333333333,
+            "macro_specificity": 0.8566666666666666,
+            "per_class_recall": [
+              0.74,
+              0.68,
+              0.72
+            ],
+            "per_class_specificity": [
+              0.76,
+              0.97,
+              0.84
+            ],
+            "confusion_matrix": [
+              [
+                37,
+                3,
+                10
+              ],
+              [
+                10,
+                34,
+                6
+              ],
+              [
+                14,
+                0,
+                36
+              ]
+            ]
+          }
+        },
+        {
+          "fold": 2,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.6733333333333333,
+            "acc_paper": 0.6733333333333333,
+            "macro_recall": 0.6733333333333333,
+            "macro_specificity": 0.8366666666666666,
+            "per_class_recall": [
+              0.8,
+              0.78,
+              0.44
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.74,
+              0.9
+            ],
+            "confusion_matrix": [
+              [
+                40,
+                4,
+                6
+              ],
+              [
+                7,
+                39,
+                4
+              ],
+              [
+                6,
+                22,
+                22
+              ]
+            ]
+          }
+        },
+        {
+          "fold": 3,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.62,
+            "acc_paper": 0.62,
+            "macro_recall": 0.62,
+            "macro_specificity": 0.81,
+            "per_class_recall": [
+              0.7,
+              0.66,
+              0.5
+            ],
+            "per_class_specificity": [
+              0.8,
+              0.74,
+              0.89
+            ],
+            "confusion_matrix": [
+              [
+                35,
+                10,
+                5
+              ],
+              [
+                11,
+                33,
+                6
+              ],
+              [
+                9,
+                16,
+                25
+              ]
+            ]
+          }
+        },
+        {
+          "fold": 4,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.54,
+            "acc_paper": 0.54,
+            "macro_recall": 0.54,
+            "macro_specificity": 0.77,
+            "per_class_recall": [
+              0.26,
+              0.98,
+              0.38
+            ],
+            "per_class_specificity": [
+              1.0,
+              0.43,
+              0.88
+            ],
+            "confusion_matrix": [
+              [
+                13,
+                26,
+                11
+              ],
+              [
+                0,
+                49,
+                1
+              ],
+              [
+                0,
+                31,
+                19
+              ]
+            ]
+          }
+        },
+        {
+          "fold": 5,
+          "bias": [
+            0.0,
+            0.0,
+            0.0
+          ],
+          "val_metrics": {
+            "n": 150,
+            "acc": 0.5933333333333334,
+            "acc_paper": 0.5933333333333334,
+            "macro_recall": 0.5933333333333334,
+            "macro_specificity": 0.7966666666666667,
+            "per_class_recall": [
+              0.56,
+              0.36,
+              0.86
+            ],
+            "per_class_specificity": [
+              0.87,
+              0.86,
+              0.66
+            ],
+            "confusion_matrix": [
+              [
+                28,
+                12,
+                10
+              ],
+              [
+                8,
+                18,
+                24
+              ],
+              [
+                5,
+                2,
+                43
+              ]
+            ]
+          }
+        }
+      ]
+    }
+  },
+  "gates": {
+    "M7": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "MC0": {
+      "val_acc": 0.5577777777777778,
+      "delta_vs_s0": 0.0,
+      "wilcoxon_p": NaN,
+      "replace_line": 0.568,
+      "pass_val": false,
+      "pass_sig": false,
+      "pass_replace": false
+    },
+    "M7c": {
+      "val_acc": 0.6044444444444445,
+      "delta_vs_s0": 0.046666666666666634,
+      "wilcoxon_p": 0.0625,
+      "replace_line": 0.568,
+      "pass_val": true,
+      "pass_sig": false,
+      "pass_replace": false
+    }
+  },
+  "paths": {
+    "a59": {
+      "shallow": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "shallow_b": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\shallow_b_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "eegnet": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\eegnet_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three",
+      "conformer": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_59ch_accpaper\\conformer_challenge_mi_3s_59ch\\challenge_mi_3s_59ch\\run_full_20260902_1930\\three"
+    },
+    "b8_ft": {
+      "shallow": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\shallow_challenge_mi_3s_8ch_ft\\challenge_mi_3s_8ch\\run_full_20260902_1930\\three",
+      "shallow_b": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\shallow_b_challenge_mi_3s_8ch_ft\\challenge_mi_3s_8ch\\run_full_20260902_1930\\three",
+      "eegnet": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\eegnet_challenge_mi_3s_8ch_ft\\challenge_mi_3s_8ch\\run_full_20260902_1930\\three",
+      "conformer": "D:\\MI\\code\\train_lab\\out\\5070_challenge_mi_8ch_ft_accpaper\\conformer_challenge_mi_3s_8ch_ft\\challenge_mi_3s_8ch\\run_full_20260902_1930\\three"
+    }
+  }
+}

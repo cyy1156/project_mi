@@ -1,0 +1,296 @@
+{
+  "experiment": 36,
+  "arm": "C1",
+  "model": "conformer",
+  "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+  "n_folds": 6,
+  "val_acc_mean": 0.5277777777777778,
+  "val_acc_std": 0.12098974550976839,
+  "folds": [
+    {
+      "fold": 0,
+      "val_subjects": [
+        "challenge:S01"
+      ],
+      "best_epoch": 1,
+      "best_val_acc": 0.30666666666666664,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.30666666666666664,
+        "acc_paper": 0.30666666666666664,
+        "macro_recall": 0.3066666666666667,
+        "macro_specificity": 0.6533333333333333,
+        "per_class_recall": [
+          0.18,
+          0.34,
+          0.4
+        ],
+        "per_class_specificity": [
+          0.57,
+          0.71,
+          0.68
+        ],
+        "confusion_matrix": [
+          [
+            9,
+            18,
+            23
+          ],
+          [
+            24,
+            17,
+            9
+          ],
+          [
+            19,
+            11,
+            20
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold0\\best_three.pt"
+    },
+    {
+      "fold": 1,
+      "val_subjects": [
+        "challenge:S02"
+      ],
+      "best_epoch": 20,
+      "best_val_acc": 0.6266666666666667,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.6266666666666667,
+        "acc_paper": 0.6266666666666667,
+        "macro_recall": 0.6266666666666668,
+        "macro_specificity": 0.8133333333333334,
+        "per_class_recall": [
+          0.68,
+          0.52,
+          0.68
+        ],
+        "per_class_specificity": [
+          0.78,
+          0.82,
+          0.84
+        ],
+        "confusion_matrix": [
+          [
+            34,
+            13,
+            3
+          ],
+          [
+            11,
+            26,
+            13
+          ],
+          [
+            11,
+            5,
+            34
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold1\\best_three.pt"
+    },
+    {
+      "fold": 2,
+      "val_subjects": [
+        "challenge:S03"
+      ],
+      "best_epoch": 2,
+      "best_val_acc": 0.58,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.58,
+        "acc_paper": 0.58,
+        "macro_recall": 0.5800000000000001,
+        "macro_specificity": 0.79,
+        "per_class_recall": [
+          0.74,
+          0.9,
+          0.1
+        ],
+        "per_class_specificity": [
+          0.89,
+          0.56,
+          0.92
+        ],
+        "confusion_matrix": [
+          [
+            37,
+            9,
+            4
+          ],
+          [
+            1,
+            45,
+            4
+          ],
+          [
+            10,
+            35,
+            5
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold2\\best_three.pt"
+    },
+    {
+      "fold": 3,
+      "val_subjects": [
+        "challenge:S04"
+      ],
+      "best_epoch": 2,
+      "best_val_acc": 0.6133333333333333,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.6133333333333333,
+        "acc_paper": 0.6133333333333333,
+        "macro_recall": 0.6133333333333333,
+        "macro_specificity": 0.8066666666666666,
+        "per_class_recall": [
+          0.6,
+          0.84,
+          0.4
+        ],
+        "per_class_specificity": [
+          0.88,
+          0.68,
+          0.86
+        ],
+        "confusion_matrix": [
+          [
+            30,
+            11,
+            9
+          ],
+          [
+            3,
+            42,
+            5
+          ],
+          [
+            9,
+            21,
+            20
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold3\\best_three.pt"
+    },
+    {
+      "fold": 4,
+      "val_subjects": [
+        "challenge:S05"
+      ],
+      "best_epoch": 6,
+      "best_val_acc": 0.5666666666666667,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.5666666666666667,
+        "acc_paper": 0.5666666666666667,
+        "macro_recall": 0.5666666666666668,
+        "macro_specificity": 0.7833333333333333,
+        "per_class_recall": [
+          0.76,
+          0.82,
+          0.12
+        ],
+        "per_class_specificity": [
+          0.8,
+          0.57,
+          0.98
+        ],
+        "confusion_matrix": [
+          [
+            38,
+            11,
+            1
+          ],
+          [
+            8,
+            41,
+            1
+          ],
+          [
+            12,
+            32,
+            6
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold4\\best_three.pt"
+    },
+    {
+      "fold": 5,
+      "val_subjects": [
+        "challenge:S06"
+      ],
+      "best_epoch": 29,
+      "best_val_acc": 0.47333333333333333,
+      "best_val_metrics": {
+        "n": 150,
+        "acc": 0.47333333333333333,
+        "acc_paper": 0.47333333333333333,
+        "macro_recall": 0.47333333333333333,
+        "macro_specificity": 0.7366666666666667,
+        "per_class_recall": [
+          0.48,
+          0.36,
+          0.58
+        ],
+        "per_class_specificity": [
+          0.77,
+          0.71,
+          0.73
+        ],
+        "confusion_matrix": [
+          [
+            24,
+            17,
+            9
+          ],
+          [
+            14,
+            18,
+            18
+          ],
+          [
+            9,
+            12,
+            29
+          ]
+        ]
+      },
+      "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+      "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold5\\best_three.pt"
+    }
+  ],
+  "elapsed_sec": 186.7,
+  "time": "2026-09-03T18:24:57",
+  "hp": {
+    "n_chans": 45,
+    "n_times": 750,
+    "n_outputs": 3,
+    "seed": 42,
+    "max_epochs_pretrain": 80,
+    "max_epochs_ft": 200,
+    "patience": 15,
+    "batch_train": 16,
+    "batch_eval": 32,
+    "grad_accum": 8,
+    "lr_pretrain": 0.0001,
+    "lr_ft": 5e-05,
+    "weight_decay": 0.0001,
+    "drop_prob": 0.5,
+    "use_amp": true,
+    "val_subject_ratio": 0.15,
+    "remap_labels_on_ft": true
+  }
+}

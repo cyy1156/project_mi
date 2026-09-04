@@ -30,6 +30,9 @@ DATA_TAGS: dict[str, tuple[str, str]] = {
     # Exp34 · 挑战杯官方指定集
     "challenge_mi_3s_59ch": ("challenge_mi_3s_59ch", "challenge"),
     "challenge_mi_3s_8ch": ("challenge_mi_3s_8ch", "challenge"),
+    # Exp36 C1 · OpenBMI∩官方 45ch
+    "challenge_mi_3s_45ch": ("challenge_mi_3s_45ch", "challenge"),
+    "openbmi_3s_fixed_45ch": ("openbmi_3s_fixed_45ch", "openbmi"),
 }
 
 

@@ -2,7 +2,7 @@
 
 > 更新：2026-08-09 · **入口修订：2026-08-30**  
 > **线上/游戏现行**：`experiment_game` · **3s hop100 · E1f 四成员 · FT=all4+force**（见 `experiment_game/docs/框架冻结确认_20260829.md`）。  
-> 本目录「2s 主线」为 **训练旁路历史主线**；E1f / Leave-Next / fnz FT 证据见方案 **24–31**；BCI2a 双底座×双门控见 **[`32`](./32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper/)**；真被试 all4 复验见 **[`33`](./33_旁路_真被试LeaveNext_all4复验_syj_fnz_openbmi_accpaper/)**。部署动作以 `experiment_game` 配置为准（冻结 F22）。
+> 本目录「2s 主线」为 **训练旁路历史主线**；E1f / Leave-Next / fnz FT 证据见方案 **24–31**；BCI2a 双底座×双门控见 **[`32`](./32_旁路_bci2a_LeaveNext_双底座双门控_openbmi_accpaper/)**；真被试 all4 复验见 **[`33`](./33_旁路_真被试LeaveNext_all4复验_syj_fnz_openbmi_accpaper/)**；**真人全队列统一总账见 [`41`](./41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/)**。部署动作以 `experiment_game` 配置为准（冻结 F22）。
 
 ## 历史主线入口（2 s / 100 ms · 请知悉已非线上默认）
 
@@ -38,7 +38,14 @@
 | 文档 | 用途 |
 |------|------|
 | [`跨域三分类成员排名对照表.md`](./跨域三分类成员排名对照表.md) | OpenBMI vs 官方指定集 · 三分类成员**名次形态**（禁混比绝对值） |
-| [`35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper/`](./35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper/) | Exp35：融合重标定 / 三候选决赛（P0）；轨 H 默认不开 |
+| [`指定集_Exp34-40_结果回填摘要.md`](./指定集_Exp34-40_结果回填摘要.md) | **材料回填总表** · 嵌套主读 0.540 · 折内乐观 +4.7pp · 工程/科学双轨 |
+| [`35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper/`](./35_旁路_官方vsOpenBMI_三分类排名不一致_融合重标定与骨干消融_accpaper/) | Exp35：融合重标定 / 三候选决赛（已结案 · S0 定稿） |
+| [`36_旁路_官方主交卷_扩池与跨轨融合_accpaper/`](./36_旁路_官方主交卷_扩池与跨轨融合_accpaper/) | Exp36：**已结案** · M7/扩池/C1(45ch) 均未过 Wilcoxon 线 · 维持 S0 |
+| [`37_旁路_官方主交卷_嵌套融合McNemar确认_accpaper/`](./37_旁路_官方主交卷_嵌套融合McNemar确认_accpaper/) | Exp37：**已结案** · N7 嵌套 +1.2pp / p=0.81 · **维持 S0** |
+| [`38_旁路_官方主交卷_误差去相关选池_accpaper/`](./38_旁路_官方主交卷_误差去相关选池_accpaper/) | Exp38：**已结案阴性** · 嵌套贪心未成多元池 · 维持 S0 |
+| [`39_旁路_官方主交卷_收尾回放与工程选卷_accpaper/`](./39_旁路_官方主交卷_收尾回放与工程选卷_accpaper/) | Exp39：**已结案** · R-B8 nested=0.540 · 科学 KEEP_S0 · 工程选 R-B8（非显著） |
+| [`40_旁路_官方主交卷_CSV加固_边际校正与TTA_accpaper/`](./40_旁路_官方主交卷_CSV加固_边际校正与TTA_accpaper/) | Exp40：**已结案** · MC/TTA 阴性 · §5 曾选 R-B8 · **交卷风险否决→S0** · 算法冻结 |
+| [`41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/`](./41_旁路_真人被试LeaveNext_F5全队列统一_openbmi_accpaper/) | Exp41：**结构统一** · 15 人 all4·F5 总账（自采监测；不改官方交卷） |
 
 ## 归档（旧协议，勿当主结果）
 

@@ -325,7 +325,9 @@ def run_v2_session(
     arm_peak_by_trial: Dict[int, float] = {}
     aborted = False
     abort_reason: Optional[str] = None
-    eeg_stale_timeout_s = 3.0
+    from experiment_game.runtime.eeg_bus import resolve_eeg_watchdog
+
+    eeg_stale_timeout_s = float(resolve_eeg_watchdog()["abort_s"])
     _eeg_stale_announced = {"done": False}
     _eeg_health = None
     if buf is not None and not degraded:

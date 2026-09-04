@@ -43,6 +43,17 @@ def test_load_protocol_yaml():
     assert cfg.get("protocol_id") == "openbmi_align_v1"
     assert cfg["channels"]["order"][0] == "FC3"
     assert cfg["windowing"]["win_s"] == 3.0
+    assert cfg["eeg_watchdog"]["stall_s"] == 2.0
+    assert cfg["eeg_watchdog"]["abort_s"] == 5.0
+
+
+def test_resolve_eeg_watchdog_defaults():
+    from experiment_game.runtime.eeg_bus import resolve_eeg_watchdog
+
+    wd = resolve_eeg_watchdog(root=repo_root())
+    assert wd["stall_s"] == 2.0
+    assert wd["abort_s"] == 5.0
+    assert wd["abort_s"] >= wd["stall_s"]
 
 
 def test_deep_merge():

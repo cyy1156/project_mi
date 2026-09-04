@@ -94,7 +94,9 @@ def run_v4_session(
     markers.push("v4_start")
 
     from experiment_game.experiment.session_base import SessionServices, attach_eeg_health
+    from experiment_game.runtime.eeg_bus import resolve_eeg_watchdog
 
+    eeg_abort_s = float(resolve_eeg_watchdog()["abort_s"])
     _eeg_health = attach_eeg_health(
         buf,
         SessionServices(events, markers, bridge, on_console),
@@ -120,11 +122,12 @@ def run_v4_session(
                 raise SessionAbort("operator_abort")
             if _eeg_health is not None:
                 _eeg_health.tick(buf)
-            st = buf.stale_status(3.0)
+            st = buf.stale_status(eeg_abort_s)
             if st is not None:
                 age = float(st["age_s"])
                 msg = (
-                    f"EEG 断流：已 {age:.1f}s 无新样本。请检查 dongle/COM/USB。"
+                    f"EEG 断流：已 {age:.1f}s 无新样本（阈值 {eeg_abort_s:.0f}s）。"
+                    "请检查 dongle/COM/USB。"
                 )
                 on_console(f"[v4] ERR {msg}")
                 events.emit("eeg_stale", phase="v4", age_s=age, timeout_s=st["timeout_s"])

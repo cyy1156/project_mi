@@ -1,0 +1,44 @@
+{
+  "fold": 3,
+  "val_subjects": [
+    "challenge:S04"
+  ],
+  "best_epoch": 2,
+  "best_val_acc": 0.6133333333333333,
+  "best_val_metrics": {
+    "n": 150,
+    "acc": 0.6133333333333333,
+    "acc_paper": 0.6133333333333333,
+    "macro_recall": 0.6133333333333333,
+    "macro_specificity": 0.8066666666666666,
+    "per_class_recall": [
+      0.6,
+      0.84,
+      0.4
+    ],
+    "per_class_specificity": [
+      0.88,
+      0.68,
+      0.86
+    ],
+    "confusion_matrix": [
+      [
+        30,
+        11,
+        9
+      ],
+      [
+        3,
+        42,
+        5
+      ],
+      [
+        9,
+        21,
+        20
+      ]
+    ]
+  },
+  "init_ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\pretrain_day2_20260903\\best_openbmi_conformer.pt",
+  "ckpt": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp36_pool_xtrack_accpaper\\C1\\ft_conformer_day2_20260903\\challenge_mi_3s_45ch\\run_day2_20260903\\three\\fold3\\best_three.pt"
+}

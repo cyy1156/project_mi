@@ -46,5 +46,5 @@ readout:
 
 eeg_watchdog:
   stall_s: 2.0
-  abort_s: 3.0
+  abort_s: 5.0   # L3 中止；与 EEGBus.lost_s 对齐（2s 仅告警）
   judge_buf_stale_s: 1.0
