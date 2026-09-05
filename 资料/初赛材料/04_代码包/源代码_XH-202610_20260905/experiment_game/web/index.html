@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>MI 诱导 · 被试屏</title>
+  <link rel="stylesheet" href="./css/style.css?v=20260831cue7" />
+</head>
+<body>
+  <div id="app">
+    <canvas id="c"></canvas>
+    <div id="vignette" aria-hidden="true"></div>
+    <div id="opbar" aria-label="操作者控制">
+      <div class="op-title">操作者</div>
+      <div id="op-state">phase=— · trial=—</div>
+      <div class="op-keys">
+        <span><kbd>P</kbd>暂停</span>
+        <span><kbd>N</kbd>代确认</span>
+        <span><kbd>G</kbd>准入</span>
+        <span><kbd>R</kbd>Reject</span>
+        <span><kbd>Esc</kbd>中止</span>
+      </div>
+      <div class="op-btns">
+        <button type="button" id="op-pause" title="P">暂停</button>
+        <button type="button" id="op-continue" title="N">代确认</button>
+        <button type="button" id="op-reject" title="R">Reject</button>
+        <button type="button" id="op-abort" title="Esc">中止</button>
+      </div>
+    </div>
+    <div id="hud">
+      <div id="cross" class="hidden">+</div>
+      <div id="hud-text"></div>
+      <div id="hud-sub"></div>
+      <div id="phase-tag"></div>
+    </div>
+    <div id="prompt" class="hidden">
+      <div class="prompt-card">
+        <h1 id="prompt-title"></h1>
+        <p id="prompt-body"></p>
+        <button id="prompt-btn" type="button">继续</button>
+        <p class="prompt-hint" id="prompt-hint">也可按 <kbd>空格</kbd> 或 <kbd>Enter</kbd></p>
+      </div>
+    </div>
+    <div id="questionnaire" class="hidden" aria-hidden="true">
+      <div class="q-card">
+        <div class="q-header">
+          <h1 id="q-title">问卷</h1>
+          <button id="q-close" type="button" class="q-close" title="关闭问卷" aria-label="关闭问卷">×</button>
+        </div>
+        <div id="q-body"></div>
+        <div class="q-actions">
+          <button id="q-submit" type="button">提交问卷</button>
+          <button id="q-close-bottom" type="button" class="q-close-secondary">关闭</button>
+        </div>
+        <p class="q-hint" id="q-hint"></p>
+      </div>
+    </div>
+    <div id="offline" class="hidden" aria-hidden="true">
+      <div class="offline-card">
+        <h1>未连接到实验服务</h1>
+        <p>
+          请先双击运行 <code>experiment_game\open_operator.bat</code>（操作台），
+          保持黑色命令窗口不要关闭，再打开或刷新本页
+          （<code>http://127.0.0.1:8080/</code>）。
+        </p>
+        <p class="offline-note">
+          不要单独用 <code>open_induction.bat</code> 起实验——它只会打开本页，
+          真正的 v2/v3/v4 流程在操作台选择后开始。
+        </p>
+      </div>
+    </div>
+    <div id="helpbar">
+      <span id="status">连接中…</span>
+      <span id="help-tip">有弹窗时按空格继续 · 双手由程序演示，无需手动操作</span>
+    </div>
+  </div>
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "./vendor/three.module.js"
+    }
+  }
+  </script>
+  <script type="module" src="./js/main.js?v=20260831cue7"></script>
+</body>
+</html>

@@ -1,0 +1,18 @@
+{
+  "machine_id": "CHANGE_ME",
+  "hostname": "",
+  "gpu": "",
+  "repo_root": "",
+  "python": {
+    "prefer": "conda",
+    "conda_env": "cyy",
+    "example_exe": "%USERPROFILE%\\.conda\\envs\\cyy\\python.exe",
+    "note": "Do not hardcode another user's path; prefer %USERPROFILE% probes in _resolve_python.bat"
+  },
+  "board": {
+    "mode": "synthetic",
+    "serial_port": "COM3"
+  },
+  "shared_files_policy": "Do not edit experiment_game root bats for this machine; use this folder only.",
+  "updated": "YYYY-MM-DD"
+}

@@ -127,6 +127,7 @@ def main() -> None:
 | `submission_QuadFold59.csv` | 交卷预测（S07/S08，120 行） |
 | `nested_N0_metrics.json` | QuadFold-59 嵌套主读 Acc/召/特/F1 + CM |
 | `数据说明_使用对照.md` | 与官方数据说明对照 |
+| `oof_N0/*.npy` | `oof_N0_subjects.npy` 为 Unicode 字符串数组，`np.load()` 默认参数可读；prob 形状 (900,3)、y 形状 (900,) |
 
 复现嵌套指标：加载 Exp37 `oof_N0_*.npy` 或直接读本目录 JSON。
 """,

@@ -1,0 +1,34 @@
+# Stieger 2021 —— Cue前 4s Rest / 反馈段 Task → 100ms 滑 3s → (N,1,8,750)
+# 伪在线实验 07 · OpenBMI S3 权重零样本评测集
+dataset: stieger
+loader: load_stieger_mat
+
+data_glob: "D:/cyy/MI/DATA/stieger/S*_Session_*.mat"
+
+subject_from: stieger_stem
+
+use_tasks: [1, 2, 3]
+drop_targets: [3]
+rest_targets: []  # Rest 仅来自 Cue 前 4s（同 2s_hop100 旁路）
+make_rest_from_iti: false
+
+feedback_t_ms: 2000
+window_mode: slide_3s_hop100
+win_sec: 3.0
+hop_ms: 100
+baseline_sec: 0.5
+min_feedback_sec: 3.0
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/stieger_3s_hop100"
+save_full: true
+save_split: false
+
+incremental: true
+manifest_name: "manifest.json"
+skip_if_processed: true

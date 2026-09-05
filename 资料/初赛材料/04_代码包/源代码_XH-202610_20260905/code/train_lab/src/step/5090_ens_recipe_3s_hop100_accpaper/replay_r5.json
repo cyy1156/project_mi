@@ -1,0 +1,34 @@
+{
+  "arm": "R5",
+  "member_names": [
+    "shallow",
+    "conformer"
+  ],
+  "member_runs": [
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\shallow_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_095327\\three",
+    "F:\\Cyy\\MI\\code\\train_lab\\out\\5090_alg_incr_3s_hop100_accpaper\\conformer_openbmi_3s_hop100_balbatch_accpaper\\openbmi_3s_hop100\\run_20260823_135213\\three"
+  ],
+  "config": {
+    "temperatures": [
+      1.951139545509476,
+      2.4952981194854504
+    ],
+    "weights": [
+      0.7000000000000001,
+      0.29999999999999993
+    ],
+    "smooth_radius": 2,
+    "tau_conf": 0.45,
+    "consist_c": null
+  },
+  "val_acc_paper": 0.5990909090909091,
+  "test_acc_paper": 0.6080864197530864,
+  "anchor_S3": 0.5839,
+  "anchor_E1f": 0.6173,
+  "anchor_E_uniform": 0.5958,
+  "delta_test_pp_vs_S3": 2.418641975308644,
+  "delta_test_pp_vs_E1f": -0.9213580246913544,
+  "delta_test_pp_vs_E_uniform": 1.228641975308642,
+  "threshold": null,
+  "verdict": "report"
+}

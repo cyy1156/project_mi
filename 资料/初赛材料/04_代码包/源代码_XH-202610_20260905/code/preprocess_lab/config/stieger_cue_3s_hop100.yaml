@@ -1,0 +1,33 @@
+# Stieger 2021 — Cue 段 3s/hop100（与 OpenBMI/fnz 对齐 · 实验 29）
+dataset: stieger_cue
+loader: load_stieger_mat
+
+data_glob: "D:/MI/DATA/stieger/S*_Session_*.mat"
+
+subject_from: stieger_stem
+
+use_tasks: [1, 2, 3]
+drop_targets: [3]
+make_rest_from_iti: true
+
+window_mode: slide_3s_hop100_cue
+win_sec: 3.0
+hop_ms: 100
+task_sec: 4.0
+rest_sec: 4.0
+baseline_sec: 0.5
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+# 实验 29 预注册
+exp29_subjects: [S1, S2, S4, S8, S12]
+exp29_sessions: [2, 3, 4]
+
+out_dir: "out/stieger_cue_3s_hop100"
+save_full: true
+save_split: false
+
+incremental: true
+manifest_name: "manifest.json"
+skip_if_processed: true

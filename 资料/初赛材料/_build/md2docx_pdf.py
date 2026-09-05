@@ -7,17 +7,122 @@
 """
 from __future__ import annotations
 
+import hashlib
 import re
 import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
-MD = ROOT / "01_技术报告" / "技术报告_XH-202610.md"
-DOCX_OUT = ROOT / "01_技术报告" / "技术报告_XH-202610.docx"
-PDF_OUT = ROOT / "01_技术报告" / "技术报告_XH-202610.pdf"
+REPORT_DIR = ROOT / "01_技术报告"
+MD = REPORT_DIR / "技术报告_XH-202610.md"
+OUT_DIR = REPORT_DIR / "交稿"
+DOCX_OUT = OUT_DIR / "技术报告_XH-202610.docx"
+PDF_OUT = OUT_DIR / "技术报告_XH-202610.pdf"
+MATH_CACHE = OUT_DIR / "_math_cache"
+
+IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
+ABS_RE = re.compile(r"^\*\*摘要\*\*[：:]\s*(.*)$", re.S)
+KW_RE = re.compile(r"^\*\*关键词\*\*[：:]\s*(.*)$")
+INLINE_MATH_RE = re.compile(r"(?<!\$)\$(?!\$)((?:\\.|[^$])+?)(?<!\$)\$(?!\$)")
 
 # ---------------------------------------------------------------- 解析
 Block = tuple  # (kind, payload)
+
+
+def resolve_img(rel: str) -> Path:
+    p = Path(rel)
+    if not p.is_absolute():
+        p = (REPORT_DIR / rel).resolve()
+    return p
+
+
+def normalize_latex(tex: str) -> str:
+    """把 Markdown 公式改成 matplotlib mathtext 可渲染的子集。"""
+    tex = re.sub(r"\s+", " ", tex.strip())
+    tex = tex.replace(r"\arg\min", r"\mathrm{arg\,min}")
+    tex = tex.replace(r"\arg\max", r"\mathrm{arg\,max}")
+    tex = tex.replace(r"\bigl(", "(").replace(r"\bigr)", ")")
+    tex = tex.replace(r"\bigl[", "[").replace(r"\bigr]", "]")
+    tex = tex.replace(r"\bigl\{", r"\{").replace(r"\bigr\}", r"\}")
+    tex = tex.replace(r"\bigl", "").replace(r"\bigr", "")
+    tex = tex.replace(r"\left", "").replace(r"\right", "")
+    tex = tex.replace(r"\mathrm{all\ OOF}", r"\mathrm{all\,OOF}")
+    tex = tex.replace(r"\ge", r"\geq").replace(r"\le", r"\leq")
+    tex = tex.replace(r"\times", r"\times")  # keep
+    return tex
+
+
+def render_math(tex: str, display: bool = True) -> Path | None:
+    """用 matplotlib mathtext 把 LaTeX 渲成 PNG，供 DOCX/PDF 嵌入。"""
+    import matplotlib
+
+    matplotlib.use("Agg")
+    import matplotlib.pyplot as plt
+
+    tex_n = normalize_latex(tex)
+    key = hashlib.md5(f"{int(display)}:{tex_n}".encode("utf-8")).hexdigest()[:14]
+    MATH_CACHE.mkdir(parents=True, exist_ok=True)
+    out = MATH_CACHE / f"m_{key}.png"
+    if out.exists() and out.stat().st_size > 0:
+        return out
+    try:
+        fig = plt.figure(figsize=(0.01, 0.01))
+        fig.patch.set_facecolor("white")
+        fig.text(
+            0.5,
+            0.5,
+            f"${tex_n}$",
+            ha="center",
+            va="center",
+            fontsize=13 if display else 11,
+            color="black",
+        )
+        fig.savefig(
+            out,
+            dpi=220 if display else 200,
+            bbox_inches="tight",
+            pad_inches=0.1 if display else 0.04,
+            facecolor="white",
+            transparent=False,
+        )
+        plt.close(fig)
+        return out
+    except Exception as e:
+        print("WARN math render failed:", e, "|", tex_n[:100], file=sys.stderr)
+        try:
+            plt.close("all")
+        except Exception:
+            pass
+        return None
+
+
+def math_png_width_cm(path: Path, max_cm: float = 15.5, min_cm: float = 4.0) -> float:
+    from PIL import Image as PILImage
+
+    with PILImage.open(path) as im:
+        # 220 dpi → cm
+        w_cm = im.width / 220.0 * 2.54
+    return float(min(max_cm, max(min_cm, w_cm * 0.92)))
+
+
+def extract_abstract_keywords(blocks):
+    """从 **摘要** / **关键词** 段落或 > 引用块抽取。"""
+    abs_text, kw_text = None, None
+    for k, v in blocks:
+        if k == "p":
+            m = ABS_RE.match(v)
+            if m:
+                abs_text = m.group(1).strip()
+                continue
+            m = KW_RE.match(v)
+            if m:
+                kw_text = m.group(1).strip()
+                continue
+        elif k == "quote" and abs_text is None:
+            abs_text = v
+    if kw_text is None:
+        kw_text = "运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互协议"
+    return abs_text or "", kw_text
 
 
 def parse(md_text: str):
@@ -39,6 +144,23 @@ def parse(md_text: str):
             i += 1
             blocks.append(("code", "\n".join(buf)))
             continue
+        # 独立公式块 $$ ... $$
+        if s == "$$":
+            i += 1
+            buf = []
+            while i < n and lines[i].strip() != "$$":
+                buf.append(lines[i].rstrip())
+                i += 1
+            if i < n:
+                i += 1
+            tex = " ".join(x.strip() for x in buf if x.strip())
+            if tex:
+                blocks.append(("math", tex))
+            continue
+        if s.startswith("$$") and s.endswith("$$") and len(s) > 4:
+            blocks.append(("math", s[2:-2].strip()))
+            i += 1
+            continue
         if s.startswith("|"):
             rows = []
             while i < n and lines[i].strip().startswith("|"):
@@ -48,7 +170,14 @@ def parse(md_text: str):
                 i += 1
             blocks.append(("table", rows))
             continue
-        if s.startswith("### "):
+        m_img = IMG_RE.match(s)
+        if m_img:
+            blocks.append(("img", m_img.group(2).strip()))
+            i += 1
+            continue
+        if s.startswith("#### "):
+            blocks.append(("h4", s[5:].strip()))
+        elif s.startswith("### "):
             blocks.append(("h3", s[4:].strip()))
         elif s.startswith("## "):
             blocks.append(("h2", s[3:].strip()))
@@ -75,7 +204,7 @@ def build_docx(blocks, out: Path):
     from docx.enum.text import WD_ALIGN_PARAGRAPH, WD_BREAK
     from docx.oxml import OxmlElement
     from docx.oxml.ns import qn
-    from docx.shared import Pt, Twips
+    from docx.shared import Pt, Twips, Cm
 
     doc = Document()
 
@@ -99,21 +228,54 @@ def build_docx(blocks, out: Path):
         rfonts.set(qn("w:hAnsi"), en)
         rfonts.set(qn("w:eastAsia"), cn)
 
-    INLINE = re.compile(r"(\*\*.+?\*\*|`[^`]+`)")
+    def add_inline(p, text, size=12, bold_all=False, cn="宋体", allow_bold: bool = False):
+        """解析代码/行内公式；正文默认不加粗（剥离 ** 标记），标题可 allow_bold。"""
+        from docx.shared import Inches
+        from PIL import Image as PILImage
 
-    def add_inline(p, text, size=12, bold_all=False, cn="宋体"):
-        for part in INLINE.split(text):
+        math_pat = re.compile(r"(\$\$.+?\$\$|\$(?:\\.|[^$])+?\$)")
+        outer_pat = re.compile(r"(\*\*[^*]+?\*\*|`[^`]+`)")
+
+        def emit_math(tex: str, display: bool = False):
+            png = render_math(tex, display=display)
+            if not png:
+                r = p.add_run(tex)
+                set_fonts(r, cn="Consolas", en="Consolas", size=size - 1)
+                return
+            if display:
+                p.add_run().add_picture(str(png), width=Cm(math_png_width_cm(png, max_cm=14.0)))
+                return
+            with PILImage.open(png) as im:
+                h_in = max(0.14, min(0.38, im.height / 200.0 * 0.95))
+                w_in = im.width / im.height * h_in
+            p.add_run().add_picture(str(png), width=Inches(w_in), height=Inches(h_in))
+
+        def emit_text(s: str, bold: bool = False):
+            if not s:
+                return
+            use_bold = bool(allow_bold and (bold or bold_all))
+            for part in math_pat.split(s):
+                if not part:
+                    continue
+                if part.startswith("$$") and part.endswith("$$") and len(part) > 4:
+                    emit_math(part[2:-2], display=True)
+                elif part.startswith("$") and part.endswith("$") and len(part) > 2:
+                    emit_math(part[1:-1], display=False)
+                else:
+                    r = p.add_run(part)
+                    set_fonts(r, cn=cn, size=size, bold=use_bold)
+
+        for part in outer_pat.split(text):
             if not part:
                 continue
-            if part.startswith("**") and part.endswith("**"):
-                r = p.add_run(part[2:-2])
-                set_fonts(r, cn=cn, size=size, bold=True)
-            elif part.startswith("`") and part.endswith("`"):
+            if part.startswith("**") and part.endswith("**") and len(part) >= 4:
+                # 仅剥离 Markdown 加粗标记；正文字重不加粗
+                emit_text(part[2:-2], bold=True)
+            elif part.startswith("`") and part.endswith("`") and len(part) >= 2:
                 r = p.add_run(part[1:-1])
                 set_fonts(r, cn="Consolas", en="Consolas", size=size - 1.5)
             else:
-                r = p.add_run(part)
-                set_fonts(r, cn=cn, size=size, bold=bold_all)
+                emit_text(part, bold=False)
 
     def para(text, size=12, indent=480, align=WD_ALIGN_PARAGRAPH.JUSTIFY, before=0, after=6, cn="宋体"):
         p = doc.add_paragraph()
@@ -126,17 +288,18 @@ def build_docx(blocks, out: Path):
         add_inline(p, text, size=size, cn=cn)
         return p
 
-    def heading(text, level):
+    def heading(text, level, center=False):
         p = doc.add_paragraph()
         pf = p.paragraph_format
         pf.line_spacing = 1.3
         pf.space_before, pf.space_after = Pt(14 if level == 1 else 10), Pt(8)
-        if level == 1:
+        # 一级标题与「摘要」居中；二、三级小节标题左对齐加粗
+        if level == 1 or center or text.strip() in ("摘要", "摘  要", "摘 要"):
             pf.alignment = WD_ALIGN_PARAGRAPH.CENTER
         hmap = {1: ("Heading 1", 16), 2: ("Heading 2", 15), 3: ("Heading 3", 14)}
-        style, size = hmap[level]
+        style, size = hmap.get(level, ("Heading 3", 13))
         p.style = doc.styles[style]
-        add_inline(p, text, size=size, bold_all=True, cn="黑体")
+        add_inline(p, text, size=size, bold_all=True, cn="黑体", allow_bold=True)
         for r in p.runs:
             set_fonts(r, cn="黑体", size=size, bold=True)
         return p
@@ -175,13 +338,14 @@ def build_docx(blocks, out: Path):
                 p = cell.paragraphs[0]
                 p.paragraph_format.line_spacing = 1.15
                 p.paragraph_format.alignment = WD_ALIGN_PARAGRAPH.CENTER if ri == 0 else WD_ALIGN_PARAGRAPH.LEFT
-                add_inline(p, text, size=fsize, bold_all=(ri == 0))
+                add_inline(p, text, size=fsize, bold_all=False, allow_bold=False)
                 if ri == 0:
                     shade(cell._tc.get_or_add_tcPr(), "D9E2F3")
 
     # ---- 封面（简单标题页）----
     title = next(v for k, v in blocks if k == "h1")
     meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号"))
+    abs_text, kw_text = extract_abstract_keywords(blocks)
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(200)
     p = doc.add_paragraph()
@@ -197,11 +361,10 @@ def build_docx(blocks, out: Path):
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---- 摘要 ----
-    heading("摘要", 2)
-    for k, v in blocks:
-        if k == "quote":
-            para(v, size=12, indent=480)
-    para("**关键词：**运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互协议", indent=480)
+    heading("摘要", 2, center=True)
+    if abs_text:
+        para(abs_text, size=12, indent=480)
+    para(f"**关键词：**{kw_text}", indent=480)
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---- 目录（域，需在 Word 中更新）----
@@ -233,14 +396,15 @@ def build_docx(blocks, out: Path):
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---- 正文 ----
+    hr_count = 0
     seen_body = False
     for k, v in blocks:
-        if k == "hr" and not seen_body:
-            seen_body = True
+        if k == "hr":
+            hr_count += 1
+            if hr_count >= 2:
+                seen_body = True
             continue
         if not seen_body:
-            continue
-        if k == "hr":
             continue
         if k == "h1":
             continue  # 封面已用
@@ -248,10 +412,38 @@ def build_docx(blocks, out: Path):
             heading(v, 1)
         elif k == "h3":
             heading(v, 2)
+        elif k == "h4":
+            heading(v, 3)
+        elif k == "img":
+            path = resolve_img(v)
+            if not path.exists():
+                print("WARN missing image:", path, file=sys.stderr)
+                continue
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(4)
+            p.add_run().add_picture(str(path), width=Cm(14.5))
+        elif k == "math":
+            path = render_math(v, display=True)
+            p = doc.add_paragraph()
+            p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+            p.paragraph_format.space_before = Pt(6)
+            p.paragraph_format.space_after = Pt(6)
+            if path and path.exists():
+                p.add_run().add_picture(str(path), width=Cm(math_png_width_cm(path)))
+            else:
+                add_inline(p, v, size=10.5, cn="Consolas")
         elif k == "p":
             if v.startswith("**题目编号"):
                 continue
-            para(v)
+            if ABS_RE.match(v) or KW_RE.match(v):
+                continue
+            # 图注居中、无首行缩进
+            if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
+                para(v, size=10.5, indent=0, align=WD_ALIGN_PARAGRAPH.CENTER, before=2, after=8)
+            else:
+                para(v)
         elif k == "quote":
             para(v, size=10.5, indent=480)
         elif k == "code":
@@ -284,6 +476,7 @@ def build_docx(blocks, out: Path):
         fld.set(qn("w:instr"), "PAGE \\* arabic \\* MERGEFORMAT")
         fp._p.append(fld)
 
+    out.parent.mkdir(parents=True, exist_ok=True)
     doc.save(out)
     print("docx saved:", out)
 
@@ -299,9 +492,10 @@ def build_pdf(blocks, out: Path):
     from reportlab.pdfbase.ttfonts import TTFont
     from reportlab.platypus import (
         BaseDocTemplate, Frame, PageTemplate, Paragraph, Preformatted,
-        Spacer, Table, TableStyle, PageBreak,
+        Spacer, Table, TableStyle, PageBreak, Image as RLImage,
     )
     from reportlab.platypus.tableofcontents import TableOfContents
+    from reportlab.lib.utils import ImageReader
 
     FONT_DIR = Path(r"C:\Windows\Fonts")
     pdfmetrics.registerFont(TTFont("SimSun", str(FONT_DIR / "simsun.ttc"), subfontIndex=0))
@@ -324,15 +518,17 @@ def build_pdf(blocks, out: Path):
                  spaceBefore=14, spaceAfter=8, keepWithNext=1),
         "h2": st("h2", fontName="SimHei", fontSize=15, leading=15 * 1.3, spaceBefore=10, spaceAfter=8,
                  alignment=TA_LEFT, keepWithNext=1),
-        "h3": st("h3", fontName="SimHei", fontSize=14, leading=14 * 1.3, spaceBefore=10, spaceAfter=6,
+        "h3": st("h3", fontName="SimHei", fontSize=13, leading=13 * 1.3, spaceBefore=8, spaceAfter=5,
                  alignment=TA_LEFT, keepWithNext=1),
+        "abstract_title": st("abstract_title", fontName="SimHei", fontSize=15, leading=15 * 1.3,
+                             alignment=TA_CENTER, spaceBefore=10, spaceAfter=8, keepWithNext=1),
         "body": st("body", firstLineIndent=24),
         "quote": st("quote", fontSize=10.5, leading=10.5 * 1.3, firstLineIndent=21, textColor=BLACK),
         "code": st("code", fontName="Courier", fontSize=9, leading=11, alignment=TA_LEFT),
         "code_cjk": st("code_cjk", fontName="SimSun", fontSize=9.5, leading=13, alignment=TA_LEFT),
         "li": st("li", leftIndent=24, firstLineIndent=0),
         "cell": st("cell", fontSize=9, leading=11.5, alignment=TA_LEFT, spaceAfter=0),
-        "cellh": st("cellh", fontName="SimHei", fontSize=9, leading=11.5, alignment=TA_CENTER, spaceAfter=0),
+        "cellh": st("cellh", fontName="SimSun", fontSize=9, leading=11.5, alignment=TA_CENTER, spaceAfter=0),
         "cover_title": st("cover_title", fontName="SimHei", fontSize=24, leading=34, alignment=TA_CENTER),
         "cover_meta": st("cover_meta", fontSize=14, leading=20, alignment=TA_CENTER),
     }
@@ -341,18 +537,60 @@ def build_pdf(blocks, out: Path):
         return (t.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
                  .replace("\u2212", "-").replace("\u2010", "-"))
 
+    def latex_to_plain(tex: str) -> str:
+        s = normalize_latex(tex)
+        repl = [
+            (r"\theta", "θ"), (r"\tau", "τ"), (r"\pi", "π"), (r"\eta", "η"),
+            (r"\mu", "μ"), (r"\sigma", "σ"), (r"\ell", "ℓ"),
+            (r"\Delta", "Δ"), (r"\nabla", "∇"),
+            (r"\mathcal{L}", "ℒ"), (r"\mathcal{B}", "ℬ"), (r"\mathcal{J}", "𝒥"),
+            (r"\mathbb{R}", "ℝ"), (r"\times", "×"), (r"\ldots", "…"),
+            (r"\geq", "≥"), (r"\leq", "≤"), (r"\in", "∈"), (r"\mid", "∣"),
+            (r"\cdot", "·"), (r"\approx", "≈"), (r"\sum", "∑"),
+            (r"\quad", " "), (r"\qquad", "  "), (r"\,", " "), (r"\ ", " "),
+            (r"\log", "log"), (r"\exp", "exp"), (r"\max", "max"), (r"\min", "min"),
+            (r"\mathrm{arg\,min}", "argmin"), (r"\mathrm{arg\,max}", "argmax"),
+            (r"\mathrm{mode}", "mode"), (r"\mathrm{val}", "val"),
+            (r"\mathrm{test}", "test"), (r"\mathrm{Acc}", "Acc"),
+            (r"\tilde", "~"), (r"\hat", "^"),
+        ]
+        for a, b in repl:
+            s = s.replace(a, b)
+        s = re.sub(r"\\[a-zA-Z]+", "", s)
+        s = s.replace("{", "").replace("}", "").replace("^", "")
+        return s
+
     def inline(t):
-        t = esc(t)
-        t = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", t)
+        # 行内公式：不用 Paragraph <img>（CJK 换行会崩）；转成可读符号。
+        # 独立 $$ 公式块另以 PNG 嵌入（见 k=="math"）。
+        parts = []
+        last = 0
+        for m in INLINE_MATH_RE.finditer(t):
+            parts.append(("t", t[last:m.start()]))
+            parts.append(("m", m.group(1)))
+            last = m.end()
+        parts.append(("t", t[last:]))
 
-        def _code(m):
-            s = m.group(1)
-            if any("\u4e00" <= ch <= "\u9fff" for ch in s):
-                return s  # 含中文的路径名用正文字体，Courier 缺 CJK 字形
-            return f'<font face="Courier" size="10">{s}</font>'
+        out = []
+        for kind, payload in parts:
+            if kind == "t":
+                if not payload:
+                    continue
+                s = esc(payload)
+                # 正文不加粗：仅剥离 Markdown ** 标记
+                s = re.sub(r"\*\*(.+?)\*\*", r"\1", s)
 
-        t = re.sub(r"`([^`]+)`", _code, t)
-        return t
+                def _code(m):
+                    s2 = m.group(1)
+                    if any("\u4e00" <= ch <= "\u9fff" for ch in s2):
+                        return s2
+                    return f'<font face="Courier" size="10">{s2}</font>'
+
+                s = re.sub(r"`([^`]+)`", _code, s)
+                out.append(s)
+            else:
+                out.append(f"<i>{esc(latex_to_plain(payload))}</i>")
+        return "".join(out)
 
     story: list = []
     toc = TableOfContents()
@@ -364,6 +602,7 @@ def build_pdf(blocks, out: Path):
     # 封面
     title = next(v for k, v in blocks if k == "h1")
     meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号")).strip("*")
+    abs_text, kw_text = extract_abstract_keywords(blocks)
     meta_parts = meta.rsplit("｜", 1)
     meta_lines = [p_.strip() for p_ in meta_parts if p_.strip()] if len(meta_parts) == 2 else [meta]
     story += [Spacer(1, 55 * mm), Paragraph(esc(title), S["cover_title"]), Spacer(1, 8 * mm)]
@@ -374,11 +613,10 @@ def build_pdf(blocks, out: Path):
     story.append(PageBreak())
 
     # 摘要
-    story.append(Paragraph("摘  要", S["h2"]))
-    for k, v in blocks:
-        if k == "quote":
-            story.append(Paragraph(inline(v), S["body"]))
-    story.append(Paragraph(inline("**关键词：**运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互协议"), S["body"]))
+    story.append(Paragraph("摘  要", S["abstract_title"]))
+    if abs_text:
+        story.append(Paragraph(inline(abs_text), S["body"]))
+    story.append(Paragraph(inline(f"**关键词：**{kw_text}"), S["body"]))
     story.append(PageBreak())
 
     # 目录
@@ -387,7 +625,8 @@ def build_pdf(blocks, out: Path):
     story.append(toc)
     story.append(PageBreak())
 
-    # 正文（带 TOC 收集）：跳过标题/摘要区，从第一个分隔线后开始
+    # 正文（带 TOC 收集）：第二个分隔线之后
+    hr_count = 0
     seen_body = False
 
     class Doc(BaseDocTemplate):
@@ -401,13 +640,29 @@ def build_pdf(blocks, out: Path):
         p._toc_entry = (level - 1, re.sub(r"\*\*|`", "", text))
         return p
 
+    def make_img(rel: str):
+        path = resolve_img(rel)
+        if not path.exists():
+            print("WARN missing image:", path, file=sys.stderr)
+            return None
+        ir = ImageReader(str(path))
+        iw, ih = ir.getSize()
+        max_w = 150 * mm
+        max_h = 170 * mm
+        w = max_w
+        h = w * ih / iw
+        if h > max_h:
+            h = max_h
+            w = h * iw / ih
+        return RLImage(str(path), width=w, height=h)
+
     for k, v in blocks:
-        if k == "hr" and not seen_body:
-            seen_body = True
+        if k == "hr":
+            hr_count += 1
+            if hr_count >= 2:
+                seen_body = True
             continue
         if not seen_body:
-            continue
-        if k == "hr":
             continue
         if k == "h1":
             continue
@@ -415,10 +670,39 @@ def build_pdf(blocks, out: Path):
             story.append(h(v, 1))
         elif k == "h3":
             story.append(h(v, 2))
+        elif k == "h4":
+            story.append(h(v, 3))
+        elif k == "img":
+            img = make_img(v)
+            if img is not None:
+                story.append(Spacer(1, 2 * mm))
+                story.append(img)
+                story.append(Spacer(1, 2 * mm))
+        elif k == "math":
+            png = render_math(v, display=True)
+            if png and png.exists():
+                from PIL import Image as PILImage
+
+                with PILImage.open(png) as im:
+                    max_w = 155 * mm
+                    w = min(max_w, im.width / 220.0 * 25.4 * mm * 0.92)
+                    img_h = im.height / im.width * w
+                story.append(Spacer(1, 2 * mm))
+                story.append(RLImage(str(png), width=w, height=img_h))
+                story.append(Spacer(1, 2 * mm))
+            else:
+                story.append(Paragraph(esc(v), S["code"]))
         elif k == "p":
             if v.startswith("**题目编号"):
                 continue
-            story.append(Paragraph(inline(v), S["body"]))
+            if ABS_RE.match(v) or KW_RE.match(v):
+                continue
+            if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
+                story.append(Paragraph(inline(v), st(
+                    "caption", fontSize=10, leading=13, alignment=TA_CENTER,
+                    firstLineIndent=0, spaceBefore=2, spaceAfter=8)))
+            else:
+                story.append(Paragraph(inline(v), S["body"]))
         elif k == "quote":
             story.append(Paragraph(inline(v), S["quote"]))
         elif k == "code":
@@ -451,6 +735,7 @@ def build_pdf(blocks, out: Path):
         canv.drawCentredString(A4[0] / 2, 12 * mm, str(canv.getPageNumber()))
         canv.restoreState()
 
+    out.parent.mkdir(parents=True, exist_ok=True)
     doc_ = Doc(str(out), pagesize=A4,
                leftMargin=25 * mm, rightMargin=25 * mm, topMargin=22 * mm, bottomMargin=22 * mm,
                title="基于运动想象的脑-机交互算法研究与系统实现技术报告")
@@ -461,6 +746,24 @@ def build_pdf(blocks, out: Path):
 
 
 if __name__ == "__main__":
+    # 默认导出交稿定稿；可用环境变量 MD_SRC 覆盖
+    import os
+
+    md_src = os.environ.get("MD_SRC")
+    if md_src:
+        MD = Path(md_src)
+    elif (OUT_DIR / "技术报告_XH-202610_v4.md").exists():
+        MD = OUT_DIR / "技术报告_XH-202610_v4.md"
+    _old_resolve = resolve_img
+
+    def resolve_img(rel: str) -> Path:  # noqa: F811
+        path = _old_resolve(rel)
+        if path.exists():
+            return path
+        alt = OUT_DIR / rel
+        return alt if alt.exists() else path
+
     blocks = parse(MD.read_text(encoding="utf-8"))
+    print("source:", MD)
     build_docx(blocks, DOCX_OUT)
     build_pdf(blocks, PDF_OUT)

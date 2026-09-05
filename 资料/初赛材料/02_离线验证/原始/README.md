@@ -1,12 +1,12 @@
-# 原始验证数据包（工作副本 · 仅指定集）
-
-正式交稿请用 `交稿/原始验证数据/` 或 `交稿_离线验证_XH-202610.zip`。
+# 原始验证数据包
 
 | 文件 | 说明 |
 |---|---|
-| `submission_QuadFold59.csv` | 盲测预测（S07/S08，120 行） |
-| `sample_submission.csv` | 官方提交模板 |
-| `nested_N0_metrics.json` | 嵌套主读 Acc/召/特/F1 + CM |
-| `oof_N0/*.npy` | Exp37 嵌套 OOF |
-| `官方数据说明.md` | 主办方《数据说明》副本 |
-| `数据说明_使用对照.md` | 本队对照摘录 |
+| `sample_submission.csv` | **正式交卷预测**（官方模板已填写 `label∈{0,1,2}`，120 行） |
+| `submission_QuadFold59.csv` | 同内容内部备份（模型名归档） |
+| `nested_N0_metrics.json` | QuadFold-59 嵌套主读 Acc/召/特/F1 + CM |
+| `数据说明_使用对照.md` | 与官方数据说明对照 |
+| `oof_N0/*.npy` | `oof_N0_subjects.npy` 为 Unicode 字符串数组，`np.load()` 默认参数可读；prob 形状 (900,3)、y 形状 (900,) |
+
+复现嵌套指标：加载 Exp37 `oof_N0_*.npy` 或直接读本目录 JSON。  
+**邮件/评审请提交已填写的 `sample_submission.csv`，不要另交单独命名的预测文件。**

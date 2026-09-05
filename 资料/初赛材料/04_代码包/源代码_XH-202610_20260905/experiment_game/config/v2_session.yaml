@@ -1,0 +1,72 @@
+# v2 会话统一参数
+# game_mode = v3_test：基于 v3 最终权重的游戏测试（跳过标定/准入/在线 FT）
+#   20 试次 = 10 静息(连续5窗静息 +0.5) + 5 左 + 5 右(连续5窗对应手 +1，MI 提前结束)；满分 15
+# game_mode = legacy：旧「标定→准入→游戏」流程
+game_mode: v3_test
+use_v3_weights: true
+v3test_rest_s: 5.0
+v3test_cue_s: 1.0
+v3test_mi_s: 10.0
+v3test_judge_interval_s: 0.5
+v3test_consecutive: 5
+v3test_n_rest: 10
+v3test_n_left: 5
+v3test_n_right: 5
+v3test_rest_points: 0.5
+v3test_mi_points: 1.0
+
+# —— legacy 流程参数（game_mode=legacy 时生效）——
+cal_rounds_min: 4
+cal_rounds_max: 6
+trials_per_round: 18
+ft_trials_per_round: 12
+quiz_trials_per_round: 6
+subblock_size: 6
+cal_round_gap_s: 180.0
+
+gate_enter_three: 0.60
+gate_min_quiz_trials: 12
+
+game_rounds: 2
+game_rounds_min: 2
+game_rounds_max: 3
+game_trials_per_round: 16
+
+# MI 多数票计分：每窗记录 pred；MI 结束多数票 vs label → 正确 +1 / 错误 0；跑完全程
+primary_judge_mode: majority
+ft_min_valid_trials: 6
+
+group_lr: 0.0001
+replay_ratio: 0.10
+drift_patience: 2
+task_p_on: 0.0
+
+# OpenBMI-Align v1（与 v3_session.yaml / 冻结 F1 一致：Cue 先行 1s）
+prep_s: 2.0
+cue_s: 1.0
+imagine_s: 4.0
+iti_s: 3.0
+inter_trial_rest_s: 4.0
+online_window_mode: openbmi_hop100
+win_s: 3.0
+win_hop_s: 0.1
+baseline_before_cue_s: 0.5
+
+ft_epochs: 5
+ft_batch_size: 32
+ft_weight_decay: 0.0001
+
+s3_task_ckpt: "experiment_game/data/models/fnz/best_task.pt"
+s3_three_ckpt: "experiment_game/data/models/fnz/best_three.pt"
+
+signal_quality_enabled: false
+signal_min_median_std_uv: 0.0
+signal_min_peak_to_peak_uv: 0.0
+signal_max_peak_uv: 1.0e9
+signal_min_per_channel_std_uv: 0.0
+signal_min_active_channels: 0
+signal_max_channel_std_ratio: 1.0e9
+signal_max_median_std_uv: 1.0e9
+signal_max_ptp_uv: 1.0e9
+signal_min_car_std_uv: 0.0
+signal_max_common_mode_ratio: 1.0e9

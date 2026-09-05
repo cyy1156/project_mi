@@ -1,0 +1,168 @@
+from __future__ import annotations
+
+import numpy as np
+from sklearn.metrics import (
+    accuracy_score,
+    confusion_matrix,
+    f1_score,
+    precision_score,
+    recall_score,
+)
+
+
+def binary_task_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    """正类=1(任务)，负类=0(静息)。"""
+    # y_true / y_pred 已是类别编号 (N,)，不要用 argmax
+    y_true = np.asarray(y_true).astype(int)
+    y_pred = np.asarray(y_pred).astype(int)
+
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1])
+    tn, fp, fn, tp = cm.ravel()
+
+    recall = recall_score(y_true, y_pred, pos_label=1, zero_division=0)
+    precision = precision_score(y_true, y_pred, pos_label=1, zero_division=0)
+    f1 = f1_score(y_true, y_pred, pos_label=1, zero_division=0)
+    specificity = tn / (tn + fp) if (tn + fp) > 0 else 0.0
+
+    return {
+        "accuracy": float(accuracy_score(y_true, y_pred)),
+        "recall": float(recall),
+        "specificity": float(specificity),
+        "precision": float(precision),
+        "f1": float(f1),
+        "balanced_accuracy": float(0.5 * (recall + specificity)),
+        "tp": int(tp),
+        "tn": int(tn),
+        "fp": int(fp),
+        "fn": int(fn),
+    }
+
+
+def format_task_metrics(part_name: str, m: dict[str, float]) -> str:
+    """part_name: 如 'val' / 'train'，表示打印的是哪一份。"""
+    return "\n".join(
+        [
+            f"===== [{part_name}] 分类头1（静息=0 / 任务=1） =====",
+            f"  混淆矩阵: TP={m['tp']} TN={m['tn']} FP={m['fp']} FN={m['fn']}",
+            f"  Accuracy      分类准确率   = {m['accuracy']:.4f}",
+            f"  Recall        召回率/灵敏度 = {m['recall']:.4f}",
+            f"  Specificity   特异性       = {m['specificity']:.4f}",
+            f"  Precision     精确率       = {m['precision']:.4f}",
+            f"  F1-score      F1          = {m['f1']:.4f}",
+            f"  Balanced Acc  平衡准确率   = {m['balanced_accuracy']:.4f}",
+        ]
+    )
+
+
+def three_class_metrics(y_true: np.ndarray, y_pred: np.ndarray) -> dict[str, float]:
+    """空闲=0 / 左手=1 / 右手=2。"""
+    y_true = np.asarray(y_true).astype(int)
+    y_pred = np.asarray(y_pred).astype(int)
+
+    cm = confusion_matrix(y_true, y_pred, labels=[0, 1, 2])
+
+    acc = accuracy_score(y_true, y_pred)
+    f1_macro = f1_score(y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0)
+    precision_macro = precision_score(
+        y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0
+    )
+    recall_macro = recall_score(
+        y_true, y_pred, average="macro", labels=[0, 1, 2], zero_division=0
+    )
+    recall_per = recall_score(
+        y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
+    )
+    precision_per = precision_score(
+        y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
+    )
+    f1_per = f1_score(
+        y_true, y_pred, average=None, labels=[0, 1, 2], zero_division=0
+    )
+
+    return {
+        "accuracy": float(acc),
+        "f1_macro": float(f1_macro),
+        "precision_macro": float(precision_macro),
+        "recall_macro": float(recall_macro),
+        # 三类等权：balanced accuracy ≡ recall_macro
+        "balanced_accuracy": float(recall_macro),
+        "recall_idle": float(recall_per[0]),
+        "recall_left": float(recall_per[1]),
+        "recall_right": float(recall_per[2]),
+        "precision_idle": float(precision_per[0]),
+        "precision_left": float(precision_per[1]),
+        "precision_right": float(precision_per[2]),
+        "f1_idle": float(f1_per[0]),
+        "f1_left": float(f1_per[1]),
+        "f1_right": float(f1_per[2]),
+        "cm": cm,
+    }
+
+
+def format_three_metrics(part_name: str, m: dict) -> str:
+    cm = m["cm"]  # 可能是 ndarray 或 jsonify 后的 list，统一用 cm[i][j]
+    bal = m.get("balanced_accuracy", m.get("recall_macro", 0.0))
+    prec_m = m.get("precision_macro", float("nan"))
+    return "\n".join(
+        [
+            f"===== [{part_name}] 分类头2（空闲=0 / 左=1 / 右=2） =====",
+            f"  混淆矩阵 (行=真实, 列=预测):",
+            f"            pred0  pred1  pred2",
+            f"    true0  {cm[0][0]:5d}  {cm[0][1]:5d}  {cm[0][2]:5d}",
+            f"    true1  {cm[1][0]:5d}  {cm[1][1]:5d}  {cm[1][2]:5d}",
+            f"    true2  {cm[2][0]:5d}  {cm[2][1]:5d}  {cm[2][2]:5d}",
+            f"  Accuracy        = {m['accuracy']:.4f}",
+            f"  Balanced Acc    = {bal:.4f}",
+            f"  F1-macro        = {m['f1_macro']:.4f}",
+            f"  Precision-macro = {prec_m:.4f}",
+            f"  Recall-macro    = {m['recall_macro']:.4f}",
+            f"  Recall idle/left/right = "
+            f"{m['recall_idle']:.4f} / {m['recall_left']:.4f} / {m['recall_right']:.4f}",
+            f"  Prec   idle/left/right = "
+            f"{m.get('precision_idle', float('nan')):.4f} / "
+            f"{m.get('precision_left', float('nan')):.4f} / "
+            f"{m.get('precision_right', float('nan')):.4f}",
+            f"  F1     idle/left/right = "
+            f"{m.get('f1_idle', float('nan')):.4f} / "
+            f"{m.get('f1_left', float('nan')):.4f} / "
+            f"{m.get('f1_right', float('nan')):.4f}",
+        ]
+    )
+
+
+def jsonify_metrics(m: dict) -> dict:
+    out = {}
+    for k, v in m.items():
+        if hasattr(v, "tolist"):
+            out[k] = v.tolist()
+        elif isinstance(v, (float, np.floating)):
+            out[k] = float(v)
+        elif isinstance(v, (int, np.integer)):
+            out[k] = int(v)
+        else:
+            out[k] = v
+    return out
+
+
+def metrics_by_dataset_prefix(
+    y_true: np.ndarray,
+    y_pred: np.ndarray,
+    subjects: np.ndarray,
+    metric_fn,
+    prefixes: tuple[str, ...] = ("bci2a", "stieger"),
+) -> dict:
+    """Overall + 按被试前缀拆分（方案 A 报数）。无样本的库记 null。"""
+    y_true = np.asarray(y_true)
+    y_pred = np.asarray(y_pred)
+    subjects = np.asarray([str(s) for s in subjects])
+    out: dict = {"overall": jsonify_metrics(metric_fn(y_true, y_pred))}
+    for prefix in prefixes:
+        mask = np.array([s.startswith(prefix + ":") for s in subjects], dtype=bool)
+        key = f"{prefix}_only"
+        if int(mask.sum()) == 0:
+            out[key] = None
+        else:
+            out[key] = jsonify_metrics(metric_fn(y_true[mask], y_pred[mask]))
+            out[key]["n"] = int(mask.sum())
+    out["overall"]["n"] = int(len(y_true))
+    return out

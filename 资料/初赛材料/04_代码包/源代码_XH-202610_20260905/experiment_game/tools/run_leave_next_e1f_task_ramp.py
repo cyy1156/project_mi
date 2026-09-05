@@ -1,0 +1,742 @@
+"""Leave-Next 爬坡 + F5 试次级读出（因果平滑 + 多数票）。
+
+统计口径 · 方案 A（2026-08-31）——详见 docs/统计口径方案A_20260831.md：
+  · 展示 heldout_acc = 窗级因果平滑（对齐在线 acc_window）
+  · 早停 checkpoint = 因果平滑
+  · 门控 release_pass = raw heldout_acc_raw + max_class_frac + train_gap
+  · F5 = 试次级 smooth + 多数票（MI +1 / Rest +0.5）
+
+沿用 2026-08-28 模式：
+  syj0828 · 仅 v3 ws01–ws06（排除 v4 ws01_124816）
+  fnz0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
+  R1–R3 replay=0.1；R4–R5 --no-replay
+
+纳入规则（2026-09-04）：
+  · 只要 v3_session；record_excluded / 硬排除半场仍踢出
+  · **电极 CZ/CPZ 饱和（ft_eligible=false）不再排除**
+
+每档：
+  1) 前序 session FT shallow task+three（heldout **早停=smooth**）
+  2) heldout 上报告窗级 three acc（**展示=smooth**；**门控=raw**）
+  3) heldout 上按 F5 试次级：MI / Rest 因果平滑+多数票
+
+对照：同 heldout 上底座 three、以及 E1f 四成员零样本的 F5 MI acc。
+
+用法:
+  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject syj0828
+  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject fnz0828
+  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --all
+"""
+
+from __future__ import annotations
+
+import argparse
+import json
+import sys
+from collections import Counter, defaultdict
+from datetime import datetime
+from pathlib import Path
+from typing import Any, Dict, List, Optional, Sequence, Tuple
+
+import numpy as np
+import torch
+
+_REPO = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO))
+sys.path.insert(0, str(_REPO / "code"))
+
+from adapt_engine.e1f import E1fRegistry, E1fStackConfig  # noqa: E402
+from adapt_engine.registry import load_head  # noqa: E402
+from experiment_game.experiment.judge_aggregate import (  # noqa: E402
+    primary_judge_from_judgments,
+)
+from experiment_game.experiment.trial_scoring import (  # noqa: E402
+    CAUSAL_LOOKBACK,
+    PRE_CUE_REST_POINTS,
+)
+from experiment_game.tools.ft_subject_from_v3 import (  # noqa: E402
+    DEFAULT_TASK,
+    DEFAULT_THREE,
+    N_TIMES,
+    _eval_acc,
+    build_dataset,
+    run_subject_finetune,
+)
+
+SUBJECTS_ROOT = _REPO / "experiment_game" / "data" / "subjects"
+E1F_CONFIG = _REPO / "experiment_game" / "config" / "e1f_four_member.json"
+LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
+
+# (train_ws_keys, heldout_ws_key, use_replay)
+RAMP_SYJ = [
+    (["ws01"], "ws02", True),
+    (["ws01", "ws02"], "ws03", True),
+    (["ws01", "ws02", "ws03"], "ws04", True),
+    (["ws01", "ws02", "ws03", "ws04"], "ws05", False),
+    (["ws01", "ws02", "ws03", "ws04", "ws05"], "ws06", False),
+]
+
+RAMP_FNZ = [
+    (["ws02"], "ws03", True),
+    (["ws02", "ws03"], "ws04", True),
+    (["ws02", "ws03", "ws04"], "ws05", True),
+    (["ws02", "ws03", "ws04", "ws05"], "ws06", False),
+    (["ws02", "ws03", "ws04", "ws05", "ws06"], "ws07", False),
+]
+
+# cyy0830 / fnz0830 / wzr0830 / xj0830 / *0831 · v3 w01–w06
+RAMP_W = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", False),
+    (["w01", "w02", "w03", "w04", "w05"], "w06", False),
+]
+
+# ycx0831：w06 半场（9:9）排除，用完整 w07 作为第 6 场
+RAMP_YCX = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", False),
+    (["w01", "w02", "w03", "w04", "w05"], "w07", False),
+]
+
+# ytl0901（2026-09-01）：w02+w03 合并为一场（半场+断流续采）；含 w01；R5 持有 w07
+RAMP_YTL = [
+    (["w01"], "w02+w03", True),
+    (["w01", "w02+w03"], "w04", True),
+    (["w01", "w02+w03", "w04"], "w05", True),
+    (["w01", "w02+w03", "w04", "w05"], "w06", False),
+    (["w01", "w02+w03", "w04", "w05", "w06"], "w07", False),
+]
+
+# zyj0902（2026-09-02）：w03 缺 eeg / record_excluded，跳过；R5 持有 w07
+RAMP_ZYJ0902 = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w04", True),
+    (["w01", "w02", "w04"], "w05", True),
+    (["w01", "w02", "w04", "w05"], "w06", False),
+    (["w01", "w02", "w04", "w05", "w06"], "w07", False),
+]
+
+# lsm0903（2026-09-03）：强制纳入 w01/w03/w06（电极告警）；完整 w01–w07
+RAMP_LSM0903 = [
+    (["w01"], "w02", True),
+    (["w01", "w02"], "w03", True),
+    (["w01", "w02", "w03"], "w04", True),
+    (["w01", "w02", "w03", "w04"], "w05", True),
+    (["w01", "w02", "w03", "w04", "w05"], "w06", False),
+    (["w01", "w02", "w03", "w04", "w05", "w06"], "w07", False),
+]
+
+# lmy0904（2026-09-04）：w02 record_excluded；w03 无 eeg.csv；可用 w01/w04–w09
+RAMP_LMY0904 = [
+    (["w01"], "w04", True),
+    (["w01", "w04"], "w05", True),
+    (["w01", "w04", "w05"], "w06", True),
+    (["w01", "w04", "w05", "w06"], "w07", False),
+    (["w01", "w04", "w05", "w06", "w07"], "w08", False),
+]
+
+# 兼容旧名
+RAMP_CYY = RAMP_W
+RAMP_FNZ0830 = RAMP_W
+RAMP_W07 = RAMP_YCX  # 旧名指向新爬坡（已不含 w06）
+
+SUBJECTS_W = (
+    "cyy0830",
+    "fnz0830",
+    "wzr0830",
+    "xj0830",
+    "cjf0831",
+    "npl0831",
+    "ycx0831",
+    "ytl0901",
+    "djh0902",
+    "zcy0902",
+    "zyj0902",
+    "lsy0903",
+    "lsm0903",
+    # 2026-09-04 新增（图 10 / Exp41 队列）
+    "lmh0904",
+    "lmy0904",
+)
+SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
+
+# 历史兼容：曾按被试强制纳入 ft_eligible=false。
+# 2026-09-04 起：**电极 CZ/CPZ 饱和不再作为 Leave-Next 不可用条件**
+# （即全局不再因 ft_eligible=false 排除）；此集合保留为空，仅防旧脚本 import。
+INCLUDE_FT_INELIGIBLE: frozenset[str] = frozenset()
+
+
+def _session_dirs(by_ws: Dict[str, Any], key: str) -> List[Path]:
+    """解析 session 键；支持 ytl0901 的 w02+w03 合并场（Path 列表）。"""
+    if key not in by_ws:
+        raise KeyError(key)
+    v = by_ws[key]
+    if isinstance(v, list):
+        return [Path(p) for p in v]
+    return [Path(v)]
+
+
+def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
+    if subject_id == "syj0828":
+        cand = list(RAMP_SYJ)
+    elif subject_id == "fnz0828":
+        cand = list(RAMP_FNZ)
+    elif subject_id == "ycx0831":
+        cand = list(RAMP_YCX)
+    elif subject_id == "ytl0901":
+        cand = list(RAMP_YTL)
+    elif subject_id == "zyj0902":
+        cand = list(RAMP_ZYJ0902)
+    elif subject_id == "lsm0903":
+        cand = list(RAMP_LSM0903)
+    elif subject_id == "lmy0904":
+        cand = list(RAMP_LMY0904)
+    elif subject_id in SUBJECTS_W:
+        cand = list(RAMP_W)
+    else:
+        raise ValueError(f"未知被试: {subject_id}")
+    out = []
+    for train_keys, hold_key, use_replay in cand:
+        need = list(train_keys) + [hold_key]
+        miss = [k for k in need if k not in by_ws]
+        if miss:
+            print(f"  [skip] R train={train_keys} hold={hold_key} 缺 {miss}")
+            continue
+        out.append((train_keys, hold_key, use_replay))
+    return out
+
+
+def _session_key_from_dirname(name: str) -> Optional[str]:
+    """从目录名解析 wsNN / wNN。"""
+    for part in name.split("_"):
+        p = part.lower()
+        if p.startswith("ws") and p[2:].isdigit():
+            return p
+        if p.startswith("w") and not p.startswith("ws") and p[1:].isdigit():
+            return p
+    return None
+
+
+def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
+    """session_id(wsNN|wNN|w02+w03) -> v3 目录或合并目录列表。"""
+    root = SUBJECTS_ROOT / subject_id / "sessions"
+    idx_path = SUBJECTS_ROOT / subject_id / "index.json"
+    exclude: set[str] = set()
+    if idx_path.is_file():
+        idx = json.loads(idx_path.read_text(encoding="utf-8"))
+        for s in idx.get("sessions") or []:
+            # 仅排除：显式 record_excluded，或非 v3。
+            # 电极 CZ/CPZ 饱和 → ft_eligible=false **不再**排除（2026-09-04）。
+            if s.get("record_excluded") or s.get("phase_mode") != "v3_session":
+                exclude.add(str(s.get("dir") or ""))
+    by_ws: Dict[str, Path] = {}
+    for d in sorted(root.iterdir() if root.is_dir() else []):
+        if not d.is_dir():
+            continue
+        if d.name in exclude:
+            continue
+        if subject_id == "syj0828" and "124816" in d.name:
+            continue
+        if subject_id == "fnz0828" and d.name.endswith("_152231"):
+            continue
+        # ycx0831 w06 半场（9:9），Leave-Next 排除，改用 w07
+        if subject_id == "ycx0831" and "_w06_" in d.name:
+            continue
+        meta = d / "session.meta.json"
+        phase = ""
+        if meta.is_file():
+            try:
+                phase = str(json.loads(meta.read_text(encoding="utf-8")).get("phase_mode") or "")
+            except Exception:
+                phase = ""
+        if phase and phase != "v3_session":
+            continue
+        if not (d / "eeg.csv").is_file() and not any(d.rglob("eeg.csv")):
+            continue
+        ws = _session_key_from_dirname(d.name)
+        if not ws:
+            continue
+        prev = by_ws.get(ws)
+        if prev is None or d.name > prev.name:
+            by_ws[ws] = d
+    if subject_id == "ytl0901":
+        merged: List[Path] = []
+        for part in ("w02", "w03"):
+            p = by_ws.pop(part, None)
+            if p is not None:
+                merged.append(p)
+        if merged:
+            by_ws["w02+w03"] = merged
+    return by_ws
+
+
+def _tag_from_ws(keys: Sequence[str]) -> str:
+    return "+".join(keys)
+
+
+@torch.no_grad()
+def _probs_from_three_model(model, X: np.ndarray, device: str) -> np.ndarray:
+    model.eval()
+    outs: List[np.ndarray] = []
+    bs = 64
+    for s in range(0, len(X), bs):
+        xb = torch.from_numpy(X[s : s + bs]).to(device)
+        try:
+            logits = model(xb)
+        except RuntimeError:
+            logits = model(xb.unsqueeze(1))
+        if logits.dim() == 3:
+            logits = logits.reshape(logits.shape[0], -1)
+        outs.append(torch.softmax(logits, dim=-1).cpu().numpy()[:, :3])
+    return np.concatenate(outs, axis=0) if outs else np.zeros((0, 3), dtype=np.float32)
+
+
+def _f5_from_probs(
+    probs: np.ndarray,
+    y: np.ndarray,
+    split_ids: np.ndarray,
+    *,
+    lookback: int = CAUSAL_LOOKBACK,
+) -> Dict[str, Any]:
+    """按 split_id 聚窗 → F5 因果平滑多数票；分 MI / Rest。"""
+    by_trial: Dict[str, List[Tuple[int, np.ndarray]]] = defaultdict(list)
+    by_label: Dict[str, int] = {}
+    for i, sid in enumerate(split_ids):
+        key = str(sid)
+        by_trial[key].append((i, probs[i]))
+        if key not in by_label:
+            by_label[key] = int(y[i])
+
+    # per-label: ok / n / points（Left/Right +1；Rest +0.5）
+    lab_ok = {0: 0, 1: 0, 2: 0}
+    lab_n = {0: 0, 1: 0, 2: 0}
+    lab_pts = {0: 0.0, 1: 0.0, 2: 0.0}
+    pred_hist: Counter = Counter()
+    conf: Counter = Counter()
+    score = 0.0
+
+    for sid, items in by_trial.items():
+        items = sorted(items, key=lambda t: t[0])
+        lab = int(by_label[sid])
+        judgments = [
+            {
+                "t_rel": float(k) * 0.1,
+                "p_three": [float(x) for x in p.ravel()[:3]],
+                "pred": int(np.argmax(p[:3])),
+                "p_max": float(np.max(p[:3])),
+            }
+            for k, (_, p) in enumerate(items)
+        ]
+        primary = primary_judge_from_judgments(
+            judgments, mode="majority", causal_lookback=lookback
+        )
+        if primary is None:
+            continue
+        pred = int(primary["pred"])
+        pred_hist[LABEL_NAMES.get(pred, str(pred))] += 1
+        conf[f"y{lab}->p{pred}"] += 1
+        if lab not in lab_n:
+            continue
+        lab_n[lab] += 1
+        if pred == lab:
+            lab_ok[lab] += 1
+            pts = PRE_CUE_REST_POINTS if lab == 0 else 1.0
+            lab_pts[lab] += pts
+            score += pts
+
+    mi_ok = lab_ok[1] + lab_ok[2]
+    mi_n = lab_n[1] + lab_n[2]
+    rest_ok, rest_n = lab_ok[0], lab_n[0]
+
+    def _lab_block(lab: int) -> Dict[str, Any]:
+        n = lab_n[lab]
+        ok = lab_ok[lab]
+        pts_each = PRE_CUE_REST_POINTS if lab == 0 else 1.0
+        return {
+            "label": LABEL_NAMES[lab],
+            "ok": ok,
+            "n": n,
+            "acc": (ok / n) if n else float("nan"),
+            "points": lab_pts[lab],
+            "points_max": float(n) * pts_each,
+        }
+
+    by_label_out = {
+        "Rest": _lab_block(0),
+        "Left": _lab_block(1),
+        "Right": _lab_block(2),
+    }
+    return {
+        "rule": "causal_smooth_majority",
+        "causal_lookback": int(lookback),
+        "mi_ok": mi_ok,
+        "mi_n": mi_n,
+        "mi_acc": (mi_ok / mi_n) if mi_n else float("nan"),
+        "rest_ok": rest_ok,
+        "rest_n": rest_n,
+        "rest_acc": (rest_ok / rest_n) if rest_n else float("nan"),
+        "score": score,
+        "score_max": (
+            float(lab_n[1] + lab_n[2]) + float(lab_n[0]) * PRE_CUE_REST_POINTS
+        ),
+        "by_label": by_label_out,
+        "pred_hist": dict(pred_hist),
+        "confusion": dict(conf),
+        "n_trials": mi_n + rest_n,
+    }
+
+
+def eval_f5_three_ckpt(
+    ckpt: Path,
+    session_dirs: Sequence[Path],
+    *,
+    device: str,
+) -> Dict[str, Any]:
+    ds = build_dataset(list(session_dirs), include_invalid=True, protocol="auto")
+    X, y, split_ids = ds["X"], ds["y_three"], ds["split_id"]
+    entry = load_head(ckpt, n_chans=8, n_times=N_TIMES, device=device)
+    probs = _probs_from_three_model(entry.model, X, device)
+    win_acc = _eval_acc(entry.model, X, y, device)
+    f5 = _f5_from_probs(probs, y, split_ids)
+    return {
+        "source": "three_ckpt",
+        "ckpt": str(ckpt),
+        "n_windows": int(len(X)),
+        "window_acc": float(win_acc),
+        "f5": f5,
+    }
+
+
+def eval_f5_e1f(
+    session_dirs: Sequence[Path],
+    *,
+    device: str,
+    e1f_registry: Optional[E1fRegistry] = None,
+) -> Dict[str, Any]:
+    ds = build_dataset(list(session_dirs), include_invalid=True, protocol="auto")
+    X, y, split_ids = ds["X"], ds["y_three"], ds["split_id"]
+    reg = e1f_registry
+    if reg is None:
+        stack = E1fStackConfig.load_json(E1F_CONFIG, repo_root=_REPO).resolve_paths(
+            repo_root=_REPO
+        )
+        missing = stack.missing_paths(repo_root=_REPO)
+        if missing:
+            raise FileNotFoundError("\n".join(missing[:6]))
+        reg = E1fRegistry(stack, device=device)
+    probs = reg.forward_three_batch(X)
+    preds = probs.argmax(axis=1)
+    win_acc = float((preds == y).mean()) if len(y) else float("nan")
+    f5 = _f5_from_probs(probs, y, split_ids)
+    return {
+        "source": "e1f_four_member",
+        "n_windows": int(len(X)),
+        "window_acc": win_acc,
+        "f5": f5,
+    }
+
+
+def run_ramp(
+    subject_id: str,
+    *,
+    promote_final: bool = False,
+    ft_scope: str = "all4",
+) -> Path:
+    from experiment_game.pipeline.e1f_all4_ft import run_e1f_all4_finetune
+
+    by_ws = _list_v3_sessions(subject_id)
+    ramp = _ramp_for_subject(subject_id, by_ws)
+    if not ramp:
+        raise ValueError(f"{subject_id}: 无可用 Leave-Next 档（sessions={sorted(by_ws)}）")
+    stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ft_root = SUBJECTS_ROOT / subject_id / "models" / "ft_runs"
+    ft_root.mkdir(parents=True, exist_ok=True)
+    device = "cuda" if torch.cuda.is_available() else "cpu"
+    ft_scope = str(ft_scope or "all4").strip().lower()
+    if ft_scope not in ("all4", "so"):
+        raise ValueError(f"ft_scope 须为 all4|so，收到 {ft_scope!r}")
+
+    assert DEFAULT_TASK.is_file(), f"缺 task 底座: {DEFAULT_TASK}"
+    assert DEFAULT_THREE.is_file(), f"缺 three 底座: {DEFAULT_THREE}"
+    print(f"[{subject_id}] device={device} ft_scope={ft_scope}（方案 A）")
+    print(f"[{subject_id}] E1f shallow base task={DEFAULT_TASK}")
+    print(f"[{subject_id}] E1f shallow base three={DEFAULT_THREE}")
+    sess_map: Dict[str, Any] = {}
+    for k, v in sorted(by_ws.items()):
+        if isinstance(v, list):
+            sess_map[k] = [p.name for p in v]
+        else:
+            sess_map[k] = v.name
+    print(f"[{subject_id}] v3 sessions: {sess_map}")
+    print(f"[{subject_id}] Leave-Next 档数={len(ramp)}")
+    print(f"[{subject_id}] F5 = causal_smooth(lookback={CAUSAL_LOOKBACK}) + majority")
+
+    e1f_reg: Optional[E1fRegistry] = None
+    try:
+        stack = E1fStackConfig.load_json(E1F_CONFIG, repo_root=_REPO).resolve_paths(
+            repo_root=_REPO
+        )
+        miss = stack.missing_paths(repo_root=_REPO)
+        if not miss:
+            e1f_reg = E1fRegistry(stack, device=device)
+            print(f"[{subject_id}] E1f 四成员对照已加载")
+        else:
+            print(f"[{subject_id}] 跳过 E1f 对照（缺权重）: {miss[0]}")
+    except Exception as exc:
+        print(f"[{subject_id}] 跳过 E1f 对照: {exc}")
+
+    summary: List[Dict[str, Any]] = []
+    last_out: Path | None = None
+
+    for i, (train_keys, hold_key, use_replay) in enumerate(ramp, start=1):
+        missing = [k for k in list(train_keys) + [hold_key] if k not in by_ws]
+        if missing:
+            print(f"  [skip] 缺 session {missing}")
+            continue
+        train_dirs: List[Path] = []
+        for k in train_keys:
+            train_dirs.extend(_session_dirs(by_ws, k))
+        hold_dirs = _session_dirs(by_ws, hold_key)
+        tag = f"leave_next_{_tag_from_ws(train_keys)}_eval_{hold_key}"
+        if ft_scope == "all4":
+            tag += "_all4"
+        if not use_replay:
+            tag += "_noreplay"
+        out_dir = ft_root / f"{stamp}_{tag}"
+        print(
+            f"\n=== R{i} {subject_id} train={train_keys} hold={hold_key} "
+            f"replay={use_replay} scope={ft_scope} ==="
+        )
+        print(f"  out={out_dir}")
+
+        print("  [F5] 底座 three → heldout …")
+        base_three = eval_f5_three_ckpt(DEFAULT_THREE, hold_dirs, device=device)
+        base_e1f = None
+        if e1f_reg is not None:
+            print("  [F5] E1f 四成员 → heldout …")
+            base_e1f = eval_f5_e1f(hold_dirs, device=device, e1f_registry=e1f_reg)
+
+        if ft_scope == "all4":
+            # out_dir 无 current → 每档从底座初值 FT
+            result = run_e1f_all4_finetune(
+                train_dirs,
+                out_dir,
+                subject_models_dir=out_dir,
+                heldout_session_dirs=hold_dirs,
+                replay_ratio=0.1 if use_replay else 0.0,
+                no_replay=not use_replay,
+                early_stop=True,
+                verbose=True,
+                device=device,
+            )
+            three = result.get("three") or {}
+            release = result.get("release_gate") or {}
+            print("  [F5] FT all4 融合 → heldout …")
+            ov_path = out_dir / "e1f_overlay.json"
+            if ov_path.is_file():
+                ov = json.loads(ov_path.read_text(encoding="utf-8"))
+                ft_stack = (
+                    E1fStackConfig.load_json(E1F_CONFIG, repo_root=_REPO)
+                    .with_member_overrides(ov.get("members") or {})
+                    .resolve_paths(repo_root=_REPO)
+                )
+                ft_reg = E1fRegistry(ft_stack, device=device)
+                ft_f5 = eval_f5_e1f(hold_dirs, device=device, e1f_registry=ft_reg)
+            else:
+                ft_f5 = eval_f5_three_ckpt(
+                    out_dir / "best_three.pt", hold_dirs, device=device
+                )
+        else:
+            result = run_subject_finetune(
+                train_dirs,
+                out_dir,
+                task_ckpt=DEFAULT_TASK,
+                three_ckpt=DEFAULT_THREE,
+                heldout_session_dirs=hold_dirs,
+                replay_ratio=0.1 if use_replay else 0.0,
+                no_replay=not use_replay,
+                early_stop=True,
+                verbose=True,
+                device=device,
+            )
+            three = result.get("three") or {}
+            release = result.get("release_gate") or {}
+            print("  [F5] FT three → heldout …")
+            ft_f5 = eval_f5_three_ckpt(
+                out_dir / "best_three.pt", hold_dirs, device=device
+            )
+
+        def _pack(
+            tag_name: str, blob: Optional[Dict[str, Any]]
+        ) -> Optional[Dict[str, Any]]:
+            if blob is None:
+                return None
+            f5 = blob["f5"]
+            return {
+                "tag": tag_name,
+                "window_acc": blob.get("window_acc"),
+                "mi_acc": f5.get("mi_acc"),
+                "mi_ok": f5.get("mi_ok"),
+                "mi_n": f5.get("mi_n"),
+                "rest_acc": f5.get("rest_acc"),
+                "rest_ok": f5.get("rest_ok"),
+                "rest_n": f5.get("rest_n"),
+                "score": f5.get("score"),
+                "score_max": f5.get("score_max"),
+                "by_label": f5.get("by_label"),
+                "pred_hist": f5.get("pred_hist"),
+                "confusion": f5.get("confusion"),
+            }
+
+        row = {
+            "r_stage": i,
+            "protocol": "leave_next_f5",
+            "ft_scope": ft_scope,
+            "metric_note": "heldout_acc=窗级smooth；gate=窗级raw；f5=试次级",
+            "judge_rule": "causal_smooth_majority",
+            "causal_lookback": CAUSAL_LOOKBACK,
+            "train": [d.name for d in train_dirs],
+            "heldout": "+".join(d.name for d in hold_dirs),
+            "use_replay": use_replay,
+            "replay_ratio": 0.1 if use_replay else 0.0,
+            "out_dir": str(out_dir),
+            "release_pass": bool(result.get("release_pass")),
+            "heldout_acc": three.get("acc_after_heldout_smooth"),
+            "heldout_acc_raw": three.get("acc_after_heldout"),
+            "heldout_acc_smooth": three.get("acc_after_heldout_smooth"),
+            "train_acc": three.get("acc_after_train"),
+            "max_class_frac": (three.get("heldout_pred_dist") or {}).get(
+                "max_class_frac"
+            ),
+            "pred_labels": (
+                release.get("pred_labels") if isinstance(release, dict) else None
+            ),
+            "train_minus_heldout": None,
+            "task_heldout_acc": (result.get("task") or {}).get("acc_after_heldout"),
+            "base_task_ckpt": str(DEFAULT_TASK),
+            "base_three_ckpt": str(DEFAULT_THREE),
+            "f5_ft": _pack("ft_all4" if ft_scope == "all4" else "ft_three", ft_f5),
+            "f5_base_three": _pack("base_three", base_three),
+            "f5_base_e1f": _pack("base_e1f", base_e1f),
+        }
+        if row["heldout_acc"] is None and row.get("heldout_acc_raw") is not None:
+            row["heldout_acc"] = row["heldout_acc_raw"]
+        if row["train_acc"] is not None and row.get("heldout_acc_raw") is not None:
+            row["train_minus_heldout"] = float(row["train_acc"]) - float(
+                row["heldout_acc_raw"]
+            )
+        if isinstance(release, dict) and release.get("checks"):
+            row["checks"] = release["checks"]
+        summary.append(row)
+        last_out = out_dir
+
+        def _lab_line(pack: Optional[Dict[str, Any]]) -> str:
+            if not pack or not pack.get("by_label"):
+                return "n/a"
+            bl = pack["by_label"]
+            parts = []
+            for name in ("Left", "Right", "Rest"):
+                b = bl.get(name) or {}
+                n = int(b.get("n") or 0)
+                ok = int(b.get("ok") or 0)
+                pts = float(b.get("points") or 0.0)
+                pmax = float(b.get("points_max") or 0.0)
+                acc = (ok / n) if n else float("nan")
+                parts.append(f"{name} {ok}/{n}={acc:.1%} pts={pts:.1f}/{pmax:.1f}")
+            return " | ".join(parts)
+
+        ft = row["f5_ft"]
+        ha = row.get("heldout_acc")
+        ha_txt = f"{ha:.3f}" if ha is not None else "nan"
+        print(
+            f"  → window heldout={ha_txt} (smooth·展示)"
+            + (
+                f" raw={row['heldout_acc_raw']:.3f} (gate)"
+                if row.get("heldout_acc_raw") is not None
+                else ""
+            )
+            + f" PASS={row['release_pass']} | "
+            f"F5 total={(ft or {}).get('score')}/{(ft or {}).get('score_max', 54)}"
+        )
+        print(f"     FT  {_lab_line(ft)}")
+        print(f"     base3 {_lab_line(row.get('f5_base_three'))}")
+        if row.get("f5_base_e1f"):
+            print(f"     e1f  {_lab_line(row.get('f5_base_e1f'))}")
+
+    sum_name = (
+        f"{stamp}_{subject_id}_leave_next_all4_f5_summary.json"
+        if ft_scope == "all4"
+        else f"{stamp}_{subject_id}_e1f_task_leave_next_f5_summary.json"
+    )
+    sum_path = ft_root / sum_name
+    payload = {
+        "generated_at": datetime.now().isoformat(timespec="seconds"),
+        "subject_id": subject_id,
+        "protocol": "leave_next_f5",
+        "ft_scope": ft_scope,
+        "planA": True,
+        "metric_note": "heldout_acc=窗级smooth；gate=窗级raw；f5=试次级",
+        "judge_rule": "causal_smooth_majority",
+        "causal_lookback": CAUSAL_LOOKBACK,
+        "device": device,
+        "rows": summary,
+    }
+    sum_path.write_text(
+        json.dumps(payload, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
+    print(f"\n[{subject_id}] summary → {sum_path}")
+
+    if promote_final and last_out is not None:
+        from experiment_game.experiment.subject_registry import promote_ft_to_current
+
+        promote_ft_to_current(subject_id, last_out, repo_root=_REPO)
+        print(f"[{subject_id}] promoted {last_out} → models/current/")
+
+    return sum_path
+
+
+def main() -> None:
+    ap = argparse.ArgumentParser(description=__doc__)
+    ap.add_argument("--subject", choices=SUBJECTS_ALL, action="append")
+    ap.add_argument("--all", action="store_true", help="仅 syj0828+fnz0828")
+    ap.add_argument(
+        "--cohort-real",
+        action="store_true",
+        help="全部真人：0828+0830+0831",
+    )
+    ap.add_argument(
+        "--cohort-0828-0830",
+        action="store_true",
+        help="同 --cohort-real（兼容旧旗标）",
+    )
+    ap.add_argument(
+        "--ft-scope",
+        choices=("all4", "so"),
+        default="all4",
+        help="默认 all4（现行 SOP）",
+    )
+    ap.add_argument(
+        "--promote-final",
+        action="store_true",
+        help="最后一档 R 晋升到 models/current（默认只写 ft_runs）",
+    )
+    args = ap.parse_args()
+    subjects = list(args.subject or [])
+    if args.cohort_real or args.cohort_0828_0830:
+        subjects = list(SUBJECTS_ALL)
+    elif args.all or not subjects:
+        subjects = ["syj0828", "fnz0828"]
+    for sid in subjects:
+        run_ramp(
+            sid,
+            promote_final=bool(args.promote_final),
+            ft_scope=str(args.ft_scope),
+        )
+
+
+if __name__ == "__main__":
+    main()

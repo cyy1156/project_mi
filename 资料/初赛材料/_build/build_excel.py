@@ -130,7 +130,7 @@ rows = [
         "QuadFold-59",
         "LOSO6 · leave-fold 嵌套 Val（主读）",
         "900 trial（S01–S06）",
-        "原始/nested_N0_metrics.json",
+        "原始验证数据/nested_N0_metrics.json",
     ],
     [
         "召回率（macro）",
@@ -174,7 +174,7 @@ r = caption(ws, r + 1, "附报（不作主读）：折内 Val Acc=0.558±0.069�
 r = caption(
     ws,
     r,
-    "测试集 S07/S08 共 120 trial、无标签：盲测预测见 原始/submission_QuadFold59.csv；"
+    "测试集 S07/S08 共 120 trial、无标签：盲测预测已写入官方模板 原始验证数据/sample_submission.csv；"
     "未使用测试标签调参，故准/召/特以 train 嵌套主读为准。",
 )
 r = caption(
@@ -226,7 +226,7 @@ r = table(
     num_cols=(1, 2, 3),
     num_fmt="#,##0",
 )
-r = caption(ws, r + 1, "来源：Exp37 nested-S0（N0）OOF 概率 argmax；文件 原始/nested_N0_metrics.json 与 原始/oof_N0/。")
+r = caption(ws, r + 1, "来源：Exp37 nested-S0（N0）OOF 概率 argmax；文件 原始验证数据/nested_N0_metrics.json 与 原始验证数据/oof_N0/。")
 auto_fit_columns(ws, min_width=10, max_width=36, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
@@ -285,7 +285,7 @@ rows = [
     ["未使用", "未使用测试集标签调参；本报告不含自采数据指标"],
 ]
 r = table(ws, 4, headers, rows)
-r = caption(ws, r + 1, "完整文字版见交稿包：数据集使用说明.md；官方原文副本见 原始/官方数据说明.md。")
+r = caption(ws, r + 1, "完整文字版见交稿包：数据集使用说明.md；官方原文副本见 原始验证数据/官方数据说明.md。")
 auto_fit_columns(ws, min_width=12, max_width=72, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
@@ -294,13 +294,13 @@ ws = wb.create_sheet("05_原始数据索引")
 setup_sheet(ws, title="原始验证数据索引（可追溯 · 均在 02_离线验证 内）", last_col=5)
 headers = ["编号", "内容", "相对路径"]
 rows = [
-    ["D1", "嵌套主读指标 JSON（Acc/召/特/F1/CM/六折）", "原始/nested_N0_metrics.json"],
-    ["D2", "盲测交卷预测 CSV（120 行）", "原始/submission_QuadFold59.csv"],
-    ["D3", "官方提交模板（行序对照）", "原始/sample_submission.csv"],
-    ["D4", "嵌套 OOF 概率 / 标签 / 被试", "原始/oof_N0/oof_N0_*.npy"],
-    ["D5", "官方《数据说明》副本", "原始/官方数据说明.md"],
-    ["D6", "本队使用对照摘录", "原始/数据说明_使用对照.md"],
-    ["D7", "验证过程截图 S01–S04", "截图/"],
+    ["D1", "嵌套主读指标 JSON（Acc/召/特/F1/CM/六折）", "原始验证数据/nested_N0_metrics.json"],
+    ["D2", "盲测交卷预测 CSV（官方模板已填 label）", "原始验证数据/sample_submission.csv"],
+    ["D3", "同内容内部备份（模型名归档）", "原始验证数据/submission_QuadFold59.csv"],
+    ["D4", "嵌套 OOF 概率 / 标签 / 被试", "原始验证数据/oof_N0/oof_N0_*.npy"],
+    ["D5", "官方《数据说明》副本", "原始验证数据/官方数据说明.md"],
+    ["D6", "本队使用对照摘录", "原始验证数据/数据说明_使用对照.md"],
+    ["D7", "验证过程截图 S01–S04", "验证过程截图/"],
     ["D8", "交稿包（邮件附件）", "交稿/ 或 交稿_离线验证_XH-202610.zip"],
 ]
 r = table(ws, 4, headers, rows)
@@ -313,13 +313,16 @@ ws = wb.create_sheet("06_验证过程截图")
 setup_sheet(ws, title="验证过程截图清单（指定集）", last_col=6)
 headers = ["编号", "内容", "文件", "状态"]
 rows = [
-    ["S01", "指定集目录与 PKL 结构核验", "截图/S01_指定集目录与pkl结构.png", "✅"],
-    ["S02", "嵌套 N0 主读 Acc/召/特/F1 汇总", "截图/S02_嵌套N0指标汇总.png", "✅"],
-    ["S03", "交卷 CSV 前 30 行与标签分布", "截图/S03_交卷CSV前30行.png", "✅"],
-    ["S04", "核心指标填写说明（准/召/特/延迟）", "截图/S04_Excel总表指定集行说明.png", "✅"],
+    ["S01", "指定集官方数据核验：目录树、PKL 结构（data 64×22500、ch_names、srate=250）、train 900 / test 120 计数（终端回放）", "验证过程截图/S01_数据集结构与加载核验.png", "✅"],
+    ["S02", "嵌套 N0 主读回放运行：replay_nested.py 现场输出六折 Acc 与 0.511±0.066（终端回放）", "验证过程截图/S02_嵌套N0指标汇总.png", "✅"],
+    ["S03", "盲测交卷 CSV 再生成与比对：predict_submission.py 现场重生成，与交稿 CSV 逐行 diff（终端回放）", "验证过程截图/S03_交卷CSV再生成与比对.png", "✅"],
+    ["S04", "指定集指标独立复算：从 OOF npy 重算 Acc/召/特/F1/CM/六折，逐项对照登记 JSON（终端回放）", "验证过程截图/S04_独立复算.png", "✅"],
+    ["S05", "交卷 CSV 完整性：120 行、表头一致、sample_id 与官方模板逐行对齐、取值合法（终端回放）", "验证过程截图/S05_交卷CSV完整性校验.png", "✅"],
+    ["S06", "Excel 核心指标与登记 JSON 一致性：程序化读取 00 表单元格对照（终端回放）", "验证过程截图/S06_Excel与JSON一致性.png", "✅"],
+    ["S07", "交稿包文件 MD5 指纹与运行环境（python/numpy 版本、时间戳；终端回放）", "验证过程截图/S07_文件指纹与环境.png", "✅"],
 ]
 r = table(ws, 4, headers, rows)
-r = caption(ws, r + 1, "下列嵌入图便于审阅；原图亦在交稿/验证过程截图/。")
+r = caption(ws, r + 1, "下列嵌入图便于审阅；原图亦在交稿包 验证过程截图/ 目录。")
 
 # embed images if present
 img_row = r + 1
@@ -354,7 +357,7 @@ headers = ["项", "说明"]
 rows = [
     ["交卷模型", "QuadFold-59（嵌套主读 0.511±0.066）"],
     ["主读尺子", "LOSO6 leave-fold 嵌套；禁止用折内 0.558 作对外主读"],
-    ["盲测文件", "submission_QuadFold59.csv（120 行，label∈{0,1,2}）"],
+    ["盲测文件", "sample_submission.csv（官方模板已填 label∈{0,1,2}，120 行）"],
     ["风险否决（归档）", "备选 8ch 微调栈嵌套 0.540：test 预测 Rest≈51% 落在 Val 支撑外，不交"],
     ["纪律", "超参与融合权仅在 Val/嵌套折外选定；测试标签未用于调参"],
 ]
