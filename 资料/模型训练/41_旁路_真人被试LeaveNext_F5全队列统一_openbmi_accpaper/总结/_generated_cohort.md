@@ -12,6 +12,8 @@
 | djh0902 | True | `20260904_124519_djh0902_leave_next_all4_f5_summary.json` | all4 |
 | fnz0828 | True | `20260904_122142_fnz0828_leave_next_all4_f5_summary.json` | all4 |
 | fnz0830 | True | `20260904_122607_fnz0830_leave_next_all4_f5_summary.json` | all4 |
+| lmh0904 | True | `20260905_003803_lmh0904_leave_next_all4_f5_summary.json` | all4 |
+| lmy0904 | True | `20260905_004249_lmy0904_leave_next_all4_f5_summary.json` | all4 |
 | lsm0903 | True | `20260904_125526_lsm0903_leave_next_all4_f5_summary.json` | all4 |
 | lsy0903 | True | `20260904_125255_lsy0903_leave_next_all4_f5_summary.json` | all4 |
 | npl0831 | True | `20260904_123750_npl0831_leave_next_all4_f5_summary.json` | all4 |
@@ -32,6 +34,8 @@
 | djh0902 | 5 | w06 | 0.434 | 0.435 | 52.8% | 44.4% | 21.5/45.0 | True | `20260904_124519_djh0902_leave_next_all4_f5_summary.json` |
 | fnz0828 | 5 | ws07 | 0.453 | 0.456 | 33.3% | 2.8% | 18.0/45.0 | True | `20260904_122142_fnz0828_leave_next_all4_f5_summary.json` |
 | fnz0830 | 5 | w06 | 0.357 | 0.357 | 8.6% | 2.9% | 11.0/44.0 | False | `20260904_122607_fnz0830_leave_next_all4_f5_summary.json` |
+| lmh0904 | 5 | w06 | 0.529 | 0.539 | 47.2% | 36.1% | 23.5/45.0 | True | `20260905_003803_lmh0904_leave_next_all4_f5_summary.json` |
+| lmy0904 | 5 | w08 | 0.382 | 0.373 | 16.7% | 16.7% | 13.5/45.0 | False | `20260905_004249_lmy0904_leave_next_all4_f5_summary.json` |
 | lsm0903 | 6 | w07 | 0.536 | 0.541 | 50.0% | 50.0% | 24.5/45.0 | False | `20260904_125526_lsm0903_leave_next_all4_f5_summary.json` |
 | lsy0903 | 5 | w06 | 0.588 | 0.576 | 58.3% | 41.7% | 26.5/45.0 | True | `20260904_125255_lsy0903_leave_next_all4_f5_summary.json` |
 | npl0831 | 5 | w06 | 0.542 | 0.549 | 55.6% | 50.0% | 26.0/45.0 | True | `20260904_123750_npl0831_leave_next_all4_f5_summary.json` |
@@ -145,6 +149,53 @@
   - R3: train=`['w01', 'w02', 'w03']` → hold=`w04` · replay=True
   - R4: train=`['w01', 'w02', 'w03', 'w04']` → hold=`w05` · replay=False
   - R5: train=`['w01', 'w02', 'w03', 'w04', 'w05']` → hold=`w06` · replay=False
+
+### lmh0904
+
+| dir | phase | ft_eligible | excluded | electrode | primary_acc | window_acc |
+|-----|-------|-------------|----------|-----------|-------------|------------|
+| `v3_lmh0904_w01_20260904_163753` | v3_session | True | False | True | 0.2222 | 0.234 |
+| `v3_lmh0904_w02_20260904_170242` | v3_session | False | False | False | 0.3148 | 0.3283 |
+| `v3_lmh0904_w03_20260904_171342` | v3_session | True | False | True | 0.2963 | 0.3114 |
+| `v3_lmh0904_w04_20260904_172553` | v3_session | True | False | True | 0.4444 | 0.4276 |
+| `v3_lmh0904_w05_20260904_173759` | v3_session | True | False | True | 0.4444 | 0.4327 |
+| `v3_lmh0904_w06_20260904_174925` | v3_session | True | False | True | 0.4259 | 0.3973 |
+| `v4_lmh0904_w01_20260904_163536` | v4_session | False | False | False | None | None |
+
+- Leave-Next 可用键：`['w01', 'w02', 'w03', 'w04', 'w05', 'w06']`
+- 爬坡档数：**5**
+  - R1: train=`['w01']` → hold=`w02` · replay=True
+  - R2: train=`['w01', 'w02']` → hold=`w03` · replay=True
+  - R3: train=`['w01', 'w02', 'w03']` → hold=`w04` · replay=True
+  - R4: train=`['w01', 'w02', 'w03', 'w04']` → hold=`w05` · replay=False
+  - R5: train=`['w01', 'w02', 'w03', 'w04', 'w05']` → hold=`w06` · replay=False
+
+### lmy0904
+
+| dir | phase | ft_eligible | excluded | electrode | primary_acc | window_acc |
+|-----|-------|-------------|----------|-----------|-------------|------------|
+| `v3_lmy0904_w01_20260904_142350` | v3_session | False | False | False | None | None |
+| `v3_lmy0904_w02_20260904_144952` | v3_session | False | True | False | None | None |
+| `v3_lmy0904_w03_20260904_143334` | v3_session | False | False | False | None | None |
+| `v3_lmy0904_w04_20260904_145157` | v3_session | False | False | False | 0.3148 | 0.3047 |
+| `v3_lmy0904_w05_20260904_150256` | v3_session | False | False | False | 0.3333 | 0.3098 |
+| `v3_lmy0904_w06_20260904_151519` | v3_session | False | False | False | 0.2407 | 0.2727 |
+| `v3_lmy0904_w07_20260904_152719` | v3_session | False | False | False | 0.3333 | 0.3333 |
+| `v3_lmy0904_w08_20260904_154159` | v3_session | False | False | False | 0.2593 | 0.2811 |
+| `v3_lmy0904_w09_20260904_155419` | v3_session | True | False | True | 0.3333 | 0.3283 |
+| `v4_lmy0904_w01_20260904_141801` | v4_session | False | False | False | None | None |
+| `v4_lmy0904_w02_20260904_141810` | v4_session | False | False | False | None | None |
+| `v4_lmy0904_w03_20260904_141900` | v4_session | False | True | False | None | None |
+| `v4_lmy0904_w04_20260904_142135` | v4_session | False | False | False | None | None |
+| `v4_lmy0904_w05_20260904_145103` | v4_session | True | False | True | None | None |
+
+- Leave-Next 可用键：`['w01', 'w04', 'w05', 'w06', 'w07', 'w08', 'w09']`
+- 爬坡档数：**5**
+  - R1: train=`['w01']` → hold=`w04` · replay=True
+  - R2: train=`['w01', 'w04']` → hold=`w05` · replay=True
+  - R3: train=`['w01', 'w04', 'w05']` → hold=`w06` · replay=True
+  - R4: train=`['w01', 'w04', 'w05', 'w06']` → hold=`w07` · replay=False
+  - R5: train=`['w01', 'w04', 'w05', 'w06', 'w07']` → hold=`w08` · replay=False
 
 ### lsm0903
 
@@ -418,6 +469,32 @@
 | 3 | w04 | 0.520 | 0.512 | 44.4% | 0.0% | 22.5/45.0 | 13/18=72.2% | 3/18=16.7% | 13/18=72.2% | True |
 | 4 | w05 | 0.584 | 0.581 | 38.9% | 0.0% | 22.5/45.0 | 9/18=50.0% | 5/18=27.8% | 17/18=94.4% | True |
 | 5 | w06 | 0.357 | 0.357 | 8.6% | 2.9% | 11.0/44.0 | 3/17=17.6% | 0/18=0.0% | 16/18=88.9% | False |
+
+### lmh0904
+
+- JSON：`experiment_game/data/subjects/lmh0904/models/ft_runs/20260905_003803_lmh0904_leave_next_all4_f5_summary.json`
+- scope 推断：**all4**
+
+| R | hold | 三分类窗smooth | 三分类窗raw | FT F5 MI | E1f零样本 MI | 总分 FT | Left | Right | Rest | PASS |
+|---|------|----------------|-------------|----------|--------------|---------|------|-------|------|------|
+| 1 | w02 | 0.394 | 0.389 | 19.4% | 19.4% | 14.5/45.0 | 7/18=38.9% | 0/18=0.0% | 15/18=83.3% | False |
+| 2 | w03 | 0.358 | 0.351 | 41.7% | 22.2% | 17.0/45.0 | 9/18=50.0% | 6/18=33.3% | 4/18=22.2% | False |
+| 3 | w04 | 0.586 | 0.576 | 47.2% | 25.0% | 24.0/45.0 | 9/18=50.0% | 8/18=44.4% | 14/18=77.8% | True |
+| 4 | w05 | 0.526 | 0.531 | 44.4% | 33.3% | 23.5/45.0 | 12/18=66.7% | 4/18=22.2% | 15/18=83.3% | True |
+| 5 | w06 | 0.529 | 0.539 | 47.2% | 36.1% | 23.5/45.0 | 12/18=66.7% | 5/18=27.8% | 13/18=72.2% | True |
+
+### lmy0904
+
+- JSON：`experiment_game/data/subjects/lmy0904/models/ft_runs/20260905_004249_lmy0904_leave_next_all4_f5_summary.json`
+- scope 推断：**all4**
+
+| R | hold | 三分类窗smooth | 三分类窗raw | FT F5 MI | E1f零样本 MI | 总分 FT | Left | Right | Rest | PASS |
+|---|------|----------------|-------------|----------|--------------|---------|------|-------|------|------|
+| 1 | w04 | 0.465 | 0.461 | 19.4% | 30.6% | 16.0/45.0 | 7/18=38.9% | 0/18=0.0% | 18/18=100.0% | False |
+| 2 | w05 | 0.467 | 0.472 | 30.6% | 36.1% | 18.5/45.0 | 8/18=44.4% | 3/18=16.7% | 15/18=83.3% | False |
+| 3 | w06 | 0.318 | 0.323 | 25.0% | 22.2% | 13.0/45.0 | 6/18=33.3% | 3/18=16.7% | 8/18=44.4% | False |
+| 4 | w07 | 0.346 | 0.341 | 50.0% | 27.8% | 19.0/45.0 | 18/18=100.0% | 0/18=0.0% | 2/18=11.1% | False |
+| 5 | w08 | 0.382 | 0.373 | 16.7% | 16.7% | 13.5/45.0 | 4/18=22.2% | 2/18=11.1% | 15/18=83.3% | False |
 
 ### lsm0903
 

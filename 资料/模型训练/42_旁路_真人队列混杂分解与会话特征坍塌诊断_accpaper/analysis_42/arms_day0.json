@@ -1,0 +1,1238 @@
+{
+  "schema": "exp42_arms_day0_v1",
+  "generated_at": "2026-09-05T12:37:06",
+  "A": {
+    "arm": "A_observational",
+    "note": "观测代理，非 A1−A2 头对头；同批 heldout 上的完整重训消融见 arm_A_full",
+    "n_people": 17,
+    "R_vol_proxy_mean": 0.05389259151936637,
+    "R_vol_proxy_median": 0.0,
+    "frac_positive": 0.47058823529411764,
+    "R_recent_proxy_mean": -0.0013718307835954814,
+    "verdict": "mixed_or_inconclusive_proxy",
+    "per_person": [
+      {
+        "person_id": "cjf0831",
+        "primary_id": "cjf0831",
+        "n_rounds": 5,
+        "first_mi": 0.4722222222222222,
+        "mid_mi": 0.5,
+        "last_mi": 0.5,
+        "R_vol_proxy": 0.02777777777777779,
+        "R_recent_proxy": 0.0,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "cyy0830",
+        "primary_id": "cyy0830",
+        "n_rounds": 5,
+        "first_mi": 0.25,
+        "mid_mi": 0.5,
+        "last_mi": 0.5277777777777778,
+        "R_vol_proxy": 0.2777777777777778,
+        "R_recent_proxy": 0.02777777777777779,
+        "last_pass": true,
+        "collapse_any": true
+      },
+      {
+        "person_id": "djh0902",
+        "primary_id": "djh0902",
+        "n_rounds": 5,
+        "first_mi": 0.4166666666666667,
+        "mid_mi": 0.5277777777777778,
+        "last_mi": 0.5277777777777778,
+        "R_vol_proxy": 0.1111111111111111,
+        "R_recent_proxy": 0.0,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "fnz0828",
+        "primary_id": "fnz0828",
+        "n_rounds": 5,
+        "first_mi": 0.4444444444444444,
+        "mid_mi": 0.05555555555555555,
+        "last_mi": 0.3333333333333333,
+        "R_vol_proxy": -0.1111111111111111,
+        "R_recent_proxy": 0.2777777777777778,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "fnz0830",
+        "primary_id": "fnz0830",
+        "n_rounds": 5,
+        "first_mi": 0.1111111111111111,
+        "mid_mi": 0.4444444444444444,
+        "last_mi": 0.08571428571428572,
+        "R_vol_proxy": -0.02539682539682539,
+        "R_recent_proxy": -0.3587301587301587,
+        "last_pass": false,
+        "collapse_any": true
+      },
+      {
+        "person_id": "lmh0904",
+        "primary_id": "lmh0904",
+        "n_rounds": 5,
+        "first_mi": 0.19444444444444445,
+        "mid_mi": 0.4722222222222222,
+        "last_mi": 0.4722222222222222,
+        "R_vol_proxy": 0.2777777777777778,
+        "R_recent_proxy": 0.0,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "lmy0904",
+        "primary_id": "lmy0904",
+        "n_rounds": 5,
+        "first_mi": 0.19444444444444445,
+        "mid_mi": 0.25,
+        "last_mi": 0.16666666666666666,
+        "R_vol_proxy": -0.02777777777777779,
+        "R_recent_proxy": -0.08333333333333334,
+        "last_pass": false,
+        "collapse_any": true
+      },
+      {
+        "person_id": "lsm0903",
+        "primary_id": "lsm0903",
+        "n_rounds": 6,
+        "first_mi": 0.5277777777777778,
+        "mid_mi": 0.6153846153846154,
+        "last_mi": 0.5,
+        "R_vol_proxy": -0.02777777777777779,
+        "R_recent_proxy": -0.11538461538461542,
+        "last_pass": false,
+        "collapse_any": false
+      },
+      {
+        "person_id": "lsy0903",
+        "primary_id": "lsy0903",
+        "n_rounds": 5,
+        "first_mi": 0.4722222222222222,
+        "mid_mi": 0.5833333333333334,
+        "last_mi": 0.5833333333333334,
+        "R_vol_proxy": 0.11111111111111116,
+        "R_recent_proxy": 0.0,
+        "last_pass": true,
+        "collapse_any": true
+      },
+      {
+        "person_id": "npl0831",
+        "primary_id": "npl0831",
+        "n_rounds": 5,
+        "first_mi": 0.3055555555555556,
+        "mid_mi": 0.4722222222222222,
+        "last_mi": 0.5555555555555556,
+        "R_vol_proxy": 0.25,
+        "R_recent_proxy": 0.08333333333333337,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "syj0828",
+        "primary_id": "syj0828",
+        "n_rounds": 5,
+        "first_mi": 0.6111111111111112,
+        "mid_mi": 0.75,
+        "last_mi": 0.9166666666666666,
+        "R_vol_proxy": 0.30555555555555547,
+        "R_recent_proxy": 0.16666666666666663,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "wzr0830",
+        "primary_id": "wzr0830",
+        "n_rounds": 5,
+        "first_mi": 0.4444444444444444,
+        "mid_mi": 0.4444444444444444,
+        "last_mi": 0.3333333333333333,
+        "R_vol_proxy": -0.1111111111111111,
+        "R_recent_proxy": -0.1111111111111111,
+        "last_pass": false,
+        "collapse_any": false
+      },
+      {
+        "person_id": "xj0830",
+        "primary_id": "xj0830",
+        "n_rounds": 5,
+        "first_mi": 0.5,
+        "mid_mi": 0.11428571428571428,
+        "last_mi": 0.4166666666666667,
+        "R_vol_proxy": -0.08333333333333331,
+        "R_recent_proxy": 0.3023809523809524,
+        "last_pass": true,
+        "collapse_any": true
+      },
+      {
+        "person_id": "ycx0831",
+        "primary_id": "ycx0831",
+        "n_rounds": 5,
+        "first_mi": 0.3611111111111111,
+        "mid_mi": 0.5555555555555556,
+        "last_mi": 0.4722222222222222,
+        "R_vol_proxy": 0.1111111111111111,
+        "R_recent_proxy": -0.08333333333333337,
+        "last_pass": false,
+        "collapse_any": false
+      },
+      {
+        "person_id": "ytl0901",
+        "primary_id": "ytl0901",
+        "n_rounds": 5,
+        "first_mi": 0.5862068965517241,
+        "mid_mi": 0.6571428571428571,
+        "last_mi": 0.5833333333333334,
+        "R_vol_proxy": -0.002873563218390718,
+        "R_recent_proxy": -0.07380952380952377,
+        "last_pass": true,
+        "collapse_any": false
+      },
+      {
+        "person_id": "zcy0902",
+        "primary_id": "zcy0902",
+        "n_rounds": 5,
+        "first_mi": 0.6666666666666666,
+        "mid_mi": 0.4444444444444444,
+        "last_mi": 0.5,
+        "R_vol_proxy": -0.16666666666666663,
+        "R_recent_proxy": 0.05555555555555558,
+        "last_pass": false,
+        "collapse_any": false
+      },
+      {
+        "person_id": "zyj0902",
+        "primary_id": "zyj0902",
+        "n_rounds": 5,
+        "first_mi": 0.5555555555555556,
+        "mid_mi": 0.6666666666666666,
+        "last_mi": 0.5555555555555556,
+        "R_vol_proxy": 0.0,
+        "R_recent_proxy": -0.11111111111111105,
+        "last_pass": false,
+        "collapse_any": false
+      }
+    ],
+    "full_verdict": "mixed_or_inconclusive",
+    "R_vol_mean_full": 0.05069444444444444,
+    "frac_positive_full": 0.5625
+  },
+  "B": {
+    "arm": "B",
+    "n_people_slope": 17,
+    "frac_rest_mu_slope_pos": 0.5294117647058824,
+    "frac_abs_li_slope_neg": 0.7058823529411765,
+    "fatigue_signal": false,
+    "fatigue_verdict": "no_clear_within_session_fatigue_under_this_paradigm",
+    "spearman_gain_vs_sat": {
+      "r": -0.085546094909899,
+      "p": 0.7527578832589608,
+      "n": 16
+    },
+    "spearman_gain_vs_gap": {
+      "r": -0.24926362137539534,
+      "p": 0.351859375578908,
+      "n": 16
+    },
+    "spearman_gain_vs_dprime": {
+      "r": -0.12241941168140719,
+      "p": 0.6515128498181398,
+      "n": 16
+    },
+    "adjacent_dprime_delta": {
+      "stat": 1724.0,
+      "p": 0.5281526321032917,
+      "n": 86,
+      "median": -0.002670613976901978
+    },
+    "per_person": [
+      {
+        "person_id": "cjf0831",
+        "primary_id": "cjf0831",
+        "delta_mi": 0.02777777777777779,
+        "med_slope_rest_mu": 8.303006140596303e-06,
+        "med_slope_abs_li": 0.0026773571804678637,
+        "mean_sat_rail": 0.42491642795598317,
+        "mean_gap_frac": 1.8088612494889967e-06,
+        "med_dprime_lr": 0.26267957739373693
+      },
+      {
+        "person_id": "cyy0830",
+        "primary_id": "cyy0830",
+        "delta_mi": 0.2777777777777778,
+        "med_slope_rest_mu": 5.662009726364546e-06,
+        "med_slope_abs_li": -0.0009845598250926852,
+        "mean_sat_rail": 0.4137681206531214,
+        "mean_gap_frac": 1.2426426253493274e-05,
+        "med_dprime_lr": 0.31663274866895286
+      },
+      {
+        "person_id": "djh0902",
+        "primary_id": "djh0902",
+        "delta_mi": 0.1111111111111111,
+        "med_slope_rest_mu": -3.2495925730385245e-05,
+        "med_slope_abs_li": 0.0015103211822206644,
+        "mean_sat_rail": 0.6977942394265453,
+        "mean_gap_frac": 0.001682138146618622,
+        "med_dprime_lr": 0.25458074284355964
+      },
+      {
+        "person_id": "fnz0828",
+        "primary_id": "fnz0828",
+        "delta_mi": -0.1111111111111111,
+        "med_slope_rest_mu": 6.5229519958610315e-06,
+        "med_slope_abs_li": -0.0008314365321245154,
+        "mean_sat_rail": 0.6781122099722664,
+        "mean_gap_frac": 1.8301479621384058e-05,
+        "med_dprime_lr": 0.2899441118510382
+      },
+      {
+        "person_id": "fnz0830",
+        "primary_id": "fnz0830",
+        "delta_mi": -0.02539682539682539,
+        "med_slope_rest_mu": -1.7929241817285736e-05,
+        "med_slope_abs_li": -0.002660317777711341,
+        "mean_sat_rail": 0.6078583280657324,
+        "mean_gap_frac": 1.2276608324126648e-05,
+        "med_dprime_lr": 0.30075693071188453
+      },
+      {
+        "person_id": "lmh0904",
+        "primary_id": "lmh0904",
+        "delta_mi": 0.2777777777777778,
+        "med_slope_rest_mu": -0.0006188117892171855,
+        "med_slope_abs_li": -0.001190275847710809,
+        "mean_sat_rail": 0.01136590115695057,
+        "mean_gap_frac": 0.0007597397468838409,
+        "med_dprime_lr": 0.20837488536230855
+      },
+      {
+        "person_id": "lmy0904",
+        "primary_id": "lmy0904",
+        "delta_mi": -0.02777777777777779,
+        "med_slope_rest_mu": 3.697251768299365e-05,
+        "med_slope_abs_li": -0.006151989778169594,
+        "mean_sat_rail": 0.34195339695313315,
+        "mean_gap_frac": 0.0004043052369889619,
+        "med_dprime_lr": 0.14893326540464763
+      },
+      {
+        "person_id": "lsm0903",
+        "primary_id": "lsm0903",
+        "delta_mi": -0.02777777777777779,
+        "med_slope_rest_mu": 1.0618213894477021e-05,
+        "med_slope_abs_li": 0.0033703420784529517,
+        "mean_sat_rail": 0.4762680523778104,
+        "mean_gap_frac": 0.0013402906982154152,
+        "med_dprime_lr": 0.3526684579734589
+      },
+      {
+        "person_id": "lsy0903",
+        "primary_id": "lsy0903",
+        "delta_mi": 0.11111111111111116,
+        "med_slope_rest_mu": 9.969233942545979e-05,
+        "med_slope_abs_li": -0.0010714612606663163,
+        "mean_sat_rail": 0.2834894662715574,
+        "mean_gap_frac": 0.0016838449832713225,
+        "med_dprime_lr": 0.16257347575907935
+      },
+      {
+        "person_id": "npl0831",
+        "primary_id": "npl0831",
+        "delta_mi": 0.25,
+        "med_slope_rest_mu": 6.10952088145297e-06,
+        "med_slope_abs_li": -0.0009596609458925434,
+        "mean_sat_rail": 0.22740237764449325,
+        "mean_gap_frac": 4.615378034105935e-06,
+        "med_dprime_lr": 0.3606199620225229
+      },
+      {
+        "person_id": "syj0828",
+        "primary_id": "syj0828",
+        "delta_mi": 0.30555555555555547,
+        "med_slope_rest_mu": 4.788545455655941e-06,
+        "med_slope_abs_li": 0.001393960217845228,
+        "mean_sat_rail": 0.18357370414852225,
+        "mean_gap_frac": 1.4654293933573213e-05,
+        "med_dprime_lr": 0.2616943173072651
+      },
+      {
+        "person_id": "wzr0830",
+        "primary_id": "wzr0830",
+        "delta_mi": -0.1111111111111111,
+        "med_slope_rest_mu": 8.646239660346482e-07,
+        "med_slope_abs_li": -0.0010637869449322697,
+        "mean_sat_rail": 0.20854256536261453,
+        "mean_gap_frac": 2.4168069302553577e-05,
+        "med_dprime_lr": 0.23927238511383764
+      },
+      {
+        "person_id": "xj0830",
+        "primary_id": "xj0830",
+        "delta_mi": -0.08333333333333331,
+        "med_slope_rest_mu": -3.7743703398554053e-06,
+        "med_slope_abs_li": -0.0004168092151380736,
+        "mean_sat_rail": 0.16840734964832058,
+        "mean_gap_frac": 3.23200443611163e-05,
+        "med_dprime_lr": 0.25050936562841175
+      },
+      {
+        "person_id": "ycx0831",
+        "primary_id": "ycx0831",
+        "delta_mi": 0.1111111111111111,
+        "med_slope_rest_mu": -2.093263229832866e-05,
+        "med_slope_abs_li": -0.0018705531806631336,
+        "mean_sat_rail": 0.2967249770424614,
+        "mean_gap_frac": 2.419883534138906e-06,
+        "med_dprime_lr": 0.1770866561509365
+      },
+      {
+        "person_id": "ytl0901",
+        "primary_id": "ytl0901",
+        "delta_mi": -0.002873563218390718,
+        "med_slope_rest_mu": -5.077492084205134e-05,
+        "med_slope_abs_li": 0.00023367829074649952,
+        "mean_sat_rail": 0.2559186217584589,
+        "mean_gap_frac": 3.93289554560609e-06,
+        "med_dprime_lr": 0.2022606828612895
+      },
+      {
+        "person_id": "zcy0902",
+        "primary_id": "zcy0902",
+        "delta_mi": -0.16666666666666663,
+        "med_slope_rest_mu": -1.8774810889132515e-06,
+        "med_slope_abs_li": -0.003665374303794742,
+        "mean_sat_rail": 0.04566130851946606,
+        "mean_gap_frac": 0.0018077176819289876,
+        "med_dprime_lr": 0.4098947428691229
+      },
+      {
+        "person_id": "zyj0902",
+        "primary_id": "zyj0902",
+        "delta_mi": NaN,
+        "med_slope_rest_mu": -4.331584355155366e-06,
+        "med_slope_abs_li": -1.375760841408613e-06,
+        "mean_sat_rail": 0.43972624135963406,
+        "mean_gap_frac": 0.0024135422769498934,
+        "med_dprime_lr": 0.3828887280556752
+      }
+    ]
+  },
+  "C": {
+    "arm": "C",
+    "n_sessions": 104,
+    "dprime_bins": {
+      "strong_ge_1.0": 0,
+      "mid_0.5_1.0": 9,
+      "weak_lt_0.5": 95,
+      "weak_frac": 0.9134615384615384
+    },
+    "median_adjacent_dprime_gap": 0.09286940172741368,
+    "note_friedman": "个体内会话同质性 Friedman / KW 检验待补（当前 d' 为留一 CV 估计）；该行将在 Day0.5 补齐",
+    "per_person": [
+      {
+        "person_id": "cjf0831",
+        "primary_id": "cjf0831",
+        "n_sess": 6,
+        "med_dprime_lr": 0.26267957739373693,
+        "med_probe_auc_lr": 0.43333333333333335,
+        "dprime_cv": 0.5899602787664907,
+        "frac_weak": 0.8333333333333334
+      },
+      {
+        "person_id": "cyy0830",
+        "primary_id": "cyy0830",
+        "n_sess": 6,
+        "med_dprime_lr": 0.31663274866895286,
+        "med_probe_auc_lr": 0.5249999999999999,
+        "dprime_cv": 0.3873668636813046,
+        "frac_weak": 0.8333333333333334
+      },
+      {
+        "person_id": "djh0902",
+        "primary_id": "djh0902",
+        "n_sess": 6,
+        "med_dprime_lr": 0.25458074284355964,
+        "med_probe_auc_lr": 0.40208333333333335,
+        "dprime_cv": 0.46112286748248477,
+        "frac_weak": 0.8333333333333334
+      },
+      {
+        "person_id": "fnz0828",
+        "primary_id": "fnz0828",
+        "n_sess": 6,
+        "med_dprime_lr": 0.2899441118510382,
+        "med_probe_auc_lr": 0.44166666666666665,
+        "dprime_cv": 0.25219489199144196,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "fnz0830",
+        "primary_id": "fnz0830",
+        "n_sess": 6,
+        "med_dprime_lr": 0.30075693071188453,
+        "med_probe_auc_lr": 0.46458333333333335,
+        "dprime_cv": 0.22718310833550986,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "lmh0904",
+        "primary_id": "lmh0904",
+        "n_sess": 6,
+        "med_dprime_lr": 0.20837488536230855,
+        "med_probe_auc_lr": 0.6208333333333333,
+        "dprime_cv": 0.9715826664150689,
+        "frac_weak": 0.8333333333333334
+      },
+      {
+        "person_id": "lmy0904",
+        "primary_id": "lmy0904",
+        "n_sess": 7,
+        "med_dprime_lr": 0.14893326540464763,
+        "med_probe_auc_lr": 0.4125,
+        "dprime_cv": 0.6754798727145371,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "lsm0903",
+        "primary_id": "lsm0903",
+        "n_sess": 7,
+        "med_dprime_lr": 0.3526684579734589,
+        "med_probe_auc_lr": 0.4222222222222222,
+        "dprime_cv": 0.48815625006006524,
+        "frac_weak": 0.8571428571428571
+      },
+      {
+        "person_id": "lsy0903",
+        "primary_id": "lsy0903",
+        "n_sess": 6,
+        "med_dprime_lr": 0.16257347575907935,
+        "med_probe_auc_lr": 0.4291666666666667,
+        "dprime_cv": 0.3109966291159655,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "npl0831",
+        "primary_id": "npl0831",
+        "n_sess": 6,
+        "med_dprime_lr": 0.3606199620225229,
+        "med_probe_auc_lr": 0.55625,
+        "dprime_cv": 0.3823612235783721,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "syj0828",
+        "primary_id": "syj0828",
+        "n_sess": 6,
+        "med_dprime_lr": 0.2616943173072651,
+        "med_probe_auc_lr": 0.4666666666666667,
+        "dprime_cv": 0.17101524805037496,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "wzr0830",
+        "primary_id": "wzr0830",
+        "n_sess": 6,
+        "med_dprime_lr": 0.23927238511383764,
+        "med_probe_auc_lr": 0.38749999999999996,
+        "dprime_cv": 0.5254219883722256,
+        "frac_weak": 0.8333333333333334
+      },
+      {
+        "person_id": "xj0830",
+        "primary_id": "xj0830",
+        "n_sess": 6,
+        "med_dprime_lr": 0.25050936562841175,
+        "med_probe_auc_lr": 0.5083333333333333,
+        "dprime_cv": 0.34758191151542406,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "ycx0831",
+        "primary_id": "ycx0831",
+        "n_sess": 6,
+        "med_dprime_lr": 0.1770866561509365,
+        "med_probe_auc_lr": 0.41041666666666665,
+        "dprime_cv": 0.42354671069497773,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "ytl0901",
+        "primary_id": "ytl0901",
+        "n_sess": 7,
+        "med_dprime_lr": 0.2022606828612895,
+        "med_probe_auc_lr": 0.4833333333333334,
+        "dprime_cv": 0.5296177200136235,
+        "frac_weak": 1.0
+      },
+      {
+        "person_id": "zcy0902",
+        "primary_id": "zcy0902",
+        "n_sess": 6,
+        "med_dprime_lr": 0.4098947428691229,
+        "med_probe_auc_lr": 0.5249999999999999,
+        "dprime_cv": 0.532452001007379,
+        "frac_weak": 0.6666666666666666
+      },
+      {
+        "person_id": "zyj0902",
+        "primary_id": "zyj0902",
+        "n_sess": 6,
+        "med_dprime_lr": 0.3828887280556752,
+        "med_probe_auc_lr": 0.5236111111111111,
+        "dprime_cv": 0.41471844176362926,
+        "frac_weak": 0.8333333333333334
+      }
+    ]
+  },
+  "D": {
+    "arm": "D",
+    "counts": {
+      "signal": 11,
+      "optim": 0,
+      "readout": 0,
+      "none": 0,
+      "mixed": 6
+    },
+    "frac": {
+      "signal": 0.6470588235294118,
+      "optim": 0.0,
+      "readout": 0.0,
+      "none": 0.0,
+      "mixed": 0.35294117647058826
+    },
+    "hypothesis_check": {
+      "H1_signal_majority_of_low": "see frac signal/mixed",
+      "H2_optim_common": 6,
+      "H3_readout": 0
+    },
+    "per_person": [
+      {
+        "person_id": "cjf0831",
+        "primary_id": "cjf0831",
+        "med_dprime_lr": 0.26267957739373693,
+        "med_probe_auc_lr": 0.43333333333333335,
+        "max_class_frac_peak": 0.6565656565656566,
+        "collapse_any": false,
+        "last_mi": 0.5,
+        "label": "signal"
+      },
+      {
+        "person_id": "cyy0830",
+        "primary_id": "cyy0830",
+        "med_dprime_lr": 0.31663274866895286,
+        "med_probe_auc_lr": 0.5249999999999999,
+        "max_class_frac_peak": 1.0,
+        "collapse_any": true,
+        "last_mi": 0.5277777777777778,
+        "label": "mixed:signal+optim"
+      },
+      {
+        "person_id": "djh0902",
+        "primary_id": "djh0902",
+        "med_dprime_lr": 0.25458074284355964,
+        "med_probe_auc_lr": 0.40208333333333335,
+        "max_class_frac_peak": 0.7087542087542088,
+        "collapse_any": false,
+        "last_mi": 0.5277777777777778,
+        "label": "signal"
+      },
+      {
+        "person_id": "fnz0828",
+        "primary_id": "fnz0828",
+        "med_dprime_lr": 0.2899441118510382,
+        "med_probe_auc_lr": 0.44166666666666665,
+        "max_class_frac_peak": 0.8400673400673401,
+        "collapse_any": false,
+        "last_mi": 0.3333333333333333,
+        "label": "mixed:signal+readout"
+      },
+      {
+        "person_id": "fnz0830",
+        "primary_id": "fnz0830",
+        "med_dprime_lr": 0.30075693071188453,
+        "med_probe_auc_lr": 0.46458333333333335,
+        "max_class_frac_peak": 0.869639794168096,
+        "collapse_any": true,
+        "last_mi": 0.08571428571428572,
+        "label": "mixed:signal+optim"
+      },
+      {
+        "person_id": "lmh0904",
+        "primary_id": "lmh0904",
+        "med_dprime_lr": 0.20837488536230855,
+        "med_probe_auc_lr": 0.6208333333333333,
+        "max_class_frac_peak": 0.7508417508417509,
+        "collapse_any": false,
+        "last_mi": 0.4722222222222222,
+        "label": "signal"
+      },
+      {
+        "person_id": "lmy0904",
+        "primary_id": "lmy0904",
+        "med_dprime_lr": 0.14893326540464763,
+        "med_probe_auc_lr": 0.4125,
+        "max_class_frac_peak": 0.9230769230769231,
+        "collapse_any": true,
+        "last_mi": 0.16666666666666666,
+        "label": "mixed:signal+optim"
+      },
+      {
+        "person_id": "lsm0903",
+        "primary_id": "lsm0903",
+        "med_dprime_lr": 0.3526684579734589,
+        "med_probe_auc_lr": 0.4222222222222222,
+        "max_class_frac_peak": 0.7495682210708118,
+        "collapse_any": false,
+        "last_mi": 0.5,
+        "label": "signal"
+      },
+      {
+        "person_id": "lsy0903",
+        "primary_id": "lsy0903",
+        "med_dprime_lr": 0.16257347575907935,
+        "med_probe_auc_lr": 0.4291666666666667,
+        "max_class_frac_peak": 0.8128161888701517,
+        "collapse_any": true,
+        "last_mi": 0.5833333333333334,
+        "label": "mixed:signal+optim"
+      },
+      {
+        "person_id": "npl0831",
+        "primary_id": "npl0831",
+        "med_dprime_lr": 0.3606199620225229,
+        "med_probe_auc_lr": 0.55625,
+        "max_class_frac_peak": 0.5841750841750841,
+        "collapse_any": false,
+        "last_mi": 0.5555555555555556,
+        "label": "signal"
+      },
+      {
+        "person_id": "syj0828",
+        "primary_id": "syj0828",
+        "med_dprime_lr": 0.2616943173072651,
+        "med_probe_auc_lr": 0.4666666666666667,
+        "max_class_frac_peak": 0.4444444444444444,
+        "collapse_any": false,
+        "last_mi": 0.9166666666666666,
+        "label": "signal"
+      },
+      {
+        "person_id": "wzr0830",
+        "primary_id": "wzr0830",
+        "med_dprime_lr": 0.23927238511383764,
+        "med_probe_auc_lr": 0.38749999999999996,
+        "max_class_frac_peak": 0.6262626262626263,
+        "collapse_any": false,
+        "last_mi": 0.3333333333333333,
+        "label": "signal"
+      },
+      {
+        "person_id": "xj0830",
+        "primary_id": "xj0830",
+        "med_dprime_lr": 0.25050936562841175,
+        "med_probe_auc_lr": 0.5083333333333333,
+        "max_class_frac_peak": 0.9781144781144782,
+        "collapse_any": true,
+        "last_mi": 0.4166666666666667,
+        "label": "mixed:signal+optim"
+      },
+      {
+        "person_id": "ycx0831",
+        "primary_id": "ycx0831",
+        "med_dprime_lr": 0.1770866561509365,
+        "med_probe_auc_lr": 0.41041666666666665,
+        "max_class_frac_peak": 0.7794612794612794,
+        "collapse_any": false,
+        "last_mi": 0.4722222222222222,
+        "label": "signal"
+      },
+      {
+        "person_id": "ytl0901",
+        "primary_id": "ytl0901",
+        "med_dprime_lr": 0.2022606828612895,
+        "med_probe_auc_lr": 0.4833333333333334,
+        "max_class_frac_peak": 0.7558922558922558,
+        "collapse_any": false,
+        "last_mi": 0.5833333333333334,
+        "label": "signal"
+      },
+      {
+        "person_id": "zcy0902",
+        "primary_id": "zcy0902",
+        "med_dprime_lr": 0.4098947428691229,
+        "med_probe_auc_lr": 0.5249999999999999,
+        "max_class_frac_peak": 0.653910149750416,
+        "collapse_any": false,
+        "last_mi": 0.5,
+        "label": "signal"
+      },
+      {
+        "person_id": "zyj0902",
+        "primary_id": "zyj0902",
+        "med_dprime_lr": 0.3828887280556752,
+        "med_probe_auc_lr": 0.5236111111111111,
+        "max_class_frac_peak": 0.5824915824915825,
+        "collapse_any": false,
+        "last_mi": 0.5555555555555556,
+        "label": "signal"
+      }
+    ]
+  },
+  "E": {
+    "arm": "E",
+    "human_collapse_frac": 0.29411764705882354,
+    "human_n": 17,
+    "sim_collapse_frac": 0.3333333333333333,
+    "sim_note": "scanned sim_subjects release_gate.json",
+    "delta_human_minus_sim": -0.039215686274509776
+  },
+  "A_full": {
+    "schema": "exp42_arm_A_aggregate_v1",
+    "generated_at": "2026-09-05T11:37:12",
+    "n_people": 16,
+    "R_vol_mean": 0.05069444444444444,
+    "frac_positive_R_vol": 0.5625,
+    "verdict": "mixed_or_inconclusive",
+    "dA5": [
+      {
+        "person_id": "cjf0831",
+        "dA5_slope": 0.007936507936508626,
+        "points": [
+          [
+            0.05,
+            0.4611111111111111
+          ],
+          [
+            0.1,
+            0.45555555555555555
+          ],
+          [
+            0.2,
+            0.4611111111111111
+          ]
+        ]
+      },
+      {
+        "person_id": "cyy",
+        "dA5_slope": -0.18253968253968222,
+        "points": [
+          [
+            0.05,
+            0.47777777777777775
+          ],
+          [
+            0.1,
+            0.49444444444444446
+          ],
+          [
+            0.2,
+            0.45555555555555555
+          ]
+        ]
+      },
+      {
+        "person_id": "djh0902",
+        "dA5_slope": -0.23015873015872962,
+        "points": [
+          [
+            0.05,
+            0.5777777777777778
+          ],
+          [
+            0.1,
+            0.5444444444444445
+          ],
+          [
+            0.2,
+            0.538888888888889
+          ]
+        ]
+      },
+      {
+        "person_id": "fnz",
+        "dA5_slope": 0.32539682539682524,
+        "points": [
+          [
+            0.05,
+            0.4666666666666667
+          ],
+          [
+            0.1,
+            0.48888888888888893
+          ],
+          [
+            0.2,
+            0.5166666666666666
+          ]
+        ]
+      },
+      {
+        "person_id": "lmh0904",
+        "dA5_slope": -0.023809523809523774,
+        "points": [
+          [
+            0.05,
+            0.45555555555555555
+          ],
+          [
+            0.1,
+            0.4444444444444445
+          ],
+          [
+            0.2,
+            0.45
+          ]
+        ]
+      },
+      {
+        "person_id": "lmy0904",
+        "dA5_slope": -0.6984126984126988,
+        "points": [
+          [
+            0.05,
+            0.3111111111111111
+          ],
+          [
+            0.1,
+            0.21666666666666665
+          ],
+          [
+            0.2,
+            0.19444444444444442
+          ]
+        ]
+      },
+      {
+        "person_id": "lsm0903",
+        "dA5_slope": 0.09523809523809557,
+        "points": [
+          [
+            0.05,
+            0.5055555555555555
+          ],
+          [
+            0.1,
+            0.5222222222222223
+          ],
+          [
+            0.2,
+            0.5222222222222223
+          ]
+        ]
+      },
+      {
+        "person_id": "lsy0903",
+        "dA5_slope": -0.02380952380952403,
+        "points": [
+          [
+            0.05,
+            0.5277777777777779
+          ],
+          [
+            0.1,
+            0.5444444444444445
+          ],
+          [
+            0.2,
+            0.5277777777777779
+          ]
+        ]
+      },
+      {
+        "person_id": "npl0831",
+        "dA5_slope": 0.4126984126984134,
+        "points": [
+          [
+            0.05,
+            0.5055555555555555
+          ],
+          [
+            0.1,
+            0.5222222222222223
+          ],
+          [
+            0.2,
+            0.5666666666666667
+          ]
+        ]
+      },
+      {
+        "person_id": "syj0828",
+        "dA5_slope": -0.05555555555555398,
+        "points": [
+          [
+            0.05,
+            0.9333333333333332
+          ],
+          [
+            0.1,
+            0.9166666666666666
+          ],
+          [
+            0.2,
+            0.9222222222222222
+          ]
+        ]
+      },
+      {
+        "person_id": "wzr0830",
+        "dA5_slope": 0.03968253968254007,
+        "points": [
+          [
+            0.05,
+            0.38333333333333336
+          ],
+          [
+            0.1,
+            0.38333333333333336
+          ],
+          [
+            0.2,
+            0.3888888888888889
+          ]
+        ]
+      },
+      {
+        "person_id": "xj0830",
+        "dA5_slope": 0.22222222222222232,
+        "points": [
+          [
+            0.05,
+            0.3833333333333333
+          ],
+          [
+            0.1,
+            0.3944444444444445
+          ],
+          [
+            0.2,
+            0.41666666666666663
+          ]
+        ]
+      },
+      {
+        "person_id": "ycx0831",
+        "dA5_slope": -7.887844547407966e-17,
+        "points": [
+          [
+            0.05,
+            0.5111111111111112
+          ],
+          [
+            0.1,
+            0.5111111111111111
+          ],
+          [
+            0.2,
+            0.5111111111111112
+          ]
+        ]
+      },
+      {
+        "person_id": "ytl0901",
+        "dA5_slope": -0.1984126984126988,
+        "points": [
+          [
+            0.05,
+            0.5944444444444444
+          ],
+          [
+            0.1,
+            0.5944444444444446
+          ],
+          [
+            0.2,
+            0.5666666666666667
+          ]
+        ]
+      },
+      {
+        "person_id": "zcy0902",
+        "dA5_slope": 0.039682539682540076,
+        "points": [
+          [
+            0.05,
+            0.4888888888888888
+          ],
+          [
+            0.1,
+            0.48888888888888893
+          ],
+          [
+            0.2,
+            0.49444444444444446
+          ]
+        ]
+      },
+      {
+        "person_id": "zyj0902",
+        "dA5_slope": 0.3253968253968268,
+        "points": [
+          [
+            0.05,
+            0.48888888888888893
+          ],
+          [
+            0.1,
+            0.5111111111111111
+          ],
+          [
+            0.2,
+            0.538888888888889
+          ]
+        ]
+      }
+    ],
+    "dA5_mean_slope": 0.003472222222222543,
+    "per_person": [
+      {
+        "person_id": "cjf0831",
+        "R_vol_mean": -0.08333333333333336,
+        "R_span_mean": -0.13888888888888892,
+        "R_order_mean": -0.02777777777777778,
+        "A1_mean": 0.47777777777777775,
+        "A2_mean": 0.5611111111111111,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "cyy",
+        "R_vol_mean": -0.1333333333333333,
+        "R_span_mean": -0.09999999999999995,
+        "R_order_mean": -0.0388888888888889,
+        "A1_mean": 0.48888888888888893,
+        "A2_mean": 0.6222222222222221,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "djh0902",
+        "R_vol_mean": -0.050000000000000024,
+        "R_span_mean": -0.03333333333333335,
+        "R_order_mean": -0.05555555555555558,
+        "A1_mean": 0.5111111111111111,
+        "A2_mean": 0.5611111111111111,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "fnz",
+        "R_vol_mean": 0.09444444444444447,
+        "R_span_mean": -0.07777777777777777,
+        "R_order_mean": 0.06111111111111113,
+        "A1_mean": 0.5333333333333334,
+        "A2_mean": 0.43888888888888883,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "lmh0904",
+        "R_vol_mean": 0.016666666666666673,
+        "R_span_mean": -0.07777777777777777,
+        "R_order_mean": -0.033333333333333326,
+        "A1_mean": 0.47777777777777775,
+        "A2_mean": 0.4611111111111111,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "lmy0904",
+        "R_vol_mean": 0.0,
+        "R_span_mean": -0.06666666666666667,
+        "R_order_mean": 0.01666666666666667,
+        "A1_mean": 0.21666666666666665,
+        "A2_mean": 0.21666666666666665,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "lsm0903",
+        "R_vol_mean": 0.05,
+        "R_span_mean": 0.011111111111111105,
+        "R_order_mean": -0.011111111111111117,
+        "A1_mean": 0.5,
+        "A2_mean": 0.45,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "lsy0903",
+        "R_vol_mean": 0.2,
+        "R_span_mean": -0.1611111111111111,
+        "R_order_mean": 0.061111111111111116,
+        "A1_mean": 0.5833333333333333,
+        "A2_mean": 0.3833333333333334,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "npl0831",
+        "R_vol_mean": 0.07222222222222222,
+        "R_span_mean": -0.06666666666666668,
+        "R_order_mean": 0.049999999999999975,
+        "A1_mean": 0.6,
+        "A2_mean": 0.5277777777777778,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "syj0828",
+        "R_vol_mean": 0.3722222222222221,
+        "R_span_mean": 0.02777777777777779,
+        "R_order_mean": -0.005555555555555558,
+        "A1_mean": 0.9555555555555555,
+        "A2_mean": 0.5833333333333334,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "wzr0830",
+        "R_vol_mean": 0.2111111111111111,
+        "R_span_mean": 0.24444444444444446,
+        "R_order_mean": -0.016666666666666663,
+        "A1_mean": 0.4,
+        "A2_mean": 0.18888888888888888,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "xj0830",
+        "R_vol_mean": -0.03333333333333334,
+        "R_span_mean": -0.06111111111111113,
+        "R_order_mean": -0.011111111111111105,
+        "A1_mean": 0.3888888888888889,
+        "A2_mean": 0.4222222222222222,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "ycx0831",
+        "R_vol_mean": -0.005555555555555558,
+        "R_span_mean": -0.049999999999999975,
+        "R_order_mean": 0.02222222222222222,
+        "A1_mean": 0.5,
+        "A2_mean": 0.5055555555555556,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "ytl0901",
+        "R_vol_mean": -0.050000000000000024,
+        "R_span_mean": -0.13333333333333336,
+        "R_order_mean": -0.016666666666666673,
+        "A1_mean": 0.5444444444444445,
+        "A2_mean": 0.5944444444444444,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "zcy0902",
+        "R_vol_mean": 0.016666666666666684,
+        "R_span_mean": 0.005555555555555558,
+        "R_order_mean": 0.011111111111111127,
+        "A1_mean": 0.5166666666666667,
+        "A2_mean": 0.5,
+        "n_seed_R_vol": 5
+      },
+      {
+        "person_id": "zyj0902",
+        "R_vol_mean": 0.13333333333333336,
+        "R_span_mean": 0.022222222222222247,
+        "R_order_mean": -0.03888888888888892,
+        "A1_mean": 0.47777777777777775,
+        "A2_mean": 0.34444444444444444,
+        "n_seed_R_vol": 5
+      }
+    ]
+  }
+}

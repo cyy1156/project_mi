@@ -1,0 +1,33 @@
+{
+  "schema": "exp42_feat_anchor_check_v1",
+  "people": {
+    "syj0828": {
+      "session": "syj0828_ws06_20260828_135034",
+      "n_windows": 594,
+      "n_trials": 54,
+      "probe_auc_prod_anchor": 0.567,
+      "probe_auc_self_anchor": 0.46,
+      "deployed_window_acc": 0.414
+    },
+    "fnz0828": {
+      "session": "v3_fnz0828_ws07_20260830_170241",
+      "n_windows": 594,
+      "n_trials": 54,
+      "probe_auc_prod_anchor": 0.396,
+      "probe_auc_self_anchor": 0.447,
+      "deployed_window_acc": 0.354
+    },
+    "zyj0902": {
+      "session": "v3_zyj0902_w07_20260902_131330",
+      "n_windows": 731,
+      "n_trials": 54,
+      "probe_auc_prod_anchor": 0.55,
+      "probe_auc_self_anchor": 0.527,
+      "deployed_window_acc": 0.401
+    }
+  },
+  "verdict": {
+    "anchor_misalignment": false,
+    "feature_family_weak": false
+  }
+}

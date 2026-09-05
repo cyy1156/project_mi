@@ -1,0 +1,43 @@
+{
+  "schema": "exp42_arm_E_v1",
+  "generated_at": "2026-09-05T12:37:42",
+  "human": {
+    "n": 17,
+    "n_collapse": 5,
+    "collapse_frac": 0.29411764705882354,
+    "note": "from leave_next_parse.json"
+  },
+  "sim_subjects": {
+    "n": 3,
+    "collapse_frac": 0.3333333333333333,
+    "n_collapse": 1,
+    "per": [
+      {
+        "id": "A01",
+        "max_class_frac_peak": 1.0,
+        "collapse": true
+      },
+      {
+        "id": "A05",
+        "max_class_frac_peak": 0.5909090909090909,
+        "collapse": false
+      },
+      {
+        "id": "A06",
+        "max_class_frac_peak": 0.5545454545454546,
+        "collapse": false
+      }
+    ],
+    "note": "scanned sim_subjects release_gate.json"
+  },
+  "exp32_docs": {
+    "n_values": 0,
+    "collapse_frac": null,
+    "files": [],
+    "note": "no max_class_frac in Exp32 docs"
+  },
+  "sim_collapse_frac": 0.3333333333333333,
+  "human_collapse_frac": 0.29411764705882354,
+  "delta_human_minus_sim": -0.039215686274509776,
+  "read": "if sim also high max_class_frac -> recipe/optim layer; if only human high -> person/state factors"
+}

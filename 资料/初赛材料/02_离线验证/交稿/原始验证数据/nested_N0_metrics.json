@@ -1,0 +1,87 @@
+{
+  "arm": "N0_nested_S0_QuadFold59",
+  "protocol": "LOSO6 leave-fold nested Val on Challenge MI train S01-S06",
+  "n_trials": 900,
+  "acc": 0.5111111111111111,
+  "macro_recall": 0.5111111111111111,
+  "macro_specificity": 0.7555555555555555,
+  "macro_f1": 0.5017052756266273,
+  "per_class_recall": [
+    0.32666666666666666,
+    0.6233333333333333,
+    0.5833333333333334
+  ],
+  "per_class_specificity": [
+    0.85,
+    0.7116666666666667,
+    0.705
+  ],
+  "confusion_matrix": [
+    [
+      98,
+      92,
+      110
+    ],
+    [
+      46,
+      187,
+      67
+    ],
+    [
+      44,
+      81,
+      175
+    ]
+  ],
+  "class_order": [
+    "Left(0)",
+    "Right(1)",
+    "Rest(2)"
+  ],
+  "fold_accs": [
+    0.4266666666666667,
+    0.62,
+    0.5466666666666666,
+    0.4866666666666667,
+    0.4866666666666667,
+    0.5
+  ],
+  "fold_acc_mean": 0.5111111111111112,
+  "fold_acc_std": 0.06568161138457301,
+  "folds": [
+    {
+      "subject": "challenge:S01",
+      "n": 150,
+      "acc": 0.4266666666666667
+    },
+    {
+      "subject": "challenge:S02",
+      "n": 150,
+      "acc": 0.62
+    },
+    {
+      "subject": "challenge:S03",
+      "n": 150,
+      "acc": 0.5466666666666666
+    },
+    {
+      "subject": "challenge:S04",
+      "n": 150,
+      "acc": 0.4866666666666667
+    },
+    {
+      "subject": "challenge:S05",
+      "n": 150,
+      "acc": 0.4866666666666667
+    },
+    {
+      "subject": "challenge:S06",
+      "n": 150,
+      "acc": 0.5
+    }
+  ],
+  "source_preds": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp37_nested_mcnemar_accpaper\\preds\\oof_N0_prob.npy",
+  "source_y": "D:\\MI\\code\\train_lab\\out\\5070_challenge_exp37_nested_mcnemar_accpaper\\preds\\oof_N0_y.npy",
+  "submission_csv": "原始/submission_QuadFold59.csv",
+  "note": "Test S07/S08 has no labels; metrics are nested Val only. Submission CSV is blind predictions."
+}
