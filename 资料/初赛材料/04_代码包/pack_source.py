@@ -47,8 +47,14 @@ TOP_FILES = [
     ("README.md", REPO / "README.md"),
     ("requirements.txt", REPO / "requirements.txt"),
     ("README_代码包说明.md", OUT_DIR / "README_代码包说明.md"),
-    ("附录A_旁路实验索引.md", OUT_DIR / "附录A_旁路实验索引.md"),
-    ("附录B_自采数据质控样例.md", OUT_DIR / "附录B_自采数据质控样例.md"),
+    ("00_目录结构与复现总览.md", OUT_DIR / "00_目录结构与复现总览.md"),
+    ("01_数据集获取说明.md", OUT_DIR / "01_数据集获取说明.md"),
+    ("02_附录A_实验证据链索引.md", OUT_DIR / "附录A_实验证据链索引.md"),
+    ("03_附录B_自采数据质控样例.md", OUT_DIR / "附录B_自采数据质控样例.md"),
+    # 模块级运行指南：注入到对应模块目录内
+    ("code/README_离线代码复现指南.md", OUT_DIR / "README_离线代码复现指南.md"),
+    ("experiment_game/README_在线系统运行指南.md", OUT_DIR / "README_在线系统运行指南.md"),
+    ("collect_data/README_采集软件说明.md", OUT_DIR / "README_采集软件说明.md"),
 ]
 
 

@@ -1,0 +1,50 @@
+# v4 实验前数据质量检测（无模型 · 仅质检报告 · 不 gate 丢弃数据）
+# 8 导全计分（含 CZ/CPZ）；阈值按 Cyton 真机 3s 窗标定
+duration_s: 90
+eval_interval_s: 3.0
+eval_window_s: 3.0
+pass_streak_required: 5
+auto_stop_on_pass: false
+
+eeg_frame_interval_s: 0.25
+save_eeg_csv: true
+lsl_stream_name: OpenBCI_EEG
+lsl_timeout_s: 8.0
+
+channel_labels:
+  - FC3
+  - C3
+  - CP3
+  - CZ
+  - CPZ
+  - FC4
+  - C4
+  - CP4
+fs: 250
+
+# 8 导全部参与 PASS/FAIL（含中线 CZ/CPZ）
+scoring_channels:
+  - FC3
+  - C3
+  - CP3
+  - CZ
+  - CPZ
+  - FC4
+  - C4
+  - CP4
+unused_channels: []
+unused_allow_rail: false
+
+signal_quality_enabled: true
+signal_min_median_std_uv: 0.50
+signal_max_median_std_uv: 8.0
+# peak/ptp 为逐通道减窗均值后的 AC 量；min 关闭，靠 std/active 抓空帽
+signal_min_peak_to_peak_uv: 0.0
+signal_max_ptp_uv: 600.0
+signal_max_peak_uv: 600.0
+signal_min_per_channel_std_uv: 0.40
+signal_max_per_channel_std_uv: 150.0
+signal_min_active_channels: 6
+signal_max_channel_std_ratio: 3.0
+signal_min_car_std_uv: 0.10
+signal_max_common_mode_ratio: 1.45

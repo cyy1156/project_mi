@@ -1,0 +1,747 @@
+"""会话编排：适应 → 学习 → 准入 → 正式（Phase 3：换物/换景 + 操作者控制）。"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from pathlib import Path
+from typing import Callable, Dict, List, Optional, Sequence
+
+from pylsl import local_clock
+
+from experiment_game.experiment.content_catalog import (
+    schedule_acquire,
+    zh_object,
+    zh_scene,
+)
+from experiment_game.experiment.events_log import EventLogger
+from experiment_game.experiment.markers import MarkerPublisher, format_payload
+from experiment_game.experiment.session_base import SessionRunnerBase, SessionServices
+from experiment_game.experiment.timing import DEFAULT_TIMING, TrialTiming
+from experiment_game.experiment.trial_sm import (
+    SessionAbort,
+    TrialContext,
+    TrialStateMachine,
+    build_label_schedule,
+    wait_until,
+)
+from experiment_game.experiment.prompt_wait import ENV_ADAPT_BODY, wait_prompt_continue
+from experiment_game.experiment.ws_bridge import WsBridge, hand_from_label
+
+
+OnConsole = Callable[[str], None]
+
+
+@dataclass
+class Phase2Config:
+    acquire_trials: int = 4
+    learn_trials_per_step: int = 2
+    seed: Optional[int] = None
+    object_name: str = "cup"
+    scene: str = "home_desk"
+    skip_adapt: bool = False
+    skip_learn: bool = False
+    skip_gate: bool = False
+    auto_continue: bool = False
+    # Phase 3
+    rotate_objects: bool = True
+    rotate_scenes: bool = True
+    object_pool: Sequence[str] = field(default_factory=lambda: ["cup", "bottle", "apple"])
+    # 换场继续段：开始前静坐缓冲秒数（0 = 不缓冲）
+    settle_s: float = 0.0
+
+
+class SessionRunner(SessionRunnerBase):
+    """Phase2 编排器；继承 SessionRunnerBase 共用 services / 事件三件套。"""
+
+    def __init__(
+        self,
+        events: EventLogger,
+        markers: MarkerPublisher,
+        bridge: WsBridge,
+        timing: TrialTiming = DEFAULT_TIMING,
+        config: Optional[Phase2Config] = None,
+        on_console: Optional[OnConsole] = None,
+    ) -> None:
+        console = on_console or (lambda s: print(s, flush=True))
+        super().__init__(SessionServices(events, markers, bridge, console))
+        self.on_console = console
+        self.timing = timing
+        self.config = config or Phase2Config()
+        self._anim = "none"
+        self._learn_step: Optional[int] = None
+        self._current_object = self.config.object_name
+        self._current_scene = self.config.scene
+        self._current_trial_id: Optional[int] = None
+        self._current_label: Optional[int] = None
+        self._reject_count = 0
+        self._aborted = False
+        # 换场（B 键）：请求在正式段下一个 trial 边界结束本场
+        self._split_requested = False
+        self._split_active = False
+        self.trials_done = 0
+
+        self.bridge.set_operator_hook(self._on_operator)
+
+        def on_stage(stage: str, ctx: TrialContext, label: Optional[int]) -> None:
+            phase = self._current_phase
+            anim = self._anim if stage == "mi" else "none"
+            if phase == "acquire":
+                anim = "none"
+            self._current_trial_id = ctx.trial_id
+            self._current_label = label if label is not None else ctx.label
+            self._current_object = ctx.object
+            self._current_scene = ctx.scene
+            self.bridge.broadcast(
+                {
+                    "type": "stage",
+                    "phase": phase,
+                    "stage": stage,
+                    "trial_id": ctx.trial_id,
+                    "label": label,
+                    "hand": hand_from_label(label),
+                    "anim": anim,
+                    "duration_s": self._duration_for(stage),
+                    "object": ctx.object,
+                    "scene": ctx.scene,
+                    "learn_step": self._learn_step,
+                    "transition_amp": ctx.transition_amp,
+                }
+            )
+            text, show_cross, sub = self._hud_for(stage, label, phase, ctx.object)
+            self.bridge.broadcast(
+                {
+                    "type": "hud",
+                    "text": text,
+                    "subtext": sub,
+                    "show_cross": show_cross,
+                }
+            )
+            self._broadcast_operator_state()
+            lab = "" if label is None else f" L{label}"
+            self.on_console(
+                f"  [{phase}] trial={ctx.trial_id} {stage}{lab} "
+                f"obj={ctx.object} scene={ctx.scene} anim={anim}"
+            )
+
+        self.sm = TrialStateMachine(
+            events,
+            markers,
+            timing=timing,
+            on_stage=on_stage,
+            is_paused=self.bridge.is_paused,
+            should_abort=self.bridge.should_abort,
+            is_rejected=self.bridge.is_rejected,
+        )
+        self._current_phase = "idle"
+
+    def _on_operator(self, action: str, _msg: dict) -> None:
+        if action in ("pause", "resume", "toggle_pause"):
+            state = "paused" if self.bridge.is_paused() else "running"
+            self.on_console(f"[operator] {action} → {state}")
+            self._broadcast_operator_state()
+        elif action == "reject":
+            self.on_console(
+                f"[operator] reject trial={self._current_trial_id}"
+            )
+            self._broadcast_operator_state()
+        elif action == "abort":
+            self.on_console("[operator] ABORT")
+            self._aborted = True
+            self._broadcast_operator_state()
+        elif action in ("gate_ok", "continue"):
+            self.on_console(f"[operator] {action}")
+        elif action == "split_session":
+            if self._current_phase == "acquire" and not self._split_requested:
+                self._split_requested = True
+                self.on_console(
+                    "[operator] B 换场已请求：当前 trial 结束后本场停止录制"
+                )
+            elif self._split_requested:
+                self.on_console("[operator] B 换场已在等待中")
+            else:
+                self.on_console(
+                    "[operator] B 换场仅正式采集段可用（进入 acquire 后生效）"
+                )
+
+    def request_split(self) -> None:
+        """供编排器直接请求换场（操作台 B 键）。"""
+        if self._current_phase == "acquire" and not self._split_requested:
+            self._split_requested = True
+            self.on_console("[operator] B 换场已请求：当前 trial 结束后本场停止录制")
+        elif not self._split_requested:
+            self.on_console("[operator] B 换场仅正式采集段可用（进入 acquire 后生效）")
+
+    @property
+    def split_requested(self) -> bool:
+        return bool(self._split_active)
+
+    def _broadcast_operator_state(self) -> None:
+        self.bridge.broadcast(
+            {
+                "type": "operator_state",
+                "paused": self.bridge.is_paused(),
+                "phase": self._current_phase,
+                "trial_id": self._current_trial_id,
+                "label": self._current_label,
+                "object": self._current_object,
+                "scene": self._current_scene,
+                "reject_count": self._reject_count,
+                "aborting": self.bridge.should_abort(),
+            }
+        )
+
+    def _duration_for(self, stage: str) -> float:
+        t = self.timing
+        return {
+            "fixation": t.fixation_s,
+            "cue": t.cue_s,
+            "mi": t.mi_s,
+            "post_mi_hold": t.post_mi_hold_s,
+            "rest": t.rest_s,
+            "transition": t.transition_s,
+        }.get(stage, 0.0)
+
+    def _hud_for(
+        self,
+        stage: str,
+        label: Optional[int],
+        phase: str,
+        object_id: str,
+    ) -> tuple[str, bool, str]:
+        hand = "左手" if label == 1 else ("右手" if label == 2 else "")
+        obj = zh_object(object_id)
+        if stage == "fixation":
+            return ("", True, "注视十字，保持放松")
+        if stage == "cue":
+            return (f"{hand}抓取{obj}", False, "记住提示，即将开始想象")
+        if stage == "mi":
+            if phase == "learn" and self._anim == "full_grasp":
+                return (f"观察{hand}完整抓取", False, f"抓住{obj}并取走，只需观看")
+            if phase == "adapt" and self._anim == "full_grasp":
+                return (f"观察{hand}示意", False, f"抓住{obj}并取走，只需观看")
+            if phase == "learn" and self._anim == "reach":
+                return (f"想象{hand}抓取（弱辅助）", False, "手会前伸，请同步想象")
+            return (f"想象{hand}抓取{obj}", False, "身体保持静止")
+        if stage == "post_mi_hold":
+            return ("保持", False, "")
+        if stage == "rest":
+            return ("静息", False, "放松，不要想象动作")
+        if stage == "transition":
+            return ("", False, "")
+        return ("", False, "")
+
+    def _wait_continue(
+        self,
+        prompt_id: str,
+        title: str,
+        body: str,
+        button: str,
+        *,
+        allow_subject: bool = True,
+    ) -> None:
+        wait_prompt_continue(
+            self.bridge,
+            self.on_console,
+            prompt_id=prompt_id,
+            title=title,
+            body=body,
+            button=button,
+            allow_subject=allow_subject,
+            auto_continue=self.config.auto_continue,
+            after_broadcast=self._broadcast_operator_state,
+        )
+
+    def wait_browser_ready(self, timeout: float = 300.0) -> None:
+        self.bridge.broadcast(
+            {"type": "hello", "message": "打开诱导页后将自动 ready"}
+        )
+        self.on_console(f"等待浏览器连接并 ready… ({self.bridge.url})")
+        if self.config.auto_continue:
+            return
+        if self.bridge.wait_client_event("ready", timeout=1.0):
+            return
+        self.bridge.clear_event("ready")
+        self.bridge.broadcast({"type": "hello", "message": "请回传 ready"})
+        if not self.bridge.wait_client_event("ready", timeout=timeout):
+            raise TimeoutError("浏览器 ready 超时")
+
+    def _run_one_trial(self, ctx: TrialContext) -> None:
+        self.bridge.clear_reject()
+        try:
+            self.sm.run_trial(ctx)
+        finally:
+            if ctx.rejected:
+                self._reject_count += 1
+                self._broadcast_operator_state()
+
+    def run_adapt(self) -> None:
+        self._current_phase = "adapt"
+        self._anim = "none"
+        self._learn_step = None
+        self._current_object = self.config.object_name
+        self._current_scene = self.config.scene
+        self.events.emit("phase_start", phase="adapt")
+        self.markers.push(format_payload("phase_start", phase="adapt"))
+        self.bridge.broadcast({"type": "session", "status": "running", "phase": "adapt"})
+
+        self._wait_continue(
+            "adapt_welcome",
+            "环境适应",
+            ENV_ADAPT_BODY,
+            "我明白了",
+        )
+        self.bridge.broadcast(
+            {
+                "type": "stage",
+                "phase": "adapt",
+                "stage": "idle",
+                "trial_id": None,
+                "label": None,
+                "hand": "none",
+                "anim": "none",
+                "duration_s": 0,
+                "object": self._current_object,
+                "scene": self._current_scene,
+                "learn_step": None,
+                "transition_amp": "micro",
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "hud",
+                "text": "熟悉场景",
+                "subtext": f"看看双手与{zh_object(self._current_object)}",
+                "show_cross": False,
+            }
+        )
+        wait_until(
+            local_clock() + 3.0,
+            is_paused=self.bridge.is_paused,
+            should_abort=self.bridge.should_abort,
+        )
+
+        for i, lab in enumerate([1, 2], start=1):
+            self._anim = "full_grasp"
+            ctx = TrialContext(
+                trial_id=i,
+                label=lab,
+                object=self._current_object,
+                scene=self._current_scene,
+                phase="adapt",
+                transition_amp="micro",
+            )
+            self._run_one_trial(ctx)
+
+        self._wait_continue(
+            "adapt_done",
+            "适应结束",
+            "若已理解「想象抓取、身体不动」，请继续进入学习阶段。",
+            "进入学习",
+        )
+        self.events.emit("phase_end", phase="adapt")
+        self.markers.push(format_payload("phase_end", phase="adapt"))
+
+    def run_learn(self) -> None:
+        self._current_phase = "learn"
+        n = self.config.learn_trials_per_step
+        steps = [
+            (1, "full_grasp", "完整动作观察：观看抓取并取走目标物，只需观察"),
+            (2, "reach", "弱辅助：手会明显前伸靠近物体但不抓握，请同步想象抓取"),
+            (3, "none", "无辅助：画面静止，请自主完成左右手想象"),
+        ]
+        self.events.emit("phase_start", phase="learn")
+        self.markers.push(format_payload("phase_start", phase="learn"))
+        self.bridge.broadcast({"type": "session", "status": "running", "phase": "learn"})
+
+        import random
+
+        for step, anim, blurb in steps:
+            self._learn_step = step
+            self._anim = anim
+            self._wait_continue(
+                f"learn_step_{step}",
+                f"学习 Step {step}",
+                blurb,
+                "开始本步",
+            )
+            self.events.emit(
+                "learn_step_start",
+                phase="learn",
+                learn_step=step,
+            )
+            self.markers.push(
+                format_payload("learn_step_start", phase="learn", learn_step=step)
+            )
+            rng = random.Random(
+                None if self.config.seed is None else self.config.seed + step
+            )
+            labels = build_label_schedule(n, rng)
+            for i, lab in enumerate(labels, start=1):
+                ctx = TrialContext(
+                    trial_id=step * 100 + i,
+                    label=lab,
+                    object=self._current_object,
+                    scene=self._current_scene,
+                    phase="learn",
+                    transition_amp="micro",
+                    learn_step=step,
+                )
+                self._run_one_trial(ctx)
+            self.events.emit(
+                "learn_step_end",
+                phase="learn",
+                learn_step=step,
+            )
+            self.markers.push(
+                format_payload("learn_step_end", phase="learn", learn_step=step)
+            )
+
+        self.events.emit("phase_end", phase="learn")
+        self.markers.push(format_payload("phase_end", phase="learn"))
+        self._learn_step = None
+        self._anim = "none"
+
+    def run_gate(self) -> None:
+        self.bridge.broadcast({"type": "session", "status": "gate"})
+        self.events.emit("phase_start", phase="gate")
+        self.markers.push(format_payload("phase_start", phase="gate"))
+        self._wait_continue(
+            "gate",
+            "正式采集准入（人工确认）",
+            "请操作者确认受试者已能独立、清晰完成左右手抓取想象后继续。本阶段数据将进入主数据集。\n\n"
+            "被试空格无效。请操作者：按 G、点左上角「代确认」，或点本弹窗按钮。",
+            "确认准入，开始正式采集",
+            allow_subject=False,
+        )
+        self.events.emit("phase_end", phase="gate")
+        self.markers.push(format_payload("phase_end", phase="gate"))
+
+    def run_acquire(self) -> List[int]:
+        self._current_phase = "acquire"
+        self._anim = "none"
+        self._learn_step = None
+        self.bridge.broadcast(
+            {"type": "session", "status": "running", "phase": "acquire"}
+        )
+        self.events.emit("phase_start", phase="acquire")
+        self.markers.push(format_payload("phase_start", phase="acquire"))
+
+        rows = schedule_acquire(
+            self.config.acquire_trials, seed=self.config.seed
+        )
+        if not self.config.rotate_objects:
+            rows = [
+                (tid, lab, self.config.object_name, sc) for tid, lab, _, sc in rows
+            ]
+        if not self.config.rotate_scenes:
+            rows = [
+                (tid, lab, obj, self.config.scene) for tid, lab, obj, _ in rows
+            ]
+
+        enriched: List[TrialContext] = []
+        for i, (tid, lab, obj, sc) in enumerate(rows):
+            if i + 1 < len(rows):
+                _, _, nobj, nsc = rows[i + 1]
+                if nsc != sc:
+                    tamp = "scene"
+                elif nobj != obj:
+                    tamp = "swap"
+                else:
+                    tamp = "micro"
+            else:
+                tamp = "micro"
+            enriched.append(
+                TrialContext(
+                    trial_id=tid,
+                    label=lab,
+                    object=obj,
+                    scene=sc,
+                    phase="acquire",
+                    transition_amp=tamp,
+                )
+            )
+
+        labels_out: List[int] = []
+        prev_obj: Optional[str] = None
+        prev_scene: Optional[str] = None
+        for ctx in enriched:
+            if prev_scene is not None and ctx.scene != prev_scene:
+                self.events.emit(
+                    "scene_change",
+                    phase="acquire",
+                    trial_id=ctx.trial_id,
+                    scene=ctx.scene,
+                    object=ctx.object,
+                )
+                self.markers.push(
+                    format_payload(
+                        "scene_change", trial_id=ctx.trial_id, phase="acquire"
+                    )
+                )
+                self.on_console(
+                    f"[scene_change] → {ctx.scene} ({zh_scene(ctx.scene)})"
+                )
+            elif prev_obj is not None and ctx.object != prev_obj:
+                self.events.emit(
+                    "object_change",
+                    phase="acquire",
+                    trial_id=ctx.trial_id,
+                    object=ctx.object,
+                    scene=ctx.scene,
+                )
+                self.markers.push(
+                    format_payload(
+                        "object_change", trial_id=ctx.trial_id, phase="acquire"
+                    )
+                )
+                self.on_console(
+                    f"[object_change] → {ctx.object} ({zh_object(ctx.object)})"
+                )
+            self._run_one_trial(ctx)
+            labels_out.append(ctx.label)
+            self.trials_done = len(labels_out)
+            prev_obj, prev_scene = ctx.object, ctx.scene
+
+            # B 换场：在 trial 边界收尾本场（仅当还有剩余 trial 才算换场，
+            # 否则视为正常结束）
+            if self._split_requested and len(labels_out) < len(enriched):
+                self._split_active = True
+                self._finish_segment_for_split(ctx, len(enriched) - len(labels_out))
+                return labels_out
+
+        self.events.emit("phase_end", phase="acquire")
+        self.markers.push(format_payload("phase_end", phase="acquire"))
+        return labels_out
+
+    def _finish_segment_for_split(self, ctx: TrialContext, remaining: int) -> None:
+        """换场收尾：打事件 → 提示被试 → 结束 acquire 段。"""
+        self.events.emit(
+            "session_split",
+            phase="acquire",
+            trial_id=ctx.trial_id,
+            completed=self.trials_done,
+            remaining=remaining,
+        )
+        self.markers.push(
+            format_payload(
+                "session_split", trial_id=ctx.trial_id, phase="acquire"
+            )
+        )
+        self.events.emit("phase_end", phase="acquire")
+        self.markers.push(format_payload("phase_end", phase="acquire"))
+        self.on_console(
+            f"[split] 本场在 trial={ctx.trial_id} 后结束；剩余 {remaining} 个 trial "
+            "将在新 session 继续（等待操作者再按 B）"
+        )
+        self.bridge.broadcast(
+            {
+                "type": "stage",
+                "phase": "acquire",
+                "stage": "session_split",
+                "trial_id": ctx.trial_id,
+                "label": None,
+                "hand": "none",
+                "anim": "none",
+                "duration_s": 0,
+                "object": ctx.object,
+                "scene": ctx.scene,
+                "learn_step": None,
+                "transition_amp": "micro",
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "hud",
+                "text": "中场休息",
+                "subtext": "请按操作者引导抬手对照画面；坐好后等待开始下一场",
+                "show_cross": False,
+            }
+        )
+        self._broadcast_operator_state()
+
+    def _run_settle(self) -> None:
+        """换场继续段开场的静坐缓冲：注视十字，让体感残余与注意力复位。"""
+        dur = float(self.config.settle_s)
+        self.events.emit("settle_start", duration_s=dur)
+        self.markers.push(format_payload("settle_start", phase="acquire"))
+        self.bridge.broadcast(
+            {
+                "type": "stage",
+                "phase": "acquire",
+                "stage": "settle",
+                "trial_id": None,
+                "label": None,
+                "hand": "none",
+                "anim": "none",
+                "duration_s": dur,
+                "object": self._current_object,
+                "scene": self._current_scene,
+                "learn_step": None,
+                "transition_amp": "micro",
+            }
+        )
+        self.bridge.broadcast(
+            {
+                "type": "hud",
+                "text": "请坐好，注视十字放松",
+                "subtext": f"{dur:.0f} 秒后自动开始",
+                "show_cross": True,
+            }
+        )
+        self.on_console(f"[settle] 继续段静坐缓冲 {dur:.0f}s…")
+        wait_until(
+            local_clock() + dur,
+            is_paused=self.bridge.is_paused,
+            should_abort=self.bridge.should_abort,
+        )
+        self.events.emit("settle_end")
+        self.markers.push(format_payload("settle_end", phase="acquire"))
+
+    def run_all(self) -> None:
+        self.bridge.clear_event("abort")
+        self.bridge.clear_event("split_request")
+        self.bridge.paused = False
+        self.bridge.clear_reject()
+        self._reject_count = 0
+        self.bridge.broadcast({"type": "session", "status": "running"})
+        self._broadcast_operator_state()
+        # 换场继续段：先静坐缓冲（注视十字），再进入正式 trial
+        if self.config.settle_s > 0:
+            self._run_settle()
+        try:
+            if not self.config.skip_adapt:
+                self.run_adapt()
+            if not self.config.skip_learn:
+                self.run_learn()
+            if not self.config.skip_gate:
+                self.run_gate()
+            schedule = self.run_acquire()
+            if self._split_active:
+                # 换场收尾：不发 done；编排器等待第二次 B 开新 session
+                self._broadcast_operator_state()
+                return
+            self.bridge.broadcast({"type": "session", "status": "done"})
+            self.bridge.broadcast(
+                {
+                    "type": "hud",
+                    "text": "本会话结束",
+                    "subtext": f"感谢配合 · reject={self._reject_count}",
+                    "show_cross": False,
+                }
+            )
+            self.on_console(f"正式标签顺序: {schedule}")
+            self.on_console(f"reject 计数: {self._reject_count}")
+        except SessionAbort:
+            self._aborted = True
+            self.events.emit("session_abort", phase=self._current_phase)
+            self.bridge.broadcast(
+                {
+                    "type": "session",
+                    "status": "error",
+                    "message": "操作者已中止会话",
+                }
+            )
+            self.bridge.broadcast(
+                {
+                    "type": "hud",
+                    "text": "会话已中止",
+                    "subtext": "操作者按下紧急停止",
+                    "show_cross": False,
+                }
+            )
+            self.on_console("会话被操作者中止")
+        finally:
+            self._broadcast_operator_state()
+
+    def run_v2_session(
+        self,
+        *,
+        config_path: Optional[str] = None,
+        v2_overrides: Optional[Dict] = None,
+        protocol_locked: bool = True,
+        seed: Optional[int] = None,
+        skip_guidance: bool = False,
+        skip_calibration: bool = False,
+        skip_gate: bool = False,
+        skip_game: bool = False,
+        subject_feedback_mode: str = "none",
+        deps: Optional[tuple] = None,
+        close_buffer: bool = True,
+    ) -> Dict:
+        """v2：经 V2SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V2SessionRunner
+
+        return V2SessionRunner(
+            self.services,
+            config_path=config_path,
+            v2_overrides=v2_overrides,
+            protocol_locked=protocol_locked,
+            seed=seed,
+            skip_guidance=skip_guidance,
+            skip_calibration=skip_calibration,
+            skip_gate=skip_gate,
+            skip_game=skip_game,
+            subject_feedback_mode=subject_feedback_mode,
+            deps=deps,
+            close_buffer=close_buffer,
+        ).run()
+
+    def run_v3_session(
+        self,
+        *,
+        config_path: Optional[str] = None,
+        v3_overrides: Optional[Dict] = None,
+        protocol_locked: bool = True,
+        seed: Optional[int] = None,
+        subject_id: str = "unknown",
+        subject_feedback_mode: str = "none",
+        deps: Optional[tuple] = None,
+        skip_session_baseline: bool = False,
+        skip_block_gap: bool = False,
+        block_order_override: Optional[List[str]] = None,
+        trial_labels_by_block: Optional[List[List[int]]] = None,
+        sim_meta: Optional[Dict] = None,
+        use_synthetic: bool = False,
+        auto_confirm_guidance: Optional[bool] = None,
+        close_buffer: bool = True,
+    ) -> Dict:
+        """v3：经 V3SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V3SessionRunner
+
+        return V3SessionRunner(
+            self.services,
+            config_path=config_path,
+            v3_overrides=v3_overrides,
+            protocol_locked=protocol_locked,
+            seed=seed,
+            subject_id=subject_id,
+            subject_feedback_mode=subject_feedback_mode,
+            deps=deps,
+            skip_session_baseline=skip_session_baseline,
+            skip_block_gap=skip_block_gap,
+            block_order_override=block_order_override,
+            trial_labels_by_block=trial_labels_by_block,
+            sim_meta=sim_meta,
+            use_synthetic=use_synthetic,
+            auto_confirm_guidance=auto_confirm_guidance,
+            close_buffer=close_buffer,
+        ).run()
+
+    def run_v4_session(
+        self,
+        buf,
+        *,
+        config_path: Optional[str] = None,
+        v4_overrides: Optional[Dict] = None,
+        session_dir: Optional[Path] = None,
+    ) -> Dict:
+        """v4：经 V4SessionRunner 薄封装委托。"""
+        from experiment_game.experiment.session_runners import V4SessionRunner
+
+        return V4SessionRunner(
+            self.services,
+            buf,
+            config_path=config_path,
+            v4_overrides=v4_overrides,
+            session_dir=session_dir,
+        ).run()

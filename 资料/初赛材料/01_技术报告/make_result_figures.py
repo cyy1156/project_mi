@@ -16,6 +16,7 @@
 附：渲染后自动版面审计（最小字号 / 两两文本碰撞），审计不过则非零退出。
 """
 import sys
+from pathlib import Path
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
@@ -160,70 +161,159 @@ def fig4():
     return save(fig, "图4_窗长消融")
 
 
-# ---------------- 图 5 十一模型选型（Cleveland 点图） ----------------
+# ---------------- 图 5 十一模型选型（树状分层 + 条形，避免点数字重叠） ----------------
 def fig5():
     """OpenBMI · 2s/hop100 · Acc_paper（与正文 §3.1 表一致）。
-    协议：04_5060_旁路_2s滑窗100ms_openbmi_accpaper；正式数字锁自
-    资料/实验结果/5090/openbmi滑窗_paper_acc。
+    左：选型树（CNN/raw vs bandpower）；右：准确率条，数字标在条外。
     """
-    models = [
-        ("Deep4Net", 0.5431),
-        ("ShallowFBCSPNet", 0.5398),
-        ("Conformer", 0.5378),
-        ("EEGNet", 0.5307),
-        ("EEGTCNet", 0.5067),
-        ("DGCNN_raw", 0.4906),
-        ("DBN_raw", 0.4885),
-        ("GCBNet_raw", 0.4764),
-        ("DGCNN", 0.3891),
-        ("DBN", 0.3809),
-        ("GCBNet", 0.3746),
-    ][::-1]
-    names = [m[0] for m in models]
-    vals = [m[1] for m in models]
-    assert abs(vals[names.index("Deep4Net")] - vals[names.index("ShallowFBCSPNet")] - 0.0033) < 1e-9
-    noz = {"DGCNN", "DBN", "GCBNet"}
+    from matplotlib.patches import FancyBboxPatch, Rectangle
 
-    fig, ax = plt.subplots(figsize=(100 * MM, 94 * MM), constrained_layout=True)
-    for i, (n, v) in enumerate(zip(names, vals)):
-        ax.plot([0.30, v - 0.0015], [i, i], color=STEM, lw=1.1, zorder=2)
-        if n == "ShallowFBCSPNet":
-            ax.scatter(v, i, s=68, color=PRIMARY, edgecolor="white", lw=0.85, zorder=5)
-        elif n == "Deep4Net":
-            ax.scatter(v, i, s=46, color=P_MED, edgecolor="white", lw=0.7, zorder=4)
-        elif n in noz:
-            ax.scatter(v, i, s=36, facecolor="white", edgecolor=NEUTRAL, lw=1.0, zorder=4)
+    cnn_raw = [
+        ("ShallowFBCSPNet", 0.5404, True),   # selected
+        ("Deep4Net", 0.5400, False),
+        ("Conformer", 0.5375, False),
+        ("EEGNet", 0.5322, False),
+        ("EEGTCNet", 0.5103, False),
+        ("DGCNN_raw", 0.4911, False),
+        ("DBN_raw", 0.4883, False),
+        ("GCBNet_raw", 0.4802, False),
+    ]
+    band = [
+        ("DGCNN", 0.3916, False),
+        ("DBN", 0.3810, False),
+        ("GCBNet", 0.3702, False),
+    ]
+    assert abs(cnn_raw[0][1] - cnn_raw[1][1] - 0.0004) < 1e-9
+
+    # layout rows: top=cnn (8), gap, bottom=band (3); y decreases downward in plot
+    # We'll build from top to bottom with high y for first model
+    rows = []  # (y, group, name, val, selected)
+    y = 0.0
+    for name, val, sel in cnn_raw:
+        rows.append((y, "cnn", name, val, sel))
+        y -= 1.0
+    y -= 0.55  # group gap
+    for name, val, sel in band:
+        rows.append((y, "band", name, val, sel))
+        y -= 1.0
+    y_min = y + 1.0
+
+    fig, ax = plt.subplots(figsize=(145 * MM, 105 * MM), constrained_layout=True)
+
+    # coordinate regions
+    x_root, x_branch, x_leaf = 0.02, 0.18, 0.38
+    x_bar0, x_bar1 = 0.62, 0.98  # axes fraction for bars — use data coords instead
+
+    # Use mixed: tree in data coords with x in [0, 1] for tree, bars use twin or same with mapped vals
+    # Simpler: all in axes fraction via transform=ax.transAxes for tree; bars in data
+
+    ax.set_xlim(0, 1.0)
+    ax.set_ylim(y_min - 1.35, 0.85)
+    ax.axis("off")
+
+    def _box(ax_, x, y_, w, h, text, *, fc="white", ec=NEUTRAL, fw="normal", fs=7.0, tc=INK):
+        box = FancyBboxPatch(
+            (x, y_ - h / 2), w, h,
+            boxstyle="round,pad=0.012,rounding_size=0.02",
+            facecolor=fc, edgecolor=ec, linewidth=0.7, zorder=3,
+            transform=ax_.transData, clip_on=False)
+        ax_.add_patch(box)
+        ax_.text(x + w / 2, y_, text, ha="center", va="center", fontsize=fs,
+                 color=tc, fontweight=fw, zorder=4)
+
+    # root
+    y_cnn = np.mean([r[0] for r in rows if r[1] == "cnn"])
+    y_band = np.mean([r[0] for r in rows if r[1] == "band"])
+    y_root = (y_cnn + y_band) / 2
+    _box(ax, 0.00, y_root, 0.13, 0.85, "十一模型\n选型", fc="#EEF3F8", ec=PRIMARY,
+         fw="bold", fs=7.2)
+
+    # branch nodes
+    _box(ax, 0.18, y_cnn, 0.20, 0.72, "CNN / 原始波形\n（8）", fc="#F5F8FB", ec=PRIMARY, fs=6.8)
+    _box(ax, 0.18, y_band, 0.20, 0.72, "Bandpower 图\n（3）", fc="#FAFAFA", ec=NEUTRAL, fs=6.8)
+
+    # connectors root → branches
+    ax.plot([0.13, 0.155, 0.155, 0.18], [y_root, y_root, y_cnn, y_cnn],
+            color=STEM, lw=1.0, zorder=2)
+    ax.plot([0.155, 0.155, 0.18], [y_root, y_band, y_band],
+            color=STEM, lw=1.0, zorder=2)
+
+    # bar scale region
+    bar_x0, bar_x1 = 0.62, 0.92
+    v0, v1 = 0.30, 0.58
+
+    def v_to_x(v):
+        return bar_x0 + (v - v0) / (v1 - v0) * (bar_x1 - bar_x0)
+
+    # chance line
+    xc = v_to_x(CHANCE)
+    ax.plot([xc, xc], [y_min - 0.35, 0.55], color=NEUTRAL, ls=(0, (4, 3)), lw=0.65, zorder=1)
+    ax.text(xc, y_min - 0.55, "机会水平 1/3", ha="center", va="top", fontsize=6.5, color=NEUTRAL)
+
+    # axis ticks for bars
+    for tick in (0.3, 0.4, 0.5):
+        xt = v_to_x(tick)
+        ax.plot([xt, xt], [y_min - 0.15, y_min - 0.28], color=AXLINE, lw=0.5)
+        ax.text(xt, y_min - 0.32, f"{tick:.1f}", ha="center", va="top", fontsize=6.5, color=NEUTRAL)
+    ax.text((bar_x0 + bar_x1) / 2, y_min - 0.95,
+            "试次级三分类准确率（Acc_paper · 2 s / 100 ms）",
+            ha="center", va="top", fontsize=7.2, color=INK)
+
+    # leaves + bars
+    for y_i, grp, name, val, sel in rows:
+        # branch → leaf connector
+        yb = y_cnn if grp == "cnn" else y_band
+        ax.plot([0.38, 0.40, 0.40, 0.42], [yb, yb, y_i, y_i], color=STEM, lw=0.85, zorder=2)
+
+        # leaf name box
+        if sel:
+            _box(ax, 0.42, y_i, 0.175, 0.72, name + " ★", fc=PRIMARY, ec="#1A3A54",
+                 fw="bold", fs=6.5, tc="white")
         else:
-            ax.scatter(v, i, s=38, color=P_LT, edgecolor=P_MED, lw=0.6, zorder=4)
-        # Deep4 数值放点左侧，右侧留给旁注
-        if n == "Deep4Net":
-            ax.text(v - 0.004, i, f"{v:.4f}", va="center", ha="right", fontsize=6.8,
-                    color=INK, zorder=5)
-        else:
-            ax.text(v + 0.004, i, f"{v:.4f}", va="center", ha="left", fontsize=6.8,
-                    color=INK if n == "ShallowFBCSPNet" else NEUTRAL,
-                    fontweight="bold" if n == "ShallowFBCSPNet" else "normal", zorder=5)
+            _box(ax, 0.42, y_i, 0.175, 0.72, name, fc="white",
+                 ec=PRIMARY if grp == "cnn" else NEUTRAL, fs=6.5,
+                 tc=INK if grp == "cnn" else NEUTRAL)
 
-    ax.axvline(CHANCE, color=NEUTRAL, ls=(0, (4, 3)), lw=0.7, zorder=1)
-    ax.text(CHANCE + 0.004, -0.75, "机会水平 1/3", fontsize=6.5, color=NEUTRAL,
-            ha="left", va="center")
-    ax.axhline(2.5, color=NEUTRAL, lw=0.6, ls=(0, (2, 2)), zorder=3)
-    i_deep = names.index("Deep4Net")
-    ax.annotate("+0.33 pp（折间噪声量级，未采纳）",
-                xy=(0.5431, i_deep), xytext=(0.618, i_deep - 0.15),
-                ha="left", va="center", fontsize=6.6, color=CONTRAST,
-                arrowprops=dict(arrowstyle="-", color=CONTRAST, lw=0.6))
-    ax.text(0.01, 0.02, "底部三项：无 z-score 预处理（与上方不可比）",
-            transform=ax.transAxes, ha="left", va="bottom", fontsize=6.5, color=NEUTRAL)
+        # bar
+        x_end = v_to_x(val)
+        bar_h = 0.38
+        color = PRIMARY if sel else (P_LT if grp == "cnn" else "#D1D5DB")
+        ax.add_patch(Rectangle(
+            (bar_x0, y_i - bar_h / 2), x_end - bar_x0, bar_h,
+            facecolor=color, edgecolor="none", zorder=3, alpha=0.95))
+        # value OUTSIDE bar to the right — no overlap with marker
+        ax.text(min(x_end + 0.012, 0.935), y_i, f"{val:.4f}", ha="left", va="center",
+                fontsize=6.8, color=INK if sel else NEUTRAL,
+                fontweight="bold" if sel else "normal", zorder=5)
 
-    ax.set_yticks(range(len(names)), names)
-    ax.set_xlim(0.28, 0.72)
-    ax.set_xticks([0.3, 0.4, 0.5, 0.6])
-    ax.set_ylim(-0.85, len(names) - 0.15)
-    ax.set_xlabel("试次级三分类准确率（Acc_paper · 2 s / 100 ms）")
-    ax.tick_params(axis="y", length=0, labelsize=7.2, pad=2)
-    bare_ax(ax, keep_left=False)
-    return save(fig, "图5_十一模型选型")
+    # group spine from branch to first/last leaf
+    ys_cnn = [r[0] for r in rows if r[1] == "cnn"]
+    ys_band = [r[0] for r in rows if r[1] == "band"]
+    ax.plot([0.40, 0.40], [max(ys_cnn), min(ys_cnn)], color=STEM, lw=0.85, zorder=2)
+    ax.plot([0.40, 0.40], [max(ys_band), min(ys_band)], color=STEM, lw=0.85, zorder=2)
+
+    # callouts
+    ax.text(0.01, y_min - 1.25,
+            "shallow 居首；deep −0.04 pp（几乎并列）\nTask 上 deep +2.3 pp（未据此换主干）",
+            ha="left", va="top", fontsize=6.5, color=CONTRAST, linespacing=1.3)
+    ax.text(0.62, y_min - 1.25,
+            "Bandpower 图模型明显弱于 CNN / *_raw",
+            ha="left", va="top", fontsize=6.5, color=NEUTRAL)
+
+    problems = save(fig, "图5_十一模型选型")
+    # sync english alias used by report
+    import shutil
+    src = Path("figures/图5_十一模型选型.png")
+    if src.exists():
+        shutil.copy2(src, Path("figures/fig05_model_selection.png"))
+        pdf = Path("figures/图5_十一模型选型.pdf")
+        if pdf.exists():
+            shutil.copy2(pdf, Path("figures/fig05_model_selection.pdf"))
+        # also refresh 交稿 copy if present
+        j = Path("交稿/figures/fig05_model_selection.png")
+        if j.parent.exists():
+            shutil.copy2(src, j)
+    return problems
 
 
 # ---------------- 图 6 主结果（竖柱对比）+ 混淆矩阵（行归一化热图）——规格 §3 ----------
@@ -231,8 +321,8 @@ def fig6():
     """通栏双面板：左读出对比竖柱（混粒度，柱标签声明）；右因果平滑窗级混淆热图。"""
     from matplotlib.colors import LinearSegmentedColormap
 
-    vals = [0.5876, 0.5925, 0.6125, 0.6188]
-    sd0 = 0.0296
+    vals = [0.5808, 0.5925, 0.6125, 0.6188]
+    sd0 = 0.0288
     labels = ["浅层 3 s\n单模型\n(窗级)", "融合\nargmax\n(窗级)", "融合 +\n多数票\n(试次级)", "融合 +\n因果平滑\n(窗级·主)"]
     fills = [P_LT, P_MED, P_MED, PRIMARY]
     edges = [P_MED, PRIMARY, PRIMARY, "#1A3A54"]
@@ -500,7 +590,7 @@ def fig9():
 
 # ---------------- 图 10 真人 Leave-Next 逐轮柱状（每被试一面板） ----------------
 def _load_real_leave_next_cohort():
-    """读取各被试最新 all4 Leave-Next F5 summary → 逐轮试次级 MI（%）。"""
+    """读取各被试最新 all4 Leave-Next F5 summary → 逐轮微调三分类窗级（因果平滑，%）。"""
     from pathlib import Path
     import json
 
@@ -519,14 +609,15 @@ def _load_real_leave_next_cohort():
         if prev is None or stamp >= prev["stamp"]:
             rows = []
             for r in d.get("rows") or []:
-                f5 = r.get("f5_ft") or {}
-                mi = f5.get("mi_acc")
-                if mi is None:
+                win = r.get("heldout_acc_smooth")
+                if win is None:
+                    win = r.get("heldout_acc")
+                if win is None:
                     continue
-                mi_pct = float(mi) * 100.0 if float(mi) <= 1.0 else float(mi)
+                win_pct = float(win) * 100.0 if float(win) <= 1.0 else float(win)
                 rows.append({
                     "r": int(r.get("r_stage") or (len(rows) + 1)),
-                    "mi": mi_pct,
+                    "win": win_pct,
                     "pass": bool(r.get("release_pass")),
                     "hold": str(r.get("heldout") or ""),
                 })
@@ -538,22 +629,22 @@ def _load_real_leave_next_cohort():
         rows = pack["rows"]
         cohort.append({
             "sid": sid,
-            "mis": [r["mi"] for r in rows],
+            "wins": [r["win"] for r in rows],
             "passes": [r["pass"] for r in rows],
-            "final_mi": rows[-1]["mi"],
+            "final_win": rows[-1]["win"],
             "final_pass": rows[-1]["pass"],
             "n": len(rows),
         })
-    cohort.sort(key=lambda x: (-x["final_mi"], x["sid"]))
+    cohort.sort(key=lambda x: (-x["final_win"], x["sid"]))
     return cohort
 
 
 def fig10():
-    """通栏小倍数：每被试 Leave-Next 各轮 FT 试次级 MI 柱状图（含新增被试）。"""
+    """通栏小倍数：每被试 Leave-Next 各轮微调三分类窗级（因果平滑）柱状图。"""
     cohort = _load_real_leave_next_cohort()
     n = len(cohort)
     assert n >= 15, f"真人队列不足 15 人，当前 {n}"
-    finals = [c["final_mi"] for c in cohort]
+    finals = [c["final_win"] for c in cohort]
     n_pass = sum(1 for c in cohort if c["final_pass"])
     mean_final = float(np.mean(finals))
 
@@ -578,7 +669,7 @@ def fig10():
         # 末档加粗主色描边
         colors[-1] = PRIMARY if c["final_pass"] else P_MED
         edges[-1] = "#1A3A54" if c["final_pass"] else FAIL_C
-        ax.bar(xs, c["mis"], width=0.72, color=colors, edgecolor=edges,
+        ax.bar(xs, c["wins"], width=0.72, color=colors, edgecolor=edges,
                linewidth=0.7, zorder=3)
         ax.axhline(50.0, color=NEUTRAL, ls=(0, (3, 2)), lw=0.55, zorder=1)
         ax.set_title(c["sid"], fontsize=7.2, color=INK, pad=2)
@@ -589,25 +680,205 @@ def fig10():
         ax.tick_params(labelsize=6.5, length=2, width=0.5)
         bare_ax(ax)
         # 末档数值
-        ax.text(c["n"], min(97, c["final_mi"] + 4.5), f"{c['final_mi']:.0f}",
+        ax.text(c["n"], min(97, c["final_win"] + 4.5), f"{c['final_win']:.0f}",
                 ha="center", va="bottom", fontsize=6.5,
                 color=PRIMARY if c["final_pass"] else FAIL_C, fontweight="bold")
 
     for ax in axes[:, 0]:
-        ax.set_ylabel("试次级 MI（%）", fontsize=7)
+        ax.set_ylabel("三分类窗级（%）", fontsize=7)
     fig.supxlabel(
         f"Leave-Next 轮次 R1…Rn（柱色绿=该轮门控 PASS / 浅灰=FAIL；末档加粗）· n={n} · "
         f"末档均值 {mean_final:.1f}% · 末档 PASS {n_pass}/{n}",
         fontsize=7)
-    return save(fig, "图10_真人LeaveNext逐轮MI")
+    return save(fig, "图10_真人LeaveNext逐轮窗级")
+
+
+# ---------------- 图 11 仿真 vs 真人 适配增益对照（三分类窗级，同指标族） ----------------
+def fig11():
+    """左：队列均值「零样本 → 微调后」；右：每人增益 Δ 条形（易读）。
+    数据：BCI2a=Exp32；真人=§3.6 微调窗级 − 零样本窗级。"""
+    import shutil
+    from pathlib import Path
+
+    # 队列均值（%）：零样本 / 末档；与正文 0.338→0.663、0.379→0.487 对齐
+    b2a_zs, b2a_ft = 33.8, 66.3
+    hum_zs, hum_ft = 37.9, 48.7
+    b2a_d = [36.6, 20.5, 45.4, 31.9, 26.5, 37.4, 31.0, 32.8, 30.1]
+    hum_d = [51.0, 28.8, 13.3, 11.2, 15.6, 1.8, 2.9, 1.7, 5.7, 9.9,
+             12.1, 13.4, 1.9, 7.6, 5.5, 0.3, 0.0]
+    # 与 §3.6 表（窗级降序）门控列一致
+    hum_pass = [True, True, True, False, True, True, True, True, False,
+                True, True, False, False, True, False, False, False]
+    assert abs(np.mean(b2a_d) - 32.5) < 0.15
+    assert abs(np.mean(hum_d) - 10.75) < 0.15
+
+    fig, (ax0, ax1) = plt.subplots(
+        1, 2, figsize=(165 * MM, 62 * MM),
+        gridspec_kw={"width_ratios": [1.05, 1.35]},
+        constrained_layout=True)
+
+    # ---- 左：零样本 vs 微调后（一眼看懂「提升了多少」）----
+    x = np.array([0.0, 1.35])
+    w = 0.38
+    zs = [b2a_zs, hum_zs]
+    ft = [b2a_ft, hum_ft]
+    ax0.bar(x - w / 2, zs, width=w, color=P_LT, edgecolor=PRIMARY,
+            linewidth=0.6, label="零样本", zorder=3)
+    ax0.bar(x + w / 2, ft, width=w, color=PRIMARY, edgecolor="#1A3A54",
+            linewidth=0.6, label="微调后（末档）", zorder=3)
+    for i, (z, f) in enumerate(zip(zs, ft)):
+        # 提升箭头与 Δ 标注
+        ax0.annotate(
+            "", xy=(x[i] + w / 2, f), xytext=(x[i] + w / 2, z),
+            arrowprops=dict(arrowstyle="->", color=CONTRAST, lw=1.1))
+        ax0.text(x[i] + w / 2 + 0.22, (z + f) / 2, f"+{f - z:.1f} pp",
+                 color=CONTRAST, fontsize=7.5, fontweight="bold", va="center")
+        ax0.text(x[i] - w / 2, z + 1.2, f"{z:.1f}", ha="center", va="bottom",
+                 fontsize=6.5, color=NEUTRAL)
+        ax0.text(x[i] + w / 2, f + 1.2, f"{f:.1f}", ha="center", va="bottom",
+                 fontsize=6.5, color=INK, fontweight="bold")
+    ax0.set_xticks(x)
+    ax0.set_xticklabels(["BCI2a 仿真\n（n=9）", "真人队列\n（n=17）"], fontsize=7.5)
+    ax0.set_ylabel("三分类窗级准确率（%）", fontsize=8)
+    ax0.set_ylim(0, 78)
+    ax0.set_yticks([0, 20, 40, 60])
+    ax0.legend(loc="upper left", fontsize=7, handlelength=1.2)
+    ax0.set_title("队列均值：微调前后对照", fontsize=8, color=INK, pad=4)
+    bare_ax(ax0)
+
+    # ---- 右：每人增益条形（按 Δ 降序）----
+    b2a_s = sorted(b2a_d, reverse=True)
+    # 真人：与 Δ 一起排序，门控色跟随
+    hum_pairs = sorted(zip(hum_d, hum_pass), key=lambda t: -t[0])
+    hum_s = [v for v, _ in hum_pairs]
+    hum_ok = [ok for _, ok in hum_pairs]
+
+    # 两段 y：上 BCI2a，下 真人，中间留缝
+    gap = 1.2
+    y_b = np.arange(len(b2a_s))[::-1] + (len(hum_s) + gap)
+    y_h = np.arange(len(hum_s))[::-1]
+    ax1.barh(y_b, b2a_s, height=0.72, color=PRIMARY, edgecolor="#1A3A54",
+             linewidth=0.4, zorder=3)
+    ax1.barh(y_h, hum_s, height=0.72,
+             color=[PASS_C if ok else FAIL_C for ok in hum_ok],
+             edgecolor=NEUTRAL, linewidth=0.35, zorder=3)
+    mb, mh = float(np.mean(b2a_d)), float(np.mean(hum_d))
+    ax1.axvline(mb, color=PRIMARY, ls=(0, (3, 2)), lw=0.9, zorder=2)
+    ax1.axvline(mh, color=PASS_C, ls=(0, (3, 2)), lw=0.9, zorder=2)
+    ax1.text(mb, y_b.max() + 0.85, f"仿真均值 {mb:.1f}", ha="center",
+             fontsize=6.5, color=PRIMARY, fontweight="bold")
+    ax1.text(mh, -1.15, f"真人均值 {mh:.1f}", ha="center",
+             fontsize=6.5, color=PASS_C, fontweight="bold")
+    # 组标签
+    ax1.text(-1.5, y_b.mean(), "BCI2a", ha="right", va="center",
+             fontsize=7.5, color=PRIMARY, fontweight="bold", rotation=90)
+    ax1.text(-1.5, y_h.mean(), "真人", ha="right", va="center",
+             fontsize=7.5, color=INK, fontweight="bold", rotation=90)
+    ax1.set_xlabel("每人增益 Δ = 末档 − 零样本（百分点）", fontsize=8)
+    ax1.set_xlim(0, 56)
+    ax1.set_yticks([])
+    ax1.set_title("个体增益分布（条越长 = 提升越多）", fontsize=8, color=INK, pad=4)
+    # 图例：门控
+    from matplotlib.patches import Patch
+    ax1.legend(handles=[
+        Patch(facecolor=PRIMARY, edgecolor="#1A3A54", label="BCI2a 被试"),
+        Patch(facecolor=PASS_C, edgecolor=NEUTRAL, label="真人 · 门控 PASS"),
+        Patch(facecolor=FAIL_C, edgecolor=NEUTRAL, label="真人 · 门控 FAIL"),
+    ], loc="lower right", fontsize=6.5, handlelength=1.0, frameon=False)
+    bare_ax(ax1, keep_left=False)
+    ax1.spines["left"].set_visible(False)
+
+    # 一句读法（图内）
+    fig.suptitle(
+        "读法：左图看「平均从多少提到多少」；右图看「每个人提升多少」（仿真最差 +20.5 > 真人中位 +5.7）",
+        fontsize=7, color=NEUTRAL, y=1.02)
+
+    problems = save(fig, "图11_仿真与真人增益对照")
+    # 正文引用别名
+    src = Path("figures/图11_仿真与真人增益对照.png")
+    dst = Path("figures/fig11_sim_vs_human_gain.png")
+    if src.exists():
+        shutil.copy2(src, dst)
+        pdf_src = Path("figures/图11_仿真与真人增益对照.pdf")
+        if pdf_src.exists():
+            shutil.copy2(pdf_src, Path("figures/fig11_sim_vs_human_gain.pdf"))
+    return problems
 
 
 if __name__ == "__main__":
     style_check()
     warns = []
-    for fn in (fig4, fig5, fig6, fig7, fig_m_leave_next, fig8, fig9, fig10):
+    for fn in (fig4, fig5, fig6, fig7, fig_m_leave_next, fig8, fig9, fig10, fig11):
         warns += fn()
     if warns:
         print(f"\nAUDIT: {len(warns)} warning(s)")
         sys.exit(1)
     print("\nAUDIT clean · all done")
+
+
+# ---------------- 图 12 仿真 vs 真人：均值柱 + 逐人增益条（按 v4 图注） ----------------
+def fig12_sim_vs_human():
+    """左：两队列零样本→末档均值柱 + 提升箭头；右：逐人增益横条按降序。
+    数据同 fig11（BCI2a=Exp32；真人=v4 §3.6 三分类窗级表）。"""
+    b2a = [36.6, 20.5, 45.4, 31.9, 26.5, 37.4, 31.0, 32.8, 30.1]
+    human = [51.0, 28.8, 13.3, 11.2, 15.6, 1.8, 2.9, 1.7, 5.7, 9.9,
+             12.1, 13.4, 1.9, 7.6, 5.5, 0.3, 0.0]
+    human_pass = [True, True, True, False, True, True, True, True, False, True,
+                  True, False, False, True, False, False, False]
+    h_mean, b_mean = float(np.mean(human)), float(np.mean(b2a))
+    assert abs(b_mean - 32.5) < 0.1 and abs(h_mean - 10.75) < 0.1
+    fig, (axL, axR) = plt.subplots(1, 2, figsize=(165 * MM, 62 * MM),
+                                   constrained_layout=True,
+                                   gridspec_kw={"width_ratios": [1, 1.5]})
+    # (a) 均值柱：零样本 → 末档
+    x = np.arange(2)
+    zero = [33.8, 37.9]
+    fin = [66.3, 48.7]
+    axL.bar(x - 0.16, zero, width=0.3, color=P_LT, label="零样本", zorder=3)
+    axL.bar(x + 0.16, fin, width=0.3, color=PRIMARY, label="末档 FT", zorder=3)
+    for xi, (z, f_) in enumerate(zip(zero, fin)):
+        axL.annotate("", xy=(xi + 0.16, f_), xytext=(xi - 0.16, z),
+                     arrowprops=dict(arrowstyle="-|>", color=CONTRAST, lw=1.4), zorder=4)
+        axL.text(xi + 0.16, f_ + 1.5, "+%.1f" % (f_ - z), ha="center",
+                 fontsize=7.4, color=CONTRAST, fontweight="bold", zorder=5)
+    axL.set_xticks(x, ["BCI2a 仿真\n（n=9）", "真人\n（n=17）"], fontsize=8)
+    axL.set_ylabel("三分类窗级准确率（%）")
+    axL.set_ylim(0, 80)
+    axL.legend(loc="upper right", fontsize=7, frameon=False)
+    bare_ax(axL)
+    axL.text(-0.14, 1.05, "(a) 均值抬升", transform=axL.transAxes, fontsize=8.5,
+             fontweight="bold", color=INK)
+    # (b) 逐人增益横条（降序，蓝=BCI2a，绿/红=真人 PASS/FAIL）
+    order = sorted(range(len(b2a)), key=lambda i: -b2a[i])
+    ys = np.arange(len(b2a))
+    for k, i in enumerate(order):
+        axR.barh(len(human) + 1 + k, b2a[i], height=0.62, color=PRIMARY, zorder=3)
+    oh = sorted(range(len(human)), key=lambda i: -human[i])
+    for k, i in enumerate(oh):
+        c = PASS_C if human_pass[i] else FAIL_C
+        axR.barh(len(human) - 0.5 - k, human[i], height=0.62, color=c, zorder=3)
+    axR.axvline(b_mean, color=PRIMARY, lw=0.9, linestyle=(0, (4, 3)), zorder=4)
+    axR.axvline(h_mean, color=INK, lw=0.9, linestyle=(0, (2, 2)), zorder=4)
+    axR.text(b_mean + 0.6, len(human) + 2.2, "仿真均值 %.1f" % b_mean, fontsize=6.6,
+             color=PRIMARY)
+    axR.text(h_mean + 0.6, -1.4, "真人均值 %.1f" % h_mean, fontsize=6.6, color=INK)
+    axR.set_yticks([])
+    axR.set_xlabel("适配增益 Δ = 末档 − 零样本（pp，三分类窗级）")
+    axR.set_xlim(0, 56)
+    axR.set_ylim(-2.0, len(human) + 3.4)
+    from matplotlib.patches import Patch
+    axR.legend(handles=[Patch(color=PRIMARY, label="BCI2a 仿真"),
+                        Patch(color=PASS_C, label="真人 · 门控 PASS"),
+                        Patch(color=FAIL_C, label="真人 · 门控 FAIL")],
+               loc="lower right", fontsize=6.4, frameon=False)
+    bare_ax(axR)
+    axR.text(-0.12, 1.05, "(b) 逐人增益", transform=axR.transAxes, fontsize=8.5,
+             fontweight="bold", color=INK)
+    problems = audit(fig, "图12_仿真与真人增益对照")
+    fig.savefig("figures/图12_仿真与真人增益对照.png")
+    fig.savefig("figures/图12_仿真与真人增益对照.pdf")
+    plt.close(fig)
+    print(("OK   " if not problems else "WARN ") + "图12_仿真与真人增益对照")
+    for x in problems:
+        print("     - " + x)
+    return problems

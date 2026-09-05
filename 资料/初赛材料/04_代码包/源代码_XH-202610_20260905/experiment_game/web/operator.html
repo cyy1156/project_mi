@@ -1,0 +1,834 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>操作台 · 采集控制</title>
+    <link rel="stylesheet" href="css/operator.css?v=20260828x" />
+  </head>
+  <body>
+    <div id="app">
+      <header class="top">
+        <div class="brand">操作台</div>
+        <div id="subject-bar" class="subject-bar hidden">
+          <span class="k">被试</span>
+          <strong id="subject-bar-id">—</strong>
+          <span id="subject-bar-session" class="muted"></span>
+          <span id="subject-bar-weights" class="muted"></span>
+          <button type="button" id="btn-subject-logout" class="link-btn">换被试</button>
+        </div>
+        <div id="ws-status" class="ws-status">未连接</div>
+      </header>
+
+      <!-- Login -->
+      <section id="view-login" class="view">
+        <h1>被试登录</h1>
+        <p class="lead">输入英文缩写后进入操作台；数据将写入该被试专属目录。</p>
+        <form id="login-form">
+          <fieldset class="login-mode">
+            <legend>工作模式</legend>
+            <label class="radio"><input type="radio" name="login_work_mode" value="experiment" checked /> 实验（真机）</label>
+            <label class="radio"><input type="radio" name="login_work_mode" value="sim" /> 仿真（BCI2a）</label>
+          </fieldset>
+          <label class="full login-exp">英文缩写
+            <input name="login_subject_id" id="login-subject-id" required
+              pattern="[a-z][a-z0-9_]{1,14}" placeholder="fnz" autocomplete="off" />
+          </label>
+          <label class="full login-sim hidden">仿真被试
+            <select name="login_sim_subject" id="login-sim-subject">
+              <option value="A01">A01</option><option value="A02">A02</option><option value="A03">A03</option>
+              <option value="A04">A04</option><option value="A05">A05</option><option value="A06">A06</option>
+              <option value="A07">A07</option><option value="A08">A08</option><option value="A09">A09</option>
+            </select>
+          </label>
+          <label class="full">备注（可选）
+            <input name="login_display_name" id="login-display-name" placeholder="全名 / 右利手" />
+          </label>
+          <p id="login-error" class="warn hidden"></p>
+          <div class="actions">
+            <button type="submit" class="primary">进入操作台</button>
+          </div>
+          <p id="login-last" class="hint"></p>
+        </form>
+      </section>
+
+      <!-- Setup -->
+      <section id="view-setup" class="view hidden">
+        <h1>实验前设置</h1>
+        <p class="lead">确认后再点「开始实验」；将自动打开诱导页并开跑。</p>
+
+        <div id="reuse-bar" class="reuse-bar hidden">
+          <div>
+            <strong>沿用上次配置？</strong>
+            <span id="reuse-summary" class="muted"></span>
+          </div>
+          <div class="reuse-actions">
+            <button type="button" id="btn-reuse-start" class="primary">确认并开始</button>
+            <button type="button" id="btn-reuse-edit">修改设置</button>
+          </div>
+        </div>
+
+        <form id="setup-form">
+          <fieldset>
+            <legend>被试与会话</legend>
+            <label>被试编号 <input name="subject_id" id="setup-subject-id" value="sub01" required readonly /></label>
+            <label>会话编号
+              <div class="port-row">
+                <input
+                  name="session_id"
+                  id="setup-session-id"
+                  list="session-id-list"
+                  required
+                  autocomplete="off"
+                  spellcheck="false"
+                  placeholder="如 w01（可手输）"
+                />
+                <datalist id="session-id-list"></datalist>
+                <button type="button" id="session-id-suggest-btn" title="填入当前板块建议下一号">建议号</button>
+              </div>
+            </label>
+            <div id="session-id-board-map" class="session-board-map" aria-live="polite"></div>
+            <p id="session-id-hint" class="hint">可手输；下方按板块列出已有编号（点击填入）。同板块已有会询问是否覆盖；其他板块同号可并存。</p>
+            <label class="check hidden" id="session-overwrite-wrap">
+              <input type="checkbox" name="overwrite_session_id" id="session-overwrite" />
+              覆盖已有该编号的实验（旧目录移入 sessions/_archived）
+            </label>
+            <label class="full">备注 <textarea name="notes" rows="2" placeholder="写入 meta"></textarea></label>
+            <label class="check">
+              <input type="checkbox" name="open_subject_page" checked />
+              开始时自动打开诱导页
+            </label>
+          </fieldset>
+
+          <fieldset class="exp-only">
+            <legend>采集开关</legend>
+            <label class="check">
+              <input type="checkbox" name="acq_enabled" checked />
+              是否开启采集（关则无 eeg.csv，不能训练切窗）
+            </label>
+            <div id="acq-warning" class="warn hidden">本次不能训练切窗（未开启采集）</div>
+            <div class="row">
+              <label class="radio"><input type="radio" name="board_mode" value="synthetic" checked /> 合成板（调试）</label>
+              <label class="radio"><input type="radio" name="board_mode" value="cyton" /> Cyton 真机</label>
+            </div>
+            <div id="gui-hint" class="hint hidden">真机前请关闭 OpenBCI GUI 的串口直播，避免占用 COM。</div>
+          </fieldset>
+
+          <fieldset id="device-fieldset" class="exp-only">
+            <legend>OpenBCI / 设备</legend>
+            <label class="full">串口
+              <div class="port-row">
+                <input name="serial_port" id="serial_port_input" list="serial-port-list" value="COM5" />
+                <datalist id="serial-port-list"></datalist>
+                <button type="button" id="btn-refresh-ports">刷新串口</button>
+              </div>
+            </label>
+            <p id="ports-hint" class="hint">点击「刷新串口」从本机枚举 COM；也可直接手填。</p>
+            <label>采样率 <input value="250 Hz" disabled /></label>
+            <label>通道数 <input value="8" disabled /></label>
+            <p class="hint">通道：FC3, C3, CP3, CZ, CPZ, FC4, C4, CP4</p>
+          </fieldset>
+
+          <fieldset id="phase-mode-fieldset">
+            <legend>会话模式</legend>
+            <p id="sim-mode-hint" class="hint sim-workspace-only hidden">
+              仿真工作区固定为 <strong>sim_v3（BCI2a 回放）</strong>；EEG 由 mat 回放写入，无需采集开关与 Cyton。
+              诱导页<strong>自动打开</strong>，被试反馈固定为<strong>伸手拿杯</strong>。
+            </p>
+            <div class="row">
+              <label class="radio exp-phase-only"><input type="radio" name="phase_mode" value="phase2_full" checked /> v1 Phase2（适应→学习→正式）</label>
+              <label class="radio exp-phase-only"><input type="radio" name="phase_mode" value="v2_session" /> v2 游戏测试（v3 最终权重 · 20 试 · 满分 15）</label>
+              <label class="radio exp-phase-only"><input type="radio" name="phase_mode" value="v3_session" /> v3 探针（零样本 · 引导 A/B）</label>
+              <label class="radio sim-phase-only hidden"><input type="radio" name="phase_mode" value="sim_v3_session" /> 仿真 v3（BCI2a 回放）</label>
+              <label class="radio exp-phase-only"><input type="radio" name="phase_mode" value="v4_session" /> v4 质量检测（实验前 · 无模型）</label>
+            </div>
+            <p class="hint v4-only hidden">v4 仅需采集与 LSL，用于戴帽后修电极；连续 15s 达标后可开 v3。</p>
+            <label class="check lock-check">
+              <input type="checkbox" name="protocol_locked" checked />
+              采集模式（冻结协议）· 锁定 v2 时序与高级常量，防手滑
+            </label>
+            <p class="hint">关闭冻结须显式确认；正式采集请保持开启。yaml 见 <code>config/v2_session.yaml</code> / <code>v3_session.yaml</code> / <code>v4_session.yaml</code>。</p>
+          </fieldset>
+
+          <fieldset class="v23-only hidden">
+            <legend>模型权重</legend>
+            <div id="model-current-banner" class="model-current-banner" role="status" aria-live="polite">
+              <span class="model-current-kicker">当前模型</span>
+              <strong id="model-current-name">—</strong>
+              <span id="model-current-mode" class="model-current-mode"></span>
+            </div>
+            <label class="full">预设
+              <select name="model_preset" id="model-preset">
+                <option value="openbmi_baseline">OpenBMI 底座（零样本）</option>
+                <option value="custom">自定义路径…</option>
+              </select>
+            </label>
+            <label class="full">task 权重
+              <input name="s3_task_ckpt" id="s3_task_ckpt" type="text"
+                value="experiment_game/data/models/fnz/best_task.pt" spellcheck="false" />
+            </label>
+            <label class="full">three 权重
+              <input name="s3_three_ckpt" id="s3_three_ckpt" type="text"
+                value="experiment_game/data/models/fnz/best_three.pt" spellcheck="false" />
+            </label>
+            <p id="model-weight-hint" class="hint">路径相对仓库根目录；v2/v3 共用。保存默认配置后下次自动带入。</p>
+            <label class="full v23-only hidden">被试反馈模式
+              <select name="subject_feedback_mode" id="subject-feedback-mode">
+                <option value="none">无伸手 / 无绿条（探针默认）</option>
+                <option value="arm_reach">有伸手反馈（游戏轮）</option>
+              </select>
+            </label>
+          </fieldset>
+
+          <fieldset class="v23-only hidden">
+            <legend>离线微调 · Replay（v2 / v3 共用）</legend>
+            <label class="check">
+              <input type="checkbox" name="ft_use_replay" checked />
+              启用 OpenBMI T0 replay
+            </label>
+            <div class="row">
+              <label>replay_ratio <input name="ft_replay_ratio" type="number" step="0.01" min="0" max="0.5" value="0.10" /></label>
+              <button type="button" id="btn-setup-replay-adopt" class="hidden">采纳建议</button>
+            </div>
+            <p id="setup-ft-replay-hint" class="hint replay-advice">—</p>
+            <p class="hint">
+              Exp29：每 run 约 300 窗时，累积到第 4 run 在线 trial acc 可达 ~60%，可尝试<strong>关闭 replay</strong>（纯被试窗 FT）。
+              v2 在线增量 FT 与收工后「被试微调」共用此设置。
+            </p>
+            <details class="ft-advanced">
+              <summary>高级 · 采后 FT 训练</summary>
+              <label class="check">
+                <input type="checkbox" name="ft_early_stop" checked />
+                heldout 早停（窗级 acc）
+              </label>
+              <label>max_epochs <input name="ft_max_epochs" type="number" min="1" max="100" value="20" /></label>
+              <label>patience <input name="ft_patience" type="number" min="1" max="50" value="5" /></label>
+              <label>固定 epochs <input name="ft_fixed_epochs" type="number" min="1" max="50" value="5" /></label>
+              <label class="check">
+                <input type="checkbox" name="ft_deterministic" checked />
+                确定性训练
+              </label>
+              <label>seed <input name="ft_seed" type="number" min="0" value="42" /></label>
+            </details>
+          </fieldset>
+
+          <fieldset class="sim-only hidden">
+            <legend>仿真 · BCI2a run</legend>
+            <div class="row">
+              <label>run_id <input name="sim_run_id" type="text" value="run3" placeholder="run3" /></label>
+              <label>每场 trial <input name="sim_trials_total" type="number" min="6" max="48" value="36" /></label>
+              <label>回放速度 <input name="sim_replay_speed" type="number" min="0.25" max="32" step="0.25" value="4" /> ×</label>
+            </div>
+            <div class="row">
+              <span class="hint">回放对齐：</span>
+              <label class="radio"><input type="radio" name="sim_replay_align" value="schedule_align" checked /> schedule_align</label>
+              <label class="radio"><input type="radio" name="sim_replay_align" value="timing_align" /> timing_align</label>
+            </div>
+            <fieldset class="sim-campaign-box">
+              <legend>Campaign（run 队列）</legend>
+              <div id="sim-run-queue" class="sim-run-queue muted">登录仿真被试后加载 run 列表…</div>
+              <div class="row">
+                <button type="button" id="btn-sim-campaign-create">创建 Campaign</button>
+                <label class="check"><input type="checkbox" name="sim_use_campaign_queue" /> 使用 Campaign 队列（自动取下一场 run）</label>
+                <label class="check"><input type="checkbox" name="sim_leave_next_mode" checked /> Leave-Next Ramp（Exp29：eval run 不进 FT）</label>
+              </div>
+              <label>当前 Campaign
+                <select name="sim_campaign_select" id="sim-campaign-select">
+                  <option value="">— 单场 run —</option>
+                </select>
+              </label>
+              <p id="sim-campaign-status" class="hint"></p>
+            </fieldset>
+            <p class="hint">跳过 session 30s 基线与块间休息；每场 trial 含 <strong>Rest+Left+Right</strong> 三类均衡（默认 36=12×3）。<strong>会话编号与 run 一致</strong>，完成一场后自动切到下一场。</p>
+          </fieldset>
+
+          <fieldset class="v3-only hidden">
+            <legend>v3 探针任务</legend>
+            <div class="row">
+              <label>块数 <input name="v3_blocks" type="number" min="1" max="4" value="2" /></label>
+              <label>每块试次 <input name="v3_trials_per_block" type="number" min="6" max="36" value="18" /></label>
+              <label>静息基线 <input name="v3_baseline_rest_s" type="number" min="10" max="300" value="30" /> s</label>
+              <label>块间休息 <input name="v3_block_gap_s" type="number" min="30" max="300" value="30" /> s</label>
+            </div>
+            <label>随机种子（空=随机，决定 A/B 块顺序） <input name="v3_seed" type="number" placeholder="空" /></label>
+            <p class="hint">全程冻结零样本权重；必须开启采集。无模型或 LSL 不可用将拒跑。</p>
+          </fieldset>
+
+          <fieldset class="v3-only v3-lockable hidden">
+            <legend>v3 试次时序 <span class="lock-badge hidden">锁定</span></legend>
+            <div class="row">
+              <label>Cue前 Rest <input name="v3_inter_trial_rest_s" type="number" step="0.1" min="0" max="15" value="4" /> s</label>
+              <label>准备 prep <input name="v3_prep_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>Cue <input name="v3_cue_s" type="number" step="0.1" min="0" max="10" value="1" /> s</label>
+              <label>MI <input name="v3_imagine_s" type="number" step="0.1" min="1" max="12" value="4" /> s</label>
+              <label>ITI <input name="v3_iti_s" type="number" step="0.1" min="0.5" max="15" value="3" /> s</label>
+            </div>
+            <div class="row tl-presets">
+              <span class="hint">预设：</span>
+              <button type="button" data-v3-timing-preset="openbmi">Align 2/1/4/3+Rest4</button>
+              <button type="button" data-v3-timing-preset="legacy">历史 2/2/6/3</button>
+            </div>
+            <div id="setup-timeline-v3" class="timeline" aria-label="v3 单 trial 时间轴"></div>
+            <p id="timing-hint-v3" class="hint"></p>
+            <p class="hint">Cue=1s：文字与 MI 相同并加「cue」前缀，再进入 MI 4s；试次间 Rest 在每个试次 Cue 前；块间休息默认 30s；在线 3s/hop100；被试屏复用 v2_stage。</p>
+          </fieldset>
+
+          <fieldset class="v2-only hidden">
+            <legend>v2 实验任务</legend>
+            <div class="row">
+              <label>标定轮 min <input name="v2_cal_rounds_min" type="number" min="1" max="8" value="4" /></label>
+              <label>标定轮 max <input name="v2_cal_rounds_max" type="number" min="1" max="8" value="6" /></label>
+              <label>游戏轮数 <input name="v2_game_rounds" type="number" min="1" max="3" value="2" /></label>
+            </div>
+            <div class="row">
+              <label>每轮总试次 <input name="v2_trials_per_round" type="number" min="6" max="36" value="18" /></label>
+              <label>训练 FT <input name="v2_ft_trials_per_round" type="number" min="1" max="30" value="12" /></label>
+              <label>小考/测试 <input name="v2_quiz_trials_per_round" type="number" min="1" max="18" value="6" /></label>
+              <label>游戏每轮试次 <input name="v2_game_trials_per_round" type="number" min="3" max="32" value="16" /></label>
+            </div>
+            <p id="v2-trial-compose-hint" class="hint">
+              标定每轮：前 N 个试次增量训练（FT），后 M 个试次小考（不进训练）。须满足 FT + 小考 = 每轮总试次。
+            </p>
+            <label>随机种子（空=随机） <input name="v2_seed" type="number" placeholder="空" /></label>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="skip_v2_guidance" /> 跳过引导（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_calibration" /> 跳过标定（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_gate" /> 跳过准入（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_v2_game" /> 跳过游戏（调试）</label>
+            </div>
+          </fieldset>
+
+          <fieldset class="v2-only v2-lockable hidden">
+            <legend>v2 试次时序 <span class="lock-badge hidden">锁定</span></legend>
+            <div class="row">
+              <label>Cue前 Rest <input name="v2_inter_trial_rest_s" type="number" step="0.1" min="0" max="15" value="4" /> s</label>
+              <label>准备 prep <input name="v2_prep_s" type="number" step="0.1" min="0.5" max="10" value="2" /> s</label>
+              <label>Cue <input name="v2_cue_s" type="number" step="0.1" min="0" max="10" value="1" /> s</label>
+              <label>MI <input name="v2_imagine_s" type="number" step="0.1" min="1" max="12" value="4" /> s</label>
+              <label>ITI <input name="v2_iti_s" type="number" step="0.1" min="0.5" max="15" value="3" /> s</label>
+            </div>
+            <div class="row tl-presets">
+              <span class="hint">预设：</span>
+              <button type="button" data-v2-timing-preset="openbmi">OpenBMI 2/0/4/3+Rest4</button>
+              <button type="button" data-v2-timing-preset="legacy">历史 2/2/6/3</button>
+            </div>
+            <div id="setup-timeline-v2" class="timeline" aria-label="v2 单 trial 时间轴"></div>
+            <p id="timing-hint-v2" class="hint"></p>
+            <p class="hint">OpenBMI-Align 与 v3 同构；Cue=0 时 Cue 与 MI onset 同刻；试次间 Rest 在每个试次 Cue 前（非 ITI 后），供离线 FT 与 OpenBMI 对齐。</p>
+          </fieldset>
+
+          <fieldset class="v2-only v2-lockable collapsible hidden">
+            <legend>高级 · v2 常量 <span class="lock-badge hidden">锁定</span></legend>
+            <p class="hint">门控</p>
+            <div class="row">
+              <label>gate_enter_three <input name="v2_gate_enter_three" type="number" step="0.01" min="0.01" max="1" value="0.6" /></label>
+              <label>gate_min_quiz <input name="v2_gate_min_quiz_trials" type="number" min="6" max="48" value="12" /></label>
+            </div>
+            <p class="hint">MI 多数票计分（跑完全程；正确 +1 / 错误 0；无早停熔断）</p>
+            <div class="row">
+              <label>FT最少有效 <input name="v2_ft_min_valid_trials" type="number" min="1" max="40" value="6" /></label>
+            </div>
+            <p class="hint">适配 / FT</p>
+            <div class="row">
+              <label>group_lr <input name="v2_group_lr" type="number" step="0.00001" min="0.000001" max="0.01" value="0.0001" /></label>
+              <label class="muted">replay → 见上方「离线微调 · Replay」</label>
+              <label>drift_patience <input name="v2_drift_patience" type="number" min="1" max="10" value="2" /></label>
+              <label>task_p_on <input name="v2_task_p_on" type="number" step="0.05" min="0" max="1" value="0.6" /></label>
+            </div>
+            <div class="row">
+              <label>ft_epochs <input name="v2_ft_epochs" type="number" min="1" max="50" value="5" /></label>
+              <label>ft_batch_size <input name="v2_ft_batch_size" type="number" min="1" max="256" value="32" /></label>
+            </div>
+          </fieldset>
+
+          <fieldset class="phase2-only">
+            <legend>实验任务</legend>
+            <label>正式 trial 数 <input name="acquire_trials" type="number" min="1" value="8" /></label>
+            <label>学习每 Step 试次 <input name="learn_trials_per_step" type="number" min="1" value="2" /></label>
+            <label>随机种子（空=随机） <input name="seed" type="number" placeholder="空" /></label>
+            <div class="row">
+              <label class="check"><input type="checkbox" name="skip_adapt" /> 跳过适应（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_learn" /> 跳过学习（调试）</label>
+              <label class="check"><input type="checkbox" name="skip_gate" /> 跳过准入（调试）</label>
+            </div>
+            <p class="hint">真机首测建议：正式 trial=4～8，可勾选跳过适应/学习以缩短时间。</p>
+          </fieldset>
+
+          <fieldset class="phase2-only">
+            <legend>试次时序（单 trial 各阶段秒数）</legend>
+            <div class="row">
+              <label>注视 <input name="t_fixation_s" type="number" step="0.1" min="0.2" max="30" value="2" /> s</label>
+              <label>提示 <input name="t_cue_s" type="number" step="0.1" min="0.2" max="30" value="2" /> s</label>
+              <label>MI <input name="t_mi_s" type="number" step="0.1" min="1" max="30" value="4" /> s</label>
+            </div>
+            <div class="row">
+              <label>保持 <input name="t_post_mi_hold_s" type="number" step="0.1" min="0" max="30" value="1" /> s</label>
+              <label>静息 <input name="t_rest_s" type="number" step="0.1" min="4" max="60" value="4" /> s</label>
+              <label>过渡 <input name="t_transition_s" type="number" step="0.1" min="0.5" max="60" value="3" /> s</label>
+            </div>
+            <div class="row tl-presets">
+              <span class="hint">预设：</span>
+              <button type="button" data-timing-preset="standard">标准 MI 4s</button>
+              <button type="button" data-timing-preset="mi6">MI 6s</button>
+              <button type="button" data-timing-preset="mi8">MI 8s</button>
+            </div>
+            <div id="setup-timeline" class="timeline" aria-label="单 trial 时间轴预览"></div>
+            <p id="timing-hint" class="hint"></p>
+            <p class="hint">MI 与静息是训练窗来源：静息至少 4s（Phase4 切 4s 窗）；改时序会写入 session.meta.json 备查。</p>
+          </fieldset>
+
+          <fieldset>
+            <legend>保存数据</legend>
+            <label class="full">会话根目录
+              <input name="save_root" value="experiment_game/data/sessions" />
+            </label>
+            <label>落盘布局
+              <select name="save_layout">
+                <option value="flat">flat（扁平，兼容旧）</option>
+                <option value="phase_folders" selected>phase_folders（连续总档 + 分阶段文件夹）</option>
+              </select>
+            </label>
+            <label class="check"><input type="checkbox" name="save_events" checked disabled /> 保存 events（必开）</label>
+            <label class="check"><input type="checkbox" name="save_session_meta" checked disabled /> 保存 session.meta（必开）</label>
+            <label class="check"><input type="checkbox" name="auto_phase4" /> 结束后自动 Phase4 切窗（仅 acquire + 未 reject）</label>
+            <div class="row phase2-only" id="p4-v1-params">
+              <label>切窗模式
+                <select name="p4_window_mode">
+                  <option value="fixed" selected>固定窗（每阶段 1 窗）</option>
+                  <option value="slide">滑动窗（阶段内滑切）</option>
+                </select>
+              </label>
+              <label>窗长 <input name="p4_win_sec" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
+              <label>步长 <input name="p4_hop_ms" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
+            </div>
+            <p id="p4-hint-v2" class="hint v2-only hidden">v2 OpenBMI-Align：`mi_start`+0~4s · 3s/hop100 · 锚点前 0.5s 基线 · phase4_v2（标定）+ phase4_v2_game（游戏）。</p>
+            <p id="p4-hint" class="hint phase2-only">滑动窗在各阶段区间内滑切，不跨阶段；窗长不得超过 MI/静息时长。这些参数同时用于「自动切窗」和结束后 Summary 页手动切窗的默认值。</p>
+            <p id="save-hint" class="hint">默认 phase_folders：continuous/ + by_phase/ + alignment/</p>
+          </fieldset>
+
+          <fieldset class="collapsible exp-only">
+            <legend>高级 · 设备滤波（UI-3）</legend>
+            <label class="check">
+              <input type="checkbox" name="filter_enabled" />
+              采集端滤波总开关（0.5–45 Hz 带通；默认关，贴近 OpenBMI 原始进推理）
+            </label>
+            <div class="row">
+              <label>带通低 (Hz) <input name="bandpass_low_hz" type="number" step="0.1" value="0.5" /></label>
+              <label>带通高 (Hz) <input name="bandpass_high_hz" type="number" step="0.1" value="45" /></label>
+            </div>
+            <label class="check">
+              <input type="checkbox" name="notch_enabled" />
+              采集端 50Hz 陷波（默认关；工频由推理侧 notch 处理）
+            </label>
+            <div class="row">
+              <label>陷波低 (Hz) <input name="notch_low_hz" type="number" step="0.1" value="49" /></label>
+              <label>陷波高 (Hz) <input name="notch_high_hz" type="number" step="0.1" value="51" /></label>
+            </div>
+            <p class="hint">默认采集端不滤波：LSL/落盘/v4 为原始 µV。推理仍做 CAR → 50Hz 陷波 → 8–30Hz → z-score。</p>
+          </fieldset>
+
+          <fieldset class="collapsible">
+            <legend>操作台偏好</legend>
+            <label class="check">
+              <input type="checkbox" name="remember_last_config" checked />
+              记住上次设置（写入 config/operator_defaults.json）
+            </label>
+            <label class="check">
+              <input type="checkbox" name="skip_setup_if_unchanged" />
+              下次打开时显示「沿用配置」确认条（仍可改设置）
+            </label>
+            <label class="check">
+              <input type="checkbox" name="operator_hotkeys" checked />
+              启用快捷键 P/N/G/R/Esc
+            </label>
+          </fieldset>
+
+          <div id="form-errors" class="errors hidden"></div>
+          <p id="setup-busy-hint" class="hint hidden">
+            后台仍有未结束会话时，请先点「中止后台会话」，再开始实验。
+            （改地址 <code>#run</code> 无效：重连后会自动回到本设置页）
+          </p>
+
+          <div class="actions">
+            <button type="button" id="btn-reset">恢复推荐默认</button>
+            <button type="button" id="btn-save-local">保存为本地默认</button>
+            <button type="button" id="btn-export-cfg">导出配置 JSON</button>
+            <label class="file-btn">导入配置<input type="file" id="btn-import-cfg" accept="application/json,.json" hidden /></label>
+            <button type="button" id="btn-setup-abort" class="danger">中止后台会话</button>
+            <button type="submit" id="btn-start" class="primary">开始实验</button>
+          </div>
+        </form>
+      </section>
+
+      <!-- Run -->
+      <section id="view-run" class="view hidden">
+        <h1>运行监控</h1>
+        <div id="run-summary" class="summary-bar"></div>
+        <div class="tl-block">
+          <div class="tl-caption">本场单 trial 时序构成（锁定）</div>
+          <div id="run-timeline" class="timeline"></div>
+          <p id="run-timing-hint" class="hint"></p>
+        </div>
+        <div id="run-lock" class="lock-bar">实验进行中：设备与保存路径已锁定；需改请先中止。</div>
+        <div id="run-alert" class="run-alert hidden" role="alert"></div>
+        <div id="popup-warn" class="warn hidden">若诱导页未出现：请允许弹窗，或点下方「重新打开诱导页」。</div>
+
+        <ol id="phase-steps" class="steps">
+          <li data-phase="adapt">adapt</li>
+          <li data-phase="learn">learn</li>
+          <li data-phase="gate">gate</li>
+          <li data-phase="acquire">acquire</li>
+          <li data-phase="end">end</li>
+        </ol>
+        <ol id="phase-steps-v2" class="steps hidden">
+          <li data-phase="guidance">引导</li>
+          <li data-phase="calibration">标定</li>
+          <li data-phase="gate">准入</li>
+          <li data-phase="game">游戏</li>
+          <li data-phase="end">收工</li>
+        </ol>
+        <ol id="phase-steps-v3" class="steps hidden">
+          <li data-phase="baseline">基线</li>
+          <li data-phase="block">块1</li>
+          <li data-phase="guidance">引导</li>
+          <li data-phase="block2">块2</li>
+          <li data-phase="report">报告</li>
+        </ol>
+
+        <div class="status-grid">
+          <div><span class="k">阶段</span> <span id="st-phase">—</span></div>
+          <div><span class="k">子阶段</span> <span id="st-stage">—</span></div>
+          <div><span class="k">trial</span> <span id="st-trial">—</span></div>
+          <div><span class="k">label</span> <span id="st-label">—</span></div>
+          <div id="st-object-wrap"><span class="k">object</span> <span id="st-object">—</span></div>
+          <div id="st-scene-wrap"><span class="k">scene</span> <span id="st-scene">—</span></div>
+          <div id="st-v2-round-wrap" class="hidden"><span class="k">轮次</span> <span id="st-v2-round">—</span></div>
+          <div id="st-v2-score-wrap" class="hidden"><span class="k">本试次</span> <span id="st-v2-score">—</span></div>
+          <div id="st-session-score-wrap" class="hidden"><span class="k">本场得分</span> <strong id="st-session-score">0/—</strong></div>
+          <div class="full"><span class="k">权重</span> <span id="st-weights" class="st-weights">—</span></div>
+          <div><span class="k">reject</span> <span id="st-reject">0</span></div>
+          <div><span class="k">采集</span> <span id="st-acq">—</span></div>
+          <div><span class="k">链路</span> <span id="link-line" class="stat-ok">—</span></div>
+        </div>
+
+        <div id="v2-panel" class="v2-panel hidden">
+          <h2 class="v2-title">v2 会话监控</h2>
+          <p id="v2-stage-hint" class="hint">等待 v2 阶段消息…</p>
+          <div class="v2-progress-row">
+            <div>标定轮 <strong id="v2-cal-prog">—</strong> · 游戏轮 <strong id="v2-game-prog">—</strong> · 子块 <strong id="v2-subblock">—</strong></div>
+            <div>FT <strong id="v2-ft-status">idle</strong></div>
+          </div>
+          <div class="session-score-bar-wrap">
+            <div class="session-score-label">本场累计 <strong id="v2-session-score-num">0/—</strong></div>
+            <div id="v2-session-score-by" class="session-score-by">Left 0/— · Right 0/— · Cue前静息 0/—</div>
+            <div id="v2-session-score-rules" class="session-score-rules">
+              计分：MI 判对 +1；Cue前静息判对 +0.5（与 Left/Right 满分对齐）
+            </div>
+            <div id="v2-session-score-hint" class="session-score-hint hint"></div>
+            <div class="session-score-track"><div id="v2-session-score-fill" class="session-score-fill"></div></div>
+          </div>
+          <div class="v2-score-bar-wrap">
+            <div class="v2-score-label">本试次 <span id="v2-score-num">—</span></div>
+            <div class="v2-score-track"><div id="v2-score-fill" class="v2-score-fill"></div></div>
+          </div>
+          <div id="v2-live-judge" class="live-judge-panel">
+            <div class="live-judge-row">
+              <span class="k">正式标签</span>
+              <strong id="v2-live-label">—</strong>
+            </div>
+            <div class="live-judge-row">
+              <span class="k">模型预测</span>
+              <span id="v2-live-pred">—</span>
+              <span id="v2-live-correct" class="live-judge-correct"></span>
+              <span id="v2-live-trel" class="live-judge-trel hint"></span>
+            </div>
+            <div class="live-judge-probs" aria-label="三分类概率">
+              <div class="live-prob-row" data-cls="0">
+                <span class="live-prob-name">Rest</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v2-p0-fill"></div></div>
+                <span class="live-prob-pct" id="v2-p0-pct">—</span>
+              </div>
+              <div class="live-prob-row" data-cls="1">
+                <span class="live-prob-name">Left</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v2-p1-fill"></div></div>
+                <span class="live-prob-pct" id="v2-p1-pct">—</span>
+              </div>
+              <div class="live-prob-row" data-cls="2">
+                <span class="live-prob-name">Right</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v2-p2-fill"></div></div>
+                <span class="live-prob-pct" id="v2-p2-pct">—</span>
+              </div>
+            </div>
+            <div class="live-judge-votes" aria-label="本试次各窗投票数">
+              <div class="live-judge-votes-head">
+                <span class="k">窗投票</span>
+                <span id="v2-votes-total" class="hint">共 0 窗</span>
+              </div>
+              <div class="live-judge-votes-nav">
+                <button type="button" class="vote-nav-btn" id="v2-votes-prev" aria-label="上一试次">‹</button>
+                <span id="v2-votes-nav-label" class="vote-nav-label">当前试次</span>
+                <button type="button" class="vote-nav-btn" id="v2-votes-next" aria-label="下一试次">›</button>
+              </div>
+              <div id="v2-votes-meta" class="live-judge-votes-meta"></div>
+              <div class="live-vote-row" data-cls="0">
+                <span class="live-prob-name">Rest</span>
+                <span class="live-vote-count" id="v2-v0-votes">0</span>
+              </div>
+              <div class="live-vote-row" data-cls="1">
+                <span class="live-prob-name">Left</span>
+                <span class="live-vote-count" id="v2-v1-votes">0</span>
+              </div>
+              <div class="live-vote-row" data-cls="2">
+                <span class="live-prob-name">Right</span>
+                <span class="live-vote-count" id="v2-v2-votes">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="v2-gate-box">
+            <div>小考 Three：<strong id="v2-gate-acc">—</strong> <span id="v2-weak-mi" class="hidden warn-inline">weak_mi</span></div>
+            <div>准入：<strong id="v2-gate-status">—</strong> · n=<span id="v2-gate-n">0</span></div>
+            <pre id="v2-gate-curve" class="v2-curve">—</pre>
+          </div>
+          <button type="button" id="btn-v2-guidance" class="primary">确认动觉引导完成</button>
+          <p id="v2-guidance-countdown" class="hint hidden">引导倒计时 —</p>
+        </div>
+
+        <ol id="phase-steps-v4" class="steps hidden">
+          <li data-phase="check" class="active">检测</li>
+          <li data-phase="stable">稳定</li>
+          <li data-phase="done">结果</li>
+        </ol>
+
+        <div id="v4-panel" class="v4-panel hidden">
+          <h2 class="v4-title">v4 数据质量检测</h2>
+          <div class="v4-verdict-row">
+            <span id="v4-verdict-dot" class="v4-dot fail">●</span>
+            <span id="v4-verdict-text" class="v4-verdict-text">等待数据…</span>
+          </div>
+          <div class="v4-streak-wrap">
+            <span>连续达标 <strong id="v4-streak">0/5</strong></span>
+            <div class="v4-streak-track"><div id="v4-streak-fill" class="v4-streak-fill"></div></div>
+          </div>
+          <p id="v4-headline" class="v4-headline hint">请静坐放松，正在评估信号…</p>
+          <p class="v4-hint hint">
+            <strong>绿格</strong> = 最近 3s 静息信号合格（计分导含 CZ/CPZ 共 8 导；std 门槛见 v4_session.yaml）。<strong>按压不会变绿</strong>，只会饱和变红。合成板幅度过小会一直 FAIL，请用真机做帽检。
+            触诊：极轻碰一下，看哪格 <strong>µV 数字</strong> 先跳（0.5s 刷新）。
+          </p>
+          <div id="v4-metrics" class="v4-metrics"></div>
+          <div id="v4-channels" class="v4-channels" aria-label="通道热力图"></div>
+          <ul id="v4-problems" class="v4-problems"></ul>
+          <div class="v4-actions">
+            <button type="button" id="btn-v4-to-v3" class="primary" disabled>PASS 后开始 v3 →</button>
+            <span class="hint">或中止后返回配置页换 v3 模式</span>
+          </div>
+        </div>
+
+        <div id="v3-panel" class="v3-panel hidden">
+          <h2 class="v3-title">v3 探针监控</h2>
+          <div class="v3-progress-row">
+            <span>块 <strong id="v3-block-prog">—</strong></span>
+            <span>试次 <strong id="v3-trial-prog">—</strong></span>
+            <span>条件 <strong id="v3-cond">—</strong></span>
+          </div>
+          <div class="session-score-bar-wrap">
+            <div class="session-score-label">本场累计 <strong id="v3-session-score-num">0/54</strong></div>
+            <div id="v3-session-score-by" class="session-score-by">Left 0/18 · Right 0/18 · Cue前静息 0/18</div>
+            <div id="v3-session-score-rules" class="session-score-rules">
+              满分 <strong>54</strong>：Left 18 试 ×1 + Right 18 试 ×1 + Cue前静息 36 段 ×0.5
+            </div>
+            <div id="v3-session-score-hint" class="session-score-hint hint">已完成 0 MI 试次</div>
+            <div class="session-score-track"><div id="v3-session-score-fill" class="session-score-fill"></div></div>
+          </div>
+          <div id="v3-live-judge" class="live-judge-panel">
+            <div class="live-judge-row">
+              <span class="k">正式标签</span>
+              <strong id="v3-live-label">—</strong>
+            </div>
+            <div class="live-judge-row">
+              <span class="k">模型预测</span>
+              <span id="v3-live-pred">—</span>
+              <span id="v3-live-correct" class="live-judge-correct"></span>
+              <span id="v3-live-trel" class="live-judge-trel hint"></span>
+            </div>
+            <div class="live-judge-probs" aria-label="三分类概率">
+              <div class="live-prob-row" data-cls="0">
+                <span class="live-prob-name">Rest</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v3-p0-fill"></div></div>
+                <span class="live-prob-pct" id="v3-p0-pct">—</span>
+              </div>
+              <div class="live-prob-row" data-cls="1">
+                <span class="live-prob-name">Left</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v3-p1-fill"></div></div>
+                <span class="live-prob-pct" id="v3-p1-pct">—</span>
+              </div>
+              <div class="live-prob-row" data-cls="2">
+                <span class="live-prob-name">Right</span>
+                <div class="live-prob-track"><div class="live-prob-fill" id="v3-p2-fill"></div></div>
+                <span class="live-prob-pct" id="v3-p2-pct">—</span>
+              </div>
+            </div>
+            <div class="live-judge-votes" aria-label="本试次各窗投票数">
+              <div class="live-judge-votes-head">
+                <span class="k">窗投票</span>
+                <span id="v3-votes-total" class="hint">共 0 窗</span>
+              </div>
+              <div class="live-judge-votes-nav">
+                <button type="button" class="vote-nav-btn" id="v3-votes-prev" aria-label="上一试次">‹</button>
+                <span id="v3-votes-nav-label" class="vote-nav-label">当前试次</span>
+                <button type="button" class="vote-nav-btn" id="v3-votes-next" aria-label="下一试次">›</button>
+              </div>
+              <div id="v3-votes-meta" class="live-judge-votes-meta"></div>
+              <div class="live-vote-row" data-cls="0">
+                <span class="live-prob-name">Rest</span>
+                <span class="live-vote-count" id="v3-v0-votes">0</span>
+              </div>
+              <div class="live-vote-row" data-cls="1">
+                <span class="live-prob-name">Left</span>
+                <span class="live-vote-count" id="v3-v1-votes">0</span>
+              </div>
+              <div class="live-vote-row" data-cls="2">
+                <span class="live-prob-name">Right</span>
+                <span class="live-vote-count" id="v3-v2-votes">0</span>
+              </div>
+            </div>
+          </div>
+          <div class="v3-eeg-wrap">
+            <canvas id="v3-eeg" width="720" height="280" aria-label="实时脑电"></canvas>
+            <span id="v3-eeg-gain" class="v3-eeg-gain">±— µV</span>
+          </div>
+          <p id="v3-power-legend" class="v3-power-legend">蓝=mu 8–13Hz · 紫=βL 13–20Hz（仅参考，无独立合格线） · 条=相对开场 30s 基线的 ERD%（mu ≤−15% 绿，白线=合格位）<label class="v3-gain-toggle"><input type="checkbox" id="v3-ch-gain" /> 逐通道增益</label></p>
+          <div id="v3-power-bars" class="v3-power-bars"></div>
+          <p id="v3-hat-check" class="v3-hat-check hidden" role="status"></p>
+          <div id="v3-feature-cards" class="v3-feature-cards"></div>
+          <div class="v3-block-stats">
+            块累计（Rest/L/R 有效 <span id="v3-block-nvalid">—</span> · L/R <span id="v3-block-nlr">—</span>）：
+            acc <span id="v3-block-acc">—</span> · 对侧 muERD <span id="v3-block-erd">—</span> · 偏侧 <span id="v3-block-lat">—</span>
+          </div>
+          <div class="v3-console-actions">
+            <button type="button" id="btn-restart" class="primary">重新开始</button>
+            <span class="hint">中止当前场次并返回配置页（已采集数据会保留）</span>
+          </div>
+          <button type="button" id="btn-v3-guidance" class="primary hidden">确认动觉引导完成</button>
+        </div>
+
+        <div class="actions run-actions">
+          <button type="button" id="btn-split" title="B">中场换场</button>
+          <button type="button" id="btn-questionnaire" title="Q">问卷</button>
+          <button type="button" id="btn-pause">暂停</button>
+          <button type="button" id="btn-continue">代确认</button>
+          <button type="button" id="btn-gate">准入</button>
+          <button type="button" id="btn-reject">Reject</button>
+          <button type="button" id="btn-reopen" class="primary">重新打开诱导页</button>
+          <button type="button" id="btn-abort" class="danger">中止</button>
+          <button type="button" id="btn-v2-enter-game" class="primary hidden" title="跳过引导/标定/准入，直接进入游戏轮">直接进入游戏</button>
+        </div>
+        <p id="q-status-run" class="hint"></p>
+        <p class="hint">快捷键：B 换场 · Q 问卷 · P 暂停 · N 代确认 · G 准入确认（v2 门控仅建议，须操作员确认进游戏）· R Reject · Esc 中止</p>
+      </section>
+
+      <!-- Summary -->
+      <section id="view-summary" class="view hidden">
+        <h1>结束与保存 <span id="verify-badge" class="na">—</span></h1>
+        <p id="summary-msg" class="lead"></p>
+        <p id="summary-window-acc" class="summary-window-acc hidden">窗级识别率 <strong>—</strong></p>
+        <p id="v2-accept-detail" class="hint"></p>
+        <p id="v3-summary-detail" class="hint hidden"></p>
+        <p id="v4-summary-detail" class="hint hidden"></p>
+        <p id="phase4-msg" class="hint"></p>
+        <div class="row p4-run-row phase2-only" id="p4-summary-v1">
+          <span class="hint">切窗参数：</span>
+          <label>模式
+            <select id="p4-run-mode">
+              <option value="fixed">固定窗</option>
+              <option value="slide">滑动窗</option>
+            </select>
+          </label>
+          <label>窗长 <input id="p4-run-win" type="number" step="0.5" min="0.5" max="10" value="2" /> s</label>
+          <label>步长 <input id="p4-run-hop" type="number" step="10" min="20" max="2000" value="100" /> ms</label>
+        </div>
+        <div id="p4-summary-v2" class="hint hidden">v2 管道：标定 / 游戏（3s·hop100）</div>
+        <p><span class="k">会话目录</span> <code id="summary-root">—</code></p>
+        <ul id="summary-files" class="file-list"></ul>
+
+        <div id="ft-panel" class="ft-panel hidden">
+          <h2>被试微调</h2>
+          <p id="ft-current-weights" class="hint">—</p>
+          <div id="ft-session-list" class="ft-session-list"></div>
+          <label class="check">
+            <input type="checkbox" id="ft-exclude-invalid" />
+            排除 invalid 试次（默认含 invalid，与 exp27 一致）
+          </label>
+          <label class="check">
+            <input type="checkbox" id="ft-use-replay" checked />
+            启用 OpenBMI T0 replay（Exp29：~300 窗/run · 约 4 run 达 60% 时可关）
+          </label>
+          <label class="check">
+            <input type="checkbox" id="ft-leave-next" checked />
+            Leave-Next（留本场评估 · 默认只用之前 session 微调）
+          </label>
+          <p id="ft-ramp-hint" class="hint">—</p>
+          <label>replay_ratio
+            <input id="ft-replay-ratio" type="number" step="0.01" min="0" max="0.5" value="0.10" />
+          </label>
+          <p id="ft-replay-hint" class="hint replay-advice">—</p>
+          <button type="button" id="btn-ft-replay-adopt" class="hidden">采纳 replay 建议</button>
+          <details class="ft-advanced">
+            <summary>高级 · 训练策略</summary>
+            <label class="check">
+              <input type="checkbox" id="ft-early-stop" checked />
+              heldout 早停（默认开；按<strong>窗级</strong>验证集 acc 存 best，非试次级）
+            </label>
+            <label>max_epochs <input id="ft-max-epochs" type="number" min="1" max="100" value="20" /></label>
+            <label>patience <input id="ft-patience" type="number" min="1" max="50" value="5" /></label>
+            <label>固定 epochs（仅关早停时）
+              <input id="ft-fixed-epochs" type="number" min="1" max="50" value="5" />
+            </label>
+            <label class="check">
+              <input type="checkbox" id="ft-deterministic" checked />
+              确定性训练（seed=42，减轻重复 FT 波动）
+            </label>
+            <label>seed <input id="ft-seed" type="number" min="0" value="42" /></label>
+          </details>
+          <div class="row">
+            <label class="radio"><input type="radio" name="ft_mode" value="run" checked /> 立即微调</label>
+            <label class="radio"><input type="radio" name="ft_mode" value="skip" /> 跳过微调</label>
+          </div>
+          <div id="ft-result" class="ft-result hidden"></div>
+          <div class="actions ft-actions">
+            <button type="button" id="btn-ft-start" class="primary" disabled>开始微调</button>
+            <button type="button" id="btn-ft-all-v3" title="勾选全部合格 v3 会话并关 Leave-Next，用当前已采数据微调">
+              用全部 v3 数据微调
+            </button>
+            <button type="button" id="btn-ft-promote" class="hidden">替换 current 权重</button>
+            <button type="button" id="btn-ft-keep" class="hidden">保留旧 current</button>
+            <button type="button" id="btn-next-session">再采一场</button>
+            <button type="button" id="btn-session-no-record" class="warn" title="文件保留、仍可微调；从 Campaign/索引移除，run 可重采">
+              不记入实验记录
+            </button>
+          </div>
+          <p id="ft-status" class="hint"></p>
+
+          <details class="ft-model-eval" id="ft-model-eval">
+            <summary>历史权重 × 会话识别结果（v3）</summary>
+            <p class="hint">
+              用 current 与各 ft_runs 权重，离线评测全部 v3 会话的窗级 / 试次多数票准确率。
+            </p>
+            <button type="button" id="btn-model-eval-grid">评测全部权重 × v3 会话</button>
+            <p id="model-eval-progress" class="hint"></p>
+            <div id="model-eval-result" class="model-eval-result muted"></div>
+          </details>
+        </div>
+
+        <div class="actions">
+          <button type="button" id="btn-open-folder" class="primary">打开会话文件夹</button>
+          <button type="button" id="btn-phase4">一键 Phase4 切窗</button>
+          <button type="button" id="btn-summary-questionnaire">问卷</button>
+          <button type="button" id="btn-copy-path">复制路径</button>
+          <button type="button" id="btn-again">再开一场</button>
+        </div>
+        <p id="q-status" class="hint"></p>
+      </section>
+    </div>
+    <script type="module" src="js/operator.js?v=20260831run1"></script>
+  </body>
+</html>

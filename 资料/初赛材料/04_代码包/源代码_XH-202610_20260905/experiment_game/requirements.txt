@@ -1,0 +1,44 @@
+# experiment_game 运行框架依赖
+# Python >= 3.10（推荐 3.11；现网 conda 环境名：cyy）
+#
+# 安装（在仓库根）：
+#   conda create -n cyy python=3.11 -y
+#   conda activate cyy
+#   # 1) 先按本机 CUDA / CPU 安装 torch（勿用本文件盲装，版本随显卡变）
+#   #    https://pytorch.org/get-started/locally/
+#   #    例（CUDA 12.8）：pip install torch --index-url https://download.pytorch.org/whl/cu128
+#   #    例（仅 CPU）：  pip install torch --index-url https://download.pytorch.org/whl/cpu
+#   # 2) 再装本清单
+#   pip install -r experiment_game/requirements.txt
+#
+# 自检：
+#   python -m experiment_game.tools.preflight
+#   python -c "import torch, braindecode, numpy, websockets, yaml, brainflow, pylsl; print(torch.__version__, 'cuda=', torch.cuda.is_available())"
+
+# --- 核心（操作台 / 会话 / 配置 / WebSocket）---
+numpy>=1.24
+scipy>=1.10
+pandas>=1.5
+PyYAML>=6.0
+websockets>=12.0
+
+# --- 模型推理 / 采后 FT（Shallow · E1f · all4）---
+# 依赖已安装的 torch；braindecode 提供 EEGNet / Conformer 等架构
+braindecode>=0.8
+skorch>=0.15
+einops>=0.7
+tqdm>=4.66
+scikit-learn>=1.0
+
+# --- 采集（Cyton 串口 + LSL；纯 BCI2a 仿真可不强制，建议装齐）---
+brainflow>=5.0
+pylsl>=1.16
+pyserial>=3.5
+
+# --- 分析 / 离线常用（切窗对照、画图、缓存）---
+matplotlib>=3.5
+joblib>=1.1
+mne>=1.0
+
+# --- 开发测试（可选；跑 pytest 需要）---
+pytest>=7.0

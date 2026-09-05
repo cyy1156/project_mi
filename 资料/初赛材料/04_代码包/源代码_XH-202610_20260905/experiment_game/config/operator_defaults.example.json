@@ -1,0 +1,140 @@
+{
+  "schema_version": 2,
+  "subject": {
+    "subject_id": "",
+    "session_id": "ws01",
+    "notes": ""
+  },
+  "acquisition": {
+    "enabled": true,
+    "board_mode": "synthetic",
+    "serial_port": "COM3",
+    "sample_rate_hz": 250,
+    "channel_labels": [
+      "FC3",
+      "C3",
+      "CP3",
+      "CZ",
+      "CPZ",
+      "FC4",
+      "C4",
+      "CP4"
+    ],
+    "filter": {
+      "enabled": false,
+      "bandpass_low_hz": 0.5,
+      "bandpass_high_hz": 45.0,
+      "notch_enabled": false,
+      "notch_low_hz": 49.0,
+      "notch_high_hz": 51.0
+    },
+    "markers_lsl": true
+  },
+  "experiment": {
+    "phase_mode": "v3_session",
+    "v2_config_path": null,
+    "protocol_locked": true,
+    "v2_overrides": {
+      "cal_rounds_min": 4,
+      "cal_rounds_max": 6,
+      "game_rounds": 2,
+      "trials_per_round": 18,
+      "ft_trials_per_round": 12,
+      "quiz_trials_per_round": 6,
+      "game_trials_per_round": 16,
+      "prep_s": 2,
+      "cue_s": 1,
+      "imagine_s": 4,
+      "iti_s": 3,
+      "inter_trial_rest_s": 4,
+      "gate_enter_three": 0.6,
+      "gate_min_quiz_trials": 12,
+      "ft_min_valid_trials": 6,
+      "group_lr": 0.0001,
+      "drift_patience": 2,
+      "task_p_on": 0.6,
+      "ft_epochs": 5,
+      "ft_batch_size": 32,
+      "game_rounds_min": 1,
+      "game_rounds_max": 3,
+      "replay_ratio": 0.1,
+      "s3_three_ckpt": "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260823_095327/three/fold0/best_three.pt",
+      "readout_mode": "e1f",
+      "e1f_config_path": "experiment_game/config/e1f_four_member.json",
+      "primary_judge_mode": "majority"
+    },
+    "skip_v2_guidance": false,
+    "skip_v2_calibration": false,
+    "skip_v2_gate": false,
+    "skip_v2_game": false,
+    "acquire_trials": 8,
+    "learn_trials_per_step": 2,
+    "skip_adapt": false,
+    "skip_learn": false,
+    "skip_gate": false,
+    "seed": null,
+    "open_subject_page": true,
+    "ready_timeout_s": 90.0,
+    "timing": {
+      "fixation_s": 2.0,
+      "cue_s": 2.0,
+      "mi_s": 4.0,
+      "post_mi_hold_s": 1.0,
+      "rest_s": 4.0,
+      "transition_s": 3.0
+    },
+    "phase4": {
+      "window_mode": "fixed",
+      "win_sec": 2.0,
+      "hop_ms": 100.0
+    },
+    "split": {
+      "settle_s": 15.0
+    },
+    "ft_defaults": {
+      "use_replay": true,
+      "replay_ratio": 0.1,
+      "early_stop": true,
+      "max_epochs": 20,
+      "patience": 5,
+      "fixed_epochs": 5,
+      "deterministic": true,
+      "seed": 42
+    },
+    "overwrite_session_id": false,
+    "v3_overrides": {
+      "blocks": 2,
+      "trials_per_block": 18,
+      "baseline_rest_s": 30,
+      "block_gap_s": 30,
+      "prep_s": 2,
+      "cue_s": 1,
+      "imagine_s": 4,
+      "iti_s": 3,
+      "inter_trial_rest_s": 4,
+      "s3_three_ckpt": "code/train_lab/out/5090_alg_incr_3s_hop100_accpaper/shallow_openbmi_3s_hop100_balbatch_accpaper/openbmi_3s_hop100/run_20260823_095327/three/fold0/best_three.pt",
+      "readout_mode": "e1f",
+      "e1f_config_path": "experiment_game/config/e1f_four_member.json",
+      "primary_judge_mode": "majority"
+    }
+  },
+  "storage": {
+    "save_root": "experiment_game/data/subjects",
+    "save_layout": "phase_folders",
+    "save_eeg": true,
+    "save_events": true,
+    "save_session_meta": true,
+    "save_continuous_master": true,
+    "save_phase_slices": true,
+    "save_trial_index": true,
+    "auto_phase4": false,
+    "extra_copy_dir": null
+  },
+  "ui": {
+    "remember_last_config": true,
+    "skip_setup_if_unchanged": false,
+    "operator_hotkeys": true,
+    "subject_feedback_mode": "arm_reach"
+  },
+  "extensions": {}
+}

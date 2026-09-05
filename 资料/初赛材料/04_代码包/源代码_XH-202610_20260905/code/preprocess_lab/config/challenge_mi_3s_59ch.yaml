@@ -1,0 +1,19 @@
+# Exp34 · 挑战杯官方集 3s 切窗（文档用；实际参数在 batch_3s.py）
+protocol: challenge_mi_3s_59ch
+fs: 250
+win_sec: 3.0
+n_times: 750
+n_chans: 59
+cut_then_filter: true
+car: true
+notch_hz: 50
+bandpass_hz: [8.0, 30.0]
+zscore: per_channel_in_trial
+label_map:
+  201: 0  # Left
+  202: 1  # Right
+  204: 2  # Rest
+y_three: "0=Left,1=Right,2=Rest"
+data_root: DATA/挑战杯运动想象赛题数据文件
+out: preprocess_lab/out/challenge_mi_3s_59ch
+prefix: challenge

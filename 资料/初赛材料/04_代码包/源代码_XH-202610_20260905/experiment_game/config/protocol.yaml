@@ -1,0 +1,50 @@
+# experiment_game 范式默认（配置三分法 · protocol 层）
+# 会话 run_config 可覆盖；机位 COM/路径在 machines/<id>/machine.json
+schema_version: 1
+protocol_id: openbmi_align_v1
+
+channels:
+  order:
+    - FC3
+    - C3
+    - CP3
+    - CZ
+    - CPZ
+    - FC4
+    - C4
+    - CP4
+  fs_hz: 250
+
+windowing:
+  version: openbmi_align_v1
+  win_s: 3.0
+  hop_s: 0.1
+  task_s: 4.0
+  baseline_before_cue_s: 0.5
+
+timing_v3:
+  prep_s: 2.0
+  cue_s: 1.0
+  imagine_s: 4.0
+  iti_s: 3.0
+  inter_trial_rest_s: 4.0
+  baseline_rest_s: 30.0
+  block_gap_s: 30.0
+
+timing_phase2:
+  fixation_s: 2.0
+  cue_s: 2.0
+  mi_s: 4.0
+  post_mi_hold_s: 1.0
+  rest_s: 4.0
+  transition_s: 3.0
+
+readout:
+  mode: e1f
+  primary_judge_mode: majority
+  e1f_config_path: experiment_game/config/e1f_four_member.json
+
+eeg_watchdog:
+  stall_s: 2.0
+  abort_s: 5.0   # L3 中止；与 EEGBus.lost_s 对齐（2s 仅告警）
+  judge_buf_stale_s: 1.0

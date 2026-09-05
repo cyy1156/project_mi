@@ -1,0 +1,31 @@
+# OpenBMI — Cue后 0~4s / Cue前 4s → 100ms 滑 3s → (N,1,8,750)
+# 实验 20 · 相对 openbmi_2s_hop100 仅改 win_sec
+dataset: openbmi
+loader: load_openbmi_mat
+
+data_glob: "F:/Cyy/MI/DATA/openbmi/openbmi/sess*_subj*_EEG_MI.mat"
+source_blocks: [EEG_MI_train]
+exclude_blocks: [EEG_MI_test]
+
+subject_from: openbmi_subj
+
+label_map:
+  left: [1, 1]
+  right: [1, 2]
+make_rest: true
+rest_balance: min_left_right
+
+window_mode: slide_3s_hop100
+win_sec: 3.0
+hop_ms: 100
+fs_out: 250
+
+target_chans: [Cz, C3, C4, CP3, FC4, FC3, CP4, CPz]
+
+val_ratio: 0.2
+seed: 42
+
+out_dir: "out/openbmi_3s_hop100"
+save_full: true
+save_split: false
+blocks: [EEG_MI_train]
