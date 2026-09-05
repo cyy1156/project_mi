@@ -1,5 +1,6 @@
 # 17 · 5090 旁路 · 掩码未来双专家门控 · OpenBMI Acc_paper
 
+> 本目录方案：[`方案.md`](./方案.md)  
 > 方案正文：[`资料/模型方案/掩码未来表征预测_双专家门控_在线MI/`](../../模型方案/掩码未来表征预测_双专家门控_在线MI/)  
 > 代码包：[`code/train_lab/src/step/5090_mask_future_dual_expert_accpaper/`](../../../code/train_lab/src/step/5090_mask_future_dual_expert_accpaper/)  
 > **本机低内存旁路**：[`../17_5060_旁路_掩码未来双专家门控_openbmi_accpaper/`](../17_5060_旁路_掩码未来双专家门控_openbmi_accpaper/) · `5060_mask_future_dual_expert_accpaper/`

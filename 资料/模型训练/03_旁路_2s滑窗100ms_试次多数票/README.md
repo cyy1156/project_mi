@@ -1,6 +1,7 @@
 # 03 · 2s/hop100 · Acc_paper 选模重训（仅 BCI2a T）
 
 > **现行方案**：[`方案.md`](./方案.md) — **重训**；早停/选模 = **Val/Test Acc_paper**；train **batch balance**；**不用 E**。  
+> **现行十一模型主表**：[`实验结果汇总_baselines_2s_hop100_accpaper_bci2a.md`](./实验结果汇总_baselines_2s_hop100_accpaper_bci2a.md)  
 > **代码**：`code/train_lab/src/step/baselines_2s_hop100_accpaper/`  
 > **历史复评（隔离）**：`baselines_2s_hop100_trialmaj/` + [`实验结果汇总_baselines_2s_hop100_trialmaj_bci2a.md`](./实验结果汇总_baselines_2s_hop100_trialmaj_bci2a.md)（**no_retrain**，非本版结论）
 
