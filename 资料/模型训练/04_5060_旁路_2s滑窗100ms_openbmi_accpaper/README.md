@@ -9,10 +9,11 @@
 | 文档 | 说明 |
 |------|------|
 | [`方案.md`](./方案.md) | 协议 + **§1.6 预处理步骤** + §3 十一模型 |
+| [`实验结果汇总_5060_baselines_openbmi_2s_hop100_accpaper.md`](./实验结果汇总_5060_baselines_openbmi_2s_hop100_accpaper.md) | **正式十一模型主表**（Task/Three Acc_paper） |
 | 预处理 | `code/preprocess_lab/src/datasets/openbmi/`（共享；改前先 pull） |
 | 训练（5060 · 正式） | `code/train_lab/src/step/5060_baselines_openbmi_2s_hop100_accpaper/` |
 | 训练（5090，对照） | `code/train_lab/src/step/5090_baselines_openbmi_2s_hop100_accpaper/` |
-| 五折记录 | `资料/模型训练/runs/5060_openbmi_accpaper/` |
+| 五折记录 | `资料/模型训练/runs/5060_openbmi_accpaper/` · 结果副本 `资料/实验结果/5060/openbmi滑窗_paper_acc/` |
 
 本机同步：`git pull --rebase` → 改 5060 包/本文档 → `git push`。
 

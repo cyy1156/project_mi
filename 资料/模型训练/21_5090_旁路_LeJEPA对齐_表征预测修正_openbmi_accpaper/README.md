@@ -1,5 +1,6 @@
 # 21 · 5090 旁路 · LeJEPA 对齐 · 表征预测修正 · OpenBMI Acc_paper
 
+> **本目录方案**：[`方案.md`](./方案.md)  
 > **方案正文**：[`21系列_LeJEPA对齐_表征预测修正.md`](../../Lejepa_shallow模型方案/掩码未来表征预测_双专家门控_在线MI/实验方案/21系列_LeJEPA对齐_表征预测修正.md)  
 > **代码包**：[`5090_mask_future_dual_expert_accpaper/`](../../../code/train_lab/src/step/5090_mask_future_dual_expert_accpaper/)  
 > **前置**：方案十七（[`17_5090_.../结果登记表.md`](../17_5090_旁路_掩码未来双专家门控_openbmi_accpaper/结果登记表.md)）
