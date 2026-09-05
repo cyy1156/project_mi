@@ -130,6 +130,15 @@ RAMP_LSM0903 = [
     (["w01", "w02", "w03", "w04", "w05", "w06"], "w07", False),
 ]
 
+# lmy0904（2026-09-04）：w02 record_excluded；w03 无 eeg.csv；可用 w01/w04–w09
+RAMP_LMY0904 = [
+    (["w01"], "w04", True),
+    (["w01", "w04"], "w05", True),
+    (["w01", "w04", "w05"], "w06", True),
+    (["w01", "w04", "w05", "w06"], "w07", False),
+    (["w01", "w04", "w05", "w06", "w07"], "w08", False),
+]
+
 # 兼容旧名
 RAMP_CYY = RAMP_W
 RAMP_FNZ0830 = RAMP_W
@@ -149,6 +158,9 @@ SUBJECTS_W = (
     "zyj0902",
     "lsy0903",
     "lsm0903",
+    # 2026-09-04 新增（图 10 / Exp41 队列）
+    "lmh0904",
+    "lmy0904",
 )
 SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
 
@@ -181,6 +193,8 @@ def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
         cand = list(RAMP_ZYJ0902)
     elif subject_id == "lsm0903":
         cand = list(RAMP_LSM0903)
+    elif subject_id == "lmy0904":
+        cand = list(RAMP_LMY0904)
     elif subject_id in SUBJECTS_W:
         cand = list(RAMP_W)
     else:
@@ -240,6 +254,8 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
             except Exception:
                 phase = ""
         if phase and phase != "v3_session":
+            continue
+        if not (d / "eeg.csv").is_file() and not any(d.rglob("eeg.csv")):
             continue
         ws = _session_key_from_dirname(d.name)
         if not ws:
