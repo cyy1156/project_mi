@@ -1,5 +1,10 @@
 # M03 · EventLog + Marker + alignment（详细）
 
+> **作业落盘**：代码写到 `self_learing/src/self_learing/`（测试 `self_learing/tests/`）。
+> **完整示例 + 路径树**：[`../examples/M03_代码示例.md`](../examples/M03_代码示例.md) —— **自己重写，勿整文件复制交差**。
+> **禁止**：把示例写进现网 `experiment_game/`。
+
+
 ---
 
 ## 一句话目标

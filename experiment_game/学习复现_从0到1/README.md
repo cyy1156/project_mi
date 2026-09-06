@@ -7,7 +7,7 @@
 ## 怎么用这个文件夹
 
 0. **代码不熟必读** [`00_写代码小白指南.md`](00_写代码小白指南.md)（对照原版、写测试、卡死怎么办）  
-0b. **要看完整示例代码** → [`examples/README.md`](examples/README.md)（按模块的教学参考答案；作业仍在 `self_learing` 自己重写）  
+0b. **要看完整示例代码 + 落盘路径** → [`examples/README.md`](examples/README.md)（M00–M11；作业仍在 `self_learing` **自己重写**）  
 1. 再读 [`01_整体设计逻辑.md`](01_整体设计逻辑.md)（地图）  
 2. 按 [`02_学习路线图.md`](02_学习路线图.md) 从 **M00** 往下  
 3. 每模块笔记里都有：**原版精读表（打开哪个文件、搜哪个函数）→ 函数签名草稿 → 逐步仿写 → 常见坑**  
@@ -27,7 +27,7 @@
 | 文件 | 作用 |
 |------|------|
 | [`00_写代码小白指南.md`](00_写代码小白指南.md) | **不会写时先看** |
-| [`examples/`](examples/README.md) | **按模块完整教学代码示例**（M01–M08） |
+| [`examples/`](examples/README.md) | **按模块完整教学代码示例 + 作业路径树**（M00–M11） |
 | [`01_整体设计逻辑.md`](01_整体设计逻辑.md) | 系统地图、两条流 |
 | [`02_学习路线图.md`](02_学习路线图.md) | M00–M11 顺序与过关线 |
 | [`进度.md`](进度.md) | 你的进度 |
@@ -60,13 +60,15 @@ SampleSource → RingBuffer → EegBus → CSV
 ## 推荐工程骨架（M00 创建）
 
 ```text
-mi_scratch/
+self_learing/
   config/protocol.yaml
-  src/mi_scratch/
+  src/self_learing/
   tests/
   tools/run_synthetic_session.py
   README.md          # 对照表：原版路径 ↔ 你的路径 ↔ 复用声明
 ```
+
+（旧文若写 `mi_scratch/`，与本作业包名 `self_learing` 等价意图；**请统一用 `self_learing`。**）
 
 ---
 
