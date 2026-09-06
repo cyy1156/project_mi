@@ -12,7 +12,7 @@ class EventLogger:
 
     def append(self,name:str,t:float,**fileds:Any)->None:
         row:Dict[str,Any]={"name":str(name),"t":float(t)}
-        self.updata(fileds)
+        row.update(fileds)
         self._f.write(json.dumps(row,ensure_ascii=False)+"\n")
         self._f.flush()
 
@@ -27,4 +27,4 @@ def read_events(path: Path) -> List[Dict[str,Any]]:
         line=line.strip()
         if line:
             rows.append(json.loads(line))
-        return rows
+    return rows
