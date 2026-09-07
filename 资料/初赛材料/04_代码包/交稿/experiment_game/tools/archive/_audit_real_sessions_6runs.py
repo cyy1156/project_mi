@@ -9,7 +9,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1] / "data" / "subjects"
 SUBJECTS = [
     "syj0828",
-    "fnz0828",
+    "xjh0828",
     "cyy0830",
     "fnz0830",
     "wzr0830",
@@ -18,7 +18,6 @@ SUBJECTS = [
     "npl0831",
     "ycx0831",
 ]
-
 
 def session_key(name: str) -> str | None:
     for part in name.split("_"):
@@ -29,7 +28,6 @@ def session_key(name: str) -> str | None:
             return p
     return None
 
-
 def phase_of(d: Path) -> str:
     meta = d / "session.meta.json"
     if not meta.is_file():
@@ -38,7 +36,6 @@ def phase_of(d: Path) -> str:
         return str(json.loads(meta.read_text(encoding="utf-8")).get("phase_mode") or "")
     except Exception:
         return "?"
-
 
 def check_session(d: Path) -> dict:
     issues: list[str] = []
@@ -85,16 +82,14 @@ def check_session(d: Path) -> dict:
         "issues": issues,
     }
 
-
 def expected_keys(sid: str) -> list[str]:
     if sid == "syj0828":
         return [f"ws0{i}" for i in range(1, 7)]
-    if sid == "fnz0828":
+    if sid in ("xjh0828", "fnz0828"):
         return [f"ws0{i}" for i in range(2, 8)]  # historical: ws02-ws07
     if sid == "ycx0831":
         return ["w01", "w02", "w03", "w04", "w05", "w07"]  # w06 半场排除
     return [f"w0{i}" for i in range(1, 7)]
-
 
 def main() -> None:
     print("真人数据完整性检查（Leave-Next 所用 v3 run）\n")
@@ -121,7 +116,7 @@ def main() -> None:
             if sid == "syj0828" and "124816" in d.name:
                 other.append((d, "excluded_old"))
                 continue
-            if sid == "fnz0828" and d.name.endswith("_152231"):
+            if sid in ("xjh0828", "fnz0828") and d.name.endswith("_152231"):
                 other.append((d, "excluded_v4"))
                 continue
             if not key:
@@ -180,7 +175,6 @@ def main() -> None:
         )
         if v4:
             print(f"  v4: {[d.name for d in v4]}")
-
 
 if __name__ == "__main__":
     main()

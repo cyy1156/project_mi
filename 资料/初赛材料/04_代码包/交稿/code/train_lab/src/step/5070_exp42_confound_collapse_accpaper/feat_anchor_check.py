@@ -35,8 +35,7 @@ for p in (_REPO, _REPO / "code"):
 from extract_features import _probe_auc, _trial_feat  # noqa: E402
 
 ANALYSIS = _HERE.parents[4] / "资料" / "模型训练" / "42_旁路_真人队列混杂分解与会话特征坍塌诊断_accpaper" / "analysis_42"
-CHECK_PEOPLE = ["syj0828", "fnz0828", "zyj0902"]
-
+CHECK_PEOPLE = ["syj0828", "xjh0828", "zyj0902"]
 
 def _latest_session(member_id: str) -> list[Path]:
     """与线上同源：正式 v3 会话里取最新一个 ws 的全部目录。"""
@@ -48,7 +47,6 @@ def _latest_session(member_id: str) -> list[Path]:
     by_ws = _list_v3_sessions(member_id)
     key = sorted(by_ws.keys())[-1]
     return _session_dirs(by_ws, key)
-
 
 def _feat_per_trial(X: np.ndarray, y: np.ndarray, split_ids: np.ndarray):
     """生产窗 X (n,8,750) → 逐试次 16 维特征均值 + 试次标签。"""
@@ -62,7 +60,6 @@ def _feat_per_trial(X: np.ndarray, y: np.ndarray, split_ids: np.ndarray):
     Xf = np.stack([np.mean(np.stack(feats[k], 0), 0) for k in keys])
     yf = np.array([label[k] for k in keys])
     return Xf, yf
-
 
 def main() -> Path:
     from experiment_game.tools.ft_subject_from_v3 import build_dataset
@@ -134,7 +131,6 @@ def main() -> Path:
     path.write_text(json.dumps(out, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[feat-check] wrote {path} verdict={verdict}")
     return path
-
 
 if __name__ == "__main__":
     main()

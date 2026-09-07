@@ -12,7 +12,6 @@ _REPO = Path(__file__).resolve().parents[2]
 SUBJECTS_ROOT = _REPO / "experiment_game" / "data" / "subjects"
 OUT_ROOT = SUBJECTS_ROOT / "_analysis"
 
-
 def _latest_summary(subject_id: str, *, stamp_prefix: str = "") -> Path | None:
     ft = SUBJECTS_ROOT / subject_id / "models" / "ft_runs"
     if not ft.is_dir():
@@ -32,9 +31,6 @@ def _latest_summary(subject_id: str, *, stamp_prefix: str = "") -> Path | None:
     ordered = sorted(uniq.values(), key=lambda p: p.stat().st_mtime, reverse=True)
     return ordered[0] if ordered else None
 
-
-
-
 def _f5_mi(pack: Dict[str, Any] | None) -> str:
     if not pack:
         return "—"
@@ -52,7 +48,6 @@ def _f5_mi(pack: Dict[str, Any] | None) -> str:
     smax = pack.get("score_max")
     sc = f"{score:.1f}/{smax:.1f}" if score is not None and smax is not None else "—"
     return f"MI {mi} Rest {rs} score {sc}"
-
 
 def main(subjects: List[str], stamp: str) -> Path:
     OUT_ROOT.mkdir(parents=True, exist_ok=True)
@@ -121,12 +116,11 @@ def main(subjects: List[str], stamp: str) -> Path:
     print(f"wrote {out}")
     return out
 
-
 if __name__ == "__main__":
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     subs = sys.argv[1:] or [
         "syj0828",
-        "fnz0828",
+        "xjh0828",
         "cyy0830",
         "fnz0830",
         "wzr0830",

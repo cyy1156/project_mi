@@ -10,10 +10,10 @@ from typing import Any, Dict, List
 from paths import ANALYSIS, SUBJECTS
 
 # explicit merge rules (plan section 0); others are singletons
-# 2026-09-05 口径修订：fnz0828 与 fnz0830 按登记行各自为独立个体（n_people=17，
-# 与 v4 报告 §3.6 对齐）；同日重复壳 fnz / fnz_1 仍归入 fnz0828。
+# 2026-09-05 口径修订：xjh0828 与 fnz0830 按登记行各自为独立个体（n_people=17，
+# 与 v4 报告 §3.6 对齐）；同日重复壳 fnz / fnz_1 仍归入 xjh0828。
 MERGE_RULES: Dict[str, List[str]] = {
-    "fnz0828": ["fnz", "fnz0828", "fnz_1"],
+    "xjh0828": ["fnz", "fnz0828", "xjh0828", "fnz_1"],
     "cyy0830": ["cyy", "cyy0830"],
 }
 
@@ -24,11 +24,9 @@ SKIP_DIRS = {
     "learn_m00",
 }
 
-
 def _stem_person(sid: str) -> str:
     m = re.match(r"^([a-zA-Z]+)", sid)
     return (m.group(1) if m else sid).lower()
-
 
 def build_cohort_map() -> Dict[str, Any]:
     present = sorted(
@@ -82,7 +80,6 @@ def build_cohort_map() -> Dict[str, Any]:
         "notes": "analysis unit = person_id",
     }
 
-
 def main() -> Path:
     ANALYSIS.mkdir(parents=True, exist_ok=True)
     obj = build_cohort_map()
@@ -90,7 +87,6 @@ def main() -> Path:
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[P0] wrote {path} n_people={obj['n_people']}")
     return path
-
 
 if __name__ == "__main__":
     main()

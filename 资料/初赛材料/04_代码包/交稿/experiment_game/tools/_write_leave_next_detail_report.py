@@ -9,10 +9,10 @@ from typing import Any, Dict, List, Optional, Tuple
 
 SUBJECTS_ROOT = Path(__file__).resolve().parents[1] / "data" / "subjects"
 OUT = SUBJECTS_ROOT / "_analysis" / "leave_next_f5_cohort_0828_0830_详细报告_20260830.md"
-SUBJECTS = ["syj0828", "fnz0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
+SUBJECTS = ["syj0828", "xjh0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
 STAMP_HINT = {
     "syj0828": "20260830_230014",
-    "fnz0828": "20260830_230057",
+    "xjh0828": "20260830_230057",
     "cyy0830": "20260830_230116",
     "fnz0830": "20260831_103500",
     "wzr0830": "20260831_103536",
@@ -20,13 +20,12 @@ STAMP_HINT = {
 }
 NOTES = {
     "syj0828": "全档 PASS；末档持有集极强，F5 显著高于底座。",
-    "fnz0828": "缺 v3 ws01（仅 v4 首测）；ws02–ws07 共 6 场 v3，Leave-Next 5 档；ws07 于 2026-08-30 重测覆盖断流版。",
+    "xjh0828": "缺 v3 ws01（仅 v4 首测）；ws02–ws07 共 6 场 v3，Leave-Next 5 档；ws07 于 2026-08-30 重测覆盖断流版。",
     "cyy0830": "w02/w03 电极质量差；R3–R4 预测塌成几乎只出 Left。",
     "fnz0830": "legacy 切窗 Rest 窗偏多；末档易偏 Rest，MI 弱。",
     "wzr0830": "0830 中相对最好；R4–R5 过门控。",
     "xj0830": "Rest 预测偏多、MI 弱；全档 FAIL。",
 }
-
 
 def latest_summary(sid: str) -> Path:
     hint = STAMP_HINT.get(sid, "")
@@ -43,7 +42,6 @@ def latest_summary(sid: str) -> Path:
         raise FileNotFoundError(sid)
     return cands[0]
 
-
 def short_sid(s: str) -> str:
     for p in str(s).split("_"):
         if p.startswith("ws") and p[2:].isdigit():
@@ -52,12 +50,10 @@ def short_sid(s: str) -> str:
             return p
     return s[-24:]
 
-
 def train_tag(row: Dict[str, Any]) -> str:
     train = [short_sid(x) for x in (row.get("train") or [])]
     hold = short_sid(str(row.get("heldout") or "?"))
     return f"{'+'.join(train)}→{hold}"
-
 
 def f5_mi_rest(pack: Optional[Dict[str, Any]]) -> str:
     if not pack:
@@ -72,7 +68,6 @@ def f5_mi_rest(pack: Optional[Dict[str, Any]]) -> str:
     if sc is not None and sm is not None:
         return f"MI {ok_mi}/{n_mi} · Rest {ok_r}/{n_r} · {sc:.1f}/{sm:.1f}"
     return f"MI {ok_mi}/{n_mi} · Rest {ok_r}/{n_r}"
-
 
 def f5_by_class(pack: Optional[Dict[str, Any]]) -> str:
     if not pack:
@@ -90,11 +85,9 @@ def f5_by_class(pack: Optional[Dict[str, Any]]) -> str:
         bits.append(f"总分 {sc:.1f}/{sm:.1f}")
     return "；".join(bits) if bits else "—"
 
-
 def pred_s(row: Dict[str, Any]) -> str:
     pl = row.get("pred_labels") or {}
     return ", ".join(f"{k}:{v}" for k, v in pl.items()) if pl else "—"
-
 
 def load_release(out_dir: str) -> Dict[str, Any]:
     p = Path(out_dir) / "release_gate.json"
@@ -104,7 +97,6 @@ def load_release(out_dir: str) -> Dict[str, Any]:
         return json.loads(p.read_text(encoding="utf-8"))
     except Exception:
         return {}
-
 
 def gate_detail(row: Dict[str, Any]) -> Tuple[str, str]:
     """Return (PASS/FAIL, check summary)."""
@@ -139,7 +131,6 @@ def gate_detail(row: Dict[str, Any]) -> Tuple[str, str]:
             parts.append(f"train_gap={float(row['train_minus_heldout']):.3f}")
     return status, "; ".join(parts) if parts else "—"
 
-
 def main() -> Path:
     OUT.parent.mkdir(parents=True, exist_ok=True)
     payloads: Dict[str, Tuple[Path, Dict[str, Any]]] = {}
@@ -154,7 +145,7 @@ def main() -> Path:
         "",
         f"- 生成时间：{datetime.now().strftime('%Y-%m-%d %H:%M')}",
         "- 方案：**A**（展示/早停=smooth；门控=raw）",
-        "- 被试：syj0828、fnz0828、cyy0830、fnz0830、wzr0830、xj0830",
+        "- 被试：syj0828、xjh0828、cyy0830、fnz0830、wzr0830、xj0830",
         "- 未自动晋升 `models/current`（仅分析）",
         "- 简表源：`leave_next_f5_restfix_20260830_231249.md`",
         "",
@@ -186,7 +177,7 @@ def main() -> Path:
         "R5: …+w05      → w06   (replay off)",
         "```",
         "",
-        "> fnz0828 缺 w01，从 ws02 起 ramp。",
+        "> xjh0828 缺 w01，从 ws02 起 ramp。",
         "",
         "---",
         "",
@@ -221,7 +212,7 @@ def main() -> Path:
         "2. **wzr0830** 是 0830 中唯一末档过门控者；F5 仍受 Rest 偏多拖累。",
         "3. **fnz0830 / xj0830** 修 Rest 后预测里已有 Rest，但 MI 判决偏弱，易 Rest 塌缩。",
         "4. **cyy0830** 中段预测塌成 Left-only，与电极问题一致，不宜当正常微调结论。",
-        "5. **fnz0828** 有 Rest、有一定 MI，但门控持续 FAIL。",
+        "5. **xjh0828** 有 Rest、有一定 MI，但门控持续 FAIL。",
         "",
         "---",
         "",
@@ -287,7 +278,7 @@ def main() -> Path:
         "| 优先级 | 建议 |",
         "|--------|------|",
         "| 上线候选 | **syj0828** 末档（或 R5 权重）可作强参考；**wzr0830** R4/R5 过门控可备选 |",
-        "| 慎用 | fnz0828 / fnz0830 / xj0830：有 Rest，但 MI 或门控不稳 |",
+        "| 慎用 | xjh0828 / fnz0830 / xj0830：有 Rest，但 MI 或门控不稳 |",
         "| 排除/复采 | **cyy0830** 中段电极异常，应排除坏场或重采后再 FT |",
         "| 切窗 | 已确认 Cue 前静息进 Rest；后续 FT 勿回退到「无 Rest」旧路径 |",
         "",
@@ -318,7 +309,6 @@ def main() -> Path:
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print(f"wrote {OUT}")
     return OUT
-
 
 if __name__ == "__main__":
     main()
