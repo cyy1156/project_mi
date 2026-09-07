@@ -6,7 +6,7 @@
 用法::
 
     python -m experiment_game.tools.replay_causal_e1f_judge \\
-        --subjects syj0828,fnz0828
+        --subjects syj0828,xjh0828
 """
 
 from __future__ import annotations
@@ -32,12 +32,10 @@ from experiment_game.experiment.judge_aggregate import (  # noqa: E402
 SUBJECTS_ROOT = _REPO / "experiment_game" / "data" / "subjects"
 LABEL_NAMES = {0: "Rest", 1: "Left", 2: "Right"}
 
-
 def _mi_judgments(row: Dict[str, Any]) -> List[Dict[str, Any]]:
     js = [j for j in (row.get("judgments") or []) if not j.get("signal_bad")]
     js = [j for j in js if j.get("p_three")]
     return sorted(js, key=lambda j: float(j.get("t_rel", 0.0)))
-
 
 def causal_conf_stop(
     judgments: Sequence[Dict[str, Any]],
@@ -76,7 +74,6 @@ def causal_conf_stop(
     rep["e1f_lookback"] = int(lookback)
     return rep
 
-
 def last_window_pred(judgments: Sequence[Dict[str, Any]]) -> Optional[Dict[str, Any]]:
     js = _mi_judgments({"judgments": list(judgments)})
     if not js:
@@ -89,7 +86,6 @@ def last_window_pred(judgments: Sequence[Dict[str, Any]]) -> Optional[Dict[str, 
     rep["rule"] = "last_window"
     rep["e1f_picked_t_rel"] = float(j.get("t_rel", 0.0))
     return rep
-
 
 def decide(
     judgments: List[Dict[str, Any]],
@@ -111,9 +107,7 @@ def decide(
         return last_window_pred(judgments)
     raise ValueError(mode)
 
-
 MODES = ("majority", "e1f_bidir", "causal_lb1", "causal_lb2", "last_window")
-
 
 def iter_sessions(subject_ids: Sequence[str]) -> List[Tuple[str, Path]]:
     out: List[Tuple[str, Path]] = []
@@ -129,14 +123,12 @@ def iter_sessions(subject_ids: Sequence[str]) -> List[Tuple[str, Path]]:
                 out.append((sid, f))
     return out
 
-
 def load_trials(path: Path) -> List[Dict[str, Any]]:
     rows = []
     for line in path.read_text(encoding="utf-8").splitlines():
         if line.strip():
             rows.append(json.loads(line))
     return rows
-
 
 def eval_session(
     rows: List[Dict[str, Any]],
@@ -226,10 +218,9 @@ def eval_session(
 
     return {"n_lr": n, "modes": per_mode, "disagree": disagree}
 
-
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subjects", default="syj0828,fnz0828")
+    ap.add_argument("--subjects", default="syj0828,xjh0828")
     ap.add_argument("--tau", type=float, default=0.4)
     ap.add_argument(
         "--tau-grid",
@@ -342,7 +333,6 @@ def main() -> int:
     out.write_text(json.dumps(summary, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote {out}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

@@ -1,7 +1,7 @@
 # 源代码包说明（XH-202610 · 随作品提交）
 
 > 本文档用于（a）随源代码压缩包提交给评审的《代码使用说明》，以及（b）打包操作清单。  
-> **对外模型名**：离线交卷 **QuadFold-59** · 在线主线 **CausalFuse-8** / 个体适配 **CausalFuse-8FT**（工程内部仍用 S0 / E1f / F5 路径与 JSON id）。
+> **对外模型名**：离线提交 **QuadFold-59** · 在线主线 **CausalFuse-8** / 个体适配 **CausalFuse-8FT**（工程内部仍用 S0 / E1f / F5 路径与 JSON id）。
 >
 > **交稿目录**：评委可见的完整树已物化到同级 [`交稿/`](./交稿/)（含 `code/` / `collect_data/` / `experiment_game/` 与附录）。打 zip 前请先确认该目录；生成命令：`python pack_source.py`（默认只写交稿、不压缩）；需要压缩时再加 `--zip`。
 
@@ -92,7 +92,7 @@ python code/train_lab/src/step/5090_ens_recipe_3s_hop100_accpaper/replay_classic
 | `experiment_game/config/v3_session.yaml` | 范式时序：Rest 4s → prep 2s → Cue 1s → MI 4s → ITI 3s；在线窗 3s/hop100ms |
 | `experiment_game/config/ft_policy.json` | 微调策略：四成员全量微调、源域回放比例 0.10、门控 FAIL 强制晋升 + 告警落盘 |
 | `experiment_game/config/protocol.yaml` | EEG 断流看门狗：stall 2.0 s 告警 / abort 5.0 s 中止会话 |
-| 通道序 | `Cz, C3, C4, CP3, FC4, FC3, CP4, CPz`（即模型输入通道轴顺序，禁止重排） |
+| 通道序 | `FC3, C3, CP3, CZ, CPZ, FC4, C4, CP4`（模型输入通道轴顺序，与《技术报告》附录 B / `protocol.yaml` 一致，禁止重排） |
 | 统计口径 | 对外展示精度=保留评测（因果平滑）；场次质量门控=原始窗级精度；试次级读出=因果平滑多数票（权威定义见 `experiment_game/docs/统计口径方案A_20260831.md`，该文件名为代码引用路径） |
 
 ## 6. 数据与模型落盘
@@ -124,7 +124,7 @@ experiment_game/data/subjects/{被试ID}/
 - `01_数据集获取说明.md`：数据集官方出处 / 下载 / 放置路径
 - `02_附录A_实验证据链索引.md`：主证据链与阴性结案实验的结论/登记表索引，支撑《技术报告》可复现性设计（1.3、2.1 节与附录 A）与《离线性能验证报告》sheet 05。
 - `03_附录B_自采数据质控样例.md`：自采范式（OpenBMI-Align v1）参数表 + 单被试脱敏质控勾选样例 + 每人采集后质控清单模板。
-- `04_附录C_算法公式与算法详细介绍.md`：正文保留的两条核心公式之外的全部公式化定义（预处理、温度校准、因果读出、嵌套验证）与门控伪代码（式 (3.10)–(3.12)），与《技术报告》2.3–2.5 节及附录 D 对应。
+- `04_附录C_算法公式与算法详细介绍.md`：正文保留的两条核心公式之外的全部公式化定义（预处理、温度校准、因果读出、留一被试验证）与门控伪代码（式 (3.10)–(3.12)），与《技术报告》2.3–2.5 节及附录 D 对应。
 - `code/README_离线代码复现指南.md`、`experiment_game/README_在线系统运行指南.md`、`collect_data/README_采集软件说明.md`：各层模块的运行与复现说明。
 
 ## 9. 内部工作文档用语说明

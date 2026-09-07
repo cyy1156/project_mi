@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""一次性迁移脚本：把 syj0828 / fnz0828 的会话数据从旧设备序重排为新通道序。
+"""一次性迁移脚本：把 syj0828 / xjh0828 的会话数据从旧设备序重排为新通道序。
 新序: FC3, C3, CP3, CZ, CPZ, FC4, C4, CP4
 处理对象: eeg.csv, continuous/eeg.csv, v3_segments/trial*.npy, eeg.meta.json(channel_labels)
 先全量备份到 _backup_old_channel_order_20260829/，再原子写（tmp + os.replace）。
@@ -21,17 +21,15 @@ NORM = {"CZ": "CZ", "C3": "C3", "C4": "C4", "CP3": "CP3", "CP4": "CP4",
         "CPZ": "CPZ", "FC3": "FC3", "FC4": "FC4",
         "Cz": "CZ", "CPz": "CPZ"}  # 旧命名别名 -> 规范大写
 
-subjects = ["syj0828", "fnz0828"]
+subjects = ["syj0828", "xjh0828"]
 report = []
 differences = []
-
 
 def norm(name: str) -> str:
     n = name.strip()
     if n in NORM:
         return NORM[n]
     raise KeyError(f"未知通道名: {name!r}")
-
 
 def perm_from_header(header_chans):
     """返回 perm: new[i] = old[perm[i]]（针对 8 个数据列，不含 lsl_time）。"""
@@ -41,7 +39,6 @@ def perm_from_header(header_chans):
         return None
     return [old_norm.index(c) for c in NEW_ORDER]
 
-
 def backup(src: Path) -> Path:
     rel = src.relative_to(ROOT)
     dst = BACKUP / rel
@@ -49,7 +46,6 @@ def backup(src: Path) -> Path:
     if not dst.exists():
         shutil.copy2(src, dst)
     return dst
-
 
 def atomic_replace_csv(src: Path, perm_cols) -> dict:
     """perm_cols 是相对整行（含 lsl_time 列 0）的完整列重排。流式重写。"""
@@ -69,7 +65,6 @@ def atomic_replace_csv(src: Path, perm_cols) -> dict:
     os.replace(tmp, src)
     return {"lines_before": before_lines, "lines_after": after_lines}
 
-
 def rewrite_csv(path: Path, stats: dict):
     with open(path, "r", encoding="utf-8", newline="") as f:
         header = next(csv.reader(f))
@@ -88,7 +83,6 @@ def rewrite_csv(path: Path, stats: dict):
         raise RuntimeError(f"行数不一致 {path}: {r}")
     stats["csv"] = r["lines_after"]
 
-
 def rewrite_npys(segs_dir: Path, stats: dict):
     for npy in sorted(segs_dir.glob("trial*.npy")):
         a = np.load(npy)
@@ -102,7 +96,6 @@ def rewrite_npys(segs_dir: Path, stats: dict):
         perm = [old_dev.index(c) for c in NEW_ORDER]
         np.save(npy, a[:, perm].astype(a.dtype), allow_pickle=False)
         stats["npy"] += 1
-
 
 def rewrite_meta(path: Path, stats: dict):
     d = json.loads(path.read_text(encoding="utf-8"))
@@ -118,7 +111,6 @@ def rewrite_meta(path: Path, stats: dict):
         tmp.write_text(json.dumps(d, ensure_ascii=False, indent=2), encoding="utf-8")
         os.replace(tmp, path)
         stats["meta"] = True
-
 
 for subj in subjects:
     for sess in sorted((ROOT / subj / "sessions").glob("*")):

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""按 F5（因果平滑 + 多数票）回放 syj0828 / fnz0828 的 v3 会话。"""
+"""按 F5（因果平滑 + 多数票）回放 syj0828 / xjh0828 的 v3 会话。"""
 from __future__ import annotations
 
 import json
@@ -16,10 +16,9 @@ from experiment_game.experiment.trial_scoring import (  # noqa: E402
     MiTrialTracker,
 )
 
-SUBJECTS = ["syj0828", "fnz0828"]
+SUBJECTS = ["syj0828", "xjh0828"]
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
 OUT = ROOT / "_f5_reeval_20260829.json"
-
 
 def _phase_mode(session: Path) -> str:
     rc = session / "run_config.json"
@@ -38,7 +37,6 @@ def _phase_mode(session: Path) -> str:
         return None
 
     return dig(blob) or "?"
-
 
 def _load_mi_windows(session: Path) -> dict[int, tuple[int, list]]:
     """trial_id -> (label, judgments sorted). Prefer v3_trial_features."""
@@ -79,7 +77,6 @@ def _load_mi_windows(session: Path) -> dict[int, tuple[int, list]]:
         out[tid] = (labels.get(tid, -1), js)
     return out
 
-
 def _load_rest_windows(session: Path) -> dict[int, list]:
     ev = session / "events.jsonl"
     by: dict[int, list] = {}
@@ -101,7 +98,6 @@ def _load_rest_windows(session: Path) -> dict[int, list]:
     for tid in by:
         by[tid] = sorted(by[tid], key=lambda j: float(j.get("t_rel", 0.0)))
     return by
-
 
 def eval_session(session: Path) -> dict:
     mi = _load_mi_windows(session)
@@ -173,7 +169,6 @@ def eval_session(session: Path) -> dict:
         "n_compared_old_score": old_score_n,
     }
 
-
 def main() -> int:
     report = {
         "rule": "F5 causal_smooth_majority",
@@ -216,7 +211,6 @@ def main() -> int:
     OUT.write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     print(f"\nwrote {OUT}")
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

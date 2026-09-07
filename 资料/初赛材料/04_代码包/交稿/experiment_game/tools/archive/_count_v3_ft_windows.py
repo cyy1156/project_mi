@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""统计 syj0828 / fnz0828 的 v3 会话按 openbmi_align 可微调窗数。"""
+"""统计 syj0828 / xjh0828 的 v3 会话按 openbmi_align 可微调窗数。"""
 from __future__ import annotations
 
 import json
@@ -22,9 +22,8 @@ from experiment_game.tools.ft_subject_from_v3 import (  # noqa: E402
 )
 from experiment_game.offline.openbmi_align_cut import n_windows_3s_hop100  # noqa: E402
 
-SUBJECTS = ["syj0828", "fnz0828"]
+SUBJECTS = ["syj0828", "xjh0828"]
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
-
 
 def _phase_mode(session: Path) -> str:
     rc = session / "run_config.json"
@@ -43,7 +42,6 @@ def _phase_mode(session: Path) -> str:
         return None
 
     return dig(blob) or "?"
-
 
 def _table_stats(session: Path) -> dict:
     table = session / "alignment" / "trial_table.csv"
@@ -76,7 +74,6 @@ def _table_stats(session: Path) -> dict:
         "n_invalid": n_inv,
         "theo_wins_per_4s": int(n_windows_3s_hop100(4.0)),
     }
-
 
 def main() -> int:
     print(f"theo windows / 4s segment (3s hop100) = {n_windows_3s_hop100(4.0)}")
@@ -148,7 +145,6 @@ def main() -> int:
         f"GRAND: Rest={grand[0]} L={grand[1]} R={grand[2]} all={sum(grand.values())}"
     )
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())

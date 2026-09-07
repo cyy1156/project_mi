@@ -8,7 +8,7 @@
 
 沿用 2026-08-28 模式：
   syj0828 · 仅 v3 ws01–ws06（排除 v4 ws01_124816）
-  fnz0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
+  xjh0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
   R1–R3 replay=0.1；R4–R5 --no-replay
 
 纳入规则（2026-09-04）：
@@ -24,7 +24,7 @@
 
 用法:
   python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject syj0828
-  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject fnz0828
+  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject xjh0828
   python experiment_game/tools/run_leave_next_e1f_task_ramp.py --all
 """
 
@@ -166,13 +166,12 @@ SUBJECTS_W = (
     "wyf0906",
     "zyn0906",
 )
-SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
+SUBJECTS_ALL = ("syj0828", "xjh0828") + SUBJECTS_W
 
 # 历史兼容：曾按被试强制纳入 ft_eligible=false。
 # 2026-09-04 起：**电极 CZ/CPZ 饱和不再作为 Leave-Next 不可用条件**
 # （即全局不再因 ft_eligible=false 排除）；此集合保留为空，仅防旧脚本 import。
 INCLUDE_FT_INELIGIBLE: frozenset[str] = frozenset()
-
 
 def _session_dirs(by_ws: Dict[str, Any], key: str) -> List[Path]:
     """解析 session 键；支持 ytl0901 的 w02+w03 合并场（Path 列表）。"""
@@ -183,11 +182,10 @@ def _session_dirs(by_ws: Dict[str, Any], key: str) -> List[Path]:
         return [Path(p) for p in v]
     return [Path(v)]
 
-
 def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
     if subject_id == "syj0828":
         cand = list(RAMP_SYJ)
-    elif subject_id == "fnz0828":
+    elif subject_id in ("xjh0828", "fnz0828"):
         cand = list(RAMP_FNZ)
     elif subject_id == "ycx0831":
         cand = list(RAMP_YCX)
@@ -216,7 +214,6 @@ def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
         out.append((train_keys, hold_key, use_replay))
     return out
 
-
 def _session_key_from_dirname(name: str) -> Optional[str]:
     """从目录名解析 wsNN / wNN。"""
     for part in name.split("_"):
@@ -226,7 +223,6 @@ def _session_key_from_dirname(name: str) -> Optional[str]:
         if p.startswith("w") and not p.startswith("ws") and p[1:].isdigit():
             return p
     return None
-
 
 def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
     """session_id(wsNN|wNN|w02+w03) -> v3 目录或合并目录列表。"""
@@ -248,7 +244,7 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
             continue
         if subject_id == "syj0828" and "124816" in d.name:
             continue
-        if subject_id == "fnz0828" and d.name.endswith("_152231"):
+        if subject_id in ("xjh0828", "fnz0828") and d.name.endswith("_152231"):
             continue
         # ycx0831 w06 半场（9:9），Leave-Next 排除，改用 w07
         if subject_id == "ycx0831" and "_w06_" in d.name:
@@ -280,10 +276,8 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
             by_ws["w02+w03"] = merged
     return by_ws
 
-
 def _tag_from_ws(keys: Sequence[str]) -> str:
     return "+".join(keys)
-
 
 @torch.no_grad()
 def _probs_from_three_model(model, X: np.ndarray, device: str) -> np.ndarray:
@@ -300,7 +294,6 @@ def _probs_from_three_model(model, X: np.ndarray, device: str) -> np.ndarray:
             logits = logits.reshape(logits.shape[0], -1)
         outs.append(torch.softmax(logits, dim=-1).cpu().numpy()[:, :3])
     return np.concatenate(outs, axis=0) if outs else np.zeros((0, 3), dtype=np.float32)
-
 
 def _f5_from_probs(
     probs: np.ndarray,
@@ -396,7 +389,6 @@ def _f5_from_probs(
         "n_trials": mi_n + rest_n,
     }
 
-
 def eval_f5_three_ckpt(
     ckpt: Path,
     session_dirs: Sequence[Path],
@@ -416,7 +408,6 @@ def eval_f5_three_ckpt(
         "window_acc": float(win_acc),
         "f5": f5,
     }
-
 
 def eval_f5_e1f(
     session_dirs: Sequence[Path],
@@ -445,7 +436,6 @@ def eval_f5_e1f(
         "window_acc": win_acc,
         "f5": f5,
     }
-
 
 def run_ramp(
     subject_id: str,
@@ -705,11 +695,10 @@ def run_ramp(
 
     return sum_path
 
-
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--subject", choices=SUBJECTS_ALL, action="append")
-    ap.add_argument("--all", action="store_true", help="仅 syj0828+fnz0828")
+    ap.add_argument("--all", action="store_true", help="仅 syj0828+xjh0828")
     ap.add_argument(
         "--cohort-real",
         action="store_true",
@@ -736,14 +725,13 @@ def main() -> None:
     if args.cohort_real or args.cohort_0828_0830:
         subjects = list(SUBJECTS_ALL)
     elif args.all or not subjects:
-        subjects = ["syj0828", "fnz0828"]
+        subjects = ["syj0828", "xjh0828"]
     for sid in subjects:
         run_ramp(
             sid,
             promote_final=bool(args.promote_final),
             ft_scope=str(args.ft_scope),
         )
-
 
 if __name__ == "__main__":
     main()

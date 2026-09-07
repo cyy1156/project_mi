@@ -11,12 +11,11 @@ SUMMARIES = {
     "syj0828": REPO
     / "experiment_game/data/subjects/syj0828/models/ft_runs"
     / "20260829_155626_syj0828_e1f_task_leave_next_f5_summary.json",
-    "fnz0828": REPO
-    / "experiment_game/data/subjects/fnz0828/models/ft_runs"
-    / "20260829_155712_fnz0828_e1f_task_leave_next_f5_summary.json",
+    "xjh0828": REPO
+    / "experiment_game/data/subjects/xjh0828/models/ft_runs"
+    / "20260829_155712_xjh0828_e1f_task_leave_next_f5_summary.json",
 }
 OUT_DIR = REPO / "资料/模型训练/31_旁路_被试LeaveNext_F5读出_syj_fnz_openbmi_accpaper"
-
 
 def fmt_lab(bl: dict, name: str) -> str:
     b = (bl or {}).get(name) or {}
@@ -27,11 +26,10 @@ def fmt_lab(bl: dict, name: str) -> str:
     acc = (ok / n * 100) if n else float("nan")
     return f"{ok}/{n}={acc:.1f}% ({pts:.1f}/{pmax:.1f})"
 
-
 def main() -> None:
     (OUT_DIR / "总结").mkdir(parents=True, exist_ok=True)
     out: list[str] = [
-        "# 实验 31 · 结果登记（Leave-Next + F5 · syj0828 / fnz0828）",
+        "# 实验 31 · 结果登记（Leave-Next + F5 · syj0828 / xjh0828）",
         "",
         "> 日期：2026-08-29  ",
         "> **状态：正式现行（已 promote 至 `subjects/*/models/current`）**  ",
@@ -58,7 +56,7 @@ def main() -> None:
         out.append(f"## {sid}")
         out.append("")
         out.append(f"- JSON：`{rel}`")
-        if sid == "fnz0828":
+        if sid == "xjh0828":
             out.append("- 末档门控 **FAIL**，已按「全部替换」**强制晋升** current")
         else:
             out.append("- 门控各档 **PASS**")
@@ -106,14 +104,13 @@ def main() -> None:
     reg = OUT_DIR / "总结" / "结果登记表.md"
     reg.write_text("\n".join(out) + "\n", encoding="utf-8")
     (OUT_DIR / "README.md").write_text(
-        "# 实验 31 · 被试 Leave-Next + F5 读出（syj0828 / fnz0828）\n\n"
+        "# 实验 31 · 被试 Leave-Next + F5 读出（syj0828 / xjh0828）\n\n"
         "- **现行**被试 FT 权重与登记：见 `总结/结果登记表.md`\n"
         "- 旧 Leave-Next 实验保留在各 `ft_runs/`，标记 `historical`，不删除\n"
         "- 相关冻结：`experiment_game/docs/框架冻结确认_20260829.md`（F5/F7）\n",
         encoding="utf-8",
     )
     print("wrote", reg)
-
 
 if __name__ == "__main__":
     main()

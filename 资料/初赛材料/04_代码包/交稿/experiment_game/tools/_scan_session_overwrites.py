@@ -16,9 +16,8 @@ if str(_REPO / "experiment_game" / "tools") not in sys.path:
 
 from run_leave_next_e1f_task_ramp import _list_v3_sessions  # noqa: E402
 
-SUBJECTS = ("syj0828", "fnz0828", "cyy0830", "fnz0830", "wzr0830", "xj0830")
+SUBJECTS = ("syj0828", "xjh0828", "cyy0830", "fnz0830", "wzr0830", "xj0830")
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
-
 
 def eeg_stats(p: Path) -> tuple[int | None, float | None]:
     eeg = p / "eeg.csv"
@@ -41,11 +40,9 @@ def eeg_stats(p: Path) -> tuple[int | None, float | None]:
     span = (t1 - t0) if t0 is not None and t1 is not None else None
     return rows, span
 
-
 def sess_key(name: str) -> str | None:
     m = re.search(r"(?:ws|w)(\d+)", name)
     return f"w{m.group(1)}" if m else None
-
 
 def meta_of(p: Path) -> dict:
     mp = p / "session.meta.json"
@@ -55,7 +52,6 @@ def meta_of(p: Path) -> dict:
         return json.loads(mp.read_text(encoding="utf-8"))
     except Exception:
         return {}
-
 
 def main() -> None:
     print("=== _archived · __overwritten_* ===\n")
@@ -134,7 +130,6 @@ def main() -> None:
                 for name, phase in lst:
                     print(f"  {name} ({phase})")
                 print()
-
 
 if __name__ == "__main__":
     main()

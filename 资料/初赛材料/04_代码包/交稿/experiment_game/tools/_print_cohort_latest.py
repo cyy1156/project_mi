@@ -6,8 +6,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "data" / "subjects"
-SUBJECTS = ["syj0828", "fnz0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
-
+SUBJECTS = ["syj0828", "xjh0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
 
 def latest_summary(sid: str) -> Path | None:
     ft = ROOT / sid / "models" / "ft_runs"
@@ -17,7 +16,6 @@ def latest_summary(sid: str) -> Path | None:
         reverse=True,
     )
     return cands[0] if cands else None
-
 
 def f5_str(pack: dict | None) -> str:
     if not pack:
@@ -31,7 +29,6 @@ def f5_str(pack: dict | None) -> str:
     scs = f"{sc:.1f}/{sm:.1f}" if sc is not None and sm else "—"
     return f"MI {mi_ok}/{mi_n} · Rest {r_ok}/{r_n} · {scs}"
 
-
 def sess_key(s: str) -> str:
     for p in ("ws", "w"):
         i = s.find(p)
@@ -42,13 +39,11 @@ def sess_key(s: str) -> str:
             return s[i:j]
     return "?"
 
-
 def train_eval(row: dict) -> str:
     tr = row.get("train") or []
     keys = [sess_key(str(t)) for t in tr] if isinstance(tr, list) else ["?"]
     hold = sess_key(str(row.get("heldout") or ""))
     return f"{'+'.join(keys)}→{hold}"
-
 
 def main() -> None:
     for sid in SUBJECTS:
@@ -86,7 +81,6 @@ def main() -> None:
                 f"gate={'PASS' if last.get('release_pass') else 'FAIL'} | "
                 f"F5 FT {f5_str(last.get('f5_ft'))}"
             )
-
 
 if __name__ == "__main__":
     main()

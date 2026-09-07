@@ -7,7 +7,6 @@ from pathlib import Path
 
 from paths import ANALYSIS, SUMMARY_DIR
 
-
 def _fmt(x, nd=3):
     try:
         if x is None or (isinstance(x, float) and (x != x)):
@@ -17,7 +16,6 @@ def _fmt(x, nd=3):
         return str(x)
     except Exception:
         return ""
-
 
 def write_registry() -> Path:
     cohort_path = ANALYSIS / "cohort_map.json"
@@ -78,7 +76,7 @@ def write_registry() -> Path:
         f"\u751f\u6210 `{datetime.now().isoformat(timespec='seconds')}`"
     )
     lines.append(
-        "> \u5355\u4f4d\u7eaa\u5f8b\uff1a\u5206\u6790\u7528 person_id\uff0817 \u4e2a\u4f53\uff0cfnz0828/fnz0830 \u5206\u884c\uff09\uff1b"
+        "> \u5355\u4f4d\u7eaa\u5f8b\uff1a\u5206\u6790\u7528 person_id\uff0817 \u4e2a\u4f53\uff0cxjh0828/fnz0830 \u5206\u884c\uff09\uff1b"
         "A \u81c2\u4e3a\u5e95\u5ea7\u5168\u94fe\u91cd\u653e\uff08\u89c1 A-full \u8282\uff09\uff0c\u89c2\u6d4b\u4ee3\u7406\u4ec5\u4f5c\u53c2\u7167\u3002"
     )
     lines.append("")
@@ -256,7 +254,6 @@ def write_registry() -> Path:
     path.write_text("\n".join(lines), encoding="utf-8")
     print(f"[summary] wrote {path}")
     return path
-
 
 if __name__ == "__main__":
     write_registry()

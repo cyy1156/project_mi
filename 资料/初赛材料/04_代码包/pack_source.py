@@ -43,7 +43,7 @@ EG_DIR_EXCLUDE = {
 }
 EG_FILE_EXCLUDE = {
     "项目计划.md", "代码审查报告.md", "架构重构分析报告.md",
-    "fnz0828_问题诊断报告.md",
+    "xjh0828_问题诊断报告.md",
 }
 
 ROOTS = [
@@ -65,7 +65,6 @@ TOP_FILES = [
     ("collect_data/README_采集软件说明.md", OUT_DIR / "README_采集软件说明.md"),
 ]
 
-
 def dir_excluded(rel_dir: str) -> bool:
     parts = Path(rel_dir).parts
     for p in parts:
@@ -77,7 +76,6 @@ def dir_excluded(rel_dir: str) -> bool:
             return True
     return False
 
-
 def file_excluded(rel_file: str) -> bool:
     p = Path(rel_file)
     if p.suffix.lower() in GLOBAL_FILE_SUFFIX:
@@ -87,7 +85,6 @@ def file_excluded(rel_file: str) -> bool:
     if p.parts[0] == "experiment_game" and p.name in EG_FILE_EXCLUDE:
         return True
     return False
-
 
 def collect() -> list[tuple[str, Path, int]]:
     """返回 (zip/交稿内相对路径, 绝对路径, 字节数) 列表"""
@@ -117,7 +114,6 @@ def collect() -> list[tuple[str, Path, int]]:
             print(f"[警告] 缺少文件：{src}")
     return items
 
-
 def summarize(items: list[tuple[str, Path, int]]) -> None:
     total = sum(s for _, _, s in items)
     by_top: dict[str, list[int]] = {}
@@ -129,7 +125,6 @@ def summarize(items: list[tuple[str, Path, int]]) -> None:
     print(f"共 {len(items)} 个文件，原始体积 {total / 1024 / 1024:.1f} MB")
     for top, (n, s) in sorted(by_top.items()):
         print(f"  {top:<28} {n:>5} 文件  {s / 1024 / 1024:>8.1f} MB")
-
 
 def materialize(items: list[tuple[str, Path, int]], dest: Path) -> None:
     if dest.exists():
@@ -157,7 +152,6 @@ def materialize(items: list[tuple[str, Path, int]], dest: Path) -> None:
     )
     print(f"已写入交稿目录：{dest}")
 
-
 def write_zip(src_tree: Path, zip_path: Path) -> None:
     if not src_tree.is_dir():
         raise SystemExit(f"交稿目录不存在，请先 materialize：{src_tree}")
@@ -167,7 +161,6 @@ def write_zip(src_tree: Path, zip_path: Path) -> None:
             if f.is_file():
                 zf.write(f, f.relative_to(src_tree).as_posix())
     print(f"已生成：{zip_path}  ({zip_path.stat().st_size / 1024 / 1024:.1f} MB)")
-
 
 def main() -> None:
     ap = argparse.ArgumentParser(description="XH-202610 源代码交稿物化 / 打包")
@@ -198,7 +191,6 @@ def main() -> None:
         tag = date.today().strftime("%Y%m%d")
         name = args.zip_name or f"源代码_XH-202610_{tag}.zip"
         write_zip(JIAOGAO, OUT_DIR / name)
-
 
 if __name__ == "__main__":
     main()

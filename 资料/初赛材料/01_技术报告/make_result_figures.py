@@ -66,14 +66,12 @@ plt.rcParams.update({
     "pdf.fonttype": 42,
 })
 
-
 def bare_ax(ax, keep_left=True):
     """仅保留左/下细轴线，无网格。"""
     for side in ("top", "right"):
         ax.spines[side].set_visible(False)
     if not keep_left:
         ax.spines["left"].set_visible(False)
-
 
 def save(fig, name):
     problems = audit(fig, name)
@@ -84,7 +82,6 @@ def save(fig, name):
     for p in problems:
         print("     - " + p)
     return problems
-
 
 # ---------------- 版面审计 ----------------
 def audit(fig, name):
@@ -118,12 +115,10 @@ def audit(fig, name):
                 problems.append(f"[碰撞] {s1[:14]!r} × {s2[:14]!r} 重叠 {a / small:.0%}")
     return problems
 
-
 def style_check():
     """锚点断言：图内数字与 v4 正文一致。"""
     cm = np.array([[36476, 12408, 10516], [8129, 38148, 13123], [7986, 15774, 35640]])
     assert cm.sum() == 178200 and cm.sum(1).tolist() == [59400, 59400, 59400]
-
 
 # ---------------- 图 4 窗长消融（棒棒糖图） ----------------
 def fig4():
@@ -161,7 +156,6 @@ def fig4():
     ax.tick_params(axis="x", length=0)
     bare_ax(ax)
     return save(fig, "图4_窗长消融")
-
 
 # ---------------- 图 5 十一模型选型（树状分层 + 条形，避免点数字重叠） ----------------
 def fig5():
@@ -318,7 +312,6 @@ def fig5():
             shutil.copy2(src, j)
     return problems
 
-
 # ---------------- 图 6 主结果（竖柱对比）+ 混淆矩阵（行归一化热图）——规格 §3 ----------
 def fig6():
     """通栏双面板：左读出对比竖柱（混粒度，柱标签声明）；右因果平滑窗级混淆热图。"""
@@ -431,7 +424,6 @@ def fig7():
     bare_ax(ax)
     return save(fig, "图7_Stieger跨库适配")
 
-
 # ---------------- 附图 M · Leave-Next 协议示意（方法图，不占结果编号） ----------------
 def fig_m_leave_next():
     """半栏时序示意：每轮用历史场训练、紧邻下一场保留评测。"""
@@ -493,7 +485,6 @@ def fig_m_leave_next():
             fontsize=6.5, color=NEUTRAL, va="center")
     return save(fig, "附图M_LeaveNext协议示意")
 
-
 # ---------------- 图 8 BCI2a Leave-Next（小倍数：all4 vs so，Shallow 虚点参照） ----------
 def fig8():
     """实线 all4；虚线 e1f_so（+21.1 pp 主对照）；点线单头 Shallow（同档参照）。"""
@@ -537,7 +528,6 @@ def fig8():
         "末档 R5：all4 66.30%±6.70% vs so 45.20%±4.70%（Δ=+21.1 个百分点）；vs Shallow 67.10%±6.70%（同量级）",
         fontsize=7)
     return save(fig, "图8_BCI2a_LeaveNext曲线")
-
 
 # ---------------- 图 9 指定集（桥形图：基线 → 增量 → 终值） ----------------
 def fig9():
@@ -595,7 +585,6 @@ def fig9():
     bare_ax(ax)
     return save(fig, "图9_指定集嵌套与交卷")
 
-
 # ---------------- 图 10 真人 Leave-Next 逐轮柱状（每被试一面板） ----------------
 def _load_real_leave_next_cohort():
     """读取各被试最新 all4 Leave-Next F5 summary → 逐轮微调三分类窗级（因果平滑，%）。"""
@@ -611,7 +600,9 @@ def _load_real_leave_next_cohort():
             d = json.loads(p.read_text(encoding="utf-8"))
         except Exception:
             continue
+        # 兼容历史 summary 中的 fnz0828 主键
         sid = str(d.get("subject_id") or p.parent.parent.parent.name)
+        sid = {"fnz0828": "xjh0828"}.get(sid, sid)
         stamp = p.name.split("_")[0]
         prev = by_sid.get(sid)
         if prev is None or stamp >= prev["stamp"]:
@@ -649,7 +640,6 @@ def _load_real_leave_next_cohort():
         })
     cohort.sort(key=lambda x: (-x["final_win"], x["sid"]))
     return cohort
-
 
 def fig10():
     """通栏小倍数：每被试 Leave-Next 各轮微调三分类窗级（因果平滑）柱状图。"""
@@ -730,7 +720,6 @@ def fig10():
             if pdf.exists():
                 shutil.copy2(pdf, j / pdf.name)
     return problems
-
 
 # ---------------- 图 11 仿真 vs 真人 适配增益对照（三分类窗级，同指标族） ----------------
 def fig11():
@@ -850,7 +839,6 @@ def fig11():
     # 图10 小倍数已在 fig10() 同步交稿别名
     return problems
 
-
 def _load_bci2a_all4_fo_rounds():
     """Exp32 P1：A01–A09 × R0–R5 的 E-a4-fo（三分类窗级因果平滑，小数）。"""
     import re
@@ -875,13 +863,12 @@ def _load_bci2a_all4_fo_rounds():
         subs.append(sid)
     return np.asarray(rows, dtype=float), subs
 
-
 def _human_peak_vs_zs():
     """真人：各轮最高窗级 − 零样本（与 §3.6 表零样本列对齐）；门控取最高轮。"""
     zs_map = {
         "syj0828": 41.40, "lsy0903": 30.00, "npl0831": 40.90, "lsm0903": 42.40,
         "lmh0904": 37.30, "xj0830": 46.50, "zyn0906": 46.10, "cjf0831": 43.90,
-        "ytl0901": 44.40, "zyj0902": 40.10, "fnz0828": 35.40, "djh0902": 31.30,
+        "ytl0901": 44.40, "zyj0902": 40.10, "xjh0828": 35.40, "djh0902": 31.30,
         "wyf0906": 26.10, "wzr0830": 29.10, "ycx0831": 39.90, "cyy0830": 33.30,
         "zcy0902": 34.80, "lmy0904": 37.90, "fnz0830": 35.70, "djy0906": 33.20,
     }
@@ -904,7 +891,6 @@ def _human_peak_vs_zs():
         "mean_d": float(np.mean(deltas)),
         "median_d": float(np.median(deltas)),
     }
-
 
 # ---------------- 图 11b：各轮最高口径（对照图 11 末档） ----------------
 def fig11_peak():
@@ -1016,7 +1002,6 @@ def fig11_peak():
                 shutil.copy2(pdf_src, jdir / pdf_src.name)
     return problems
 
-
 if __name__ == "__main__":
     style_check()
     warns = []
@@ -1026,7 +1011,6 @@ if __name__ == "__main__":
         print(f"\nAUDIT: {len(warns)} warning(s)")
         sys.exit(1)
     print("\nAUDIT clean · all done")
-
 
 # ---------------- 图 12 仿真 vs 真人：均值柱 + 逐人增益条（按 v4 图注） ----------------
 def fig12_sim_vs_human():

@@ -28,7 +28,7 @@ INDEX = EXP41 / "总结" / "cohort_index.json"
 # Human notes for structure quirks
 NOTES = {
     "syj0828": "排除 v4 ws01；命名 ws*",
-    "fnz0828": "排除 v4 ws01；R5=ws07",
+    "xjh0828": "排除 v4 ws01；R5=ws07",
     "cyy0830": "v3 w02/w03 现因电极规则放宽可纳入",
     "cjf0831": "v3 w04/w05 现因电极规则放宽可纳入",
     "npl0831": "v3 w01 现因电极规则放宽可纳入",
@@ -46,14 +46,11 @@ NOTES = {
     "lmy0904": "2026-09-04 新增；跳无 eeg 的 w02/w03；爬坡 w01→w04…w08",
 }
 
-
 def pct(x) -> str:
     return f"{100 * float(x):.1f}%" if isinstance(x, (int, float)) else "-"
 
-
 def f3(x) -> str:
     return f"{float(x):.3f}" if isinstance(x, (int, float)) else "-"
-
 
 def main() -> None:
     idx = json.loads(INDEX.read_text(encoding="utf-8"))
@@ -133,7 +130,7 @@ def main() -> None:
         f"- 队列均值 MI = **{mean_mi:.1%}**；中位 ≈ **{sorted(mis)[len(mis)//2]:.1%}**；"
         f"末档 PASS = **{n_pass}/{n}**",
         "- 最强：**syj0828**（91.7%）；最弱：**fnz0830**（8.6%）",
-        "- 相对零样本：多数人 FT≥E1f；**fnz0828** 零样本极低（2.8%）但 FT 仍仅 33.3%",
+        "- 相对零样本：多数人 FT≥E1f；**xjh0828** 零样本极低（2.8%）但 FT 仍仅 33.3%",
         "",
         "## 3. 结构特例速查",
         "",
@@ -142,7 +139,7 @@ def main() -> None:
         "| 排除全部 v4 | 全员 |",
         "| **电极 CZ/CPZ 饱和不排除** | 全员（2026-09-04） |",
         "| 仍排除 `record_excluded` / 无 eeg | 如 zyj0902 w03；lmy0904 w02/w03 |",
-        "| 命名 `ws*` + 跳过首场 v4 | syj0828 · fnz0828 |",
+        "| 命名 `ws*` + 跳过首场 v4 | syj0828 · xjh0828 |",
         "| 合并场 `w02+w03` | ytl0901 |",
         "| 跳半场 / excluded | ycx0831 跳 w06；zyj0902 跳 w03；lmy0904 跳 w02/w03 |",
         "| 六档至 w07 | lsm0903 |",
@@ -177,7 +174,6 @@ def main() -> None:
     ]
     OUT.write_text("\n".join(lines), encoding="utf-8")
     print("wrote", OUT)
-
 
 if __name__ == "__main__":
     main()

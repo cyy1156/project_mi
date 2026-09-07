@@ -106,23 +106,41 @@ def math_png_width_cm(path: Path, max_cm: float = 15.5, min_cm: float = 4.0) -> 
 
 
 def extract_abstract_keywords(blocks):
-    """从 **摘要** / **关键词** 段落或 > 引用块抽取。"""
-    abs_text, kw_text = None, None
+    """抽取摘要区全部段落（摘要 / 离线结果 / 在线结果 / 贡献句）与关键词。
+
+    现行 MD 结构为：封面元信息 → --- → 多段摘要 → --- → 正文。
+    若只取首段「**摘要**：…」，其后的「离线结果」「在线结果」会落在第二道
+    分隔线之前而被正文循环跳过，导致 PDF/DOCX 与 MD 不一致。
+    """
+    abs_paras: list[str] = []
+    kw_text = None
+    collecting = False
     for k, v in blocks:
-        if k == "p":
-            m = ABS_RE.match(v)
-            if m:
-                abs_text = m.group(1).strip()
-                continue
-            m = KW_RE.match(v)
-            if m:
-                kw_text = m.group(1).strip()
-                continue
-        elif k == "quote" and abs_text is None:
-            abs_text = v
+        if k == "hr":
+            if collecting and abs_paras:
+                break
+            continue
+        if k == "quote" and not abs_paras:
+            abs_paras.append(v)
+            collecting = True
+            continue
+        if k != "p":
+            continue
+        m_kw = KW_RE.match(v)
+        if m_kw:
+            kw_text = m_kw.group(1).strip()
+            break
+        m_abs = ABS_RE.match(v)
+        if m_abs:
+            collecting = True
+            rest = m_abs.group(1).strip()
+            abs_paras.append(rest if rest else v)
+            continue
+        if collecting:
+            abs_paras.append(v)
     if kw_text is None:
-        kw_text = "运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互协议"
-    return abs_text or "", kw_text
+        kw_text = "运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互机制"
+    return abs_paras, kw_text
 
 
 def parse(md_text: str):
@@ -345,7 +363,7 @@ def build_docx(blocks, out: Path):
     # ---- 封面（简单标题页）----
     title = next(v for k, v in blocks if k == "h1")
     meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号"))
-    abs_text, kw_text = extract_abstract_keywords(blocks)
+    abs_paras, kw_text = extract_abstract_keywords(blocks)
     p = doc.add_paragraph()
     p.paragraph_format.space_before = Pt(200)
     p = doc.add_paragraph()
@@ -360,10 +378,10 @@ def build_docx(blocks, out: Path):
         set_fonts(r, cn="宋体", size=14)
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
-    # ---- 摘要 ----
+    # ---- 摘要（多段，与 MD 一致）----
     heading("摘要", 2, center=True)
-    if abs_text:
-        para(abs_text, size=12, indent=480)
+    for ap in abs_paras:
+        para(ap, size=12, indent=480)
     para(f"**关键词：**{kw_text}", indent=480)
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
@@ -438,6 +456,8 @@ def build_docx(blocks, out: Path):
             if v.startswith("**题目编号"):
                 continue
             if ABS_RE.match(v) or KW_RE.match(v):
+                continue
+            if v.startswith("**离线结果**") or v.startswith("**在线结果**"):
                 continue
             # 图注居中、无首行缩进
             if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
@@ -602,7 +622,7 @@ def build_pdf(blocks, out: Path):
     # 封面
     title = next(v for k, v in blocks if k == "h1")
     meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号")).strip("*")
-    abs_text, kw_text = extract_abstract_keywords(blocks)
+    abs_paras, kw_text = extract_abstract_keywords(blocks)
     meta_parts = meta.rsplit("｜", 1)
     meta_lines = [p_.strip() for p_ in meta_parts if p_.strip()] if len(meta_parts) == 2 else [meta]
     story += [Spacer(1, 55 * mm), Paragraph(esc(title), S["cover_title"]), Spacer(1, 8 * mm)]
@@ -612,10 +632,10 @@ def build_pdf(blocks, out: Path):
         story.append(Paragraph(esc(ml), S["cover_meta"]))
     story.append(PageBreak())
 
-    # 摘要
+    # 摘要（多段，与 MD 一致）
     story.append(Paragraph("摘  要", S["abstract_title"]))
-    if abs_text:
-        story.append(Paragraph(inline(abs_text), S["body"]))
+    for ap in abs_paras:
+        story.append(Paragraph(inline(ap), S["body"]))
     story.append(Paragraph(inline(f"**关键词：**{kw_text}"), S["body"]))
     story.append(PageBreak())
 
@@ -696,6 +716,8 @@ def build_pdf(blocks, out: Path):
             if v.startswith("**题目编号"):
                 continue
             if ABS_RE.match(v) or KW_RE.match(v):
+                continue
+            if v.startswith("**离线结果**") or v.startswith("**在线结果**"):
                 continue
             if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
                 story.append(Paragraph(inline(v), st(

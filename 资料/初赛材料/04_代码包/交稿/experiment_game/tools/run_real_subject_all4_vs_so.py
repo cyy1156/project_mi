@@ -49,22 +49,19 @@ DOC_REG = (
     / "结果登记表.md"
 )
 
-
 def _ramp_for_subject(subject_id: str) -> list:
     if subject_id == "syj0828":
         return list(RAMP_SYJ)
-    if subject_id == "fnz0828":
+    if subject_id in ("xjh0828", "fnz0828"):
         return list(RAMP_FNZ)
     if subject_id == "cyy0830":
         return list(RAMP_CYY)
     raise ValueError(f"未知被试 ramp: {subject_id}")
 
-
 def _base_stack() -> E1fStackConfig:
     return E1fStackConfig.load_json(E1F_CONFIG, repo_root=_REPO).resolve_paths(
         repo_root=_REPO
     )
-
 
 def _member_base() -> Dict[str, Dict[str, Any]]:
     stack = _base_stack()
@@ -76,7 +73,6 @@ def _member_base() -> Dict[str, Dict[str, Any]]:
             "task": Path(m.task_ckpt) if m.task_ckpt else None,
         }
     return out
-
 
 def _registry(
     member_three: Dict[str, Path],
@@ -94,7 +90,6 @@ def _registry(
     stack = _base_stack().with_member_overrides(overrides).resolve_paths(repo_root=_REPO)
     return E1fRegistry(stack, device=device)
 
-
 def _pack_f5(blob: Dict[str, Any]) -> Dict[str, Any]:
     f5 = blob["f5"]
     return {
@@ -110,7 +105,6 @@ def _pack_f5(blob: Dict[str, Any]) -> Dict[str, Any]:
         "by_label": f5.get("by_label"),
     }
 
-
 def _eval_e1f(
     hold_dirs: Sequence[Path],
     *,
@@ -120,7 +114,6 @@ def _eval_e1f(
 ) -> Dict[str, Any]:
     reg = _registry(member_three, member_task, device=device)
     return _pack_f5(eval_f5_e1f(hold_dirs, device=device, e1f_registry=reg))
-
 
 def run_arm(
     *,
@@ -349,7 +342,6 @@ def run_arm(
 
     return rows
 
-
 def write_registry(stamp: str, all_results: Dict[str, Dict[str, List[Dict]]]) -> Path:
     lines = [
         "# 实验 33 · 真被试 Leave-Next · so vs all4（force）",
@@ -421,7 +413,7 @@ def write_registry(stamp: str, all_results: Dict[str, Dict[str, List[Dict]]]) ->
     lines.append("")
     text = "\n".join(lines) + "\n"
     # 仅 syj/fnz 复验写正式登记表；其它被试写分析目录，避免覆盖
-    only_legacy = set(all_results) <= {"syj0828", "fnz0828"}
+    only_legacy = set(all_results) <= {"syj0828", "xjh0828"}
     if only_legacy:
         DOC_REG.parent.mkdir(parents=True, exist_ok=True)
         DOC_REG.write_text(text, encoding="utf-8")
@@ -431,12 +423,11 @@ def write_registry(stamp: str, all_results: Dict[str, Dict[str, List[Dict]]]) ->
     local.write_text(text, encoding="utf-8")
     return local
 
-
 def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--subject",
-        choices=("syj0828", "fnz0828", "cyy0830"),
+        choices=("syj0828", "xjh0828", "cyy0830"),
         action="append",
     )
     ap.add_argument("--all", action="store_true")
@@ -447,7 +438,7 @@ def main() -> int:
 
     subjects = list(args.subject or [])
     if args.all or not subjects:
-        subjects = ["syj0828", "fnz0828"]
+        subjects = ["syj0828", "xjh0828"]
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     stamp = args.stamp or datetime.now().strftime("%Y%m%d_%H%M%S")
@@ -503,7 +494,6 @@ def main() -> int:
     reg = write_registry(stamp, all_results)
     print(f"\nDONE stamp={stamp}\n  raw={out_root}\n  registry={reg}", flush=True)
     return 0
-
 
 if __name__ == "__main__":
     raise SystemExit(main())
