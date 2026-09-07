@@ -106,6 +106,11 @@ code/train_lab/out/**/_cache_*.npy
 **/*.pid
 **/System.Collections.Specialized.OrderedDictionary
 *.png
+# 技术报告插图：全局 *.png 会让 Cursor/VS Code 侧栏预览拒载；必须显式反忽略
+!资料/初赛材料/01_技术报告/**/*.png
+!资料/初赛材料/02_离线验证/截图/*.png
+!资料/初赛材料/02_离线验证/交稿/**/*.png
+
 *.npy
 !experiment_game/data/epochs/**/*.npy
 !code/train_lab/out/5070_challenge_mi_59ch_accpaper/**/*.npy

@@ -1,6 +1,6 @@
 {
   "schema": "exp42_arm_D0_v2_offline",
-  "generated_at": "2026-09-05T12:47:36",
+  "generated_at": "2026-09-06T21:07:27",
   "definition": {
     "ent_thr": 0.5,
     "mcf_thr": 0.8,
@@ -9,11 +9,11 @@
   },
   "gate": {
     "last_round_k": 1,
-    "last_round_n": 17,
-    "frac": 0.059,
+    "last_round_n": 20,
+    "frac": 0.05,
     "ci95": [
       0.001,
-      0.287
+      0.249
     ],
     "verdict": "intermediate_case_by_case"
   },
@@ -251,6 +251,86 @@
           "base_e1f_mi_acc": 0.4444444444444444,
           "collapse": false,
           "summary": "20260904_124519_djh0902_leave_next_all4_f5_summary.json"
+        }
+      ],
+      "n_rounds": 5,
+      "n_collapse": 0,
+      "label": "none",
+      "last_round_collapse": false
+    },
+    {
+      "person": "djy0906",
+      "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json",
+      "rounds": [
+        {
+          "r_stage": 1,
+          "heldout": "v3_djy0906_w02_20260906_122624",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.4208754208754209,
+          "mi_acc_f5": 0.6111111111111112,
+          "train_mcf": 0.5909090909090909,
+          "norm_entropy_trialdist": 0.69,
+          "max_class_frac": 0.574,
+          "mi_wrong_side_rate": 0.389,
+          "base_e1f_mi_acc": 0.5,
+          "collapse": false,
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 2,
+          "heldout": "v3_djy0906_w03_20260906_123713",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.4882154882154882,
+          "mi_acc_f5": 0.2777777777777778,
+          "train_mcf": 0.6077441077441077,
+          "norm_entropy_trialdist": 0.814,
+          "max_class_frac": 0.593,
+          "mi_wrong_side_rate": 0.5,
+          "base_e1f_mi_acc": 0.4444444444444444,
+          "collapse": false,
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 3,
+          "heldout": "v3_djy0906_w04_20260906_124820",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.3838383838383838,
+          "mi_acc_f5": 0.3611111111111111,
+          "train_mcf": 0.3956228956228956,
+          "norm_entropy_trialdist": 0.993,
+          "max_class_frac": 0.37,
+          "mi_wrong_side_rate": 0.536,
+          "base_e1f_mi_acc": 0.4166666666666667,
+          "collapse": false,
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 4,
+          "heldout": "v3_djy0906_w05_20260906_130038",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.3468013468013468,
+          "mi_acc_f5": 0.3611111111111111,
+          "train_mcf": 0.6161616161616161,
+          "norm_entropy_trialdist": 0.74,
+          "max_class_frac": 0.667,
+          "mi_wrong_side_rate": 0.552,
+          "base_e1f_mi_acc": 0.05555555555555555,
+          "collapse": false,
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 5,
+          "heldout": "v3_djy0906_w06_20260906_131141",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.3333333333333333,
+          "mi_acc_f5": 0.1388888888888889,
+          "train_mcf": 0.6683501683501684,
+          "norm_entropy_trialdist": 0.723,
+          "max_class_frac": 0.685,
+          "mi_wrong_side_rate": 0.583,
+          "base_e1f_mi_acc": 0.05555555555555555,
+          "collapse": false,
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json"
         }
       ],
       "n_rounds": 5,
@@ -913,6 +993,86 @@
       "last_round_collapse": false
     },
     {
+      "person": "wyf0906",
+      "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json",
+      "rounds": [
+        {
+          "r_stage": 1,
+          "heldout": "v3_wyf0906_w02_20260906_135220",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.43602693602693604,
+          "mi_acc_f5": 0.6111111111111112,
+          "train_mcf": 0.7474747474747475,
+          "norm_entropy_trialdist": 0.596,
+          "max_class_frac": 0.778,
+          "mi_wrong_side_rate": 0.371,
+          "base_e1f_mi_acc": 0.4444444444444444,
+          "collapse": false,
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 2,
+          "heldout": "v3_wyf0906_w03_20260906_140317",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.45791245791245794,
+          "mi_acc_f5": 0.4722222222222222,
+          "train_mcf": 0.4713804713804714,
+          "norm_entropy_trialdist": 0.946,
+          "max_class_frac": 0.5,
+          "mi_wrong_side_rate": 0.469,
+          "base_e1f_mi_acc": 0.4444444444444444,
+          "collapse": false,
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 3,
+          "heldout": "v3_wyf0906_w04_20260906_141445",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.3501683501683502,
+          "mi_acc_f5": 0.4166666666666667,
+          "train_mcf": 0.4730639730639731,
+          "norm_entropy_trialdist": 0.852,
+          "max_class_frac": 0.481,
+          "mi_wrong_side_rate": 0.559,
+          "base_e1f_mi_acc": 0.4722222222222222,
+          "collapse": false,
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 4,
+          "heldout": "v3_wyf0906_w05_20260906_142545",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.444253859348199,
+          "mi_acc_f5": 0.34285714285714286,
+          "train_mcf": 0.45797598627787306,
+          "norm_entropy_trialdist": 0.969,
+          "max_class_frac": 0.453,
+          "mi_wrong_side_rate": 0.455,
+          "base_e1f_mi_acc": 0.34285714285714286,
+          "collapse": false,
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 5,
+          "heldout": "v3_wyf0906_w06_20260906_143723",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.42538593481989706,
+          "mi_acc_f5": 0.5428571428571428,
+          "train_mcf": 0.4716981132075472,
+          "norm_entropy_trialdist": 0.936,
+          "max_class_frac": 0.491,
+          "mi_wrong_side_rate": 0.345,
+          "base_e1f_mi_acc": 0.2571428571428571,
+          "collapse": false,
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json"
+        }
+      ],
+      "n_rounds": 5,
+      "n_collapse": 0,
+      "label": "none",
+      "last_round_collapse": false
+    },
+    {
       "person": "wzr0830",
       "summary": "20260904_122852_wzr0830_leave_next_all4_f5_summary.json",
       "rounds": [
@@ -1390,6 +1550,100 @@
       "n_rounds": 5,
       "n_collapse": 0,
       "label": "none",
+      "last_round_collapse": false
+    },
+    {
+      "person": "zyn0906",
+      "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json",
+      "rounds": [
+        {
+          "r_stage": 1,
+          "heldout": "v3_zyn0906_w02_20260906_152648",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.4065180102915952,
+          "mi_acc_f5": 0.2857142857142857,
+          "train_mcf": 0.41680960548885077,
+          "norm_entropy_trialdist": 0.98,
+          "max_class_frac": 0.415,
+          "mi_wrong_side_rate": 0.583,
+          "base_e1f_mi_acc": 0.2857142857142857,
+          "collapse": false,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 2,
+          "heldout": "v3_zyn0906_w03_20260906_153844",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.3515151515151515,
+          "mi_acc_f5": 0.0,
+          "train_mcf": 0.806060606060606,
+          "norm_entropy_trialdist": 0.442,
+          "max_class_frac": 0.867,
+          "mi_wrong_side_rate": 1.0,
+          "base_e1f_mi_acc": 0.0,
+          "collapse": true,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 3,
+          "heldout": "v3_zyn0906_w04_20260906_155541",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.5723905723905723,
+          "mi_acc_f5": 0.6388888888888888,
+          "train_mcf": 0.5521885521885522,
+          "norm_entropy_trialdist": 0.904,
+          "max_class_frac": 0.556,
+          "mi_wrong_side_rate": 0.281,
+          "base_e1f_mi_acc": 0.1111111111111111,
+          "collapse": false,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 4,
+          "heldout": "v3_zyn0906_w05_20260906_160645",
+          "release_pass": false,
+          "heldout_acc_smooth": 0.31217838765008576,
+          "mi_acc_f5": 0.5142857142857142,
+          "train_mcf": 0.7084048027444254,
+          "norm_entropy_trialdist": 0.507,
+          "max_class_frac": 0.755,
+          "mi_wrong_side_rate": 0.486,
+          "base_e1f_mi_acc": 0.34285714285714286,
+          "collapse": false,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 5,
+          "heldout": "v3_zyn0906_w06_20260906_161933",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.5420875420875421,
+          "mi_acc_f5": 0.3888888888888889,
+          "train_mcf": 0.51010101010101,
+          "norm_entropy_trialdist": 0.818,
+          "max_class_frac": 0.519,
+          "mi_wrong_side_rate": 0.391,
+          "base_e1f_mi_acc": 0.5555555555555556,
+          "collapse": false,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        },
+        {
+          "r_stage": 6,
+          "heldout": "v3_zyn0906_w07_20260906_163149",
+          "release_pass": true,
+          "heldout_acc_smooth": 0.4831649831649832,
+          "mi_acc_f5": 0.3888888888888889,
+          "train_mcf": 0.46296296296296297,
+          "norm_entropy_trialdist": 0.966,
+          "max_class_frac": 0.444,
+          "mi_wrong_side_rate": 0.417,
+          "base_e1f_mi_acc": 0.4444444444444444,
+          "collapse": false,
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json"
+        }
+      ],
+      "n_rounds": 6,
+      "n_collapse": 1,
+      "label": "occasional",
       "last_round_collapse": false
     }
   ]
