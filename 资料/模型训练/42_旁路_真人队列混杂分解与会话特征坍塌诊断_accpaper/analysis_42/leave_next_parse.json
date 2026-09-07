@@ -1,7 +1,7 @@
 {
   "schema": "exp42_leave_next_parse_v1",
-  "generated_at": "2026-09-05T12:35:59",
-  "n_people": 17,
+  "generated_at": "2026-09-07T09:10:43",
+  "n_people": 20,
   "rows": [
     {
       "person_id": "cjf0831",
@@ -1467,6 +1467,322 @@
               "Rest": 31,
               "Left": 421,
               "Right": 142
+            }
+          }
+        ],
+        "collapse_any": false
+      }
+    },
+    {
+      "person_id": "djy0906",
+      "primary_id": "djy0906",
+      "members": [
+        {
+          "member_id": "djy0906",
+          "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json",
+          "meta": {
+            "ft_scope": "all4",
+            "subject_id": "djy0906",
+            "protocol": "leave_next_f5"
+          },
+          "n_rounds": 5,
+          "stages": [
+            {
+              "r": 1,
+              "train": [
+                "v3_djy0906_w01_20260906_121528"
+              ],
+              "heldout": "v3_djy0906_w02_20260906_122624",
+              "use_replay": true,
+              "mi": 0.6111111111111112,
+              "win_smooth": 0.4208754208754209,
+              "win_raw": 0.41245791245791247,
+              "max_class_frac": 0.5909090909090909,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01_eval_w02_all4"
+            },
+            {
+              "r": 2,
+              "train": [
+                "v3_djy0906_w01_20260906_121528",
+                "v3_djy0906_w02_20260906_122624"
+              ],
+              "heldout": "v3_djy0906_w03_20260906_123713",
+              "use_replay": true,
+              "mi": 0.2777777777777778,
+              "win_smooth": 0.4882154882154882,
+              "win_raw": 0.48148148148148145,
+              "max_class_frac": 0.6077441077441077,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02_eval_w03_all4"
+            },
+            {
+              "r": 3,
+              "train": [
+                "v3_djy0906_w01_20260906_121528",
+                "v3_djy0906_w02_20260906_122624",
+                "v3_djy0906_w03_20260906_123713"
+              ],
+              "heldout": "v3_djy0906_w04_20260906_124820",
+              "use_replay": true,
+              "mi": 0.3611111111111111,
+              "win_smooth": 0.3838383838383838,
+              "win_raw": 0.38047138047138046,
+              "max_class_frac": 0.3956228956228956,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03_eval_w04_all4"
+            },
+            {
+              "r": 4,
+              "train": [
+                "v3_djy0906_w01_20260906_121528",
+                "v3_djy0906_w02_20260906_122624",
+                "v3_djy0906_w03_20260906_123713",
+                "v3_djy0906_w04_20260906_124820"
+              ],
+              "heldout": "v3_djy0906_w05_20260906_130038",
+              "use_replay": false,
+              "mi": 0.3611111111111111,
+              "win_smooth": 0.3468013468013468,
+              "win_raw": 0.3400673400673401,
+              "max_class_frac": 0.6161616161616161,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay"
+            },
+            {
+              "r": 5,
+              "train": [
+                "v3_djy0906_w01_20260906_121528",
+                "v3_djy0906_w02_20260906_122624",
+                "v3_djy0906_w03_20260906_123713",
+                "v3_djy0906_w04_20260906_124820",
+                "v3_djy0906_w05_20260906_130038"
+              ],
+              "heldout": "v3_djy0906_w06_20260906_131141",
+              "use_replay": false,
+              "mi": 0.1388888888888889,
+              "win_smooth": 0.3333333333333333,
+              "win_raw": 0.3333333333333333,
+              "max_class_frac": 0.6683501683501684,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+            }
+          ],
+          "first_mi": 0.6111111111111112,
+          "last_mi": 0.1388888888888889,
+          "delta_mi": -0.47222222222222227,
+          "last_pass": false,
+          "max_class_frac_peak": 0.6683501683501684,
+          "gates_all_leave_next": [
+            {
+              "run": "20260906_205828_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+              "pass": false,
+              "heldout_acc": 0.3333333333333333,
+              "max_class_frac": 0.6683501683501684,
+              "pred_labels": {
+                "Rest": 397,
+                "Left": 39,
+                "Right": 158
+              }
+            },
+            {
+              "run": "20260906_205828_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay",
+              "pass": false,
+              "heldout_acc": 0.3400673400673401,
+              "max_class_frac": 0.6161616161616161,
+              "pred_labels": {
+                "Rest": 170,
+                "Left": 366,
+                "Right": 58
+              }
+            },
+            {
+              "run": "20260906_205828_leave_next_w01+w02+w03_eval_w04_all4",
+              "pass": false,
+              "heldout_acc": 0.38047138047138046,
+              "max_class_frac": 0.3956228956228956,
+              "pred_labels": {
+                "Rest": 179,
+                "Left": 180,
+                "Right": 235
+              }
+            },
+            {
+              "run": "20260906_205828_leave_next_w01+w02_eval_w03_all4",
+              "pass": false,
+              "heldout_acc": 0.48148148148148145,
+              "max_class_frac": 0.6077441077441077,
+              "pred_labels": {
+                "Rest": 361,
+                "Left": 64,
+                "Right": 169
+              }
+            },
+            {
+              "run": "20260906_205828_leave_next_w01_eval_w02_all4",
+              "pass": true,
+              "heldout_acc": 0.41245791245791247,
+              "max_class_frac": 0.5909090909090909,
+              "pred_labels": {
+                "Rest": 21,
+                "Left": 222,
+                "Right": 351
+              }
+            }
+          ],
+          "collapse_any": false
+        }
+      ],
+      "primary": {
+        "member_id": "djy0906",
+        "summary": "20260906_205828_djy0906_leave_next_all4_f5_summary.json",
+        "meta": {
+          "ft_scope": "all4",
+          "subject_id": "djy0906",
+          "protocol": "leave_next_f5"
+        },
+        "n_rounds": 5,
+        "stages": [
+          {
+            "r": 1,
+            "train": [
+              "v3_djy0906_w01_20260906_121528"
+            ],
+            "heldout": "v3_djy0906_w02_20260906_122624",
+            "use_replay": true,
+            "mi": 0.6111111111111112,
+            "win_smooth": 0.4208754208754209,
+            "win_raw": 0.41245791245791247,
+            "max_class_frac": 0.5909090909090909,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01_eval_w02_all4"
+          },
+          {
+            "r": 2,
+            "train": [
+              "v3_djy0906_w01_20260906_121528",
+              "v3_djy0906_w02_20260906_122624"
+            ],
+            "heldout": "v3_djy0906_w03_20260906_123713",
+            "use_replay": true,
+            "mi": 0.2777777777777778,
+            "win_smooth": 0.4882154882154882,
+            "win_raw": 0.48148148148148145,
+            "max_class_frac": 0.6077441077441077,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02_eval_w03_all4"
+          },
+          {
+            "r": 3,
+            "train": [
+              "v3_djy0906_w01_20260906_121528",
+              "v3_djy0906_w02_20260906_122624",
+              "v3_djy0906_w03_20260906_123713"
+            ],
+            "heldout": "v3_djy0906_w04_20260906_124820",
+            "use_replay": true,
+            "mi": 0.3611111111111111,
+            "win_smooth": 0.3838383838383838,
+            "win_raw": 0.38047138047138046,
+            "max_class_frac": 0.3956228956228956,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03_eval_w04_all4"
+          },
+          {
+            "r": 4,
+            "train": [
+              "v3_djy0906_w01_20260906_121528",
+              "v3_djy0906_w02_20260906_122624",
+              "v3_djy0906_w03_20260906_123713",
+              "v3_djy0906_w04_20260906_124820"
+            ],
+            "heldout": "v3_djy0906_w05_20260906_130038",
+            "use_replay": false,
+            "mi": 0.3611111111111111,
+            "win_smooth": 0.3468013468013468,
+            "win_raw": 0.3400673400673401,
+            "max_class_frac": 0.6161616161616161,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay"
+          },
+          {
+            "r": 5,
+            "train": [
+              "v3_djy0906_w01_20260906_121528",
+              "v3_djy0906_w02_20260906_122624",
+              "v3_djy0906_w03_20260906_123713",
+              "v3_djy0906_w04_20260906_124820",
+              "v3_djy0906_w05_20260906_130038"
+            ],
+            "heldout": "v3_djy0906_w06_20260906_131141",
+            "use_replay": false,
+            "mi": 0.1388888888888889,
+            "win_smooth": 0.3333333333333333,
+            "win_raw": 0.3333333333333333,
+            "max_class_frac": 0.6683501683501684,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\djy0906\\models\\ft_runs\\20260906_205828_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+          }
+        ],
+        "first_mi": 0.6111111111111112,
+        "last_mi": 0.1388888888888889,
+        "delta_mi": -0.47222222222222227,
+        "last_pass": false,
+        "max_class_frac_peak": 0.6683501683501684,
+        "gates_all_leave_next": [
+          {
+            "run": "20260906_205828_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+            "pass": false,
+            "heldout_acc": 0.3333333333333333,
+            "max_class_frac": 0.6683501683501684,
+            "pred_labels": {
+              "Rest": 397,
+              "Left": 39,
+              "Right": 158
+            }
+          },
+          {
+            "run": "20260906_205828_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay",
+            "pass": false,
+            "heldout_acc": 0.3400673400673401,
+            "max_class_frac": 0.6161616161616161,
+            "pred_labels": {
+              "Rest": 170,
+              "Left": 366,
+              "Right": 58
+            }
+          },
+          {
+            "run": "20260906_205828_leave_next_w01+w02+w03_eval_w04_all4",
+            "pass": false,
+            "heldout_acc": 0.38047138047138046,
+            "max_class_frac": 0.3956228956228956,
+            "pred_labels": {
+              "Rest": 179,
+              "Left": 180,
+              "Right": 235
+            }
+          },
+          {
+            "run": "20260906_205828_leave_next_w01+w02_eval_w03_all4",
+            "pass": false,
+            "heldout_acc": 0.48148148148148145,
+            "max_class_frac": 0.6077441077441077,
+            "pred_labels": {
+              "Rest": 361,
+              "Left": 64,
+              "Right": 169
+            }
+          },
+          {
+            "run": "20260906_205828_leave_next_w01_eval_w02_all4",
+            "pass": true,
+            "heldout_acc": 0.41245791245791247,
+            "max_class_frac": 0.5909090909090909,
+            "pred_labels": {
+              "Rest": 21,
+              "Left": 222,
+              "Right": 351
             }
           }
         ],
@@ -6506,6 +6822,322 @@
       }
     },
     {
+      "person_id": "wyf0906",
+      "primary_id": "wyf0906",
+      "members": [
+        {
+          "member_id": "wyf0906",
+          "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json",
+          "meta": {
+            "ft_scope": "all4",
+            "subject_id": "wyf0906",
+            "protocol": "leave_next_f5"
+          },
+          "n_rounds": 5,
+          "stages": [
+            {
+              "r": 1,
+              "train": [
+                "v3_wyf0906_w01_20260906_134147"
+              ],
+              "heldout": "v3_wyf0906_w02_20260906_135220",
+              "use_replay": true,
+              "mi": 0.6111111111111112,
+              "win_smooth": 0.43602693602693604,
+              "win_raw": 0.4225589225589226,
+              "max_class_frac": 0.7474747474747475,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01_eval_w02_all4"
+            },
+            {
+              "r": 2,
+              "train": [
+                "v3_wyf0906_w01_20260906_134147",
+                "v3_wyf0906_w02_20260906_135220"
+              ],
+              "heldout": "v3_wyf0906_w03_20260906_140317",
+              "use_replay": true,
+              "mi": 0.4722222222222222,
+              "win_smooth": 0.45791245791245794,
+              "win_raw": 0.4478114478114478,
+              "max_class_frac": 0.4713804713804714,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02_eval_w03_all4"
+            },
+            {
+              "r": 3,
+              "train": [
+                "v3_wyf0906_w01_20260906_134147",
+                "v3_wyf0906_w02_20260906_135220",
+                "v3_wyf0906_w03_20260906_140317"
+              ],
+              "heldout": "v3_wyf0906_w04_20260906_141445",
+              "use_replay": true,
+              "mi": 0.4166666666666667,
+              "win_smooth": 0.3501683501683502,
+              "win_raw": 0.3501683501683502,
+              "max_class_frac": 0.4730639730639731,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03_eval_w04_all4"
+            },
+            {
+              "r": 4,
+              "train": [
+                "v3_wyf0906_w01_20260906_134147",
+                "v3_wyf0906_w02_20260906_135220",
+                "v3_wyf0906_w03_20260906_140317",
+                "v3_wyf0906_w04_20260906_141445"
+              ],
+              "heldout": "v3_wyf0906_w05_20260906_142545",
+              "use_replay": false,
+              "mi": 0.34285714285714286,
+              "win_smooth": 0.444253859348199,
+              "win_raw": 0.4528301886792453,
+              "max_class_frac": 0.45797598627787306,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay"
+            },
+            {
+              "r": 5,
+              "train": [
+                "v3_wyf0906_w01_20260906_134147",
+                "v3_wyf0906_w02_20260906_135220",
+                "v3_wyf0906_w03_20260906_140317",
+                "v3_wyf0906_w04_20260906_141445",
+                "v3_wyf0906_w05_20260906_142545"
+              ],
+              "heldout": "v3_wyf0906_w06_20260906_143723",
+              "use_replay": false,
+              "mi": 0.5428571428571428,
+              "win_smooth": 0.42538593481989706,
+              "win_raw": 0.43739279588336194,
+              "max_class_frac": 0.4716981132075472,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+            }
+          ],
+          "first_mi": 0.6111111111111112,
+          "last_mi": 0.5428571428571428,
+          "delta_mi": -0.06825396825396834,
+          "last_pass": true,
+          "max_class_frac_peak": 0.7474747474747475,
+          "gates_all_leave_next": [
+            {
+              "run": "20260906_210105_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+              "pass": true,
+              "heldout_acc": 0.43739279588336194,
+              "max_class_frac": 0.4716981132075472,
+              "pred_labels": {
+                "Rest": 121,
+                "Left": 275,
+                "Right": 187
+              }
+            },
+            {
+              "run": "20260906_210105_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay",
+              "pass": false,
+              "heldout_acc": 0.4528301886792453,
+              "max_class_frac": 0.45797598627787306,
+              "pred_labels": {
+                "Rest": 267,
+                "Left": 178,
+                "Right": 138
+              }
+            },
+            {
+              "run": "20260906_210105_leave_next_w01+w02+w03_eval_w04_all4",
+              "pass": false,
+              "heldout_acc": 0.3501683501683502,
+              "max_class_frac": 0.4730639730639731,
+              "pred_labels": {
+                "Rest": 69,
+                "Left": 244,
+                "Right": 281
+              }
+            },
+            {
+              "run": "20260906_210105_leave_next_w01+w02_eval_w03_all4",
+              "pass": true,
+              "heldout_acc": 0.4478114478114478,
+              "max_class_frac": 0.4713804713804714,
+              "pred_labels": {
+                "Rest": 151,
+                "Left": 163,
+                "Right": 280
+              }
+            },
+            {
+              "run": "20260906_210105_leave_next_w01_eval_w02_all4",
+              "pass": false,
+              "heldout_acc": 0.4225589225589226,
+              "max_class_frac": 0.7474747474747475,
+              "pred_labels": {
+                "Rest": 37,
+                "Left": 113,
+                "Right": 444
+              }
+            }
+          ],
+          "collapse_any": false
+        }
+      ],
+      "primary": {
+        "member_id": "wyf0906",
+        "summary": "20260906_210105_wyf0906_leave_next_all4_f5_summary.json",
+        "meta": {
+          "ft_scope": "all4",
+          "subject_id": "wyf0906",
+          "protocol": "leave_next_f5"
+        },
+        "n_rounds": 5,
+        "stages": [
+          {
+            "r": 1,
+            "train": [
+              "v3_wyf0906_w01_20260906_134147"
+            ],
+            "heldout": "v3_wyf0906_w02_20260906_135220",
+            "use_replay": true,
+            "mi": 0.6111111111111112,
+            "win_smooth": 0.43602693602693604,
+            "win_raw": 0.4225589225589226,
+            "max_class_frac": 0.7474747474747475,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01_eval_w02_all4"
+          },
+          {
+            "r": 2,
+            "train": [
+              "v3_wyf0906_w01_20260906_134147",
+              "v3_wyf0906_w02_20260906_135220"
+            ],
+            "heldout": "v3_wyf0906_w03_20260906_140317",
+            "use_replay": true,
+            "mi": 0.4722222222222222,
+            "win_smooth": 0.45791245791245794,
+            "win_raw": 0.4478114478114478,
+            "max_class_frac": 0.4713804713804714,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02_eval_w03_all4"
+          },
+          {
+            "r": 3,
+            "train": [
+              "v3_wyf0906_w01_20260906_134147",
+              "v3_wyf0906_w02_20260906_135220",
+              "v3_wyf0906_w03_20260906_140317"
+            ],
+            "heldout": "v3_wyf0906_w04_20260906_141445",
+            "use_replay": true,
+            "mi": 0.4166666666666667,
+            "win_smooth": 0.3501683501683502,
+            "win_raw": 0.3501683501683502,
+            "max_class_frac": 0.4730639730639731,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03_eval_w04_all4"
+          },
+          {
+            "r": 4,
+            "train": [
+              "v3_wyf0906_w01_20260906_134147",
+              "v3_wyf0906_w02_20260906_135220",
+              "v3_wyf0906_w03_20260906_140317",
+              "v3_wyf0906_w04_20260906_141445"
+            ],
+            "heldout": "v3_wyf0906_w05_20260906_142545",
+            "use_replay": false,
+            "mi": 0.34285714285714286,
+            "win_smooth": 0.444253859348199,
+            "win_raw": 0.4528301886792453,
+            "max_class_frac": 0.45797598627787306,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay"
+          },
+          {
+            "r": 5,
+            "train": [
+              "v3_wyf0906_w01_20260906_134147",
+              "v3_wyf0906_w02_20260906_135220",
+              "v3_wyf0906_w03_20260906_140317",
+              "v3_wyf0906_w04_20260906_141445",
+              "v3_wyf0906_w05_20260906_142545"
+            ],
+            "heldout": "v3_wyf0906_w06_20260906_143723",
+            "use_replay": false,
+            "mi": 0.5428571428571428,
+            "win_smooth": 0.42538593481989706,
+            "win_raw": 0.43739279588336194,
+            "max_class_frac": 0.4716981132075472,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\wyf0906\\models\\ft_runs\\20260906_210105_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+          }
+        ],
+        "first_mi": 0.6111111111111112,
+        "last_mi": 0.5428571428571428,
+        "delta_mi": -0.06825396825396834,
+        "last_pass": true,
+        "max_class_frac_peak": 0.7474747474747475,
+        "gates_all_leave_next": [
+          {
+            "run": "20260906_210105_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+            "pass": true,
+            "heldout_acc": 0.43739279588336194,
+            "max_class_frac": 0.4716981132075472,
+            "pred_labels": {
+              "Rest": 121,
+              "Left": 275,
+              "Right": 187
+            }
+          },
+          {
+            "run": "20260906_210105_leave_next_w01+w02+w03+w04_eval_w05_all4_noreplay",
+            "pass": false,
+            "heldout_acc": 0.4528301886792453,
+            "max_class_frac": 0.45797598627787306,
+            "pred_labels": {
+              "Rest": 267,
+              "Left": 178,
+              "Right": 138
+            }
+          },
+          {
+            "run": "20260906_210105_leave_next_w01+w02+w03_eval_w04_all4",
+            "pass": false,
+            "heldout_acc": 0.3501683501683502,
+            "max_class_frac": 0.4730639730639731,
+            "pred_labels": {
+              "Rest": 69,
+              "Left": 244,
+              "Right": 281
+            }
+          },
+          {
+            "run": "20260906_210105_leave_next_w01+w02_eval_w03_all4",
+            "pass": true,
+            "heldout_acc": 0.4478114478114478,
+            "max_class_frac": 0.4713804713804714,
+            "pred_labels": {
+              "Rest": 151,
+              "Left": 163,
+              "Right": 280
+            }
+          },
+          {
+            "run": "20260906_210105_leave_next_w01_eval_w02_all4",
+            "pass": false,
+            "heldout_acc": 0.4225589225589226,
+            "max_class_frac": 0.7474747474747475,
+            "pred_labels": {
+              "Rest": 37,
+              "Left": 113,
+              "Right": 444
+            }
+          }
+        ],
+        "collapse_any": false
+      }
+    },
+    {
       "person_id": "wzr0830",
       "primary_id": "wzr0830",
       "members": [
@@ -9869,6 +10501,382 @@
               "Rest": 84,
               "Left": 261,
               "Right": 249
+            }
+          }
+        ],
+        "collapse_any": false
+      }
+    },
+    {
+      "person_id": "zyn0906",
+      "primary_id": "zyn0906",
+      "members": [
+        {
+          "member_id": "zyn0906",
+          "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json",
+          "meta": {
+            "ft_scope": "all4",
+            "subject_id": "zyn0906",
+            "protocol": "leave_next_f5"
+          },
+          "n_rounds": 6,
+          "stages": [
+            {
+              "r": 1,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428"
+              ],
+              "heldout": "v3_zyn0906_w02_20260906_152648",
+              "use_replay": true,
+              "mi": 0.2857142857142857,
+              "win_smooth": 0.4065180102915952,
+              "win_raw": 0.3927958833619211,
+              "max_class_frac": 0.41680960548885077,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01_eval_w02_all4"
+            },
+            {
+              "r": 2,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428",
+                "v3_zyn0906_w02_20260906_152648"
+              ],
+              "heldout": "v3_zyn0906_w03_20260906_153844",
+              "use_replay": true,
+              "mi": 0.0,
+              "win_smooth": 0.3515151515151515,
+              "win_raw": 0.3393939393939394,
+              "max_class_frac": 0.806060606060606,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02_eval_w03_all4"
+            },
+            {
+              "r": 3,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428",
+                "v3_zyn0906_w02_20260906_152648",
+                "v3_zyn0906_w03_20260906_153844"
+              ],
+              "heldout": "v3_zyn0906_w04_20260906_155541",
+              "use_replay": true,
+              "mi": 0.6388888888888888,
+              "win_smooth": 0.5723905723905723,
+              "win_raw": 0.5555555555555556,
+              "max_class_frac": 0.5521885521885522,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03_eval_w04_all4"
+            },
+            {
+              "r": 4,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428",
+                "v3_zyn0906_w02_20260906_152648",
+                "v3_zyn0906_w03_20260906_153844",
+                "v3_zyn0906_w04_20260906_155541"
+              ],
+              "heldout": "v3_zyn0906_w05_20260906_160645",
+              "use_replay": true,
+              "mi": 0.5142857142857142,
+              "win_smooth": 0.31217838765008576,
+              "win_raw": 0.2967409948542024,
+              "max_class_frac": 0.7084048027444254,
+              "pass": false,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04_eval_w05_all4"
+            },
+            {
+              "r": 5,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428",
+                "v3_zyn0906_w02_20260906_152648",
+                "v3_zyn0906_w03_20260906_153844",
+                "v3_zyn0906_w04_20260906_155541",
+                "v3_zyn0906_w05_20260906_160645"
+              ],
+              "heldout": "v3_zyn0906_w06_20260906_161933",
+              "use_replay": false,
+              "mi": 0.3888888888888889,
+              "win_smooth": 0.5420875420875421,
+              "win_raw": 0.5286195286195287,
+              "max_class_frac": 0.51010101010101,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+            },
+            {
+              "r": 6,
+              "train": [
+                "v3_zyn0906_w01_20260906_151428",
+                "v3_zyn0906_w02_20260906_152648",
+                "v3_zyn0906_w03_20260906_153844",
+                "v3_zyn0906_w04_20260906_155541",
+                "v3_zyn0906_w05_20260906_160645",
+                "v3_zyn0906_w06_20260906_161933"
+              ],
+              "heldout": "v3_zyn0906_w07_20260906_163149",
+              "use_replay": false,
+              "mi": 0.3888888888888889,
+              "win_smooth": 0.4831649831649832,
+              "win_raw": 0.4797979797979798,
+              "max_class_frac": 0.46296296296296297,
+              "pass": true,
+              "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04+w05+w06_eval_w07_all4_noreplay"
+            }
+          ],
+          "first_mi": 0.2857142857142857,
+          "last_mi": 0.3888888888888889,
+          "delta_mi": 0.1031746031746032,
+          "last_pass": true,
+          "max_class_frac_peak": 0.806060606060606,
+          "gates_all_leave_next": [
+            {
+              "run": "20260906_210354_leave_next_w01+w02+w03+w04+w05+w06_eval_w07_all4_noreplay",
+              "pass": true,
+              "heldout_acc": 0.4797979797979798,
+              "max_class_frac": 0.46296296296296297,
+              "pred_labels": {
+                "Rest": 275,
+                "Left": 136,
+                "Right": 183
+              }
+            },
+            {
+              "run": "20260906_210354_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+              "pass": true,
+              "heldout_acc": 0.5286195286195287,
+              "max_class_frac": 0.51010101010101,
+              "pred_labels": {
+                "Rest": 303,
+                "Left": 69,
+                "Right": 222
+              }
+            },
+            {
+              "run": "20260906_210354_leave_next_w01+w02+w03+w04_eval_w05_all4",
+              "pass": false,
+              "heldout_acc": 0.2967409948542024,
+              "max_class_frac": 0.7084048027444254,
+              "pred_labels": {
+                "Rest": 12,
+                "Left": 158,
+                "Right": 413
+              }
+            },
+            {
+              "run": "20260906_210354_leave_next_w01+w02+w03_eval_w04_all4",
+              "pass": true,
+              "heldout_acc": 0.5555555555555556,
+              "max_class_frac": 0.5521885521885522,
+              "pred_labels": {
+                "Rest": 163,
+                "Left": 328,
+                "Right": 103
+              }
+            },
+            {
+              "run": "20260906_210354_leave_next_w01+w02_eval_w03_all4",
+              "pass": false,
+              "heldout_acc": 0.3393939393939394,
+              "max_class_frac": 0.806060606060606,
+              "pred_labels": {
+                "Rest": 133,
+                "Left": 16,
+                "Right": 16
+              }
+            },
+            {
+              "run": "20260906_210354_leave_next_w01_eval_w02_all4",
+              "pass": false,
+              "heldout_acc": 0.3927958833619211,
+              "max_class_frac": 0.41680960548885077,
+              "pred_labels": {
+                "Rest": 243,
+                "Left": 195,
+                "Right": 145
+              }
+            }
+          ],
+          "collapse_any": false
+        }
+      ],
+      "primary": {
+        "member_id": "zyn0906",
+        "summary": "20260906_210354_zyn0906_leave_next_all4_f5_summary.json",
+        "meta": {
+          "ft_scope": "all4",
+          "subject_id": "zyn0906",
+          "protocol": "leave_next_f5"
+        },
+        "n_rounds": 6,
+        "stages": [
+          {
+            "r": 1,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428"
+            ],
+            "heldout": "v3_zyn0906_w02_20260906_152648",
+            "use_replay": true,
+            "mi": 0.2857142857142857,
+            "win_smooth": 0.4065180102915952,
+            "win_raw": 0.3927958833619211,
+            "max_class_frac": 0.41680960548885077,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01_eval_w02_all4"
+          },
+          {
+            "r": 2,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428",
+              "v3_zyn0906_w02_20260906_152648"
+            ],
+            "heldout": "v3_zyn0906_w03_20260906_153844",
+            "use_replay": true,
+            "mi": 0.0,
+            "win_smooth": 0.3515151515151515,
+            "win_raw": 0.3393939393939394,
+            "max_class_frac": 0.806060606060606,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02_eval_w03_all4"
+          },
+          {
+            "r": 3,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428",
+              "v3_zyn0906_w02_20260906_152648",
+              "v3_zyn0906_w03_20260906_153844"
+            ],
+            "heldout": "v3_zyn0906_w04_20260906_155541",
+            "use_replay": true,
+            "mi": 0.6388888888888888,
+            "win_smooth": 0.5723905723905723,
+            "win_raw": 0.5555555555555556,
+            "max_class_frac": 0.5521885521885522,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03_eval_w04_all4"
+          },
+          {
+            "r": 4,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428",
+              "v3_zyn0906_w02_20260906_152648",
+              "v3_zyn0906_w03_20260906_153844",
+              "v3_zyn0906_w04_20260906_155541"
+            ],
+            "heldout": "v3_zyn0906_w05_20260906_160645",
+            "use_replay": true,
+            "mi": 0.5142857142857142,
+            "win_smooth": 0.31217838765008576,
+            "win_raw": 0.2967409948542024,
+            "max_class_frac": 0.7084048027444254,
+            "pass": false,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04_eval_w05_all4"
+          },
+          {
+            "r": 5,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428",
+              "v3_zyn0906_w02_20260906_152648",
+              "v3_zyn0906_w03_20260906_153844",
+              "v3_zyn0906_w04_20260906_155541",
+              "v3_zyn0906_w05_20260906_160645"
+            ],
+            "heldout": "v3_zyn0906_w06_20260906_161933",
+            "use_replay": false,
+            "mi": 0.3888888888888889,
+            "win_smooth": 0.5420875420875421,
+            "win_raw": 0.5286195286195287,
+            "max_class_frac": 0.51010101010101,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay"
+          },
+          {
+            "r": 6,
+            "train": [
+              "v3_zyn0906_w01_20260906_151428",
+              "v3_zyn0906_w02_20260906_152648",
+              "v3_zyn0906_w03_20260906_153844",
+              "v3_zyn0906_w04_20260906_155541",
+              "v3_zyn0906_w05_20260906_160645",
+              "v3_zyn0906_w06_20260906_161933"
+            ],
+            "heldout": "v3_zyn0906_w07_20260906_163149",
+            "use_replay": false,
+            "mi": 0.3888888888888889,
+            "win_smooth": 0.4831649831649832,
+            "win_raw": 0.4797979797979798,
+            "max_class_frac": 0.46296296296296297,
+            "pass": true,
+            "out_dir": "D:\\MI\\experiment_game\\data\\subjects\\zyn0906\\models\\ft_runs\\20260906_210354_leave_next_w01+w02+w03+w04+w05+w06_eval_w07_all4_noreplay"
+          }
+        ],
+        "first_mi": 0.2857142857142857,
+        "last_mi": 0.3888888888888889,
+        "delta_mi": 0.1031746031746032,
+        "last_pass": true,
+        "max_class_frac_peak": 0.806060606060606,
+        "gates_all_leave_next": [
+          {
+            "run": "20260906_210354_leave_next_w01+w02+w03+w04+w05+w06_eval_w07_all4_noreplay",
+            "pass": true,
+            "heldout_acc": 0.4797979797979798,
+            "max_class_frac": 0.46296296296296297,
+            "pred_labels": {
+              "Rest": 275,
+              "Left": 136,
+              "Right": 183
+            }
+          },
+          {
+            "run": "20260906_210354_leave_next_w01+w02+w03+w04+w05_eval_w06_all4_noreplay",
+            "pass": true,
+            "heldout_acc": 0.5286195286195287,
+            "max_class_frac": 0.51010101010101,
+            "pred_labels": {
+              "Rest": 303,
+              "Left": 69,
+              "Right": 222
+            }
+          },
+          {
+            "run": "20260906_210354_leave_next_w01+w02+w03+w04_eval_w05_all4",
+            "pass": false,
+            "heldout_acc": 0.2967409948542024,
+            "max_class_frac": 0.7084048027444254,
+            "pred_labels": {
+              "Rest": 12,
+              "Left": 158,
+              "Right": 413
+            }
+          },
+          {
+            "run": "20260906_210354_leave_next_w01+w02+w03_eval_w04_all4",
+            "pass": true,
+            "heldout_acc": 0.5555555555555556,
+            "max_class_frac": 0.5521885521885522,
+            "pred_labels": {
+              "Rest": 163,
+              "Left": 328,
+              "Right": 103
+            }
+          },
+          {
+            "run": "20260906_210354_leave_next_w01+w02_eval_w03_all4",
+            "pass": false,
+            "heldout_acc": 0.3393939393939394,
+            "max_class_frac": 0.806060606060606,
+            "pred_labels": {
+              "Rest": 133,
+              "Left": 16,
+              "Right": 16
+            }
+          },
+          {
+            "run": "20260906_210354_leave_next_w01_eval_w02_all4",
+            "pass": false,
+            "heldout_acc": 0.3927958833619211,
+            "max_class_frac": 0.41680960548885077,
+            "pred_labels": {
+              "Rest": 243,
+              "Left": 195,
+              "Right": 145
             }
           }
         ],

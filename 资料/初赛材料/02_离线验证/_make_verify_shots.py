@@ -4,7 +4,7 @@
 用法（建议 conda cyy 环境；S01/S04–S07 需先在 02_离线验证 目录）：
   python _make_verify_shots.py --print --only S01   # 数据核验
   python _make_verify_shots.py --print --only S04   # OOF 独立复算
-  python _make_verify_shots.py --print --only S05   # 交卷 CSV 完整性
+  python _make_verify_shots.py --print --only S05   # 提交 CSV 完整性
   python _make_verify_shots.py --print --only S06   # Excel 与 JSON 一致性
   python _make_verify_shots.py --print --only S07   # 文件指纹与环境（最后截）
   python _make_verify_shots.py                      # （旧）渲染 S05–S07 PNG
@@ -119,7 +119,7 @@ def section_s04() -> str:
     return buf.getvalue()
 
 
-# ---------------- S05 交卷 CSV 完整性 ----------------
+# ---------------- S05 提交 CSV 完整性 ----------------
 def section_s05() -> str:
     buf = io.StringIO()
 
@@ -127,7 +127,7 @@ def section_s05() -> str:
         print(x, file=buf)
 
     out("=" * 72)
-    out("S05 · 交卷 CSV 完整性校验（行序对齐官方模板）")
+    out("S05 · 提交 CSV 完整性校验（行序对齐官方模板）")
     out("=" * 72)
     smp = list(csv.reader(open(RAW / "sample_submission.csv", encoding="utf-8-sig")))
     subm = list(csv.reader(open(RAW / "submission_QuadFold59.csv", encoding="utf-8-sig")))
@@ -192,9 +192,9 @@ def section_s07() -> str:
              "原始验证数据/oof_N0/oof_N0_subjects.npy",
              "验证过程截图/S01_数据集结构与加载核验.png",
              "验证过程截图/S02_嵌套N0指标汇总.png",
-             "验证过程截图/S03_交卷CSV再生成与比对.png",
+             "验证过程截图/S03_提交CSV再生成与比对.png",
              "验证过程截图/S04_独立复算.png",
-             "验证过程截图/S05_交卷CSV完整性校验.png",
+             "验证过程截图/S05_提交CSV完整性校验.png",
              "验证过程截图/S06_Excel与JSON一致性.png",
              "验证过程截图/S07_文件指纹与环境.png"]
     n_ok = 0
@@ -260,7 +260,7 @@ if __name__ == "__main__":
         raise SystemExit(0)
     titles = {
         "S05": "验证过程截图 S05 · 指定集指标独立复算（终端复现记录，真实执行输出）",
-        "S06": "验证过程截图 S06 · 交卷 CSV 完整性校验（终端复现记录，真实执行输出）",
+        "S06": "验证过程截图 S06 · 提交 CSV 完整性校验（终端复现记录，真实执行输出）",
         "S07": "验证过程截图 S07 · 交稿包文件指纹与运行环境（终端复现记录，真实执行输出）",
     }
     for k, fn in (("S05", section_s04), ("S06", section_s05), ("S07", section_s07)):
