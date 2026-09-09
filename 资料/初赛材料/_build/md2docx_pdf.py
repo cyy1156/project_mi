@@ -1,13 +1,18 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
-"""技术报告 markdown → DOCX（python-docx）与 PDF（reportlab）双渲染。
+"""技术报告 markdown → DOCX（python-docx 原生 OMML 公式）与 PDF（Word 导出）。
 
 排版遵循 docx skill Profile A（正式报告）：黑体标题、宋体正文 12pt、
 1.3 倍行距、正文首行缩进 2 字符、表头跨页重复、行禁拆。
+
+公式路径：Markdown LaTeX → MathML（latex2mathml）→ OMML（Office MML2OMML.XSL），
+与 fianl/技术报告111.docx 同类可编辑公式；PDF 由 Word 另存，避免 PNG 位图公式。
+若 Word 不可用，回退 reportlab（公式仍为 PNG）。
 """
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import sys
 from pathlib import Path
@@ -19,6 +24,12 @@ OUT_DIR = REPORT_DIR / "交稿"
 DOCX_OUT = OUT_DIR / "技术报告_XH-202610.docx"
 PDF_OUT = OUT_DIR / "技术报告_XH-202610.pdf"
 MATH_CACHE = OUT_DIR / "_math_cache"
+MATH_NS = "http://schemas.openxmlformats.org/officeDocument/2006/math"
+_MML2OMML_XSLT = None
+_MML2OMML_PATHS = (
+    Path(r"C:\Program Files\Microsoft Office\root\Office16\MML2OMML.XSL"),
+    Path(r"C:\Program Files (x86)\Microsoft Office\root\Office16\MML2OMML.XSL"),
+)
 
 IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
 ABS_RE = re.compile(r"^\*\*摘要\*\*[：:]\s*(.*)$", re.S)
@@ -39,17 +50,129 @@ def resolve_img(rel: str) -> Path:
 def normalize_latex(tex: str) -> str:
     """把 Markdown 公式改成 matplotlib mathtext 可渲染的子集。"""
     tex = re.sub(r"\s+", " ", tex.strip())
+    # aligned / gather → 拆成单行（mathtext 不支持环境）
+    tex = re.sub(r"\\begin\{aligned\}", "", tex)
+    tex = re.sub(r"\\end\{aligned\}", "", tex)
+    tex = re.sub(r"\\begin\{gather\*?\}", "", tex)
+    tex = re.sub(r"\\end\{gather\*?\}", "", tex)
+    tex = tex.replace(r"\\", r"\quad ")
+    tex = re.sub(r"\[[0-9.]+pt\]", "", tex)
+    tex = tex.replace(r"&=", "=").replace(r"&", " ")
     tex = tex.replace(r"\arg\min", r"\mathrm{arg\,min}")
     tex = tex.replace(r"\arg\max", r"\mathrm{arg\,max}")
-    tex = tex.replace(r"\bigl(", "(").replace(r"\bigr)", ")")
-    tex = tex.replace(r"\bigl[", "[").replace(r"\bigr]", "]")
-    tex = tex.replace(r"\bigl\{", r"\{").replace(r"\bigr\}", r"\}")
-    tex = tex.replace(r"\bigl", "").replace(r"\bigr", "")
+    tex = tex.replace(r"\operatorname{mode}", r"\mathrm{mode}")
+    tex = tex.replace(r"\operatorname{Acc}", r"\mathrm{Acc}")
+    # 定界符缩放：mathtext 不认 \big/\Big
+    for cmd in (r"\bigl", r"\bigr", r"\Bigl", r"\Bigr", r"\biggl", r"\biggr",
+                r"\Biggl", r"\Biggr", r"\big", r"\Big", r"\bigg", r"\Bigg"):
+        tex = tex.replace(cmd, "")
     tex = tex.replace(r"\left", "").replace(r"\right", "")
     tex = tex.replace(r"\mathrm{all\ OOF}", r"\mathrm{all\,OOF}")
     tex = tex.replace(r"\ge", r"\geq").replace(r"\le", r"\leq")
-    tex = tex.replace(r"\times", r"\times")  # keep
+    tex = tex.replace(r"\!", "")
+    tex = tex.replace(r"\;", r"\,")
+    tex = tex.replace(r"\dots", r"\ldots")
+    tex = tex.replace(r"\textstyle", "")
+    tex = tex.replace(r"\displaystyle", "")
+    tex = tex.replace(r"\text{--}", "-")
+    # \text{中文…} → 去掉（mathtext 对 CJK 极不稳定）
+    tex = re.sub(r"\\text\{[^}]*[\u4e00-\u9fff][^}]*\}", "", tex)
+    tex = re.sub(r"\\mathrm\{[^}]*[\u4e00-\u9fff][^}]*\}", "", tex)
+    # 指示函数
+    tex = tex.replace(r"\mathbb{1}", r"1")
     return tex
+
+
+def prep_latex_omml(tex: str) -> str:
+    """把 Markdown 公式改成 latex2mathml / Office XSLT 可接受的子集。"""
+    s = re.sub(r"\s+", " ", tex.strip())
+    s = s.replace(r"\arg\min", r"\operatorname{argmin}")
+    s = s.replace(r"\arg\max", r"\operatorname{argmax}")
+    s = s.replace(r"\,\text{--}\,", "-")
+    s = s.replace(r"\text{--}", "-")
+    s = s.replace(r"\text{-}", "-")
+    s = re.sub(r"\\text\{(\([^}]+\))\}", r"\\mathrm{\1}", s)
+    s = re.sub(r"\\text\{([^}]*)\}", r"\\mathrm{\1}", s)
+    for cmd in (
+        r"\bigl",
+        r"\bigr",
+        r"\Bigl",
+        r"\Bigr",
+        r"\biggl",
+        r"\biggr",
+        r"\Biggl",
+        r"\Biggr",
+        r"\big",
+        r"\Big",
+        r"\bigg",
+        r"\Bigg",
+    ):
+        s = s.replace(cmd, "")
+    s = s.replace(r"\!", "")
+    s = s.replace(r"\;", r"\,")
+    s = s.replace(r"\mathbb{1}", "1")
+    s = s.replace(r"\mathrm{all\ OOF}", r"\mathrm{all\,OOF}")
+    return s
+
+
+def _mml2omml_transform():
+    global _MML2OMML_XSLT
+    if _MML2OMML_XSLT is not None:
+        return _MML2OMML_XSLT
+    from lxml import etree
+
+    path = next((p for p in _MML2OMML_PATHS if p.exists()), None)
+    if path is None:
+        raise FileNotFoundError("MML2OMML.XSL not found under Microsoft Office")
+    _MML2OMML_XSLT = etree.XSLT(etree.parse(str(path)))
+    return _MML2OMML_XSLT
+
+
+def latex_to_omml_xml(tex: str, display: bool = False) -> str | None:
+    """LaTeX → Office OMML XML 字符串（行内 m:oMath / 独立 m:oMathPara）。"""
+    try:
+        import latex2mathml.converter as l2m
+        from lxml import etree
+
+        mml = l2m.convert(prep_latex_omml(tex))
+        root = etree.fromstring(mml.encode("utf-8"))
+        omml = _mml2omml_transform()(root)
+        omath = omml.getroot()
+        raw = etree.tostring(omath, encoding="unicode")
+        m = re.match(r"<m:oMath\b[^>]*>(.*)</m:oMath>\s*$", raw, re.S)
+        if not m:
+            m = re.match(r"<\{?oMath\}?\b[^>]*>(.*)</(?:m:)?oMath>\s*$", raw, re.S)
+        if not m:
+            # 少数情况 XSLT 直接吐出片段
+            content = re.sub(r'\sxmlns(:m)?="[^"]+"', "", raw)
+        else:
+            content = m.group(1)
+        if display:
+            return (
+                f'<m:oMathPara xmlns:m="{MATH_NS}">'
+                f'<m:oMathParaPr><m:jc m:val="center"/></m:oMathParaPr>'
+                f"<m:oMath>{content}</m:oMath>"
+                f"</m:oMathPara>"
+            )
+        return f'<m:oMath xmlns:m="{MATH_NS}">{content}</m:oMath>'
+    except Exception as e:
+        print("WARN OMML convert failed:", e, "|", tex[:100], file=sys.stderr)
+        return None
+
+
+def append_omml(paragraph, tex: str, display: bool = False) -> bool:
+    """把 OMML 追加到段落；失败返回 False。"""
+    from docx.oxml import parse_xml
+
+    xml = latex_to_omml_xml(tex, display=display)
+    if not xml:
+        return False
+    try:
+        paragraph._p.append(parse_xml(xml))
+        return True
+    except Exception as e:
+        print("WARN OMML append failed:", e, file=sys.stderr)
+        return False
 
 
 def render_math(tex: str, display: bool = True) -> Path | None:
@@ -108,7 +231,7 @@ def math_png_width_cm(path: Path, max_cm: float = 15.5, min_cm: float = 4.0) -> 
 def extract_abstract_keywords(blocks):
     """抽取摘要区全部段落（摘要 / 离线结果 / 在线结果 / 贡献句）与关键词。
 
-    现行 MD 结构为：封面元信息 → --- → 多段摘要 → --- → 正文。
+    现行 MD 结构为：封面元信息 → --- → 申报信息 → --- → 多段摘要 → --- → 正文。
     若只取首段「**摘要**：…」，其后的「离线结果」「在线结果」会落在第二道
     分隔线之前而被正文循环跳过，导致 PDF/DOCX 与 MD 不一致。
     """
@@ -141,6 +264,40 @@ def extract_abstract_keywords(blocks):
     if kw_text is None:
         kw_text = "运动想象；脑机接口；少样本个性化适配；迁移学习；异步交互机制"
     return abs_paras, kw_text
+
+
+def extract_cover_meta(blocks):
+    """封面：题名、题目编号/日期、申报信息表。"""
+    title = next(v for k, v in blocks if k == "h1")
+    meta_lines: list[str] = []
+    for k, v in blocks:
+        if k == "hr":
+            break
+        if k != "p":
+            continue
+        if v.startswith("**题目编号") or v.startswith("**提交日期"):
+            meta_lines.append(re.sub(r"^\*\*|\*\*$", "", v).strip().strip("*").strip())
+        elif v.strip("*").strip() and not v.startswith("#") and v != title:
+            # 封面副题等
+            if "基于运动想象" in v and v not in meta_lines:
+                meta_lines.insert(0, v.strip("*").strip())
+
+    declare_title = None
+    declare_table = None
+    after_first_hr = False
+    for k, v in blocks:
+        if k == "hr":
+            if not after_first_hr:
+                after_first_hr = True
+                continue
+            break
+        if not after_first_hr:
+            continue
+        if k == "p" and "申报信息" in v:
+            declare_title = re.sub(r"\*+", "", v).strip("— ").strip() or "申报信息"
+        elif k == "table" and declare_table is None:
+            declare_table = v
+    return title, meta_lines, declare_title, declare_table
 
 
 def parse(md_text: str):
@@ -248,25 +405,15 @@ def build_docx(blocks, out: Path):
 
     def add_inline(p, text, size=12, bold_all=False, cn="宋体", allow_bold: bool = False):
         """解析代码/行内公式；正文默认不加粗（剥离 ** 标记），标题可 allow_bold。"""
-        from docx.shared import Inches
-        from PIL import Image as PILImage
-
         math_pat = re.compile(r"(\$\$.+?\$\$|\$(?:\\.|[^$])+?\$)")
         outer_pat = re.compile(r"(\*\*[^*]+?\*\*|`[^`]+`)")
 
         def emit_math(tex: str, display: bool = False):
-            png = render_math(tex, display=display)
-            if not png:
-                r = p.add_run(tex)
-                set_fonts(r, cn="Consolas", en="Consolas", size=size - 1)
+            if append_omml(p, tex, display=display):
                 return
-            if display:
-                p.add_run().add_picture(str(png), width=Cm(math_png_width_cm(png, max_cm=14.0)))
-                return
-            with PILImage.open(png) as im:
-                h_in = max(0.14, min(0.38, im.height / 200.0 * 0.95))
-                w_in = im.width / im.height * h_in
-            p.add_run().add_picture(str(png), width=Inches(w_in), height=Inches(h_in))
+            # 回退：纯文本，避免整段丢失
+            r = p.add_run(tex)
+            set_fonts(r, cn="Consolas", en="Consolas", size=size - 1)
 
         def emit_text(s: str, bold: bool = False):
             if not s:
@@ -360,22 +507,30 @@ def build_docx(blocks, out: Path):
                 if ri == 0:
                     shade(cell._tc.get_or_add_tcPr(), "D9E2F3")
 
-    # ---- 封面（简单标题页）----
-    title = next(v for k, v in blocks if k == "h1")
-    meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号"))
+    # ---- 封面（题名 + 元信息 + 申报信息）----
+    title, meta_lines, declare_title, declare_table = extract_cover_meta(blocks)
     abs_paras, kw_text = extract_abstract_keywords(blocks)
     p = doc.add_paragraph()
-    p.paragraph_format.space_before = Pt(200)
+    p.paragraph_format.space_before = Pt(80)
     p = doc.add_paragraph()
     p.alignment = WD_ALIGN_PARAGRAPH.CENTER
     r = p.add_run(title)
-    set_fonts(r, cn="黑体", size=24, bold=True)
+    set_fonts(r, cn="黑体", size=22, bold=True)
     doc.add_paragraph()
-    for mtext in ("基于运动想象的脑-机交互算法研究与系统实现", meta.strip("*")):
+    for mtext in meta_lines:
         p = doc.add_paragraph()
         p.alignment = WD_ALIGN_PARAGRAPH.CENTER
         r = p.add_run(mtext)
-        set_fonts(r, cn="宋体", size=14)
+        set_fonts(r, cn="宋体", size=12)
+    if declare_title or declare_table:
+        doc.add_paragraph()
+        p = doc.add_paragraph()
+        p.alignment = WD_ALIGN_PARAGRAPH.CENTER
+        r = p.add_run(declare_title or "申报信息")
+        set_fonts(r, cn="黑体", size=14, bold=True)
+        if declare_table:
+            # 申报表不要表头底色行语义：首行是「项|内容」
+            table(declare_table)
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
     # ---- 摘要（多段，与 MD 一致）----
@@ -413,13 +568,13 @@ def build_docx(blocks, out: Path):
     r.font.color.rgb = __import__("docx.shared", fromlist=["RGBColor"]).RGBColor.from_string("808080")
     doc.add_paragraph().add_run().add_break(WD_BREAK.PAGE)
 
-    # ---- 正文 ----
+    # ---- 正文：第三个分隔线之后（封面元信息 / 申报信息 / 摘要 均已单独排版）----
     hr_count = 0
     seen_body = False
     for k, v in blocks:
         if k == "hr":
             hr_count += 1
-            if hr_count >= 2:
+            if hr_count >= 3:
                 seen_body = True
             continue
         if not seen_body:
@@ -443,21 +598,20 @@ def build_docx(blocks, out: Path):
             p.paragraph_format.space_after = Pt(4)
             p.add_run().add_picture(str(path), width=Cm(14.5))
         elif k == "math":
-            path = render_math(v, display=True)
             p = doc.add_paragraph()
             p.alignment = WD_ALIGN_PARAGRAPH.CENTER
             p.paragraph_format.space_before = Pt(6)
             p.paragraph_format.space_after = Pt(6)
-            if path and path.exists():
-                p.add_run().add_picture(str(path), width=Cm(math_png_width_cm(path)))
-            else:
+            if not append_omml(p, v, display=True):
                 add_inline(p, v, size=10.5, cn="Consolas")
         elif k == "p":
-            if v.startswith("**题目编号"):
+            if v.startswith("**题目编号") or v.startswith("**提交日期"):
                 continue
             if ABS_RE.match(v) or KW_RE.match(v):
                 continue
             if v.startswith("**离线结果**") or v.startswith("**在线结果**"):
+                continue
+            if "申报信息" in v:
                 continue
             # 图注居中、无首行缩进
             if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
@@ -619,17 +773,35 @@ def build_pdf(blocks, out: Path):
         st("toc2", fontSize=10.5, leading=15, alignment=TA_LEFT, leftIndent=24),
     ]
 
-    # 封面
-    title = next(v for k, v in blocks if k == "h1")
-    meta = next(v for k, v in blocks if k == "p" and v.startswith("**题目编号")).strip("*")
+    # 封面（题名 + 元信息 + 申报信息）
+    title, meta_lines, declare_title, declare_table = extract_cover_meta(blocks)
     abs_paras, kw_text = extract_abstract_keywords(blocks)
-    meta_parts = meta.rsplit("｜", 1)
-    meta_lines = [p_.strip() for p_ in meta_parts if p_.strip()] if len(meta_parts) == 2 else [meta]
-    story += [Spacer(1, 55 * mm), Paragraph(esc(title), S["cover_title"]), Spacer(1, 8 * mm)]
-    story.append(Paragraph(esc("基于运动想象的脑-机交互算法研究与系统实现"), S["cover_meta"]))
-    story.append(Spacer(1, 3 * mm))
+    story += [Spacer(1, 28 * mm), Paragraph(esc(title), S["cover_title"]), Spacer(1, 6 * mm)]
     for ml in meta_lines:
         story.append(Paragraph(esc(ml), S["cover_meta"]))
+        story.append(Spacer(1, 1.5 * mm))
+    if declare_title or declare_table:
+        story.append(Spacer(1, 4 * mm))
+        story.append(Paragraph(esc(declare_title or "申报信息"), st(
+            "declare_h", fontName="SimHei", fontSize=14, leading=18,
+            alignment=TA_CENTER, spaceBefore=6, spaceAfter=6)))
+        if declare_table:
+            ncol = max(len(r) for r in declare_table)
+            data = []
+            for ri, row in enumerate(declare_table):
+                data.append([
+                    Paragraph(inline(row[ci] if ci < len(row) else ""), S["cellh" if ri == 0 else "cell"])
+                    for ci in range(ncol)
+                ])
+            t = Table(data, colWidths=[40 * mm, 120 * mm], repeatRows=1)
+            t.setStyle(TableStyle([
+                ("GRID", (0, 0), (-1, -1), 0.5, colors.HexColor("#909090")),
+                ("BACKGROUND", (0, 0), (-1, 0), HEAD_BG),
+                ("VALIGN", (0, 0), (-1, -1), "MIDDLE"),
+                ("LEFTPADDING", (0, 0), (-1, -1), 4), ("RIGHTPADDING", (0, 0), (-1, -1), 4),
+                ("TOPPADDING", (0, 0), (-1, -1), 3), ("BOTTOMPADDING", (0, 0), (-1, -1), 3),
+            ]))
+            story.append(t)
     story.append(PageBreak())
 
     # 摘要（多段，与 MD 一致）
@@ -645,7 +817,7 @@ def build_pdf(blocks, out: Path):
     story.append(toc)
     story.append(PageBreak())
 
-    # 正文（带 TOC 收集）：第二个分隔线之后
+    # 正文：第三个分隔线之后
     hr_count = 0
     seen_body = False
 
@@ -679,7 +851,7 @@ def build_pdf(blocks, out: Path):
     for k, v in blocks:
         if k == "hr":
             hr_count += 1
-            if hr_count >= 2:
+            if hr_count >= 3:
                 seen_body = True
             continue
         if not seen_body:
@@ -713,11 +885,13 @@ def build_pdf(blocks, out: Path):
             else:
                 story.append(Paragraph(esc(v), S["code"]))
         elif k == "p":
-            if v.startswith("**题目编号"):
+            if v.startswith("**题目编号") or v.startswith("**提交日期"):
                 continue
             if ABS_RE.match(v) or KW_RE.match(v):
                 continue
             if v.startswith("**离线结果**") or v.startswith("**在线结果**"):
+                continue
+            if "申报信息" in v:
                 continue
             if re.match(r"^\*\*图\s*\d+|^\*\*附图", v):
                 story.append(Paragraph(inline(v), st(
@@ -767,10 +941,64 @@ def build_pdf(blocks, out: Path):
     print("pdf saved:", out)
 
 
+def docx_to_pdf_via_word(docx_path: Path, pdf_path: Path) -> bool:
+    """用本机 Word 将 DOCX 另存为 PDF，保留 OMML 矢量公式（与 fianl PDF 同类）。"""
+    try:
+        import win32com.client  # type: ignore
+    except ImportError:
+        print("WARN pywin32 missing; cannot Word-export PDF", file=sys.stderr)
+        return False
+    docx_path = docx_path.resolve()
+    pdf_path = pdf_path.resolve()
+    pdf_path.parent.mkdir(parents=True, exist_ok=True)
+    # 若目标被占用，先写临时再替换
+    tmp_pdf = pdf_path.with_suffix(".tmp.pdf")
+    word = None
+    doc = None
+    try:
+        word = win32com.client.Dispatch("Word.Application")
+        word.Visible = False
+        word.DisplayAlerts = 0
+        doc = word.Documents.Open(str(docx_path), ReadOnly=True, AddToRecentFiles=False)
+        try:
+            doc.Fields.Update()
+        except Exception:
+            pass
+        # 17 = wdFormatPDF
+        if tmp_pdf.exists():
+            tmp_pdf.unlink()
+        doc.SaveAs(str(tmp_pdf), FileFormat=17)
+        doc.Close(False)
+        doc = None
+        if pdf_path.exists():
+            try:
+                pdf_path.unlink()
+            except PermissionError:
+                alt = pdf_path.with_name(pdf_path.stem + "_new.pdf")
+                tmp_pdf.replace(alt)
+                print("pdf locked, wrote:", alt)
+                return True
+        tmp_pdf.replace(pdf_path)
+        print("pdf saved (Word OMML):", pdf_path)
+        return True
+    except Exception as e:
+        print("WARN Word PDF export failed:", e, file=sys.stderr)
+        return False
+    finally:
+        try:
+            if doc is not None:
+                doc.Close(False)
+        except Exception:
+            pass
+        try:
+            if word is not None:
+                word.Quit()
+        except Exception:
+            pass
+
+
 if __name__ == "__main__":
     # 默认导出交稿定稿；可用环境变量 MD_SRC 覆盖
-    import os
-
     md_src = os.environ.get("MD_SRC")
     if md_src:
         MD = Path(md_src)
@@ -787,5 +1015,20 @@ if __name__ == "__main__":
 
     blocks = parse(MD.read_text(encoding="utf-8"))
     print("source:", MD)
+    # 只保留一份主交稿文件名
     build_docx(blocks, DOCX_OUT)
-    build_pdf(blocks, PDF_OUT)
+    ok_word = docx_to_pdf_via_word(DOCX_OUT, PDF_OUT)
+    if not ok_word:
+        print("Word PDF unavailable → reportlab PDF (display math as PNG; DOCX keeps OMML)")
+        build_pdf(blocks, PDF_OUT)
+    # 清理多余副本
+    for extra in (
+        OUT_DIR / "技术报告_XH-202610_v4.docx",
+        OUT_DIR / "技术报告_XH-202610_reportlab回退_PNG公式.pdf",
+    ):
+        if extra.exists():
+            try:
+                extra.unlink()
+                print("removed", extra.name)
+            except Exception as e:
+                print("WARN cannot remove", extra, e)

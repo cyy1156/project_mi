@@ -126,7 +126,7 @@ if __name__ == "__main__":
     stamp = datetime.now().strftime("%Y%m%d_%H%M%S")
     subs = sys.argv[1:] or [
         "syj0828",
-        "fnz0828",
+        "xjh0828",
         "cyy0830",
         "fnz0830",
         "wzr0830",

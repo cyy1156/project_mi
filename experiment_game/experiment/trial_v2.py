@@ -433,7 +433,7 @@ def run_guidance_stage(
     markers: MarkerPublisher,
     *,
     round_no: int,
-    on_stage: Optional[Callable[[str, dict], None]] = None,
+    on_stage: Optional[Callable[[str, Optional[TrialContextV2], Optional[dict]], None]] = None,
     confirm_fn: Optional[Callable[[], bool]] = None,
     timeout_s: float = 600.0,
     should_abort: Optional[Callable[[], bool]] = None,
@@ -442,7 +442,7 @@ def run_guidance_stage(
     events.emit("guidance_begin", round=round_no, payload=format_payload("guidance_begin"))
     markers.push(format_payload("guidance_begin"))
     if on_stage:
-        on_stage("guidance_begin", {"round": round_no})
+        on_stage("guidance_begin", None, {"round": round_no})
     passed = False
     if confirm_fn is not None:
         deadline = t0 + timeout_s
@@ -458,5 +458,5 @@ def run_guidance_stage(
                 duration_s=round(dur, 2), payload=format_payload("guidance_end"))
     markers.push(format_payload("guidance_end"))
     if on_stage:
-        on_stage("guidance_end", {"round": round_no, "passed": passed, "duration_s": dur})
+        on_stage("guidance_end", None, {"round": round_no, "passed": passed, "duration_s": dur})
     return {"round": round_no, "passed": passed, "duration_s": dur}

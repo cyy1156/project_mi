@@ -23,6 +23,19 @@ ROOT = Path(__file__).resolve().parents[1]
 IMG_RE = re.compile(r"^!\[([^\]]*)\]\(([^)]+)\)\s*$")
 HEAD_RE = re.compile(r"^(#{1,3})\s+(.*)$")
 TABLE_SEP_RE = re.compile(r"^\|?\s*:?-{3,}")
+INLINE_MATH_RE = re.compile(r"(?<!\$)\$(?!\$)((?:\\.|[^$])+?)(?<!\$)\$(?!\$)")
+
+
+def _import_math():
+    """复用技术报告导出里的 matplotlib mathtext 渲染。"""
+    import importlib.util
+
+    p = Path(__file__).resolve().parent / "md2docx_pdf.py"
+    spec = importlib.util.spec_from_file_location("md2docx_pdf_math", p)
+    mod = importlib.util.module_from_spec(spec)
+    assert spec.loader is not None
+    spec.loader.exec_module(mod)
+    return mod
 
 
 def _fonts():
@@ -55,12 +68,117 @@ def _fonts():
     return "CN", "CNB"
 
 
-def _strip_md_inline(s: str) -> str:
+def _latex_to_plain(tex: str) -> str:
+    """行内公式 → 中文字体可显示的纯文本（避免 ℝ/𝒟 等缺字小方框）。"""
+    s = tex.strip()
+    s = re.sub(r"\^{([^}]+)}", r"^(\1)", s)
+    s = re.sub(r"_{([^}]+)}", r"_\1", s)
+    repl = [
+        (r"\mathbb{R}", "R"),
+        (r"\mathbb{1}", "1"),
+        (r"\mathcal{L}", "L"),
+        (r"\mathcal{B}", "B"),
+        (r"\mathcal{D}", "D"),
+        (r"\mathcal{J}", "J"),
+        (r"\theta", "θ"), (r"\tau", "τ"), (r"\pi", "π"), (r"\eta", "η"),
+        (r"\mu", "μ"), (r"\sigma", "σ"), (r"\ell", "l"), (r"\beta", "β"),
+        (r"\Delta", "Δ"), (r"\nabla", "∇"),
+        (r"\times", "x"), (r"\ldots", "..."), (r"\dots", "..."),
+        (r"\geq", ">="), (r"\leq", "<="), (r"\ge", ">="), (r"\le", "<="),
+        (r"\in", " in "), (r"\mid", "|"), (r"\cdot", "."), (r"\approx", "~"),
+        (r"\sum", "sum"), (r"\prod", "prod"), (r"\quad", " "), (r"\qquad", "  "),
+        (r"\,", " "), (r"\ ", " "), (r"\log", "log"), (r"\exp", "exp"),
+        (r"\max", "max"), (r"\min", "min"),
+        (r"\arg\min", "argmin"), (r"\arg\max", "argmax"),
+        (r"\mathrm{arg\,min}", "argmin"), (r"\mathrm{arg\,max}", "argmax"),
+        (r"\mathrm{src}", "src"), (r"\mathrm{val}", "val"),
+        (r"\mathrm{mode}", "mode"), (r"\mathrm{Acc}", "Acc"),
+        (r"\tilde", ""), (r"\hat", ""), (r"\frac", "/"),
+        (r"\text{--}", "-"), (r"\text", ""), (r"\mathrm", ""),
+    ]
+    for a, b in repl:
+        s = s.replace(a, b)
+    s = re.sub(r"\\[a-zA-Z]+", "", s)
+    s = s.replace("{", "").replace("}", "")
+    s = re.sub(r"\s+", " ", s).strip()
+    return s
+
+
+def _esc_xml(s: str) -> str:
+    return s.replace("&", "&amp;").replace("<", "&lt;").replace(">", "&gt;")
+
+
+def _inline_math_img_tag(tex: str) -> str | None:
+    """行内公式渲成 PNG，用 reportlab Paragraph <img> 嵌入（保留上下标）。"""
+    mod = _import_math()
+    png = mod.render_math(tex, display=False)
+    if png is None or not png.exists():
+        return None
+    try:
+        from PIL import Image as PILImage
+
+        with PILImage.open(png) as im:
+            # display=False 用 200 dpi；表内/正文约 10–12pt 高
+            h = max(9.0, min(13.0, im.height / 200.0 * 72.0 * 0.62))
+            w = im.width / max(im.height, 1) * h
+        src = str(png.resolve()).replace("\\", "/")
+        return f'<img src="{src}" width="{w:.1f}" height="{h:.1f}" valign="middle"/>'
+    except Exception as exc:
+        print(f"[math-inline] embed failed: {exc}", file=sys.stderr)
+        return None
+
+
+def _format_inline(s: str) -> str:
+    """Markdown 行内 → reportlab 富文本；行内公式优先 PNG（角标可见）。"""
     s = re.sub(r"!\[[^\]]*\]\([^)]+\)", "", s)
     s = re.sub(r"\[([^\]]+)\]\([^)]+\)", r"\1", s)
-    s = s.replace("**", "").replace("__", "").replace("`", "")
-    s = s.replace("$", "")
-    return s.strip()
+
+    parts: list[str] = []
+    last = 0
+    for m in INLINE_MATH_RE.finditer(s):
+        parts.append(_esc_xml(s[last:m.start()]))
+        tag = _inline_math_img_tag(m.group(1))
+        if tag:
+            parts.append(tag)
+        else:
+            parts.append(f"<i>{_esc_xml(_latex_to_plain(m.group(1)))}</i>")
+        last = m.end()
+    parts.append(_esc_xml(s[last:]))
+    out = "".join(parts)
+    out = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", out)
+    out = out.replace("`", "")
+    return out.strip()
+
+
+def _strip_md_inline(s: str) -> str:
+    """兼容旧调用：去标记并转行内公式。"""
+    return _format_inline(s)
+
+
+def _append_display_math(story, tex: str, styles, mm, colors) -> None:
+    from reportlab.platypus import Image as RLImage, Paragraph, Spacer
+
+    tex = tex.strip()
+    if not tex:
+        return
+    mod = _import_math()
+    png = mod.render_math(tex, display=True)
+    if png is not None and png.exists():
+        try:
+            from PIL import Image as PILImage
+
+            with PILImage.open(png) as im:
+                max_w = 160 * mm
+                w = min(max_w, im.width / 220.0 * 25.4 * mm * 0.92)
+                h = im.height / im.width * w
+            story.append(Spacer(1, 2 * mm))
+            story.append(RLImage(str(png), width=w, height=h))
+            story.append(Spacer(1, 2 * mm))
+            return
+        except Exception as exc:
+            print(f"[math] embed failed: {exc}", file=sys.stderr)
+    # fallback：可读纯文本，不再甩原始 LaTeX
+    story.append(Paragraph(_esc_xml(_latex_to_plain(tex)), styles["BodyCN"]))
 
 
 def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
@@ -74,8 +192,6 @@ def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
         Table,
         TableStyle,
         Preformatted,
-        KeepTogether,
-        PageBreak,
     )
     from reportlab.lib import colors
 
@@ -105,15 +221,19 @@ def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
         )
     )
     styles.add(
-        ParagraphStyle(name="CodeCN", fontName=cn, fontSize=8.5, leading=11, backColor=colors.Color(0.95, 0.95, 0.95))
+        ParagraphStyle(
+            name="CodeCN",
+            fontName=cn,
+            fontSize=8.5,
+            leading=11,
+            backColor=colors.Color(0.95, 0.95, 0.95),
+        )
     )
-    styles.add(
-        ParagraphStyle(name="CellCN", fontName=cn, fontSize=8, leading=11)
-    )
+    styles.add(ParagraphStyle(name="CellCN", fontName=cn, fontSize=8, leading=11))
 
     story = []
     if title:
-        story.append(Paragraph(_strip_md_inline(title), styles["H1CN"]))
+        story.append(Paragraph(_format_inline(title), styles["H1CN"]))
         story.append(Spacer(1, 4 * mm))
 
     i = 0
@@ -137,10 +257,26 @@ def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
             i += 1
             continue
 
+        # 独立 $$ … $$ 公式块 → PNG
+        if line.strip() == "$$":
+            buf: list[str] = []
+            i += 1
+            while i < len(lines) and lines[i].strip() != "$$":
+                buf.append(lines[i])
+                i += 1
+            if i < len(lines) and lines[i].strip() == "$$":
+                i += 1
+            _append_display_math(story, "\n".join(buf), styles, mm, colors)
+            continue
+        if line.strip().startswith("$$") and line.strip().endswith("$$") and len(line.strip()) > 4:
+            _append_display_math(story, line.strip()[2:-2], styles, mm, colors)
+            i += 1
+            continue
+
         m = HEAD_RE.match(line)
         if m:
             level = len(m.group(1))
-            body = _strip_md_inline(m.group(2))
+            body = _format_inline(m.group(2))
             key = {1: "H1CN", 2: "H2CN", 3: "H3CN"}.get(level, "H3CN")
             story.append(Paragraph(body, styles[key]))
             i += 1
@@ -153,7 +289,7 @@ def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
                 if TABLE_SEP_RE.search(lines[i]):
                     i += 1
                     continue
-                cells = [_strip_md_inline(c) for c in raw.split("|")]
+                cells = [_format_inline(c) for c in raw.split("|")]
                 rows.append(cells)
                 i += 1
             if rows:
@@ -186,11 +322,16 @@ def md_to_pdf(md_path: Path, pdf_path: Path, title: str | None = None) -> None:
             continue
 
         if IMG_RE.match(line.strip()):
-            story.append(Paragraph(_strip_md_inline(line), styles["BodyCN"]))
+            story.append(Paragraph(_format_inline(line), styles["BodyCN"]))
             i += 1
             continue
 
-        story.append(Paragraph(_strip_md_inline(line), styles["BodyCN"]))
+        if line.strip().startswith(">"):
+            story.append(Paragraph(_format_inline(line.lstrip("> ").strip()), styles["BodyCN"]))
+            i += 1
+            continue
+
+        story.append(Paragraph(_format_inline(line), styles["BodyCN"]))
         i += 1
 
     pdf_path.parent.mkdir(parents=True, exist_ok=True)
@@ -315,6 +456,12 @@ def main() -> int:
         (ROOT / "04_代码包" / "README_代码包说明.md",
          ROOT / "04_代码包" / "交稿" / "README_代码包说明.pdf",
          "源代码包说明（XH-202610）"),
+        (ROOT / "04_代码包" / "00_目录结构与复现总览.md",
+         ROOT / "04_代码包" / "交稿" / "00_目录结构与复现总览.pdf",
+         "00 · 目录结构与复现总览"),
+        (ROOT / "04_代码包" / "01_数据集获取说明.md",
+         ROOT / "04_代码包" / "交稿" / "01_数据集获取说明.pdf",
+         "01 · 数据集获取说明"),
         (ROOT / "04_代码包" / "附录A_实验证据链索引.md",
          ROOT / "04_代码包" / "交稿" / "02_附录A_实验证据链索引.pdf",
          "附录A · 实验证据链索引"),
@@ -327,9 +474,7 @@ def main() -> int:
         (ROOT / "04_代码包" / "README_采集软件说明.md",
          ROOT / "04_代码包" / "交稿" / "README_采集软件说明.pdf",
          "采集软件说明"),
-        (ROOT / "02_离线验证" / "数据集使用说明.md",
-         ROOT / "02_离线验证" / "交稿" / "数据集使用说明.pdf",
-         "指定集数据集使用说明"),
+        # 02 离线验证以 Excel 提交（结果+数据集说明），不导出说明 PDF
         (ROOT / "README_初赛材料总览.md",
          ROOT / "_build" / "out" / "README_初赛材料总览.pdf",
          "初赛材料总览（内部）"),
@@ -351,13 +496,14 @@ def main() -> int:
             print(f"[FAIL] {md}: {exc}")
 
     if not args.skip_excel:
+        # 离线验证官方件为 Excel；不再导出 PDF 充当提交件
         xlsx = ROOT / "02_离线验证" / "交稿" / "离线性能验证报告_XH-202610.xlsx"
         if not xlsx.exists():
             xlsx = ROOT / "02_离线验证" / "离线性能验证报告_XH-202610.xlsx"
         if xlsx.exists():
-            excel_to_pdf(xlsx, ROOT / "02_离线验证" / "交稿" / "离线性能验证报告_XH-202610.pdf")
+            print(f"[skip-pdf] 离线验证以 Excel 提交：{xlsx.name}（不导出 PDF）")
         else:
-            print(f"[skip] excel missing")
+            print("[skip] excel missing")
 
     if not args.skip_report:
         report_script = Path(__file__).resolve().parent / "md2docx_pdf.py"

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""核实 fnz0828_问题诊断报告.md 关键数据主张。"""
+"""核实 xjh0828_问题诊断报告.md 关键数据主张。"""
 from __future__ import annotations
 
 import csv
@@ -53,7 +53,7 @@ def events_span(sess: Path):
 
 
 def main() -> None:
-    for sub in ("syj0828", "fnz0828"):
+    for sub in ("syj0828", "xjh0828"):
         print("====", sub)
         base = ROOT / sub / "sessions"
         for d in sorted(p for p in base.iterdir() if p.is_dir() and not p.name.startswith("_")):
@@ -75,7 +75,7 @@ def main() -> None:
                 print("    event_types sample:", sorted(t for t in types if t)[:20])
 
     print("\n==== FT reports (heldout / gate)")
-    for sub in ("syj0828", "fnz0828"):
+    for sub in ("syj0828", "xjh0828"):
         ft_root = ROOT / sub / "models" / "ft_runs"
         if not ft_root.is_dir():
             continue

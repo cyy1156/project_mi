@@ -10,10 +10,10 @@ from typing import Any, Dict, List
 from paths import ANALYSIS, SUBJECTS
 
 # explicit merge rules (plan section 0); others are singletons
-# 2026-09-05 口径修订：fnz0828 与 fnz0830 按登记行各自为独立个体（n_people=17，
-# 与 v4 报告 §3.6 对齐）；同日重复壳 fnz / fnz_1 仍归入 fnz0828。
+# 2026-09-05 口径修订：xjh0828 与 fnz0830 按登记行各自为独立个体；
+# 同日重复壳 fnz / fnz_1 仍归入 xjh0828；磁盘主键已改为 xjh0828（fnz0828 仅作历史别名）。
 MERGE_RULES: Dict[str, List[str]] = {
-    "fnz0828": ["fnz", "fnz0828", "fnz_1"],
+    "xjh0828": ["fnz", "fnz0828", "xjh0828", "fnz_1"],
     "cyy0830": ["cyy", "cyy0830"],
 }
 

@@ -7,6 +7,7 @@ from pathlib import Path
 
 from paths import ANALYSIS, SUMMARY_DIR
 
+
 def _fmt(x, nd=3):
     try:
         if x is None or (isinstance(x, float) and (x != x)):
@@ -16,6 +17,7 @@ def _fmt(x, nd=3):
         return str(x)
     except Exception:
         return ""
+
 
 def write_registry() -> Path:
     cohort_path = ANALYSIS / "cohort_map.json"
@@ -254,6 +256,7 @@ def write_registry() -> Path:
     path.write_text("\n".join(lines), encoding="utf-8")
     print(f"[summary] wrote {path}")
     return path
+
 
 if __name__ == "__main__":
     write_registry()

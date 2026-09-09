@@ -6,7 +6,7 @@
 用法::
 
     python -m experiment_game.tools.replay_causal_e1f_judge \\
-        --subjects syj0828,fnz0828
+        --subjects syj0828,xjh0828
 """
 
 from __future__ import annotations
@@ -229,7 +229,7 @@ def eval_session(
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--subjects", default="syj0828,fnz0828")
+    ap.add_argument("--subjects", default="syj0828,xjh0828")
     ap.add_argument("--tau", type=float, default=0.4)
     ap.add_argument(
         "--tau-grid",

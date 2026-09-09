@@ -25,11 +25,10 @@ def main() -> None:
 
     shutil.copy2(ROOT / "离线性能验证报告_XH-202610.xlsx", PKG / "离线性能验证报告_XH-202610.xlsx")
 
+    # 数据集说明正文在 Excel sheet 04；md 仅作工作区对照（可选拷贝）
     usage = ROOT / "数据集使用说明.md"
-    if not usage.exists():
-        # fallback: copy from previous pack template written beside this script once
-        raise FileNotFoundError("缺少 数据集使用说明.md，请先写好再打包")
-    shutil.copy2(usage, PKG / "数据集使用说明.md")
+    if usage.exists():
+        shutil.copy2(usage, PKG / "数据集使用说明.md")
 
     src_raw = ROOT / "原始"
     for name in [
@@ -55,7 +54,11 @@ def main() -> None:
             (src_raw / "oof_N0").mkdir(exist_ok=True)
             shutil.copy2(src, src_raw / "oof_N0" / n)
 
-    for p in sorted((ROOT / "截图").glob("*.png")):
+    # 截图：优先已定名的交稿/验证过程截图；否则用工作区 截图/
+    shot_src = ROOT / "交稿" / "验证过程截图"
+    if not shot_src.is_dir() or not any(shot_src.glob("*.png")):
+        shot_src = ROOT / "截图"
+    for p in sorted(shot_src.glob("*.png")):
         shutil.copy2(p, shot / p.name)
 
     # official copies if missing in 原始

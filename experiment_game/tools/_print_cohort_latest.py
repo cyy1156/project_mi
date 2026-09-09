@@ -6,7 +6,7 @@ import json
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1] / "data" / "subjects"
-SUBJECTS = ["syj0828", "fnz0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
+SUBJECTS = ["syj0828", "xjh0828", "cyy0830", "fnz0830", "wzr0830", "xj0830"]
 
 
 def latest_summary(sid: str) -> Path | None:

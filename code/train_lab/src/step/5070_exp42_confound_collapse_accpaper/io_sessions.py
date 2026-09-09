@@ -45,7 +45,7 @@ def list_v3_sessions(member_id: str) -> Dict[str, Path]:
             continue
         if member_id == "syj0828" and "124816" in d.name:
             continue
-        if member_id == "fnz0828" and d.name.endswith("_152231"):
+        if member_id in ("xjh0828", "fnz0828") and d.name.endswith("_152231"):
             continue
         if member_id == "ycx0831" and "_w06_" in d.name:
             continue

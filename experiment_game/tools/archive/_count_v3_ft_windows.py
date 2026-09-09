@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""统计 syj0828 / fnz0828 的 v3 会话按 openbmi_align 可微调窗数。"""
+"""统计 syj0828 / xjh0828 的 v3 会话按 openbmi_align 可微调窗数。"""
 from __future__ import annotations
 
 import json
@@ -22,7 +22,7 @@ from experiment_game.tools.ft_subject_from_v3 import (  # noqa: E402
 )
 from experiment_game.offline.openbmi_align_cut import n_windows_3s_hop100  # noqa: E402
 
-SUBJECTS = ["syj0828", "fnz0828"]
+SUBJECTS = ["syj0828", "xjh0828"]
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
 
 

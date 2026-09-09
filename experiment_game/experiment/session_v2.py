@@ -460,7 +460,7 @@ def run_v2_session(
         except Exception:
             return None
 
-    def on_stage(stage: str, ctx, data) -> None:
+    def on_stage(stage: str, ctx, data=None) -> None:
         from experiment_game.experiment.score_feedback import enrich_stage_data
 
         if stage == "cue" and isinstance(data, dict) and "cue_t" in data:

@@ -9,7 +9,7 @@ import pandas as pd
 ROOT = Path(__file__).resolve().parents[1] / "data" / "subjects"
 SUBJECTS = [
     "syj0828",
-    "fnz0828",
+    "xjh0828",
     "cyy0830",
     "fnz0830",
     "wzr0830",
@@ -89,7 +89,7 @@ def check_session(d: Path) -> dict:
 def expected_keys(sid: str) -> list[str]:
     if sid == "syj0828":
         return [f"ws0{i}" for i in range(1, 7)]
-    if sid == "fnz0828":
+    if sid in ("xjh0828", "fnz0828"):
         return [f"ws0{i}" for i in range(2, 8)]  # historical: ws02-ws07
     if sid == "ycx0831":
         return ["w01", "w02", "w03", "w04", "w05", "w07"]  # w06 半场排除
@@ -121,7 +121,7 @@ def main() -> None:
             if sid == "syj0828" and "124816" in d.name:
                 other.append((d, "excluded_old"))
                 continue
-            if sid == "fnz0828" and d.name.endswith("_152231"):
+            if sid in ("xjh0828", "fnz0828") and d.name.endswith("_152231"):
                 other.append((d, "excluded_v4"))
                 continue
             if not key:

@@ -35,7 +35,7 @@ for p in (_REPO, _REPO / "code"):
 from extract_features import _probe_auc, _trial_feat  # noqa: E402
 
 ANALYSIS = _HERE.parents[4] / "资料" / "模型训练" / "42_旁路_真人队列混杂分解与会话特征坍塌诊断_accpaper" / "analysis_42"
-CHECK_PEOPLE = ["syj0828", "fnz0828", "zyj0902"]
+CHECK_PEOPLE = ["syj0828", "xjh0828", "zyj0902"]
 
 
 def _latest_session(member_id: str) -> list[Path]:

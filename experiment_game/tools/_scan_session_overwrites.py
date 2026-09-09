@@ -16,7 +16,7 @@ if str(_REPO / "experiment_game" / "tools") not in sys.path:
 
 from run_leave_next_e1f_task_ramp import _list_v3_sessions  # noqa: E402
 
-SUBJECTS = ("syj0828", "fnz0828", "cyy0830", "fnz0830", "wzr0830", "xj0830")
+SUBJECTS = ("syj0828", "xjh0828", "cyy0830", "fnz0830", "wzr0830", "xj0830")
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
 
 

@@ -53,7 +53,7 @@ DOC_REG = (
 def _ramp_for_subject(subject_id: str) -> list:
     if subject_id == "syj0828":
         return list(RAMP_SYJ)
-    if subject_id == "fnz0828":
+    if subject_id in ("xjh0828", "fnz0828"):
         return list(RAMP_FNZ)
     if subject_id == "cyy0830":
         return list(RAMP_CYY)
@@ -421,7 +421,7 @@ def write_registry(stamp: str, all_results: Dict[str, Dict[str, List[Dict]]]) ->
     lines.append("")
     text = "\n".join(lines) + "\n"
     # 仅 syj/fnz 复验写正式登记表；其它被试写分析目录，避免覆盖
-    only_legacy = set(all_results) <= {"syj0828", "fnz0828"}
+    only_legacy = set(all_results) <= {"syj0828", "xjh0828"}
     if only_legacy:
         DOC_REG.parent.mkdir(parents=True, exist_ok=True)
         DOC_REG.write_text(text, encoding="utf-8")
@@ -436,7 +436,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument(
         "--subject",
-        choices=("syj0828", "fnz0828", "cyy0830"),
+        choices=("syj0828", "xjh0828", "cyy0830"),
         action="append",
     )
     ap.add_argument("--all", action="store_true")
@@ -447,7 +447,7 @@ def main() -> int:
 
     subjects = list(args.subject or [])
     if args.all or not subjects:
-        subjects = ["syj0828", "fnz0828"]
+        subjects = ["syj0828", "xjh0828"]
     arms = [a.strip() for a in args.arms.split(",") if a.strip()]
     device = args.device or ("cuda" if torch.cuda.is_available() else "cpu")
     stamp = args.stamp or datetime.now().strftime("%Y%m%d_%H%M%S")

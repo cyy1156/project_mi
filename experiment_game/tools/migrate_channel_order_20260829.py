@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-"""一次性迁移脚本：把 syj0828 / fnz0828 的会话数据从旧设备序重排为新通道序。
+"""一次性迁移脚本：把 syj0828 / xjh0828 的会话数据从旧设备序重排为新通道序。
 新序: FC3, C3, CP3, CZ, CPZ, FC4, C4, CP4
 处理对象: eeg.csv, continuous/eeg.csv, v3_segments/trial*.npy, eeg.meta.json(channel_labels)
 先全量备份到 _backup_old_channel_order_20260829/，再原子写（tmp + os.replace）。
@@ -21,7 +21,7 @@ NORM = {"CZ": "CZ", "C3": "C3", "C4": "C4", "CP3": "CP3", "CP4": "CP4",
         "CPZ": "CPZ", "FC3": "FC3", "FC4": "FC4",
         "Cz": "CZ", "CPz": "CPZ"}  # 旧命名别名 -> 规范大写
 
-subjects = ["syj0828", "fnz0828"]
+subjects = ["syj0828", "xjh0828"]
 report = []
 differences = []
 

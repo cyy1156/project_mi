@@ -303,7 +303,8 @@ def run_v3test_game(
             trial_results.append({"trial_id": trial_id, "label": int(label), **summary})
 
             # —— ITI ——
-            on_stage("iti", ctx)
+            # on_stage 签名为 (stage, ctx, data)；少传 data 会直接 TypeError 中断整场
+            on_stage("iti", ctx, None)
             row = _emit("iti_start", ctx)
             _wait_after(row["t_lsl"], float(getattr(cfg, "iti_s", 3.0)))
     except SessionAbort as exc:

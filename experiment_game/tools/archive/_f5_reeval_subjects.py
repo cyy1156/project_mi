@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""按 F5（因果平滑 + 多数票）回放 syj0828 / fnz0828 的 v3 会话。"""
+"""按 F5（因果平滑 + 多数票）回放 syj0828 / xjh0828 的 v3 会话。"""
 from __future__ import annotations
 
 import json
@@ -16,7 +16,7 @@ from experiment_game.experiment.trial_scoring import (  # noqa: E402
     MiTrialTracker,
 )
 
-SUBJECTS = ["syj0828", "fnz0828"]
+SUBJECTS = ["syj0828", "xjh0828"]
 ROOT = _REPO / "experiment_game" / "data" / "subjects"
 OUT = ROOT / "_f5_reeval_20260829.json"
 

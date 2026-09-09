@@ -41,7 +41,10 @@ ROOT = Path(__file__).resolve().parents[1]
 OFFLINE = ROOT / "02_离线验证"
 OUT = OFFLINE / "离线性能验证报告_XH-202610.xlsx"
 N0 = json.loads((OFFLINE / "原始" / "nested_N0_metrics.json").read_text(encoding="utf-8"))
-SHOT = OFFLINE / "截图"
+# 优先嵌入交稿已定名截图；否则回退工作区 截图/
+SHOT = OFFLINE / "交稿" / "验证过程截图"
+if not SHOT.is_dir():
+    SHOT = OFFLINE / "截图"
 
 CLASS_CN = ["左手运动想象", "右手运动想象", "静息态（空闲）"]
 CLASS_EN = ["Left(0)", "Right(1)", "Rest(2)"]
@@ -128,8 +131,8 @@ rows = [
         round(N0["acc"], 4),
         "三分类试次级 Acc；类均衡下与 macro 召回同值",
         "QuadFold-59",
-        "LOSO6 · leave-fold 嵌套 Val（主读）",
-        "900 trial（S01–S06）",
+        "留一被试交叉验证 6 折（LOSO6）；主要结果",
+        "900 试次（S01–S06）",
         "原始验证数据/nested_N0_metrics.json",
     ],
     [
@@ -138,7 +141,7 @@ rows = [
         "三类召回率算术平均",
         "QuadFold-59",
         "同上",
-        "每类 300 trial",
+        "每类 300 试次",
         "同上",
     ],
     [
@@ -170,17 +173,17 @@ rows = [
     ],
 ]
 r = table(ws, 5, headers, rows, num_cols=(1,), num_fmt="0.0000")
-r = caption(ws, r + 1, "附报（不作主读）：折内 Val Acc=0.558±0.069（融合参数本折拟合，乐观偏置约 +4.7 pp）。")
+r = caption(ws, r + 1, "附报（不作主要结果）：折内验证准确率 0.5580 ± 0.0690（融合参数在本折拟合，乐观偏置约 +4.7 个百分点）。")
 r = caption(
     ws,
     r,
-    "测试集 S07/S08 共 120 trial、无标签：盲测预测已写入官方模板 原始验证数据/sample_submission.csv；"
-    "未使用测试标签调参，故准/召/特以 train 嵌套主读为准。",
+    "测试集 S07/S08 共 120 试次、无标签：盲测预测已写入官方模板 原始验证数据/sample_submission.csv；"
+    "未使用测试标签调参，故准/召/特以训练集留一被试主要结果为准。",
 )
 r = caption(
     ws,
     r,
-    "交卷模型：QuadFold-59 = 59 EEG 通道、从零训练的四成员温度校准集成（内部代号 S0 / E1f-A59）。",
+    "提交模型：QuadFold-59 = 59 EEG 通道、从零训练的四成员温度校准集成。",
 )
 auto_fit_columns(ws, min_width=10, max_width=48, header_row=5, data_start_row=6)
 auto_fit_row_heights(ws, header_row=5, data_start_row=6)
@@ -267,25 +270,31 @@ r = caption(ws, r + 1, "官方核心量化指标中的「运算延迟」取单 t
 auto_fit_columns(ws, min_width=10, max_width=52, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
-# ---------------------------------------------------------------- 04 数据集使用说明
+# ---------------------------------------------------------------- 04 数据集使用说明（官方「说明」即本表，不另交 PDF）
 ws = wb.create_sheet("04_数据集使用说明")
-setup_sheet(ws, title="数据集使用说明（仅主办方指定标准数据集）", last_col=8)
+setup_sheet(ws, title="数据集使用说明（仅主办方指定标准数据集 · Excel 正文）", last_col=8)
 headers = ["项目", "内容"]
 rows = [
     ["数据集名称", "主办方指定标准脑电数据集（Challenge MI）"],
     ["数据路径", "DATA/挑战杯运动想象赛题数据文件/"],
-    ["任务", "3 s EEG trial → 三类：0 左手(201) / 1 右手(202) / 2 静息(204)"],
-    ["训练集", "S01–S06 × 各 5 block × 30 trial = 900 trial（三类各 300）"],
-    ["测试集", "S07–S08 × 各 2 block × 30 trial = 120 trial（无 trigger / 无标签）"],
-    ["采样率 / 窗", "250 Hz；每 trial 750 点；起点 0,750,…,21750"],
-    ["通道", "64 信号中取 59 EEG（丢弃 ECG, HEOR, HEOL, VEOU, VEOL）；训练测试通道序一致"],
-    ["预处理硬约束", "先按 trial 切分，再滤波/标准化；可学习统计量仅用该折 Train 拟合"],
-    ["划分与主读", "LOSO6；主读=leave-fold 嵌套 Val Acc/召/特；折内仅附报"],
-    ["交卷模型", "QuadFold-59（59ch 从零四成员集成）；盲测 CSV 对齐 sample_submission.csv"],
+    ["任务", "每试次 3 s 脑电 → 三类：0 左手(201) / 1 右手(202) / 2 静息(204)"],
+    ["训练集", "S01–S06 × 各 5 数据块 × 30 试次 = 900 试次（三类各 300）"],
+    ["测试集", "S07–S08 × 各 2 数据块 × 30 试次 = 120 试次（无 trigger / 无标签）"],
+    ["采样率 / 窗", "250 Hz；每试次 750 点；切分起点 0,750,…,21750"],
+    ["通道", "64 信号中取 59 EEG（丢弃 ECG、HEOR、HEOL、VEOU、VEOL）；训练/测试通道序一致"],
+    ["预处理硬约束", "先按试次切分，再滤波/标准化；可学习统计量仅用该折训练集拟合"],
+    ["划分与主要结果", "留一被试交叉验证 6 折（LOSO6）；主要结果=留一被试 Acc/召/特；折内仅附报"],
+    ["提交模型", "QuadFold-59（59 通道从零四成员集成）；盲测 CSV 对齐官方模板 sample_submission.csv"],
+    ["核心指标（摘要）", "Acc 0.5111±0.0657；macro 召回 0.5111；macro 特异 0.7556；运算延迟 1.11 ms；判定延迟 3.00 s（详见 sheet 00/03）"],
     ["未使用", "未使用测试集标签调参；本报告不含自采数据指标"],
 ]
 r = table(ws, 4, headers, rows)
-r = caption(ws, r + 1, "完整文字版见交稿包：数据集使用说明.md；官方原文副本见 原始验证数据/官方数据说明.md。")
+r = caption(
+    ws,
+    r + 1,
+    "本表即为官方要求的「数据集使用说明」正文（与准/召/特/延迟同文件提交）。"
+    "官方《数据说明》原文副本见 原始验证数据/官方数据说明.md。",
+)
 auto_fit_columns(ws, min_width=12, max_width=72, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
@@ -294,17 +303,17 @@ ws = wb.create_sheet("05_原始数据索引")
 setup_sheet(ws, title="原始验证数据索引（可追溯 · 均在 02_离线验证 内）", last_col=5)
 headers = ["编号", "内容", "相对路径"]
 rows = [
-    ["D1", "嵌套主读指标 JSON（Acc/召/特/F1/CM/六折）", "原始验证数据/nested_N0_metrics.json"],
-    ["D2", "盲测交卷预测 CSV（官方模板已填 label）", "原始验证数据/sample_submission.csv"],
+    ["D1", "留一被试主要结果指标 JSON（Acc/召/特/F1/混淆矩阵/六折）", "原始验证数据/nested_N0_metrics.json"],
+    ["D2", "盲测提交预测 CSV（官方模板已填 label）", "原始验证数据/sample_submission.csv"],
     ["D3", "同内容内部备份（模型名归档）", "原始验证数据/submission_QuadFold59.csv"],
-    ["D4", "嵌套 OOF 概率 / 标签 / 被试", "原始验证数据/oof_N0/oof_N0_*.npy"],
+    ["D4", "留一被试 OOF 概率 / 标签 / 被试", "原始验证数据/oof_N0/oof_N0_*.npy"],
     ["D5", "官方《数据说明》副本", "原始验证数据/官方数据说明.md"],
     ["D6", "本队使用对照摘录", "原始验证数据/数据说明_使用对照.md"],
-    ["D7", "验证过程截图 S01–S04", "验证过程截图/"],
+    ["D7", "验证过程截图 S01–S07", "验证过程截图/"],
     ["D8", "交稿包（邮件附件）", "交稿/ 或 交稿_离线验证_XH-202610.zip"],
 ]
 r = table(ws, 4, headers, rows)
-r = caption(ws, r + 1, "复算嵌套指标：对 oof_N0_prob.npy 做 argmax，与 oof_N0_y.npy 对照即可复现 sheet 00/01/02。")
+r = caption(ws, r + 1, "复算主要结果：对 oof_N0_prob.npy 做 argmax，与 oof_N0_y.npy 对照即可复现 sheet 00/01/02。")
 auto_fit_columns(ws, min_width=8, max_width=56, header_row=4, data_start_row=5)
 auto_fit_row_heights(ws, header_row=4, data_start_row=5)
 
@@ -314,52 +323,54 @@ setup_sheet(ws, title="验证过程截图清单（指定集）", last_col=6)
 headers = ["编号", "内容", "文件", "状态"]
 rows = [
     ["S01", "指定集官方数据核验：目录树、PKL 结构（data 64×22500、ch_names、srate=250）、train 900 / test 120 计数（终端回放）", "验证过程截图/S01_数据集结构与加载核验.png", "✅"],
-    ["S02", "嵌套 N0 主读回放运行：replay_nested.py 现场输出六折 Acc 与 0.511±0.066（终端回放）", "验证过程截图/S02_嵌套N0指标汇总.png", "✅"],
-    ["S03", "盲测交卷 CSV 再生成与比对：predict_submission.py 现场重生成，与交稿 CSV 逐行 diff（终端回放）", "验证过程截图/S03_交卷CSV再生成与比对.png", "✅"],
+    ["S02", "留一被试主要结果回放：现场输出六折 Acc 与 0.5111±0.0657（终端回放）", "验证过程截图/S02_嵌套N0指标汇总.png", "✅"],
+    ["S03", "盲测提交 CSV 再生成与比对：现场重生成，与提交 CSV 逐行比对（终端回放）", "验证过程截图/S03_提交CSV再生成与比对.png", "✅"],
     ["S04", "指定集指标独立复算：从 OOF npy 重算 Acc/召/特/F1/CM/六折，逐项对照登记 JSON（终端回放）", "验证过程截图/S04_独立复算.png", "✅"],
-    ["S05", "交卷 CSV 完整性：120 行、表头一致、sample_id 与官方模板逐行对齐、取值合法（终端回放）", "验证过程截图/S05_交卷CSV完整性校验.png", "✅"],
+    ["S05", "提交 CSV 完整性：120 行、表头一致、sample_id 与官方模板逐行对齐、取值合法（终端回放）", "验证过程截图/S05_提交CSV完整性校验.png", "✅"],
     ["S06", "Excel 核心指标与登记 JSON 一致性：程序化读取 00 表单元格对照（终端回放）", "验证过程截图/S06_Excel与JSON一致性.png", "✅"],
     ["S07", "交稿包文件 MD5 指纹与运行环境（python/numpy 版本、时间戳；终端回放）", "验证过程截图/S07_文件指纹与环境.png", "✅"],
 ]
 r = table(ws, 4, headers, rows)
 r = caption(ws, r + 1, "下列嵌入图便于审阅；原图亦在交稿包 验证过程截图/ 目录。")
 
-# embed images if present
+# embed images if present（与交稿目录文件名一致）
 img_row = r + 1
 for name in [
-    "S01_指定集目录与pkl结构.png",
+    "S01_数据集结构与加载核验.png",
     "S02_嵌套N0指标汇总.png",
-    "S03_交卷CSV前30行.png",
-    "S04_Excel总表指定集行说明.png",
+    "S03_提交CSV再生成与比对.png",
+    "S04_独立复算.png",
+    "S05_提交CSV完整性校验.png",
+    "S06_Excel与JSON一致性.png",
+    "S07_文件指纹与环境.png",
 ]:
     p = SHOT / name
     if not p.exists():
         continue
     try:
         img = XLImage(str(p))
-        # display width ~640 px
         if img.width and img.width > 640:
             ratio = 640 / float(img.width)
             img.width = 640
             img.height = int(float(img.height) * ratio)
         ws.add_image(img, f"B{img_row}")
-        img_row += 20
+        img_row += 18
     except Exception as e:  # noqa: BLE001
         ws.cell(row=img_row, column=2, value=f"[未能嵌入 {name}: {e}]")
         img_row += 2
 
 auto_fit_columns(ws, min_width=8, max_width=48, header_row=4, data_start_row=5)
 
-# ---------------------------------------------------------------- 07 交卷说明
-ws = wb.create_sheet("07_交卷与评测纪律")
-setup_sheet(ws, title="交卷决策与评测纪律（指定集）", last_col=6)
+# ---------------------------------------------------------------- 07 提交决策与评测纪律
+ws = wb.create_sheet("07_提交决策与评测纪律")
+setup_sheet(ws, title="提交决策与评测纪律（指定集）", last_col=6)
 headers = ["项", "说明"]
 rows = [
-    ["交卷模型", "QuadFold-59（嵌套主读 0.511±0.066）"],
-    ["主读尺子", "LOSO6 leave-fold 嵌套；禁止用折内 0.558 作对外主读"],
+    ["提交模型", "QuadFold-59（留一被试主要结果 Acc 0.5111±0.0657）"],
+    ["主要结果尺子", "LOSO6 留一被试；禁止用折内 0.5580 作对外主要结果"],
     ["盲测文件", "sample_submission.csv（官方模板已填 label∈{0,1,2}，120 行）"],
-    ["风险否决（归档）", "备选 8ch 微调栈嵌套 0.540：test 预测 Rest≈51% 落在 Val 支撑外，不交"],
-    ["纪律", "超参与融合权仅在 Val/嵌套折外选定；测试标签未用于调参"],
+    ["风险否决（归档）", "备选 8 通道微调栈留一被试 0.5400：测试预测 Rest≈51% 落在验证支撑外，不交"],
+    ["纪律", "超参与融合权仅在验证折外选定；测试标签未用于调参"],
 ]
 r = table(ws, 4, headers, rows)
 auto_fit_columns(ws, min_width=12, max_width=70, header_row=4, data_start_row=5)

@@ -4,9 +4,11 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent
 
+
 def w(name: str, text: str) -> None:
     (ROOT / name).write_text(text, encoding="utf-8", newline="\n")
     print("wrote", name, ROOT.joinpath(name).stat().st_size)
+
 
 COHORT = r'''"""P0 identity merge -> analysis_42/cohort_map.json"""
 from __future__ import annotations
@@ -21,8 +23,8 @@ from paths import ANALYSIS, SUBJECTS
 
 # explicit merge rules (plan section 0); others are singletons
 MERGE_RULES: Dict[str, List[str]] = {
-    "fnz": ["fnz", "xjh0828", "fnz0830", "fnz_1"],
-    "cyy": ["cyy", "cyy0830"],
+    "xjh0828": ["fnz", "fnz0828", "xjh0828", "fnz_1"],
+    "cyy0830": ["cyy", "cyy0830"],
 }
 
 SKIP_DIRS = {
@@ -32,9 +34,11 @@ SKIP_DIRS = {
     "learn_m00",
 }
 
+
 def _stem_person(sid: str) -> str:
     m = re.match(r"^([a-zA-Z]+)", sid)
     return (m.group(1) if m else sid).lower()
+
 
 def build_cohort_map() -> Dict[str, Any]:
     present = sorted(
@@ -88,6 +92,7 @@ def build_cohort_map() -> Dict[str, Any]:
         "notes": "analysis unit = person_id",
     }
 
+
 def main() -> Path:
     ANALYSIS.mkdir(parents=True, exist_ok=True)
     obj = build_cohort_map()
@@ -95,6 +100,7 @@ def main() -> Path:
     path.write_text(json.dumps(obj, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
     print(f"[P0] wrote {path} n_people={obj['n_people']}")
     return path
+
 
 if __name__ == "__main__":
     main()
@@ -109,6 +115,7 @@ from pathlib import Path
 
 from paths import ANALYSIS, SUMMARY_DIR
 
+
 def _fmt(x, nd=3):
     try:
         if x is None or (isinstance(x, float) and (x != x)):
@@ -118,6 +125,7 @@ def _fmt(x, nd=3):
         return str(x)
     except Exception:
         return ""
+
 
 def write_registry() -> Path:
     cohort = json.loads((ANALYSIS / "cohort_map.json").read_text(encoding="utf-8"))
@@ -262,6 +270,7 @@ def write_registry() -> Path:
     path.write_text("\n".join(lines), encoding="utf-8")
     print(f"[summary] wrote {path}")
     return path
+
 
 if __name__ == "__main__":
     write_registry()

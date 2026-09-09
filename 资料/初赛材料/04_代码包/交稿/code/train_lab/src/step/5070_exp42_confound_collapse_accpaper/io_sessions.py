@@ -10,6 +10,7 @@ import pandas as pd
 
 from paths import CHANS, FS, SUBJECTS
 
+
 def session_key_from_dirname(name: str) -> Optional[str]:
     for part in name.split("_"):
         p = part.lower()
@@ -18,6 +19,7 @@ def session_key_from_dirname(name: str) -> Optional[str]:
         if p.startswith("w") and not p.startswith("ws") and p[1:].isdigit():
             return p
     return None
+
 
 def list_v3_sessions(member_id: str) -> Dict[str, Path]:
     """member_id -> {wNN|wsNN: session_dir}???????????? eeg.csv?"""
@@ -68,11 +70,13 @@ def list_v3_sessions(member_id: str) -> Dict[str, Path]:
             by[ws] = d
     return by
 
+
 def find_eeg_csv(session_dir: Path) -> Path:
     for p in (session_dir / "eeg.csv", session_dir / "continuous" / "eeg.csv"):
         if p.is_file():
             return p
     raise FileNotFoundError(f"no eeg.csv: {session_dir}")
+
 
 def load_eeg(session_dir: Path) -> Tuple[np.ndarray, np.ndarray]:
     """?? (lsl_time[T], x[T,8])?"""
@@ -90,6 +94,7 @@ def load_eeg(session_dir: Path) -> Tuple[np.ndarray, np.ndarray]:
     x = df[cols].to_numpy(dtype=np.float64)
     return t, x
 
+
 def load_events(session_dir: Path) -> List[Dict[str, Any]]:
     p = session_dir / "events.jsonl"
     if not p.is_file():
@@ -106,6 +111,7 @@ def load_events(session_dir: Path) -> List[Dict[str, Any]]:
         except json.JSONDecodeError:
             continue
     return rows
+
 
 def parse_trials(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
     """? events ?? Rest/MI ?????label: 0=Rest,1=Left,2=Right?"""
@@ -178,6 +184,7 @@ def parse_trials(events: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
             continue
         i += 1
     return trials
+
 
 def load_eeg_meta(session_dir: Path) -> Dict[str, Any]:
     for p in (session_dir / "eeg.meta.json", session_dir / "continuous" / "eeg.meta.json"):

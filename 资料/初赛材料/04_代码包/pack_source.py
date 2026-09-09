@@ -40,10 +40,37 @@ GLOBAL_FILE_NAME = {
 CODE_DIR_EXCLUDE = {"out"}
 EG_DIR_EXCLUDE = {
     "data", "gui-test-screenshots", "学习复现_从0到1",
+    # 交稿瘦身：机位笔记 / 顶层杂测（experiment/tests 仍保留）
+    "machines",
 }
 EG_FILE_EXCLUDE = {
     "项目计划.md", "代码审查报告.md", "架构重构分析报告.md",
+    "fnz0828_问题诊断报告.md",
     "xjh0828_问题诊断报告.md",
+}
+# 文献 / 历史方案归档不随源代码交
+EG_PATH_EXCLUDE_PREFIXES = (
+    "experiment_game/docs/literature/",
+    "experiment_game/docs/archive/",
+    "experiment_game/tools/archive/",
+)
+# 在线主线入口白名单（其余 tools/*.py 为内部实验/复盘脚本，不入交稿）
+EG_TOOLS_KEEP = {
+    "__init__.py",
+    "open_operator.py",
+    "open_induction.py",
+    "preflight.py",
+    "openbmi_replay_pool.py",  # 兼容转发 → pipeline
+    "run_phase2_session.py",
+    "acq_self_check.py",
+    "smoke_operator_ws.py",
+    "sync_e1f_weights_checklist.py",
+}
+# docs 仅保留口径权威与最小协议说明（其余为过程稿）
+EG_DOCS_KEEP = {
+    "统计口径方案A_20260831.md",
+    "marker_spec.md",
+    "ws_protocol.md",
 }
 
 ROOTS = [
@@ -63,6 +90,8 @@ TOP_FILES = [
     ("code/README_离线代码复现指南.md", OUT_DIR / "README_离线代码复现指南.md"),
     ("experiment_game/README_在线系统运行指南.md", OUT_DIR / "README_在线系统运行指南.md"),
     ("collect_data/README_采集软件说明.md", OUT_DIR / "README_采集软件说明.md"),
+    # 交稿专用精简 README（覆盖仓库开发版，避免断链到已剔除文档）
+    ("experiment_game/README.md", OUT_DIR / "README_experiment_game_交稿.md"),
 ]
 
 def dir_excluded(rel_dir: str) -> bool:
@@ -83,6 +112,34 @@ def file_excluded(rel_file: str) -> bool:
     if p.name in GLOBAL_FILE_NAME:
         return True
     if p.parts[0] == "experiment_game" and p.name in EG_FILE_EXCLUDE:
+        return True
+    # 交稿 README 由 TOP_FILES 注入精简版，跳过仓库开发版
+    if p.as_posix() == "experiment_game/README.md":
+        return True
+    # tools：仅保留启动/自检白名单（含 tools/ 根下 py；子目录已由 archive 前缀排除）
+    parts = p.parts
+    if (
+        len(parts) >= 3
+        and parts[0] == "experiment_game"
+        and parts[1] == "tools"
+        and p.suffix.lower() == ".py"
+        and parts[2] not in EG_TOOLS_KEEP
+        and "archive" not in parts
+    ):
+        # tools/foo.py 不在白名单 → 排除；tools/archive/... 已由前缀排除
+        if len(parts) == 3:
+            return True
+    # docs：仅保留白名单 md
+    if (
+        len(parts) >= 3
+        and parts[0] == "experiment_game"
+        and parts[1] == "docs"
+        and p.suffix.lower() in {".md", ".pdf", ".txt"}
+        and p.name not in EG_DOCS_KEEP
+    ):
+        return True
+    # 顶层 tests/（acq 杂测）；保留 experiment/tests
+    if len(parts) >= 3 and parts[0] == "experiment_game" and parts[1] == "tests":
         return True
     return False
 
@@ -105,6 +162,8 @@ def collect() -> list[tuple[str, Path, int]]:
                     skip = True
                     break
             if skip or file_excluded(arc):
+                continue
+            if any(arc.replace("\\", "/").startswith(p) for p in EG_PATH_EXCLUDE_PREFIXES):
                 continue
             items.append((arc, f, f.stat().st_size))
     for arc, src in TOP_FILES:

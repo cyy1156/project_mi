@@ -1,14 +1,14 @@
 {
   "schema_version": 2,
   "subject": {
-    "subject_id": "test",
-    "session_id": "w16",
+    "subject_id": "syj0828",
+    "session_id": "w05",
     "notes": "smoke_timing"
   },
   "acquisition": {
     "enabled": true,
-    "board_mode": "synthetic",
-    "serial_port": "COM5",
+    "board_mode": "cyton",
+    "serial_port": "COM4",
     "sample_rate_hz": 250,
     "channel_labels": [
       "FC3",
@@ -31,7 +31,7 @@
     "markers_lsl": true
   },
   "experiment": {
-    "phase_mode": "v3_session",
+    "phase_mode": "v2_session",
     "v2_config_path": null,
     "protocol_locked": true,
     "v2_overrides": {
@@ -58,11 +58,11 @@
       "game_rounds_min": 1,
       "game_rounds_max": 3,
       "replay_ratio": 0.1,
-      "s3_task_ckpt": "experiment_game/data/subjects/test/models/current/best_task.pt",
-      "s3_three_ckpt": "experiment_game/data/subjects/test/models/current/best_three.pt",
+      "s3_task_ckpt": "experiment_game/data/subjects/syj0828/models/current/best_task.pt",
+      "s3_three_ckpt": "experiment_game/data/subjects/syj0828/models/current/best_three.pt",
       "readout_mode": "e1f",
       "e1f_config_path": "experiment_game/config/e1f_four_member.json",
-      "e1f_overlay_path": "experiment_game/data/subjects/test/models/current/e1f_overlay.json",
+      "e1f_overlay_path": "experiment_game/data/subjects/syj0828/models/current/e1f_overlay.json",
       "primary_judge_mode": "majority"
     },
     "skip_v2_guidance": false,
@@ -114,16 +114,16 @@
       "imagine_s": 4,
       "iti_s": 3,
       "inter_trial_rest_s": 4,
-      "s3_task_ckpt": "experiment_game/data/subjects/test/models/current/best_task.pt",
-      "s3_three_ckpt": "experiment_game/data/subjects/test/models/current/best_three.pt",
+      "s3_task_ckpt": "experiment_game/data/subjects/syj0828/models/current/best_task.pt",
+      "s3_three_ckpt": "experiment_game/data/subjects/syj0828/models/current/best_three.pt",
       "readout_mode": "e1f",
       "e1f_config_path": "experiment_game/config/e1f_four_member.json",
-      "e1f_overlay_path": "experiment_game/data/subjects/test/models/current/e1f_overlay.json",
+      "e1f_overlay_path": "experiment_game/data/subjects/syj0828/models/current/e1f_overlay.json",
       "primary_judge_mode": "majority"
     }
   },
   "storage": {
-    "save_root": "experiment_game/data/subjects/test/sessions",
+    "save_root": "experiment_game/data/subjects/syj0828/sessions",
     "save_layout": "phase_folders",
     "save_eeg": true,
     "save_events": true,

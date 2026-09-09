@@ -23,8 +23,8 @@ from paths import ANALYSIS, SUBJECTS
 
 # explicit merge rules (plan section 0); others are singletons
 MERGE_RULES: Dict[str, List[str]] = {
-    "fnz": ["fnz", "fnz0828", "fnz0830", "fnz_1"],
-    "cyy": ["cyy", "cyy0830"],
+    "xjh0828": ["fnz", "fnz0828", "xjh0828", "fnz_1"],
+    "cyy0830": ["cyy", "cyy0830"],
 }
 
 SKIP_DIRS = {

@@ -8,7 +8,7 @@
 
 沿用 2026-08-28 模式：
   syj0828 · 仅 v3 ws01–ws06（排除 v4 ws01_124816）
-  fnz0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
+  xjh0828 · v3 ws02–ws07（排除 v4 ws01；2026-08-30 重测 ws07 已覆盖断流版）
   R1–R3 replay=0.1；R4–R5 --no-replay
 
 纳入规则（2026-09-04）：
@@ -24,7 +24,7 @@
 
 用法:
   python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject syj0828
-  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject fnz0828
+  python experiment_game/tools/run_leave_next_e1f_task_ramp.py --subject xjh0828
   python experiment_game/tools/run_leave_next_e1f_task_ramp.py --all
 """
 
@@ -166,7 +166,7 @@ SUBJECTS_W = (
     "wyf0906",
     "zyn0906",
 )
-SUBJECTS_ALL = ("syj0828", "fnz0828") + SUBJECTS_W
+SUBJECTS_ALL = ("syj0828", "xjh0828") + SUBJECTS_W
 
 # 历史兼容：曾按被试强制纳入 ft_eligible=false。
 # 2026-09-04 起：**电极 CZ/CPZ 饱和不再作为 Leave-Next 不可用条件**
@@ -187,7 +187,7 @@ def _session_dirs(by_ws: Dict[str, Any], key: str) -> List[Path]:
 def _ramp_for_subject(subject_id: str, by_ws: Dict[str, Any]) -> list:
     if subject_id == "syj0828":
         cand = list(RAMP_SYJ)
-    elif subject_id == "fnz0828":
+    elif subject_id in ("xjh0828", "fnz0828"):
         cand = list(RAMP_FNZ)
     elif subject_id == "ycx0831":
         cand = list(RAMP_YCX)
@@ -248,7 +248,7 @@ def _list_v3_sessions(subject_id: str) -> Dict[str, Any]:
             continue
         if subject_id == "syj0828" and "124816" in d.name:
             continue
-        if subject_id == "fnz0828" and d.name.endswith("_152231"):
+        if subject_id in ("xjh0828", "fnz0828") and d.name.endswith("_152231"):
             continue
         # ycx0831 w06 半场（9:9），Leave-Next 排除，改用 w07
         if subject_id == "ycx0831" and "_w06_" in d.name:
@@ -709,7 +709,7 @@ def run_ramp(
 def main() -> None:
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument("--subject", choices=SUBJECTS_ALL, action="append")
-    ap.add_argument("--all", action="store_true", help="仅 syj0828+fnz0828")
+    ap.add_argument("--all", action="store_true", help="仅 syj0828+xjh0828")
     ap.add_argument(
         "--cohort-real",
         action="store_true",
@@ -736,7 +736,7 @@ def main() -> None:
     if args.cohort_real or args.cohort_0828_0830:
         subjects = list(SUBJECTS_ALL)
     elif args.all or not subjects:
-        subjects = ["syj0828", "fnz0828"]
+        subjects = ["syj0828", "xjh0828"]
     for sid in subjects:
         run_ramp(
             sid,
