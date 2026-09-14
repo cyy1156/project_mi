@@ -21,7 +21,7 @@
 | `code/preprocess_lab/` | 预处理流水线（数据集加载、切分、缓存） |
 | `code/train_lab/` | 训练流水线（模型、五折实验、评测与汇总） |
 | `code/adapt_engine/` | 少样本自适应引擎 |
-| `experiment_game/` | 诱导实验网页 + 操作台采集系统（含 epochs 训练样本） |
+| `experiment_game/` | 诱导实验网页 + 操作台采集系统（`data/` 为本地数据，不入库） |
 | `collect_data/` | LSL / Cyton 采集与连接相关代码 |
 | `find_best_trail/` | 寻优 / 对比实验脚本 |
 | `self_learing/`、`self_model/`、`shallow/` | 学习与模型原型实验 |
@@ -32,8 +32,7 @@
 
 | 内容 | 约体积 | 是否入库 | 说明 |
 |---|---|---|---|
-| `experiment_game/data/sessions/` | 324 MB | ❌ | 3 名被试的正式采集原始脑电（sub01/sub02/sub03，2026-07-23） |
-| `experiment_game/data/epochs/` | 8 MB | ✅ | 由上面数据切分出的训练样本（体量小，保留） |
+| `experiment_game/data/` | 332 MB | ❌ | 3 名被试正式采集的原始脑电与派生 epochs 训练样本（sub01/sub02/sub03，2026-07-23）；本地专属，整目录不入库 |
 | `code/train_lab/out/**` | 490 MB | ❌ | 五折训练输出、`*.pt` 权重、prob dump CSV |
 | `资料/` | 90 MB | ✅ | 技术报告、实验方案与结果文档 |
 

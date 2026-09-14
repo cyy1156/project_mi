@@ -1,6 +1,7 @@
 # ================= 大文件 / 本地数据（不入库）=================
-# 说明：原始采集数据与训练输出/权重约 830MB，属可复现的中间产物，
-#      一律不入库（本地保留）。需要时见 README「数据与产物」一节。
+# 说明：experiment_game/data/（约 332MB）与训练输出/权重（约 490MB）
+#      属本地专属数据与可复现的中间产物，一律不入库（本地保留）。
+#      需要时见 README「数据与产物」一节。
 
 # ---- 本地大数据集（公共数据集 / 本地二进制语料）----
 # Anchor to repo-root only — on Windows, bare "DATA/" also matches **/data/
@@ -10,14 +11,10 @@
 **/*.bdf
 **/*.edf
 
-# ---- 原始采集数据（3 名被试正式采集，约 324MB）----
-experiment_game/data/sessions/
-experiment_game/data/_*/
-experiment_game/data/*.txt
-experiment_game/data/subjects/
-experiment_game/data/models/
-experiment_game/data/offline_replay/
-experiment_game/data/sim_subjects/
+# ---- experiment_game/data：整目录不入库（原始采集数据 + 派生样本，约 332MB）----
+# 本地专属数据，仓库不提交、不修改、不删除
+experiment_game/data/
+!experiment_game/data/.gitkeep
 
 # ---- 训练输出 / 权重 / prob dump（约 490MB）----
 code/train_lab/out/
@@ -34,8 +31,6 @@ code/adapt_engine/results/
 **/*_X_noz.npy
 **/_cache_*.npy
 *.npy
-# 保留体量很小的 epochs（自采数据派生的训练样本，约 8MB）
-!experiment_game/data/epochs/**/*.npy
 
 # ---- 日志与缓存 ----
 **/*.log
